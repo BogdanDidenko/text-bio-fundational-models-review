@@ -23,8 +23,9 @@ This repository contains the complete search methodology, PRISMA-S protocol, and
 .
 ├── README.md                    # This file
 ├── LICENSE                      # MIT License
-├── scripts/                     # Reproducible search scripts
+├── scripts/                     # Reproducible search and processing scripts
 │   ├── reproduce_search.py      # Main script — queries all 7 databases
+│   ├── deduplicate.py           # Deduplication of search results
 │   ├── search_config.json       # Exact Boolean queries and filters
 │   ├── api_keys.template.json   # Template for API keys
 │   ├── requirements.txt         # Python dependencies
@@ -45,8 +46,11 @@ This repository contains the complete search methodology, PRISMA-S protocol, and
 │       ├── springernature.txt
 │       └── google_scholar.txt
 └── data/
-    ├── search_log_2026-02-06.md # Detailed search execution log
-    └── exports/                 # Original search results (JSON)
+    ├── search_log_2026-02-06.md          # Detailed search execution log
+    ├── deduplicated_records.json          # 3,407 unique records after dedup
+    ├── deduplication_log.csv              # Every merge decision with reason
+    ├── deduplication_stats.json           # Deduplication statistics
+    └── exports/                           # Original search results (JSON)
         ├── pubmed_2026-02-06.json
         ├── scopus_2026-02-06.json
         ├── semantic_scholar_2026-02-06.json
@@ -78,6 +82,19 @@ The search uses three concept blocks combined with AND logic:
 | 6 | SpringerNature | Meta + OA APIs | ~250 (validated) |
 | 7 | Google Scholar | scholarly library | ~514 |
 | | **Total (before dedup)** | | **~5,400** |
+
+### Deduplication
+
+Conservative exact-matching deduplication (DOI → PMID → arXiv ID → normalized title):
+
+| Metric | Value |
+|---|---|
+| Records before dedup | 5,271 |
+| Unique records after dedup | **3,407** |
+| Duplicates removed | 1,864 (35.4%) |
+| Preprint→published links | 146 |
+
+Run: `python scripts/deduplicate.py`
 
 ## Reproducing the Search
 

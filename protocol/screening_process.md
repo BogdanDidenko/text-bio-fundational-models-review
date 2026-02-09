@@ -41,12 +41,38 @@ For records marked INCLUDE or UNCERTAIN in Phase 1:
 
 ## Deduplication Strategy
 
-1. **Primary**: Match by DOI (exact)
-2. **Secondary**: Fuzzy title matching (Levenshtein distance < 5 or cosine similarity > 0.95)
-3. **Tertiary**: First author + year + first 5 title words
-4. **Preprint-to-publication**: If both preprint and published version exist, keep the published version but note the preprint DOI
+Conservative exact-matching approach (no fuzzy matching to avoid accidental removals):
+
+1. **Normalization**: DOI (strip URL prefix, lowercase), arXiv ID (strip version suffix), title (NFC unicode, lowercase, strip punctuation, collapse whitespace)
+2. **Exact DOI matching**: Normalized DOI comparison
+3. **Exact PMID matching**: For records with PubMed IDs (available from PubMed, Semantic Scholar, EuropePMC)
+4. **Exact arXiv ID matching**: Normalized arXiv ID comparison (available from arXiv, Semantic Scholar)
+5. **Exact normalized title matching**: After full title normalization
+6. **Preprint→published linking**: If a cluster contains both a preprint DOI (10.1101/*, 10.48550/arXiv.*) and a publisher DOI, the published version is kept as representative and the preprint DOI is noted
+
+Records are added in metadata-quality order (PubMed → Scopus → S2 → bioRxiv → SN → arXiv → GS), so the representative record in each cluster has the best available metadata.
+
+### Deduplication Results (2026-02-06 data)
+
+| Metric | Value |
+|---|---|
+| Records before dedup | 5,271 |
+| Unique records after dedup | 3,407 |
+| Duplicates removed | 1,864 (35.4%) |
+| DOI matches | 1,047 |
+| Exact title matches | 651 |
+| PMID matches | 89 |
+| arXiv ID matches | 77 |
+| Preprint→published links | 146 |
+
+Script: [scripts/deduplicate.py](../scripts/deduplicate.py)
 
 ## Output
 
-All screening results logged to `data/logs/screening_log.csv` with columns:
+Deduplication output:
+- `data/deduplicated_records.json` — unique records with source tracking and cluster metadata
+- `data/deduplication_log.csv` — every merge decision with action, reason, and cluster ID
+- `data/deduplication_stats.json` — summary statistics
+
+Screening results logged to `data/screening_log.csv` with columns:
 - record_id, database_source, doi, title, phase1_decision, phase1_code, phase2_decision, phase2_code, notes
