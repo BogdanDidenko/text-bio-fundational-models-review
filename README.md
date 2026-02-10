@@ -26,6 +26,7 @@ This repository contains the complete search methodology, PRISMA-S protocol, and
 ├── scripts/                     # Reproducible search and processing scripts
 │   ├── reproduce_search.py      # Main script — queries all 7 databases
 │   ├── deduplicate.py           # Deduplication of search results
+│   ├── enrich_abstracts.py      # Fetch missing abstracts via S2/CrossRef/PubMed APIs
 │   ├── search_config.json       # Exact Boolean queries and filters
 │   ├── api_keys.template.json   # Template for API keys
 │   ├── requirements.txt         # Python dependencies
@@ -50,6 +51,7 @@ This repository contains the complete search methodology, PRISMA-S protocol, and
     ├── deduplicated_records.json          # 3,407 unique records after dedup
     ├── deduplication_log.csv              # Every merge decision with reason
     ├── deduplication_stats.json           # Deduplication statistics
+    ├── enrichment_log.json               # Abstract enrichment log
     └── exports/                           # Original search results (JSON)
         ├── pubmed_2026-02-06.json
         ├── scopus_2026-02-06.json
@@ -95,6 +97,22 @@ Conservative exact-matching deduplication (DOI → PMID → arXiv ID → normali
 | Preprint→published links | 146 |
 
 Run: `python scripts/deduplicate.py`
+
+### Abstract Enrichment
+
+After deduplication, 562 records lacked abstracts (mainly Scopus-sourced, which doesn't return abstracts via Search API). Two-step enrichment:
+
+1. **Cluster-level**: pick the longest abstract from any record in a duplicate cluster (+346 abstracts)
+2. **API enrichment**: fetch from Semantic Scholar, CrossRef, and PubMed by DOI/PMID (+374 abstracts)
+
+| Metric | Value |
+|---|---|
+| Missing before enrichment | 908 (26.7%) |
+| Missing after cluster fix | 562 (16.5%) |
+| **Missing after API enrichment** | **179 (5.3%)** |
+| Abstract coverage | **3,228 / 3,407 (94.7%)** |
+
+Run: `python scripts/enrich_abstracts.py --keys api_keys.json`
 
 ## Reproducing the Search
 

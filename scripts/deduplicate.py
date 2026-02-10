@@ -326,6 +326,14 @@ class DeduplicationEngine:
             sorted_records = sorted(records, key=sort_key)
             best = sorted_records[0]
 
+            # Use the longest abstract from any record in the cluster
+            # (the representative may come from a DB without abstracts, e.g. Scopus)
+            best_abstract = best["abstract"]
+            if len(records) > 1:
+                all_abstracts = [r["abstract"] for r in records if r["abstract"]]
+                if all_abstracts:
+                    best_abstract = max(all_abstracts, key=len)
+
             # Collect all source databases and IDs
             sources = list(set(r["source_db"] for r in records))
             all_dois = list(set(r["doi_original"] for r in records if r["doi_original"]))
@@ -344,7 +352,7 @@ class DeduplicationEngine:
                 "preprint_doi": preprint_dois[0] if (preprint_dois and published_dois) else "",
                 "pmid": all_pmids[0] if all_pmids else "",
                 "arxiv_id": all_arxiv_ids[0] if all_arxiv_ids else "",
-                "abstract": best["abstract"],
+                "abstract": best_abstract,
                 "authors": best["authors"],
                 "year": best["year"],
                 "venue": best["venue"],
