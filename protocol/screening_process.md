@@ -67,12 +67,32 @@ Records are added in metadata-quality order (PubMed → Scopus → S2 → bioRxi
 
 Script: [scripts/deduplicate.py](../scripts/deduplicate.py)
 
+### Abstract Enrichment and Exclusion
+
+After deduplication, many records (primarily from Scopus Search API which does not return abstracts) lacked abstracts. A two-step enrichment + exclusion pipeline ensures all records entering screening have abstracts for reliable LLM-based classification:
+
+1. **Cluster-level abstract selection**: During dedup, the longest abstract from any record in a duplicate cluster is kept (not just the representative's abstract). This recovers abstracts from lower-priority sources in the same cluster.
+2. **API enrichment**: For remaining records without abstracts, fetch from Semantic Scholar (by DOI), CrossRef (by DOI), PubMed Entrez (by PMID), and S2 title search (fallback).
+3. **Exclusion**: Records still lacking an abstract after enrichment are excluded with code `EC_NO_ABSTRACT` and saved to a separate audit file.
+
+| Metric | Value |
+|---|---|
+| Missing before enrichment | 908 (26.7%) |
+| Recovered via cluster fix | +346 |
+| Recovered via API (S2, CrossRef, PubMed) | +374 |
+| Excluded (no abstract after all steps) | 179 (5.3%) |
+| **Records for screening** | **3,228** |
+
+Script: [scripts/enrich_abstracts.py](../scripts/enrich_abstracts.py)
+
 ## Output
 
-Deduplication output:
-- `data/deduplicated_records.json` — unique records with source tracking and cluster metadata
+Deduplication + enrichment output:
+- `data/deduplicated_records.json` — 3,228 records with abstracts, ready for screening
+- `data/excluded_no_abstract.json` — 179 records excluded for missing abstract (audit trail)
 - `data/deduplication_log.csv` — every merge decision with action, reason, and cluster ID
 - `data/deduplication_stats.json` — summary statistics
+- `data/enrichment_log.json` — abstract enrichment details per record
 
 Screening results logged to `data/screening_log.csv` with columns:
 - record_id, database_source, doi, title, phase1_decision, phase1_code, phase2_decision, phase2_code, notes

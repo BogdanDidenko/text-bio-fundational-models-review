@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-Enrich deduplicated records with missing abstracts.
+Enrich deduplicated records with missing abstracts, then exclude
+records that still lack abstracts.
 
-Fetches abstracts from multiple APIs for records that lack them:
-  1. Semantic Scholar (by DOI, then by title)
-  2. CrossRef (by DOI)
-  3. PubMed Entrez (by PMID)
+Pipeline:
+  1. Fetch abstracts from S2/CrossRef/PubMed APIs for records missing them
+  2. Exclude records that still have no abstract after enrichment
+     (saved to data/excluded_no_abstract.json for audit)
 
 Usage:
-  python enrich_abstracts.py
-  python enrich_abstracts.py --keys api_keys.json   # for higher S2/NCBI rate limits
-  python enrich_abstracts.py --dry-run               # just report, don't modify
+  python enrich_abstracts.py --keys api_keys.json
+  python enrich_abstracts.py --keys api_keys.json --dry-run
+  python enrich_abstracts.py --skip-fetch            # only run exclusion step
 
 Input:  data/deduplicated_records.json
-Output: data/deduplicated_records.json (updated in place)
+Output: data/deduplicated_records.json (updated — only records WITH abstracts)
+        data/excluded_no_abstract.json (records excluded for missing abstract)
         data/enrichment_log.json (detailed log)
 """
 
@@ -27,6 +29,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 RECORDS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "deduplicated_records.json")
+EXCLUDED_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "excluded_no_abstract.json")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "enrichment_log.json")
 
 # Minimum abstract length to consider "present"
@@ -188,6 +191,7 @@ def main():
     parser.add_argument("--keys", help="Path to api_keys.json")
     parser.add_argument("--dry-run", action="store_true", help="Report only, don't modify records")
     parser.add_argument("--limit", type=int, default=0, help="Max records to process (0=all)")
+    parser.add_argument("--skip-fetch", action="store_true", help="Skip API fetching, only run exclusion step")
     args = parser.parse_args()
 
     # Load API keys
@@ -205,117 +209,162 @@ def main():
 
     records = data["records"]
     total = len(records)
-    missing = [i for i, r in enumerate(records) if not has_abstract(r)]
 
-    print(f"Total records: {total}")
-    print(f"Missing abstracts: {len(missing)}")
-    if args.limit:
-        missing = missing[:args.limit]
-        print(f"Processing first {len(missing)} records")
-    print()
-
-    # Enrichment log
+    # ------------------------------------------------------------------
+    # Step 1: Fetch missing abstracts from APIs
+    # ------------------------------------------------------------------
     log = {
         "started": datetime.now().isoformat(),
-        "total_missing": len(missing),
+        "total_records": total,
+        "total_missing_before": 0,
         "s2_doi_found": 0,
         "s2_title_found": 0,
         "crossref_found": 0,
         "pubmed_found": 0,
-        "still_missing": 0,
+        "enriched": 0,
+        "still_missing_after_fetch": 0,
+        "excluded_no_abstract": 0,
+        "records_for_screening": 0,
         "details": [],
     }
 
-    enriched_count = 0
-    for idx, rec_idx in enumerate(missing):
-        rec = records[rec_idx]
-        doi = rec.get("doi", "").strip()
-        pmid = rec.get("pmid", "").strip()
-        title = rec.get("title", "").strip()
-        sources = rec.get("sources", [])
+    missing = [i for i, r in enumerate(records) if not has_abstract(r)]
+    log["total_missing_before"] = len(missing)
 
-        if idx % 50 == 0:
-            print(f"  Processing {idx+1}/{len(missing)} (enriched so far: {enriched_count})...")
+    print(f"Total records: {total}")
+    print(f"Missing abstracts: {len(missing)}")
 
-        abstract = None
-        source_api = None
-
-        # Strategy 1: S2 by DOI
-        if doi and not abstract:
-            abstract = fetch_abstract_s2_doi(doi, s2_key)
-            if abstract:
-                source_api = "s2_doi"
-                log["s2_doi_found"] += 1
-            time.sleep(0.15)  # S2 rate limit: ~100 req/5min without key
-
-        # Strategy 2: CrossRef by DOI
-        if doi and not abstract:
-            abstract = fetch_abstract_crossref(doi)
-            if abstract:
-                source_api = "crossref"
-                log["crossref_found"] += 1
-            time.sleep(0.1)
-
-        # Strategy 3: PubMed by PMID
-        if pmid and not abstract:
-            abstract = fetch_abstract_pubmed(pmid, ncbi_key)
-            if abstract:
-                source_api = "pubmed"
-                log["pubmed_found"] += 1
-            time.sleep(0.12)
-
-        # Strategy 4: S2 by title (for records without DOI/PMID)
-        if not doi and not pmid and title and not abstract:
-            abstract = fetch_abstract_s2_title(title, s2_key)
-            if abstract:
-                source_api = "s2_title"
-                log["s2_title_found"] += 1
-            time.sleep(0.15)
-
-        if abstract:
-            enriched_count += 1
-            if not args.dry_run:
-                records[rec_idx]["abstract"] = abstract
-                records[rec_idx]["abstract_source"] = source_api
-            log["details"].append({
-                "cluster_id": rec.get("cluster_id"),
-                "title": title[:100],
-                "doi": doi,
-                "source_api": source_api,
-                "abstract_len": len(abstract),
-            })
+    if not args.skip_fetch and missing:
+        if args.limit:
+            fetch_list = missing[:args.limit]
+            print(f"Processing first {len(fetch_list)} records")
         else:
-            log["still_missing"] += 1
-            log["details"].append({
-                "cluster_id": rec.get("cluster_id"),
-                "title": title[:100],
-                "doi": doi,
-                "source_api": None,
-                "abstract_len": 0,
-            })
+            fetch_list = missing
+        print()
 
-    log["finished"] = datetime.now().isoformat()
-    log["enriched"] = enriched_count
+        enriched_count = 0
+        for idx, rec_idx in enumerate(fetch_list):
+            rec = records[rec_idx]
+            doi = rec.get("doi", "").strip()
+            pmid = rec.get("pmid", "").strip()
+            title = rec.get("title", "").strip()
 
-    # Print summary
+            if idx % 50 == 0:
+                print(f"  Processing {idx+1}/{len(fetch_list)} (enriched so far: {enriched_count})...")
+
+            abstract = None
+            source_api = None
+
+            # Strategy 1: S2 by DOI
+            if doi and not abstract:
+                abstract = fetch_abstract_s2_doi(doi, s2_key)
+                if abstract:
+                    source_api = "s2_doi"
+                    log["s2_doi_found"] += 1
+                time.sleep(0.15)
+
+            # Strategy 2: CrossRef by DOI
+            if doi and not abstract:
+                abstract = fetch_abstract_crossref(doi)
+                if abstract:
+                    source_api = "crossref"
+                    log["crossref_found"] += 1
+                time.sleep(0.1)
+
+            # Strategy 3: PubMed by PMID
+            if pmid and not abstract:
+                abstract = fetch_abstract_pubmed(pmid, ncbi_key)
+                if abstract:
+                    source_api = "pubmed"
+                    log["pubmed_found"] += 1
+                time.sleep(0.12)
+
+            # Strategy 4: S2 by title (for records without DOI/PMID)
+            if not doi and not pmid and title and not abstract:
+                abstract = fetch_abstract_s2_title(title, s2_key)
+                if abstract:
+                    source_api = "s2_title"
+                    log["s2_title_found"] += 1
+                time.sleep(0.15)
+
+            if abstract:
+                enriched_count += 1
+                if not args.dry_run:
+                    records[rec_idx]["abstract"] = abstract
+                    records[rec_idx]["abstract_source"] = source_api
+                log["details"].append({
+                    "cluster_id": rec.get("cluster_id"),
+                    "title": title[:100],
+                    "doi": doi,
+                    "source_api": source_api,
+                    "abstract_len": len(abstract),
+                })
+            else:
+                log["details"].append({
+                    "cluster_id": rec.get("cluster_id"),
+                    "title": title[:100],
+                    "doi": doi,
+                    "source_api": None,
+                    "abstract_len": 0,
+                })
+
+        log["enriched"] = enriched_count
+
+        print()
+        print("=" * 60)
+        print("ENRICHMENT — STEP 1: API FETCH")
+        print("=" * 60)
+        print(f"  Records processed:   {len(fetch_list)}")
+        if fetch_list:
+            print(f"  Abstracts found:     {enriched_count} ({enriched_count/len(fetch_list)*100:.1f}%)")
+        print(f"    via S2 (DOI):      {log['s2_doi_found']}")
+        print(f"    via CrossRef:      {log['crossref_found']}")
+        print(f"    via PubMed:        {log['pubmed_found']}")
+        print(f"    via S2 (title):    {log['s2_title_found']}")
+    elif args.skip_fetch:
+        print("  Skipping API fetch (--skip-fetch)")
     print()
-    print("=" * 60)
-    print("ENRICHMENT RESULTS")
-    print("=" * 60)
-    print(f"  Records processed:   {len(missing)}")
-    print(f"  Abstracts found:     {enriched_count} ({enriched_count/len(missing)*100:.1f}%)" if missing else "")
-    print(f"    via S2 (DOI):      {log['s2_doi_found']}")
-    print(f"    via CrossRef:      {log['crossref_found']}")
-    print(f"    via PubMed:        {log['pubmed_found']}")
-    print(f"    via S2 (title):    {log['s2_title_found']}")
-    print(f"  Still missing:       {log['still_missing']}")
-    print()
 
-    if not args.dry_run and enriched_count > 0:
-        # Update metadata
+    # ------------------------------------------------------------------
+    # Step 2: Exclude records without abstract
+    # ------------------------------------------------------------------
+    still_missing = [i for i, r in enumerate(records) if not has_abstract(r)]
+    log["still_missing_after_fetch"] = len(still_missing)
+
+    print("=" * 60)
+    print("ENRICHMENT — STEP 2: EXCLUDE RECORDS WITHOUT ABSTRACT")
+    print("=" * 60)
+    print(f"  Records without abstract after enrichment: {len(still_missing)}")
+
+    if still_missing and not args.dry_run:
+        # Separate records into included and excluded
+        excluded_records = [records[i] for i in still_missing]
+        included_records = [r for i, r in enumerate(records) if i not in set(still_missing)]
+
+        log["excluded_no_abstract"] = len(excluded_records)
+        log["records_for_screening"] = len(included_records)
+
+        # Save excluded records for audit trail
+        excluded_output = {
+            "metadata": {
+                "created": datetime.now().isoformat(),
+                "reason": "No abstract available after API enrichment (S2, CrossRef, PubMed)",
+                "total_excluded": len(excluded_records),
+                "exclusion_code": "EC_NO_ABSTRACT",
+            },
+            "records": excluded_records,
+        }
+        with open(EXCLUDED_PATH, "w", encoding="utf-8") as f:
+            json.dump(excluded_output, f, ensure_ascii=False, indent=2)
+        print(f"  Excluded: {len(excluded_records)} records → {EXCLUDED_PATH}")
+
+        # Update main records file
+        data["records"] = included_records
         data["metadata"]["abstract_enrichment"] = {
             "date": datetime.now().isoformat(),
-            "enriched_count": enriched_count,
+            "enriched_count": log["enriched"],
+            "excluded_no_abstract": len(excluded_records),
+            "records_for_screening": len(included_records),
             "sources": {
                 "s2_doi": log["s2_doi_found"],
                 "crossref": log["crossref_found"],
@@ -323,15 +372,31 @@ def main():
                 "s2_title": log["s2_title_found"],
             }
         }
-
-        # Recalculate abstract stats
-        new_has_abs = sum(1 for r in records if has_abstract(r))
-        print(f"  Abstract coverage: {new_has_abs}/{total} ({new_has_abs/total*100:.1f}%)")
-        print()
+        data["metadata"]["total_after_dedup"] = len(included_records)
 
         with open(RECORDS_PATH, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"  Updated: {RECORDS_PATH}")
+        print(f"  Updated:  {len(included_records)} records → {RECORDS_PATH}")
+    elif args.dry_run:
+        log["excluded_no_abstract"] = len(still_missing)
+        log["records_for_screening"] = total - len(still_missing)
+        print(f"  [DRY RUN] Would exclude {len(still_missing)} records")
+        print(f"  [DRY RUN] Would keep {total - len(still_missing)} records for screening")
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
+    log["finished"] = datetime.now().isoformat()
+    print()
+    print("=" * 60)
+    print("FINAL SUMMARY")
+    print("=" * 60)
+    print(f"  Total after dedup:         {total}")
+    print(f"  Missing before enrichment: {log['total_missing_before']}")
+    print(f"  Enriched via API:          {log['enriched']}")
+    print(f"  Excluded (no abstract):    {log['excluded_no_abstract']}")
+    print(f"  Records for screening:     {log['records_for_screening']}")
+    print()
 
     # Save log
     with open(LOG_PATH, "w", encoding="utf-8") as f:

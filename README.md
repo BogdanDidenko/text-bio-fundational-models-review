@@ -48,7 +48,8 @@ This repository contains the complete search methodology, PRISMA-S protocol, and
 │       └── google_scholar.txt
 └── data/
     ├── search_log_2026-02-06.md          # Detailed search execution log
-    ├── deduplicated_records.json          # 3,407 unique records after dedup
+    ├── deduplicated_records.json          # 3,228 records for screening (with abstracts)
+    ├── excluded_no_abstract.json         # 179 records excluded (no abstract available)
     ├── deduplication_log.csv              # Every merge decision with reason
     ├── deduplication_stats.json           # Deduplication statistics
     ├── enrichment_log.json               # Abstract enrichment log
@@ -98,19 +99,20 @@ Conservative exact-matching deduplication (DOI → PMID → arXiv ID → normali
 
 Run: `python scripts/deduplicate.py`
 
-### Abstract Enrichment
+### Abstract Enrichment and Exclusion
 
-After deduplication, 562 records lacked abstracts (mainly Scopus-sourced, which doesn't return abstracts via Search API). Two-step enrichment:
+After deduplication, 908 records lacked abstracts (mainly Scopus-sourced, which doesn't return abstracts via Search API). Three-step pipeline:
 
 1. **Cluster-level**: pick the longest abstract from any record in a duplicate cluster (+346 abstracts)
 2. **API enrichment**: fetch from Semantic Scholar, CrossRef, and PubMed by DOI/PMID (+374 abstracts)
+3. **Exclusion**: records still without abstract are excluded (saved for audit)
 
-| Metric | Value |
-|---|---|
-| Missing before enrichment | 908 (26.7%) |
-| Missing after cluster fix | 562 (16.5%) |
-| **Missing after API enrichment** | **179 (5.3%)** |
-| Abstract coverage | **3,228 / 3,407 (94.7%)** |
+| Step | Records | Excluded |
+|---|---|---|
+| After dedup | 3,407 | |
+| After cluster fix | 3,407 (83.5% with abstract) | |
+| After API enrichment | 3,407 (94.7% with abstract) | |
+| **After exclusion** | **3,228 for screening** | **179 excluded** |
 
 Run: `python scripts/enrich_abstracts.py --keys api_keys.json`
 
