@@ -10,16 +10,21 @@ Conservative strategy (no fuzzy matching):
   5. Exact normalized title matching
   6. Preprint→published: keep published version, note preprint DOI
 
-Input:  data/exports/*_2026-02-06.json  (7 database exports)
+Input:  data/exports/<db>_<date>.json  (7 database exports)
 Output: data/deduplicated_records.json   (unique records with source tracking)
         data/deduplication_log.csv       (every merge decision with reason)
         data/deduplication_stats.json    (summary statistics)
+
+Usage:
+  python deduplicate.py
+  python deduplicate.py --exports-dir data/exports_v31 --date 2026-02-15
 """
 
 import json
 import os
 import re
 import csv
+import argparse
 import unicodedata
 from datetime import datetime
 from collections import defaultdict
@@ -27,18 +32,32 @@ from collections import defaultdict
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-EXPORTS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "exports")
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_EXPORTS_DIR = os.path.join(SCRIPT_DIR, "..", "data", "exports")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "..", "data")
 
-EXPORT_FILES = {
-    "pubmed": "pubmed_2026-02-06.json",
-    "scopus": "scopus_2026-02-06.json",
-    "semantic_scholar": "semantic_scholar_2026-02-06.json",
-    "arxiv": "arxiv_2026-02-06.json",
-    "biorxiv_medrxiv": "biorxiv_medrxiv_2026-02-06.json",
-    "springernature": "springernature_filtered_2026-02-06.json",
-    "google_scholar": "google_scholar_2026-02-06.json",
-}
+DB_NAMES = ["pubmed", "scopus", "semantic_scholar", "arxiv", "biorxiv_medrxiv",
+            "springernature", "google_scholar"]
+
+
+def build_export_files(exports_dir, search_date):
+    """Build the export file mapping for a given date."""
+    files = {}
+    for db in DB_NAMES:
+        filename = f"{db}_{search_date}.json"
+        path = os.path.join(exports_dir, filename)
+        if os.path.exists(path):
+            files[db] = filename
+        else:
+            # Try legacy name for springernature
+            if db == "springernature":
+                alt = f"springernature_filtered_{search_date}.json"
+                alt_path = os.path.join(exports_dir, alt)
+                if os.path.exists(alt_path):
+                    files[db] = alt
+                    continue
+            print(f"  NOTE: {path} not found, skipping {db}")
+    return files
 
 # Preprint DOI prefixes
 PREPRINT_DOI_PREFIXES = (
@@ -105,9 +124,9 @@ def is_preprint_doi(doi: str) -> bool:
 # Record loading
 # ---------------------------------------------------------------------------
 
-def load_records(db_name: str, filename: str) -> list[dict]:
+def load_records(db_name: str, filename: str, exports_dir: str) -> list[dict]:
     """Load records from an export JSON file into a unified format."""
-    path = os.path.join(EXPORTS_DIR, filename)
+    path = os.path.join(exports_dir, filename)
     if not os.path.exists(path):
         print(f"  WARNING: {path} not found, skipping")
         return []
@@ -375,17 +394,41 @@ class DeduplicationEngine:
 # ---------------------------------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser(description="Deduplicate systematic review search results")
+    parser.add_argument("--exports-dir", default=DEFAULT_EXPORTS_DIR,
+                        help="Directory with database export JSON files")
+    parser.add_argument("--date", default=None,
+                        help="Search date suffix for filenames (e.g. 2026-02-15). Auto-detected if omitted.")
+    args = parser.parse_args()
+
+    exports_dir = os.path.abspath(args.exports_dir)
+
+    # Auto-detect date from files in exports_dir if not specified
+    search_date = args.date
+    if not search_date:
+        import glob as _glob
+        pubmed_files = sorted(_glob.glob(os.path.join(exports_dir, "pubmed_*.json")))
+        if pubmed_files:
+            search_date = os.path.basename(pubmed_files[-1]).replace("pubmed_", "").replace(".json", "")
+        else:
+            search_date = datetime.now().strftime("%Y-%m-%d")
+        print(f"  Auto-detected search date: {search_date}")
+
+    export_files = build_export_files(exports_dir, search_date)
+
     print("=" * 60)
     print("DEDUPLICATION OF SYSTEMATIC REVIEW SEARCH RESULTS")
     print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Exports dir: {exports_dir}")
+    print(f"Search date: {search_date}")
     print("Strategy: Conservative (exact matching only, no fuzzy)")
     print("=" * 60)
 
     # Load all records
     all_records = []
     db_counts = {}
-    for db_name, filename in EXPORT_FILES.items():
-        records = load_records(db_name, filename)
+    for db_name, filename in export_files.items():
+        records = load_records(db_name, filename, exports_dir)
         db_counts[db_name] = len(records)
         all_records.extend(records)
         print(f"  {db_name:25s}: {len(records):5d} records loaded")
@@ -480,7 +523,7 @@ def main():
             "total_before_dedup": total_raw,
             "total_after_dedup": n_unique,
             "duplicates_removed": n_duplicates,
-            "source_files": EXPORT_FILES,
+            "source_files": export_files,
         },
         "records": deduplicated,
     }

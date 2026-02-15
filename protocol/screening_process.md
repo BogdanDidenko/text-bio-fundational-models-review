@@ -52,18 +52,18 @@ Conservative exact-matching approach (no fuzzy matching to avoid accidental remo
 
 Records are added in metadata-quality order (PubMed → Scopus → S2 → bioRxiv → SN → arXiv → GS), so the representative record in each cluster has the best available metadata.
 
-### Deduplication Results (2026-02-06 data)
+### Deduplication Results (2026-02-15 data, query v3.1)
 
 | Metric | Value |
 |---|---|
-| Records before dedup | 5,271 |
-| Unique records after dedup | 3,407 |
-| Duplicates removed | 1,864 (35.4%) |
-| DOI matches | 1,047 |
-| Exact title matches | 651 |
-| PMID matches | 89 |
-| arXiv ID matches | 77 |
-| Preprint→published links | 146 |
+| Records before dedup | 5,534 |
+| Unique records after dedup | 3,555 |
+| Duplicates removed | 1,979 (35.8%) |
+| DOI matches | 1,486 |
+| Exact title matches | 345 |
+| PMID matches | 34 |
+| arXiv ID matches | 114 |
+| Preprint→published links | 91 |
 
 Script: [scripts/deduplicate.py](../scripts/deduplicate.py)
 
@@ -77,19 +77,25 @@ After deduplication, many records (primarily from Scopus Search API which does n
 
 | Metric | Value |
 |---|---|
-| Missing before enrichment | 908 (26.7%) |
-| Recovered via cluster fix | +346 |
-| Recovered via API (S2, CrossRef, PubMed) | +374 |
-| Excluded (no abstract after all steps) | 179 (5.3%) |
-| **Records for screening** | **3,228** |
+| Missing before enrichment | 577 (16.2%) |
+| Recovered via API (S2, CrossRef, PubMed) | +393 |
+| Excluded (no abstract after all steps) | 184 (5.2%) |
+| **Records for screening** | **3,371** |
 
 Script: [scripts/enrich_abstracts.py](../scripts/enrich_abstracts.py)
+
+### Search update history
+
+| Version | Date | Changes | Total for screening |
+|---------|------|---------|---------------------|
+| v3.0 | 2026-02-06 | Initial search across 7 databases | 3,228 |
+| v3.1 | 2026-02-15 | Added space variants: "RNA seq", "multi omics" (were missing without hyphens) | 3,371 |
 
 ## Output
 
 Deduplication + enrichment output:
-- `data/deduplicated_records.json` — 3,228 records with abstracts, ready for screening
-- `data/excluded_no_abstract.json` — 179 records excluded for missing abstract (audit trail)
+- `data/deduplicated_records.json` — 3,371 records with abstracts, ready for screening
+- `data/excluded_no_abstract.json` — 184 records excluded for missing abstract (audit trail)
 - `data/deduplication_log.csv` — every merge decision with action, reason, and cluster ID
 - `data/deduplication_stats.json` — summary statistics
 - `data/enrichment_log.json` — abstract enrichment details per record
