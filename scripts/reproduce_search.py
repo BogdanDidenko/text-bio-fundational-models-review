@@ -77,6 +77,20 @@ def date_within_cutoff(date_str, cutoff=DATE_CUTOFF):
         return True
 
 
+def date_after_cutoff(date_str, cutoff):
+    """Check if a date string is >= cutoff. Handles YYYY-MM-DD, YYYY-MM, YYYY."""
+    if not date_str or not cutoff:
+        return True
+    try:
+        if len(date_str) == 4:
+            return int(date_str) >= int(cutoff[:4])
+        if len(date_str) == 7:
+            return date_str >= cutoff[:7]
+        return date_str[:10] >= cutoff
+    except (ValueError, TypeError):
+        return True
+
+
 def save_results(output_dir, db_name, data):
     """Save results to JSON file."""
     today = datetime.now().strftime("%Y-%m-%d")
@@ -267,8 +281,12 @@ def search_scopus(config, keys):
 
     # Post-filter by date
     pre_filter_count = len(records)
+    date_from_filter = config["databases"]["scopus"].get("date_from_post_filter", "")
     records = [r for r in records if date_within_cutoff(r.get("date", ""), date_post_filter)]
-    log(f"  Scopus: {pre_filter_count} retrieved, {len(records)} after date filter (<= {date_post_filter})")
+    if date_from_filter:
+        records = [r for r in records if date_after_cutoff(r.get("date", ""), date_from_filter)]
+    log(f"  Scopus: {pre_filter_count} retrieved, {len(records)} after date filter"
+        f" ({date_from_filter or '...'} to {date_post_filter})")
 
     return {
         "database": "Scopus",
@@ -358,8 +376,12 @@ def search_semantic_scholar(config, keys):
 
     # Post-filter by date
     pre_filter_count = len(records)
+    date_from_filter = s2_config.get("date_from_post_filter", "")
     records = [r for r in records if date_within_cutoff(r.get("date", ""), date_post_filter)]
-    log(f"  S2: {pre_filter_count} total unique, {len(records)} after date filter (<= {date_post_filter})")
+    if date_from_filter:
+        records = [r for r in records if date_after_cutoff(r.get("date", ""), date_from_filter)]
+    log(f"  S2: {pre_filter_count} total unique, {len(records)} after date filter"
+        f" ({date_from_filter or '...'} to {date_post_filter})")
 
     return {
         "database": "Semantic Scholar (bulk)",
@@ -444,17 +466,26 @@ def search_arxiv(config, keys):
             if not entries:
                 break
 
+            # Parse date range from config date_filter string
+            # Format: "submittedDate:[YYYYMMDD TO YYYYMMDD]"
+            arxiv_date_from = ""
+            arxiv_date_to = ""
+            if date_filter:
+                import re as _re
+                m = _re.search(r'\[(\d{8})\s+TO\s+(\d{8})\]', date_filter)
+                if m:
+                    arxiv_date_from = m.group(1)
+                    arxiv_date_to = m.group(2)
+
             new_in_batch = 0
             for entry in entries:
                 rec = _parse_arxiv_entry(entry, ns, query_name)
                 if rec:
                     aid = rec["arxiv_id"]
                     # Apply date filter
-                    if date_filter and rec.get("date"):
+                    if arxiv_date_from and rec.get("date"):
                         pub_date = rec["date"].replace("-", "")[:8]
-                        date_from = "20180101"
-                        date_to = "20260228"
-                        if pub_date < date_from or pub_date > date_to:
+                        if pub_date < arxiv_date_from or pub_date > arxiv_date_to:
                             continue
                     if aid not in all_records:
                         all_records[aid] = rec
