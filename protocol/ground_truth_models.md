@@ -18,7 +18,7 @@ Used for validation of search completeness and screening prompt accuracy.
 | 9 | GenePT | 2024 | NL gene descriptions + expression | GPT embeddings + bio data | NL-guided gene analysis |
 | 10 | GeneGPT | 2023 | NL text + NCBI tools | LLM agent + gene databases | Tool-augmented LLM |
 | 11 | PathOmCLIP | 2024 | NL text + pathology + omics | CLIP-style alignment | Cross-modal retrieval |
-| 12 | Cell2Seq | TBD | TBD | TBD | Added 2026-04-14, pending verification |
+| 12 | Cell2Seq | 2026 | scRNA-seq tokens + NL text + metadata | 27B parameter LLM | Paper: "Scaling LLMs for Next-Gen Single-Cell Analysis". DOI: 10.1101/2025.04.14.648850. Found in 4 DBs |
 | 13 | X-Cell | 2026 | Perturbation + gene expression | Diffusion language model | CRISPRi Perturb-seq, cross-cell-type generalization |
 
 ## Related but Excluded (encoder-only, no generation)
@@ -37,7 +37,7 @@ All 11 original must-find models found across combined 7 databases.
 
 ### Update search (2026-04-14)
 - X-Cell: found in Semantic Scholar
-- Cell2Seq: **not yet found** — needs DOI/link for verification
+- Cell2Seq: found in 4 databases (PubMed, S2, bioRxiv, GS). Paper title: "Scaling Large Language Models for Next-Generation Single-Cell Analysis" (DOI: 10.1101/2025.04.14.648850)
 
 ## Usage
 
