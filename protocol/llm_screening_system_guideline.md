@@ -2,503 +2,559 @@
 
 ## Purpose
 
-This guideline translates the methodological lessons from three papers in
-`protocol/llm_screening_methodology/` into a concrete system design for our
-review:
+This document gives a concrete recommendation for how to build the screening
+system for this review of **text-bio foundational models**.
 
-- `jmir_prisma_trace_2025_methodology.md`
-- `bmc_streamlining_sr_llm_2025_methodology.md`
-- `cochrane_ai_position_statement_2025_methodology.md`
+It is based on three methodological sources:
 
-It is not a generic note on AI-assisted screening. It is a task-specific design
-recommendation for this review of **text-bio foundational models**.
+- [Trad et al. (2025) on LLM-assisted screening](https://doi.org/10.1186/s12874-025-02583-5), summarized locally in [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- [Holst et al. (2025) PRISMA-trAIce](https://doi.org/10.2196/80247), summarized locally in [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+- [Flemyng et al. (2025) Cochrane/Campbell/JBI/CEE position statement](https://doi.org/10.1002/14651858.ED000178), summarized locally in [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
-The core problem is not just "screen many papers faster." The core problem is
-to reduce manual workload **without creating an unacceptable risk of false
-exclusion** in a domain where title/abstract ambiguity is common and category
-boundaries are unusually unstable.
+The goal is not to invent a novel screening philosophy. The goal is to choose a
+system design that is:
 
----
-
-## 1. What The System Must Optimize For
-
-The system should optimize for the following priorities, in this order:
-
-1. **Protect recall**
-- Missing a true in-scope text-bio foundation model paper is more damaging than
-  retaining extra papers for manual review.
-
-2. **Make decisions auditable**
-- Every screening outcome must be reconstructable from prompt version, model
-  version, criterion-level outputs, and human adjudication records.
-
-3. **Separate ambiguity from irrelevance**
-- Many difficult records in our domain are not truly negative; they are
-  ambiguous at title/abstract level.
-- The system must not collapse ambiguity into automatic exclusion.
-
-4. **Support protocol-grade reporting**
-- The system should be designed so that its use can be reported credibly under a
-  PRISMA-trAIce-style logic and defended under a Cochrane/RAISE-style
-  governance standard.
-
-5. **Enable iterative improvement**
-- The system must produce enough structured evidence to improve criteria,
-  prompts, and benchmark design over time.
+- methodologically defensible;
+- conservative with respect to false exclusions;
+- transparent enough to report properly;
+- specific to the ambiguity structure of our review question.
 
 ---
 
-## 2. What The System Should Not Be
+## Executive Recommendation
 
-The screening system should **not** be built as:
+The screening system for this review should be built as a:
 
-- a one-shot `INCLUDE / EXCLUDE` classifier over title + abstract;
-- an aggressive auto-exclusion engine optimized for workload reduction;
-- a hidden prompt embedded only in code;
-- a model-only workflow with vague "human in the loop" language;
-- a full-text RAG system introduced before the title/abstract protocol is
-  stable.
+- **criterion-by-criterion**
+- **sensitivity-first**
+- **human-supervised**
+- **benchmark-validated**
+- **fully logged**
+title/abstract screening workflow.
 
-For this review, those designs are too brittle and too difficult to justify.
+It should **not** be built as:
 
----
+- a one-shot `INCLUDE / EXCLUDE` classifier;
+- an aggressive automatic exclusion engine;
+- a full-text-first RAG pipeline;
+- a loosely documented prompt hidden inside code.
 
-## 3. Recommended Overall Operating Model
+### Why this is the recommended design
 
-The best operating model for this review is:
+1. **BMC paper**: the strongest directly transferable design pattern is
+   criterion-by-criterion screening with `yes / no / unsure`, where unsure cases
+   are retained rather than excluded. This is the clearest empirical support for
+   our pipeline architecture.
+   Source:
+   [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 
-- **LLM-assisted, sensitivity-first, criterion-level screening**
-- with **explicit `UNCERTAIN` retention**
-- under **human oversight**
-- backed by a **manual benchmark set**
-- and governed by **prompt/version control and structured logging**
+2. **PRISMA-trAIce**: the system must be designed so that prompts, versions,
+   outputs, validation basis, and human-AI interaction can be reported and
+   audited. This is the strongest support for version control, audit trail, and
+   disagreement logging.
+   Source:
+   [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
-In practical terms, the system should behave more like a structured
-decision-support workflow than a classifier.
-
----
-
-## 4. Recommended Role Of The LLM
-
-The LLM should be treated as:
-
-- a **criterion evaluator**
-- a **triage assistant**
-- and, in some cases, a **second reviewer**
-
-It should **not** be treated as a fully autonomous final decision-maker.
-
-For our review, the safest initial framing is:
-
-- The LLM may propose `INCLUDE`, `EXCLUDE`, or `UNCERTAIN`.
-- `UNCERTAIN` always routes to manual review.
-- `EXCLUDE` should be trusted only if the exclusion is criterion-specific and
-  strongly evidenced from the abstract.
-- borderline or disagreement cases should never be silently auto-excluded.
+3. **Cochrane position statement**: AI use in screening is acceptable only if
+   it is justified, validated locally, and deployed under explicit human
+   oversight. This is the strongest support for a benchmark gate and a formal
+   safety case before live deployment.
+   Source:
+   [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
-## 5. Recommended Decision Architecture
+## 1. Primary Design Choice
 
-### 5.1 Criterion-First, Not Label-First
+### Recommendation
 
-The prompt should ask the model to evaluate separate screening criteria rather
-than directly output a single global label.
+Build the system around **criterion-level questions**, not around a single
+document-level label.
 
-At minimum, the system should make the model answer these questions:
+### Why
+
+This is the most defensible choice for our task because our hard records are not
+hard for the same reason. Failures arise from different dimensions:
+
+- paper type;
+- whether biological data are actually present;
+- whether there is a real text component;
+- whether the text-bio relation is substantive or superficial;
+- whether the model is generative or encoder-only;
+- whether the paper is foundational or a wrapper/application.
+
+A one-shot label hides which dimension failed. A criterion-level design exposes
+it.
+
+### Source support
+
+- BMC paper explicitly used questions identical to the human screening guide and
+  required structured responses for each question.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- PRISMA-trAIce requires exact reporting of prompts, outputs, and how humans
+  interacted with them, which is easier to satisfy with criterion-level output
+  than with opaque free-form classification.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+
+---
+
+## 2. Recommended Decision Schema
+
+### Recommendation
+
+The model should produce the following structured fields for each record:
 
 1. `paper_type`
-- Is this a primary model/preprint paper, or a review/editorial/benchmark/
-  application/resource paper?
-
 2. `bio_modality_present`
-- Does the paper actually work with biological data, not only biomedical text?
-
 3. `text_component_present`
-- Is there a genuine text/language component relevant to the review scope?
-
-4. `text_bio_bridge_type`
-- Does the paper show:
-  - `Tier A`: explicit natural-language <-> biology bridge
-  - `Tier B`: biological-token generative exception
-  - `Tier C`: language-adjacent but not sufficient
-  - `unclear`
-
+4. `text_bio_relation`
 5. `architecture_type`
-- Is the architecture generative, encoder-only, wrapper-like, or unclear?
-
 6. `foundation_model_evidence`
-- Does the abstract provide evidence of broad pretraining, reusable
-  representations, or foundation-model positioning?
+7. `final_decision`
+8. `primary_exclusion_code`
+9. `uncertainty_reason`
+10. `decision_rationale`
 
-7. `administrative_flags`
-- English, duplicate, obvious review article, etc.
+### Recommended values
 
-8. `final_decision`
-- `INCLUDE`, `EXCLUDE`, or `UNCERTAIN`
+#### `paper_type`
 
-9. `decision_reason`
-- Short evidence-grounded explanation
+- `primary_model_paper`
+- `review_editorial`
+- `benchmark_resource`
+- `application_wrapper`
+- `unclear`
 
-10. `primary_exclusion_code`
-- `EC1`-`EC8`, and optionally an internal operational tag for
-  `benchmark/resource paper`
+#### `bio_modality_present`
 
-### 5.2 Why This Structure Fits Our Task
+- `yes`
+- `no`
+- `unclear`
 
-This architecture is recommended because our difficult cases usually fail on one
-specific dimension:
+#### `text_component_present`
 
-- no real text-bio bridge;
-- encoder-only token model;
-- wrapper around an existing LLM;
-- benchmark/resource rather than model paper;
-- insufficient evidence of foundation-model status.
+- `yes`
+- `no`
+- `unclear`
 
-A one-label decision hides these distinctions. A criterion-level design exposes
-them.
+#### `text_bio_relation`
+
+- `explicit_natural_language_bridge`
+- `biological_token_generative_case`
+- `not_sufficient_for_scope`
+- `unclear`
+
+#### `architecture_type`
+
+- `generative`
+- `encoder_only`
+- `wrapper_or_pipeline`
+- `unclear`
+
+#### `foundation_model_evidence`
+
+- `yes`
+- `no`
+- `unclear`
+
+#### `final_decision`
+
+- `INCLUDE`
+- `EXCLUDE`
+- `UNCERTAIN`
+
+### Why this schema is preferable
+
+This schema is still specific to our domain, but it is closer to the best
+practice supported by the literature than a tier-first design.
+
+- It follows the BMC logic of screening by explicit criteria.
+- It preserves `UNCERTAIN` as a real state.
+- It avoids making `Tier A / B / C` the center of the whole system.
+- It allows us to keep our special protocol exception for biological-token
+  generative models without forcing the whole pipeline to speak in tiers.
+
+### Source support
+
+- BMC supports question-by-question screening and explicit `unsure`.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- Cochrane supports explicit justification and oversight for any
+  judgment-bearing AI outputs.
+  Source:
+  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
-## 6. Recommended Uncertainty Policy
+## 3. Role of `Tier A / Tier B / Tier C`
 
-`UNCERTAIN` should be a deliberate and protected state.
+### Recommendation
 
-### 6.1 When To Use `UNCERTAIN`
+Do **not** make `Tier A / Tier B / Tier C` the main public architecture of the
+screening system.
 
-The system should return `UNCERTAIN` when:
+If needed, keep them only as an **internal interpretation aid** for the single
+field `text_bio_relation`.
 
-- the abstract does not clearly resolve whether the model is generative or
-  encoder-only;
-- the paper may be a wrapper or application paper rather than a candidate model
+### Why
+
+The tier formulation was a useful internal attempt to sharpen IC2, but it is
+not grounded as a standard in the literature.
+
+- The articles do not present screening as a tier taxonomy.
+- BMC-style question design is better supported than tier-first design.
+- A tier-first system risks becoming idiosyncratic and harder to justify to
+  outside reviewers.
+
+### Source support
+
+- BMC paper argues for criterion-level screening and `unsure`, not tier labels.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- PRISMA-trAIce supports transparent task-specific operationalization, but does
+  not prescribe any tier taxonomy.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+
+---
+
+## 4. Recommended Uncertainty Policy
+
+### Recommendation
+
+`UNCERTAIN` must be a deliberate screening state, not a failure state.
+
+Any record should become `UNCERTAIN` if:
+
+- architecture cannot be resolved from the abstract;
+- the text-bio relation is unclear;
+- the paper may be benchmark/resource/application rather than a candidate model
   paper;
-- the abstract suggests relevance but does not establish the text-bio bridge;
-- the paper might satisfy the `Tier B` exception but evidence is too weak;
-- the title/abstract is short, truncated, metadata-like, or otherwise
-  insufficient.
+- the abstract is too short or too vague to resolve a key criterion;
+- the two reviewers disagree materially.
 
-### 6.2 What `UNCERTAIN` Means Operationally
+### Operational consequence
 
-`UNCERTAIN` should mean:
+`UNCERTAIN` means:
 
 - retain the record;
-- send to manual review or adjudication;
-- log the uncertainty type;
-- do not treat it as prompt failure.
+- route it to manual review or adjudication;
+- log why it was uncertain.
 
-This is the correct policy for our domain because many hard cases are genuinely
-abstract-insufficient.
+### Why
 
----
+For our task, many hard cases are not clean negatives. The conservative system
+must distinguish "not in scope" from "not resolvable at title/abstract stage."
 
-## 7. Recommended Benchmark Design
+### Source support
 
-The benchmark set should be built **before** trusting any model/prompt on the
-live corpus.
-
-### 7.1 Benchmark Purpose
-
-The benchmark is not only for measuring performance. It is also for:
-
-- clarifying protocol ambiguities;
-- testing whether the prompt operationalizes the protocol correctly;
-- identifying which criteria are most unstable;
-- justifying the use of AI in the first place.
-
-### 7.2 Recommended Benchmark Structure
-
-The benchmark should contain:
-
-- clear `Tier A` positives;
-- clear `Tier B` positives;
-- clear review/editorial negatives;
-- clear bio-only or text-only negatives;
-- clear encoder-only negatives;
-- wrapper/application negatives;
-- benchmark/resource negatives;
-- deliberately selected borderline `UNCERTAIN` cases.
-
-### 7.3 What To Label
-
-Each benchmark record should have:
-
-- `expected_final_decision`
-- `expected_paper_type`
-- `expected_text_bio_bridge_type`
-- `expected_architecture_type`
-- `expected_foundation_model_status`
-- `expected_primary_exclusion_code` if excluded
-- `notes_for_adjudication`
-
-### 7.4 Acceptance Logic
-
-The system should be evaluated first on:
-
-- false exclusion count
-- recall on must-include papers
-- agreement on clear negatives
-- behavior on borderline papers
-
-Workload reduction should be a secondary metric, not the primary gate.
+- BMC: uncertain records are retained rather than excluded; this is the clearest
+  empirical support for our policy.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- Cochrane: human oversight must be strongest where judgment risk is high.
+  Source:
+  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
-## 8. Recommended Prompt Design
+## 5. Recommended Reviewer Topology
 
-### 8.1 Prompt Format
+### Recommendation
 
-The prompt should be:
+Use a **two-reviewer plus adjudicator** topology:
 
-- criterion-by-criterion;
-- structured;
-- explicit about the meaning of `Tier A`, `Tier B`, `Tier C`, and `UNCERTAIN`;
-- explicit about strong exclusion signals and strong inclusion signals;
-- explicit that ambiguity should favor retention, not exclusion.
+1. `Scope reviewer`
+2. `Architecture reviewer`
+3. `Adjudicator`
 
-### 8.2 Prompt Content Requirements
+### Reviewer responsibilities
 
-The prompt should include:
+#### Scope reviewer
 
-- the exact review scope;
-- clear interpretation of IC2 for this review;
-- explicit handling of `Tier B` as a protocol exception;
-- explicit negative heuristics:
-  - review/survey/editorial
-  - benchmark/resource
-  - encoder-only/MLM/BERT-style
-  - bio-only multimodal
-  - wrapper around an existing LLM
-- explicit uncertainty rules;
-- a structured JSON schema for outputs.
+Responsible for:
 
-### 8.3 Prompt Governance
+- `paper_type`
+- `bio_modality_present`
+- `text_component_present`
+- `text_bio_relation`
 
-Every prompt version should have:
+#### Architecture reviewer
 
-- `prompt_version`
-- `prompt_hash`
-- full prompt text
-- few-shot examples if used
-- model/provider
-- inference parameters
-- validation basis
-- approval date
+Responsible for:
 
-The operative prompt should not live only inside a script.
+- `architecture_type`
+- `foundation_model_evidence`
+- whether the work looks like a wrapper/application rather than a model paper
 
----
+#### Adjudicator
 
-## 9. Recommended Reviewer Topology
+Responsible only for:
 
-For this review, the best near-term architecture is not a single reviewer.
+- disagreements;
+- high-ambiguity cases;
+- cases where the exclusion logic conflicts across criteria.
 
-### 9.1 Recommended Three-Role Topology
+### Why
 
-1. **Scope reviewer**
-- focus: paper type, biological modality, text component, text-bio bridge tier
+Our failure modes split naturally into:
 
-2. **Architecture reviewer**
-- focus: generative vs encoder-only vs wrapper; FM evidence
+- scope failures;
+- architecture/FM failures.
 
-3. **Adjudicator**
-- only for disagreements or high-ambiguity cases
+This topology maps to that structure better than one general reviewer.
 
-### 9.2 Why This Is Better Than One Reviewer
+### Source support
 
-This separation matches the structure of our problem:
-
-- one set of failures is about scope and paper type;
-- another set is about architecture and FM status.
-
-Splitting those tasks improves interpretability and should reduce brittle
-all-at-once reasoning.
-
-### 9.3 Conservative Aggregation Rule
-
-Recommended aggregation:
-
-- both reviewers clearly support inclusion -> `INCLUDE`
-- both reviewers clearly support exclusion on compatible grounds -> `EXCLUDE`
-- disagreement or weak evidence -> `UNCERTAIN` or adjudicator review
-
-The aggregation policy should be conservative by design.
+- BMC supports criterion-level decomposition and explicit handling of uncertainty.
+  The paper does not prescribe multi-agent topology, but this topology is a
+  direct extension of its criterion-first logic.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- PRISMA-trAIce requires explicit reporting of human-AI interaction and
+  discrepancy handling, which is easier to satisfy with clearly differentiated
+  reviewer roles.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
-## 10. Recommended Logging And Audit Trail
+## 6. Recommended Aggregation Rule
 
-The system should log more than the final decision.
+### Recommendation
 
-### 10.1 Minimum Recommended Fields
+Use a conservative aggregation rule:
 
-- `record_id`
-- title/abstract snapshot
-- `llm_model`
-- `llm_provider`
-- `model_version`
-- `run_id`
-- `prompt_version`
-- `prompt_hash`
-- `reviewer_role`
-- criterion-level outputs
-- criterion-level rationales
-- `final_ai_decision`
-- `final_ai_exclusion_code`
-- `confidence`
-- `uncertainty_type`
-- `raw_output_path`
-- `postprocess_version`
-- `human1_decision`
-- `human2_decision`
-- `consensus_decision`
-- `adjudicator_decision`
-- `disagreement_type`
-- `validation_basis`
+- both reviewers support inclusion on compatible grounds -> `INCLUDE`
+- both reviewers support exclusion on compatible grounds -> `EXCLUDE`
+- disagreement or weak evidence -> `UNCERTAIN` or adjudication
 
-### 10.2 Why This Matters
+### Why
 
-This level of logging is required for:
+The system should only exclude when the exclusion path is criterion-specific and
+stable. Any cross-criterion conflict should preserve recall.
 
-- debugging failures;
+### Source support
+
+- BMC supports conservative retention of uncertain cases.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- Cochrane supports conservative oversight when the cost of error is high.
+  Source:
+  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+
+---
+
+## 7. Recommended Benchmark Gate
+
+### Recommendation
+
+Do not deploy any prompt/model configuration on the live corpus before it passes
+a curated benchmark set.
+
+### Benchmark should contain
+
+- must-include positives;
+- clear negatives from different exclusion families;
+- benchmark/resource papers;
+- wrapper/application papers;
+- encoder-only negatives;
+- deliberately selected borderline papers.
+
+### What the benchmark should score
+
+Primary:
+
+- false exclusion count;
+- recall on must-include papers;
+- behavior on borderline papers.
+
+Secondary:
+
+- agreement on clear negatives;
+- manual workload reduction.
+
+### Why
+
+The literature supports validation before deployment, but it does not give us a
+universal threshold. That means we must create our own local validation basis.
+
+### Source support
+
+- PRISMA-trAIce: validation basis and metrics must be explicit.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+- Cochrane: AI use must be justified in context, not assumed.
+  Source:
+  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+- BMC: threshold choice changes the safety-efficiency trade-off materially.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+
+---
+
+## 8. Recommended Prompt Policy
+
+### Recommendation
+
+Treat the prompt as a controlled methodological artifact.
+
+Each prompt version should have:
+
+- full prompt text;
+- `prompt_version`;
+- `prompt_hash`;
+- model/provider;
+- key inference parameters;
+- benchmark or validation basis;
+- approval date;
+- change note.
+
+### Why
+
+Our current problem is not just prompt quality. It is also prompt governance.
+
+### Source support
+
+- PRISMA-trAIce explicitly requires reporting prompt structure, settings, and
+  iterative refinement.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+
+---
+
+## 9. Recommended Logging Policy
+
+### Recommendation
+
+Log criterion-level outputs, not only final decisions.
+
+Minimum recommended fields:
+
+- record snapshot;
+- model/provider/version;
+- prompt version/hash;
+- reviewer role;
+- criterion answers;
+- criterion rationales;
+- final decision;
+- primary exclusion code;
+- uncertainty reason;
+- raw output path;
+- post-processing version;
+- human review fields;
+- adjudication fields;
+- validation basis.
+
+### Why
+
+This is necessary for:
+
 - prompt comparison;
-- benchmark analysis;
-- PRISMA-style reporting;
+- benchmark debugging;
+- disagreement analysis;
+- PRISMA-grade reporting;
 - post hoc audit of exclusions.
 
+### Source support
+
+- BMC logged question-level outputs to support traceability.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- PRISMA-trAIce requires auditable reporting of inputs, outputs, and oversight.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+
 ---
 
-## 11. Recommended Governance And Safety Case
+## 10. Recommended Governance And Safety Case
 
-Before deployment on the live corpus, the repo should contain an explicit
-justification for AI use.
+### Recommendation
 
-### 11.1 What Must Be Justified
+Before live deployment, the repo should contain a short explicit justification
+for AI use in this review.
 
-- why AI is being used at all;
-- why this prompt/model is suitable for this review;
-- what benchmark/calibration evidence supports deployment;
-- what the main failure modes are;
+It should state:
+
+- why AI is being used;
+- what benefit is expected;
+- what the main risks are;
+- what the benchmark evidence is;
 - what the oversight policy is;
-- what the acceptable risk level is.
+- what deployment rule is being used.
 
-### 11.2 Human Oversight Policy
+### Why
 
-The protocol should explicitly define:
+The most defensible system is not the most clever one. It is the one for which
+we can explain why deployment is justified.
 
-- whether the LLM is first reviewer, second reviewer, or advisory tool;
-- whether any records can be directly auto-excluded;
-- which conditions force manual review;
-- who resolves disagreements;
-- when a prompt/model change requires revalidation.
+### Source support
 
-### 11.3 Current Best Recommendation For Our Review
-
-At the current stage, the safest policy is:
-
-- no fully autonomous exclusion path for ambiguous records;
-- `UNCERTAIN` and reviewer disagreement both route to manual review;
-- prompt/model revisions require benchmark re-evaluation;
-- all live screening runs must be reproducible from stored artifacts.
+- Cochrane statement is the clearest basis for this requirement.
+  Source:
+  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+- PRISMA-trAIce supports protocol-level accountability and reporting of
+  deviations.
+  Source:
+  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
-## 12. Recommended Use Of Full-Text RAG
+## 11. Recommended Position On Full-Text RAG
 
-Full-text RAG should **not** be part of the first stable version of this
-system.
+### Recommendation
 
-### 12.1 Why Not Yet
+Do **not** make full-text RAG part of the first stable version of this system.
 
-The title/abstract layer is still where our main ambiguity lives:
+### Why
 
-- Tier interpretation
-- architecture identification
-- paper-type discrimination
-- wrapper vs model distinction
+Our main ambiguity still lives at title/abstract level:
+
+- paper type;
+- text-bio relation;
+- architecture type;
+- FM evidence.
 
 Adding full-text RAG now would increase complexity before the first-stage logic
 is stable.
 
-### 12.2 When It Becomes Justified
+### When full-text RAG becomes justified
 
-Full-text RAG should be considered only if:
+Only after:
 
-- title/abstract screening is stable and benchmarked;
+- title/abstract criteria are stable;
+- the benchmark is in place;
 - we can identify a recurring class of abstract-insufficient papers;
-- we create a separate benchmark for those cases;
-- retrieval can surface evidence relevant to our criteria, not just arbitrary
-  chunks.
+- we have a separate evaluation slice for those papers.
 
-So full-text RAG is a **second-stage module**, not a default foundation for the
-system.
+### Source support
 
----
-
-## 13. Recommended Rollout Plan
-
-### Phase 1 — Protocol Stabilization
-
-- finalize Tier interpretation and criterion wording;
-- finalize benchmark schema;
-- formalize `UNCERTAIN` policy;
-- formalize logging schema.
-
-### Phase 2 — Prompt And Reviewer Design
-
-- implement criterion-level prompt;
-- implement structured output schema;
-- implement two-reviewer + adjudicator topology;
-- add prompt versioning and run manifests.
-
-### Phase 3 — Benchmark Validation
-
-- run on curated benchmark set;
-- inspect false exclusions first;
-- refine criteria and prompt;
-- document acceptance decision.
-
-### Phase 4 — Limited Pilot On Corpus
-
-- run on a small real subset;
-- audit disagreement patterns;
-- inspect criterion-level failure modes;
-- confirm logging and reproducibility.
-
-### Phase 5 — Full Screening
-
-- deploy only after benchmark acceptance;
-- preserve manual review path for `UNCERTAIN` and disagreements;
-- report the system as an AI-assisted, human-supervised workflow.
+- BMC supports full-text RAG only as a separate second phase, not as a
+  substitute for good title/abstract design.
+  Source:
+  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 
 ---
 
-## 14. Final Recommendation
+## 12. Final Recommendation
 
-For this review, the correct system is:
+For this review, the most defensible system is:
 
-- **not** a binary title/abstract classifier,
-- **not** an aggressive auto-exclusion tool,
-- **not** a full-text-first RAG pipeline.
+- **BMC-style criterion-by-criterion screening logic**
+- under **PRISMA-trAIce-style reporting and auditability**
+- with **Cochrane-style governance, validation, and human oversight**
 
-It should be:
+This is more solid than a custom tier-first architecture because each core
+design choice is directly motivated by the literature:
 
-- a **criterion-based**
-- **sensitivity-first**
-- **human-supervised**
-- **benchmark-validated**
-- **fully logged and reportable**
-screening system.
+- criterion-level questions -> supported most clearly by BMC;
+- prompt/version governance and audit trail -> supported most clearly by
+  PRISMA-trAIce;
+- benchmark gate, justification, and oversight -> supported most clearly by the
+  Cochrane position statement.
 
-In practice, that means:
-
-- criterion-level prompts;
-- explicit `Tier A / Tier B / Tier C / unclear` handling;
-- explicit `UNCERTAIN` retention;
-- separate scope and architecture review logic;
-- strong prompt/version governance;
-- benchmark-first deployment;
-- no silent exclusions under ambiguity.
-
-That is the design most consistent with the empirical screening literature, the
-reporting literature, and the governance literature we have reviewed, and it is
-the design best matched to the unusually ambiguous taxonomy of this review.
+Our own domain-specific interpretation is still needed, but it should enter only
+at the level of criterion wording, not at the level of inventing an entirely
+new screening philosophy.
