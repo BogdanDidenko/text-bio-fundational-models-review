@@ -97,3 +97,19 @@ Ground truth: 11/11 must-find models detected across all databases.
 ## Search Configuration
 
 All queries are stored in `search_config.json`. The file contains the exact Boolean queries, filters, and validation patterns used in the review. Do not modify unless intentionally changing the search strategy.
+
+## Pilot Screening With LatteReview
+
+This repo also includes a separate pilot script for AI-assisted title/abstract screening:
+
+```bash
+python scripts/run_lattereview_pilot.py --prepare-only
+python scripts/run_lattereview_pilot.py --api-key $OPENROUTER_API_KEY
+python scripts/run_lattereview_pilot.py --api-key $OPENROUTER_API_KEY --model qwen/qwen3.5-35b-a3b
+```
+
+Notes:
+- The pilot script uses the local `../LatteReview` clone by default.
+- It is intentionally separate from the main search/dedup/enrichment pipeline.
+- `--prepare-only` builds the pilot CSV without making LLM calls.
+- Pilot-specific Python dependencies are listed in `requirements_lattereview_pilot.txt`.
