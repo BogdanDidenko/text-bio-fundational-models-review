@@ -18,6 +18,9 @@ Contents:
 - `bmc_streamlining_sr_llm_2025_methodology.md`:
   practical pipeline design lessons for title/abstract and full-text
   screening with LLMs.
+- `cochrane_ai_position_statement_2025_methodology.md`:
+  governance and responsibility guidance for acceptable AI use in evidence
+  synthesis.
 
 Working interpretation for this repo:
 - prioritize sensitivity over aggressive exclusion;
