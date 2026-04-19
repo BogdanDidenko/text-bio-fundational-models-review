@@ -12,7 +12,7 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 3. Search execution | Done | 7 databases, 2 rounds |
 | 4. Deduplication | Done | `scripts/deduplicate.py` |
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
-| 6. Title/Abstract screening | **Next** | 4,027 records |
+| 6. Title/Abstract screening | **In progress** | 4,027 records; criterion-by-criterion `LatteReview` pilot calibrated on a determinism-validated serving profile |
 
 ## Search Results
 
@@ -46,6 +46,53 @@ data/
   exports_v31/              v3.1 database exports (2026-02-15)
   exports_update/           Update exports (2026-04-14)
 ```
+
+## Abstract Screening Process
+
+The abstract-screening process is currently documented across these files:
+
+- [`protocol/eligibility_criteria.md`](protocol/eligibility_criteria.md): formal IC/EC criteria and decision tree.
+- [`protocol/screening_process.md`](protocol/screening_process.md): corpus preparation, enrichment, and screening-ready counts.
+- [`protocol/llm_screening_system_guideline.md`](protocol/llm_screening_system_guideline.md): literature-backed design choice.
+- [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md): current `LatteReview` workflow shape.
+- [`protocol/screening_prompt.md`](protocol/screening_prompt.md): current prompt stack index.
+
+In practice we now treat:
+
+- **BMC (Trad et al., 2025)** as the main source for screening behavior: criterion-by-criterion, `yes/no/unsure`, sensitivity-first.
+- **PRISMA-trAIce (Holst et al., 2025)** as the outer reporting and audit layer.
+- **Cochrane AI position statement (Flemyng et al., 2025)** as the validation and human-oversight gate.
+
+## Current Screening Topology
+
+```mermaid
+flowchart TD
+    A["Screening-ready title/abstract records"] --> B["Round A: scope_reviewer"]
+    A --> C["Round A: architecture_reviewer"]
+    B --> D["Criterion outputs"]
+    C --> D
+    D --> E{"Agreement and no unclear core criterion?"}
+    E -- "Yes" --> F["Rule-based aggregation"]
+    E -- "No" --> G["Round B: adjudicator"]
+    G --> F
+    F --> H{"Final decision"}
+    H -- "INCLUDE" --> I["Retain for next stage"]
+    H -- "EXCLUDE" --> J["Log exclusion code and rationale"]
+    H -- "UNCERTAIN" --> K["Manual review / adjudication queue"]
+```
+
+Prompt documents for each stage:
+
+- [`scope_reviewer`](protocol/screening_prompts/scope_reviewer_prompt.md)
+- [`architecture_reviewer`](protocol/screening_prompts/architecture_reviewer_prompt.md)
+- [`adjudicator`](protocol/screening_prompts/adjudicator_prompt.md)
+
+Current implementation choices:
+
+- round A uses two role-specialized reviewers rather than one global classifier;
+- round B only runs on disagreement or unresolved criteria;
+- final decision is aggregated from criterion fields rather than trusted as a free-form one-shot label;
+- the operative requirement is a determinism-validated serving profile under the exact production stack, not commitment to any single model family.
 
 ## Databases
 

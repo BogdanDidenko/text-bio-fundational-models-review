@@ -98,8 +98,8 @@ The scope reviewer should answer:
 - `paper_type`
 - `bio_modality_present`
 - `text_component_present`
-- `text_bio_relation`
-- `final_decision`
+- `text_bio_bridge_present`
+- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -114,10 +114,10 @@ This reviewer should focus on:
 
 The architecture reviewer should answer:
 
-- `architecture_type`
+- `paper_type` when the abstract clearly describes a wrapper/application paper
+- `generative_model_present`
 - `foundation_model_evidence`
-- `paper_type`
-- `final_decision`
+- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -125,7 +125,7 @@ The architecture reviewer should answer:
 This reviewer should focus on:
 
 - generative vs encoder-only;
-- model paper vs wrapper/application;
+- model paper vs wrapper/application when that is explicit in the abstract;
 - whether FM-style pretraining / transfer evidence is present.
 
 ### 3.3 Adjudicator
@@ -144,7 +144,7 @@ The adjudicator should run only when:
 
 The adjudicator should produce:
 
-- `final_decision`
+- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -162,10 +162,10 @@ Recommended fields:
 - `paper_type`
 - `bio_modality_present`
 - `text_component_present`
-- `text_bio_relation`
-- `architecture_type`
+- `text_bio_bridge_present`
+- `generative_model_present`
 - `foundation_model_evidence`
-- `final_decision`
+- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -176,16 +176,15 @@ Recommended value sets:
   `benchmark_resource`, `application_wrapper`, `unclear`
 - `bio_modality_present`: `yes`, `no`, `unclear`
 - `text_component_present`: `yes`, `no`, `unclear`
-- `text_bio_relation`: `explicit_natural_language_bridge`,
-  `biological_token_generative_case`, `not_sufficient_for_scope`, `unclear`
-- `architecture_type`: `generative`, `encoder_only`, `wrapper_or_pipeline`,
-  `unclear`
+- `text_bio_bridge_present`: `yes`, `no`, `unclear`
+- `generative_model_present`: `yes`, `no`, `unclear`
 - `foundation_model_evidence`: `yes`, `no`, `unclear`
-- `final_decision`: `INCLUDE`, `EXCLUDE`, `UNCERTAIN`
+- `reviewer_recommendation`: `INCLUDE`, `EXCLUDE`, `UNCERTAIN`
 
 This is more aligned with the literature than making `Tier A / B / C` the main
 workflow language. If we keep the tier logic at all, it should only survive
-inside the single field `text_bio_relation`.
+inside the interpretation of whether a substantive `text_bio_bridge_present`
+signal exists.
 
 ---
 
@@ -200,7 +199,7 @@ abstract text.
 
 Run the adjudicator only on records where:
 
-- `scope_reviewer.final_decision != architecture_reviewer.final_decision`
+- `scope_reviewer.reviewer_recommendation != architecture_reviewer.reviewer_recommendation`
   or
 - either reviewer returns `UNCERTAIN`
   or
@@ -225,10 +224,10 @@ SCREENING_RESPONSE_FORMAT = {
     "paper_type": str,
     "bio_modality_present": str,
     "text_component_present": str,
-    "text_bio_relation": str,
-    "architecture_type": str,
+    "text_bio_bridge_present": str,
+    "generative_model_present": str,
     "foundation_model_evidence": str,
-    "final_decision": str,
+    "reviewer_recommendation": str,
     "primary_exclusion_code": str,
     "uncertainty_reason": str,
     "decision_rationale": str,
@@ -240,14 +239,15 @@ scope_reviewer = ScoringReviewer(
     provider=provider,
     response_format=SCREENING_RESPONSE_FORMAT,
     scoring_task=(
-        "Evaluate paper type, biological modality, text component, "
-        "and the nature of the text-bio relationship. Then return a "
-        "provisional final decision."
+        "Answer criterion questions 1-4 for title/abstract screening: "
+        "(1) paper_type, (2) bio_modality_present, "
+        "(3) text_component_present, (4) text_bio_bridge_present. "
+        "Then give reviewer_recommendation."
     ),
     scoring_set=[],
     reasoning="brief",
     model_args={
-        "temperature": 0,
+        "temperature": 0.7,
         "top_p": 1,
         "n": 1,
         "seed": 0,
@@ -260,14 +260,16 @@ architecture_reviewer = ScoringReviewer(
     provider=provider,
     response_format=SCREENING_RESPONSE_FORMAT,
     scoring_task=(
-        "Evaluate whether the architecture is generative or encoder-only, "
-        "whether the paper is a wrapper/application rather than a model paper, "
-        "and whether there is evidence of a foundation-model contribution."
+        "Answer criterion questions 5-6 for title/abstract screening: "
+        "(5) generative_model_present, (6) foundation_model_evidence. "
+        "Use paper_type=application_wrapper if the abstract makes clear "
+        "that the work is only a wrapper around an existing model. "
+        "Then give reviewer_recommendation."
     ),
     scoring_set=[],
     reasoning="brief",
     model_args={
-        "temperature": 0,
+        "temperature": 0.7,
         "top_p": 1,
         "n": 1,
         "seed": 0,
@@ -280,14 +282,14 @@ adjudicator = ScoringReviewer(
     provider=provider,
     response_format=SCREENING_RESPONSE_FORMAT,
     scoring_task=(
-        "Resolve disagreements between the scope and architecture reviewers. "
-        "Be conservative: if the abstract does not resolve a key criterion, "
-        "return UNCERTAIN rather than EXCLUDE."
+        "Resolve disagreements between the criterion-level outputs of the "
+        "scope and architecture reviewers using the abstract and their "
+        "structured outputs."
     ),
     scoring_set=[],
     reasoning="brief",
     model_args={
-        "temperature": 0,
+        "temperature": 0.7,
         "top_p": 1,
         "n": 1,
         "seed": 0,
@@ -309,36 +311,52 @@ workflow = ReviewWorkflow(
                 "title",
                 "abstract",
                 "round-A_scope_reviewer_paper_type",
-                "round-A_scope_reviewer_text_bio_relation",
-                "round-A_scope_reviewer_final_decision",
-                "round-A_scope_reviewer_decision_rationale",
-                "round-A_architecture_reviewer_architecture_type",
+                "round-A_scope_reviewer_bio_modality_present",
+                "round-A_scope_reviewer_text_component_present",
+                "round-A_scope_reviewer_text_bio_bridge_present",
+                "round-A_scope_reviewer_reviewer_recommendation",
+                "round-A_scope_reviewer_primary_exclusion_code",
+                "round-A_architecture_reviewer_paper_type",
+                "round-A_architecture_reviewer_generative_model_present",
                 "round-A_architecture_reviewer_foundation_model_evidence",
-                "round-A_architecture_reviewer_final_decision",
-                "round-A_architecture_reviewer_decision_rationale",
+                "round-A_architecture_reviewer_reviewer_recommendation",
+                "round-A_architecture_reviewer_primary_exclusion_code",
             ],
             "filter": lambda row: (
-                row["round-A_scope_reviewer_final_decision"] !=
-                row["round-A_architecture_reviewer_final_decision"]
+                row["round-A_scope_reviewer_reviewer_recommendation"] !=
+                row["round-A_architecture_reviewer_reviewer_recommendation"]
             ) or (
-                row["round-A_scope_reviewer_final_decision"] == "UNCERTAIN"
+                row["round-A_scope_reviewer_reviewer_recommendation"] == "UNCERTAIN"
             ) or (
-                row["round-A_architecture_reviewer_final_decision"] == "UNCERTAIN"
+                row["round-A_architecture_reviewer_reviewer_recommendation"] == "UNCERTAIN"
+            ) or (
+                row["round-A_scope_reviewer_paper_type"] == "unclear"
+            ) or (
+                row["round-A_scope_reviewer_text_bio_bridge_present"] == "unclear"
+            ) or (
+                row["round-A_architecture_reviewer_generative_model_present"] == "unclear"
+            ) or (
+                row["round-A_architecture_reviewer_foundation_model_evidence"] == "unclear"
             ),
         },
     ],
 )
 ```
 
+In the current pilot, the final record-level decision is then produced by a
+Python aggregation layer over the criterion fields rather than by blindly
+trusting `reviewer_recommendation` as the last word.
+
 ---
 
 ## 7. Reproducibility Mode
 
-For this review, the default screening mode should be **reproducibility-first**.
+For this review, the default screening mode should be a
+**controlled-stochastic reproducibility profile**.
 
 Recommended inference settings:
 
-- `temperature = 0`
+- `temperature = 0.7`
 - `top_p = 1`
 - `n = 1`
 - fixed `seed = 0`
@@ -357,9 +375,36 @@ Recommended runtime policy for the reproducible screening profile:
 - same prompt version / hash across reruns
 - no silent model or provider swap
 
-This will not make the system universally reproducible across arbitrary
-hardware/software changes, but it is the best documented current path for a
-stable screening mode.
+This profile is more stochastic than a greedy `temperature=0` setup, so it
+should not be described as guaranteed universal determinism. Instead, it should
+be treated as a reproducibility target that must be verified empirically on the
+serving stack we actually use.
+
+### Practical implication for our current stack
+
+An empirical probe on **April 18, 2026** using one candidate serving profile:
+
+- `Qwen/Qwen3.5-35B-A3B-FP8`
+- `vLLM 0.19.1rc1.dev235+g1b19bd758`
+- `temperature=0.7`
+- `top_p=1`
+- `seed=0`
+- `VLLM_BATCH_INVARIANT=1`
+- the same 10 records presented in three different orders
+
+showed that outputs were **not byte-identical across runs**. The final decision
+was stable for most records, but at least one benchmark/resource paper showed
+differences in structured criterion fields beyond free-text rationale.
+
+Therefore, for our review we should document the following rule:
+
+- fixed seed plus `temperature=0.7` is acceptable as a controlled screening
+  profile;
+- however, it must **not** be described as guaranteed deterministic on the
+  current serving stack;
+- any claim of determinism must be supported by a passing benchmark probe on
+  the exact serving profile used in production: model, vLLM version, hardware,
+  and server configuration.
 
 ---
 
@@ -381,8 +426,9 @@ This should be stated explicitly in the repo because:
 
 The architecture should be documented as **model-agnostic**, with the note that:
 
-- pilot and validation runs may use a cheaper model;
-- production deployment will likely use a stronger model;
+- pilot and validation runs may use any model that satisfies the validation target;
+- production deployment may use a different model entirely;
+- the hard requirement is reproducible behavior under the validated serving profile, not loyalty to a specific checkpoint.
 - every model change requires revalidation on the benchmark set.
 
 ---
