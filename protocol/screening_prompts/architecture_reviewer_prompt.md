@@ -18,12 +18,8 @@ describes a downstream wrapper around an existing model.
 The reviewer returns exactly one JSON object with these keys:
 
 - `paper_type`
-- `bio_modality_present`
-- `text_component_present`
-- `text_bio_bridge_present`
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -31,12 +27,8 @@ The reviewer returns exactly one JSON object with these keys:
 Allowed values:
 
 - `paper_type`: `primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear`
-- `bio_modality_present`: `yes | no | unclear`
-- `text_component_present`: `yes | no | unclear`
-- `text_bio_bridge_present`: `yes | no | unclear`
 - `generative_model_present`: `yes | no | unclear`
 - `foundation_model_evidence`: `yes | no | unclear`
-- `reviewer_recommendation`: `INCLUDE | EXCLUDE | UNCERTAIN`
 
 ## Prompt Assembly
 
@@ -47,24 +39,16 @@ Review the title/abstract record below for systematic-review screening of text-b
 
 Return exactly one JSON object with these keys:
 - paper_type
-- bio_modality_present
-- text_component_present
-- text_bio_bridge_present
 - generative_model_present
 - foundation_model_evidence
-- reviewer_recommendation
 - primary_exclusion_code
 - uncertainty_reason
 - decision_rationale
 
 Allowed values:
 - paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
-- bio_modality_present: yes | no | unclear
-- text_component_present: yes | no | unclear
-- text_bio_bridge_present: yes | no | unclear
 - generative_model_present: yes | no | unclear
 - foundation_model_evidence: yes | no | unclear
-- reviewer_recommendation: INCLUDE | EXCLUDE | UNCERTAIN
 
 Global decision policy:
 - Use a sensitivity-first title/abstract screening strategy.
@@ -75,6 +59,7 @@ Global decision policy:
 - If a paper only uses embeddings, metadata descriptions, prompts, or outputs from an existing LLM as auxiliary features for downstream bio tasks, classify it as application_wrapper unless the abstract clearly presents a new joint text-bio generative foundation model.
 - Benchmark/resource papers evaluating LLMs or DNA/protein language models are not in-scope primary model papers.
 - Return a short rationale, not a long essay.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
 ```
 
 ### Reviewer-specific task
@@ -83,13 +68,12 @@ Global decision policy:
 Answer criterion questions 5-6 for title/abstract screening:
 (5) generative_model_present, (6) foundation_model_evidence.
 Use paper_type=application_wrapper if the abstract makes clear that the work is only a wrapper around an existing model.
-Then give reviewer_recommendation.
 ```
 
 ### Reviewer-specific rules
 
 ```text
-Focus on architecture and FM evidence. Predictive models, profile prediction systems, and downstream classifiers are not generative unless the abstract explicitly says decoder/autoregressive/seq2seq/diffusion/generative. Encoder-only and unclear architectures are not positive evidence for inclusion. If the paper may simply wrap an existing LLM or the architecture is underspecified, prefer reviewer_recommendation=UNCERTAIN over a forced INCLUDE.
+Focus on architecture and FM evidence. Predictive models, profile prediction systems, and downstream classifiers are not generative unless the abstract explicitly says decoder/autoregressive/seq2seq/diffusion/generative. Encoder-only and unclear architectures are not positive evidence for inclusion. If the paper may simply wrap an existing LLM or the architecture is underspecified, use unclear rather than forcing yes. Do not answer bio_modality_present, text_component_present, or text_bio_bridge_present.
 ```
 
 ### Shared context

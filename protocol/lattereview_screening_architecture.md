@@ -99,7 +99,6 @@ The scope reviewer should answer:
 - `bio_modality_present`
 - `text_component_present`
 - `text_bio_bridge_present`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -117,7 +116,6 @@ The architecture reviewer should answer:
 - `paper_type` when the abstract clearly describes a wrapper/application paper
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -144,7 +142,7 @@ The adjudicator should run only when:
 
 The adjudicator should produce:
 
-- `reviewer_recommendation`
+- resolved criterion fields
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -165,7 +163,6 @@ Recommended fields:
 - `text_bio_bridge_present`
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -179,12 +176,15 @@ Recommended value sets:
 - `text_bio_bridge_present`: `yes`, `no`, `unclear`
 - `generative_model_present`: `yes`, `no`, `unclear`
 - `foundation_model_evidence`: `yes`, `no`, `unclear`
-- `reviewer_recommendation`: `INCLUDE`, `EXCLUDE`, `UNCERTAIN`
 
 This is more aligned with the literature than making `Tier A / B / C` the main
 workflow language. If we keep the tier logic at all, it should only survive
 inside the interpretation of whether a substantive `text_bio_bridge_present`
 signal exists.
+
+The reviewer-level output should stop at criterion answers. A provisional gate
+state such as `PASS`, `EXCLUDE`, or `UNCERTAIN` should be computed in Python
+from those answers rather than requested directly from the LLM.
 
 ---
 
@@ -199,11 +199,9 @@ abstract text.
 
 Run the adjudicator only on records where:
 
-- `scope_reviewer.reviewer_recommendation != architecture_reviewer.reviewer_recommendation`
-  or
-- either reviewer returns `UNCERTAIN`
-  or
 - either reviewer returns `unclear` on a core criterion
+- or criterion-derived gate logic produces `UNCERTAIN`
+- or there is a criterion-level conflict between reviewers on an overlapping field
 
 This keeps the workflow efficient without sacrificing conservative handling of
 ambiguous records.
@@ -220,14 +218,11 @@ from lattereview.agents import ScoringReviewer
 from lattereview.workflows.review_workflow import ReviewWorkflow
 
 
-SCREENING_RESPONSE_FORMAT = {
+SCOPE_RESPONSE_FORMAT = {
     "paper_type": str,
     "bio_modality_present": str,
     "text_component_present": str,
     "text_bio_bridge_present": str,
-    "generative_model_present": str,
-    "foundation_model_evidence": str,
-    "reviewer_recommendation": str,
     "primary_exclusion_code": str,
     "uncertainty_reason": str,
     "decision_rationale": str,
@@ -241,8 +236,7 @@ scope_reviewer = ScoringReviewer(
     scoring_task=(
         "Answer criterion questions 1-4 for title/abstract screening: "
         "(1) paper_type, (2) bio_modality_present, "
-        "(3) text_component_present, (4) text_bio_bridge_present. "
-        "Then give reviewer_recommendation."
+        "(3) text_component_present, (4) text_bio_bridge_present."
     ),
     scoring_set=[],
     reasoning="brief",
@@ -253,18 +247,27 @@ scope_reviewer = ScoringReviewer(
         "seed": 0,
     },
 )
+
+
+ARCHITECTURE_RESPONSE_FORMAT = {
+    "paper_type": str,
+    "generative_model_present": str,
+    "foundation_model_evidence": str,
+    "primary_exclusion_code": str,
+    "uncertainty_reason": str,
+    "decision_rationale": str,
+}
 
 
 architecture_reviewer = ScoringReviewer(
     name="architecture_reviewer",
     provider=provider,
-    response_format=SCREENING_RESPONSE_FORMAT,
+    response_format=ARCHITECTURE_RESPONSE_FORMAT,
     scoring_task=(
         "Answer criterion questions 5-6 for title/abstract screening: "
         "(5) generative_model_present, (6) foundation_model_evidence. "
         "Use paper_type=application_wrapper if the abstract makes clear "
-        "that the work is only a wrapper around an existing model. "
-        "Then give reviewer_recommendation."
+        "that the work is only a wrapper around an existing model."
     ),
     scoring_set=[],
     reasoning="brief",
@@ -277,10 +280,23 @@ architecture_reviewer = ScoringReviewer(
 )
 
 
+ADJUDICATOR_RESPONSE_FORMAT = {
+    "paper_type": str,
+    "bio_modality_present": str,
+    "text_component_present": str,
+    "text_bio_bridge_present": str,
+    "generative_model_present": str,
+    "foundation_model_evidence": str,
+    "primary_exclusion_code": str,
+    "uncertainty_reason": str,
+    "decision_rationale": str,
+}
+
+
 adjudicator = ScoringReviewer(
     name="adjudicator",
     provider=provider,
-    response_format=SCREENING_RESPONSE_FORMAT,
+    response_format=ADJUDICATOR_RESPONSE_FORMAT,
     scoring_task=(
         "Resolve disagreements between the criterion-level outputs of the "
         "scope and architecture reviewers using the abstract and their "
@@ -297,13 +313,25 @@ adjudicator = ScoringReviewer(
 )
 
 
-workflow = ReviewWorkflow(
+round_a_workflow = ReviewWorkflow(
     workflow_schema=[
         {
             "round": "A",
             "reviewers": [scope_reviewer, architecture_reviewer],
             "text_inputs": ["title", "abstract"],
         },
+    ],
+)
+
+round_a_results = round_a_workflow(df)
+round_a_results["scope_gate"] = round_a_results.apply(scope_gate_decision, axis=1)
+round_a_results["architecture_gate"] = round_a_results.apply(architecture_gate_decision, axis=1)
+round_a_results["needs_adjudication"] = round_a_results.apply(needs_adjudication, axis=1)
+
+adjudication_df = round_a_results[round_a_results["needs_adjudication"]]
+
+round_b_workflow = ReviewWorkflow(
+    workflow_schema=[
         {
             "round": "B",
             "reviewers": [adjudicator],
@@ -314,38 +342,22 @@ workflow = ReviewWorkflow(
                 "round-A_scope_reviewer_bio_modality_present",
                 "round-A_scope_reviewer_text_component_present",
                 "round-A_scope_reviewer_text_bio_bridge_present",
-                "round-A_scope_reviewer_reviewer_recommendation",
                 "round-A_scope_reviewer_primary_exclusion_code",
+                "round-A_scope_reviewer_uncertainty_reason",
                 "round-A_architecture_reviewer_paper_type",
                 "round-A_architecture_reviewer_generative_model_present",
                 "round-A_architecture_reviewer_foundation_model_evidence",
-                "round-A_architecture_reviewer_reviewer_recommendation",
                 "round-A_architecture_reviewer_primary_exclusion_code",
+                "round-A_architecture_reviewer_uncertainty_reason",
             ],
-            "filter": lambda row: (
-                row["round-A_scope_reviewer_reviewer_recommendation"] !=
-                row["round-A_architecture_reviewer_reviewer_recommendation"]
-            ) or (
-                row["round-A_scope_reviewer_reviewer_recommendation"] == "UNCERTAIN"
-            ) or (
-                row["round-A_architecture_reviewer_reviewer_recommendation"] == "UNCERTAIN"
-            ) or (
-                row["round-A_scope_reviewer_paper_type"] == "unclear"
-            ) or (
-                row["round-A_scope_reviewer_text_bio_bridge_present"] == "unclear"
-            ) or (
-                row["round-A_architecture_reviewer_generative_model_present"] == "unclear"
-            ) or (
-                row["round-A_architecture_reviewer_foundation_model_evidence"] == "unclear"
-            ),
         },
     ],
 )
 ```
 
 In the current pilot, the final record-level decision is then produced by a
-Python aggregation layer over the criterion fields rather than by blindly
-trusting `reviewer_recommendation` as the last word.
+Python aggregation layer over the criterion fields rather than by asking the
+LLM for the final label as a first-class field.
 
 ---
 

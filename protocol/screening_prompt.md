@@ -28,8 +28,9 @@ The workflow is:
 
 1. round A `scope_reviewer`
 2. round A `architecture_reviewer`
-3. round B `adjudicator` only for disagreement or unresolved core criteria
-4. rule-based aggregation from criterion fields to final decision
+3. Python gate logic computes provisional retain/exclude/uncertain states from criterion answers
+4. round B `adjudicator` only for unresolved or criterion-conflict cases
+5. rule-based aggregation from selected criterion fields to final decision
 
 This is intentionally closer to the BMC paper than to the older one-shot
 prompting approach.
@@ -38,7 +39,10 @@ prompting approach.
 
 ## Current Structured Output Schema
 
-The current screening stack uses these fields:
+The current screening stack uses criterion fields rather than a reviewer-level
+final label.
+
+Current fields:
 
 - `paper_type`
 - `bio_modality_present`
@@ -46,7 +50,6 @@ The current screening stack uses these fields:
 - `text_bio_bridge_present`
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -55,11 +58,11 @@ Allowed high-level values:
 
 - `paper_type`: `primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear`
 - criterion fields: `yes | no | unclear`
-- `reviewer_recommendation`: `INCLUDE | EXCLUDE | UNCERTAIN`
 
 The important design choice is that the final screening decision is no longer
 trusted as a pure one-shot model judgment. Instead, the workflow first elicits
-criterion-level answers and then aggregates them conservatively.
+criterion-level answers, derives reviewer gate states outside the LLM, and then
+aggregates them conservatively.
 
 ---
 
@@ -67,6 +70,12 @@ criterion-level answers and then aggregates them conservatively.
 
 The current pilot aggregation logic is conservative:
 
+- the scope reviewer and architecture reviewer do **not** emit the final
+  decision as a primary field;
+- Python gate logic converts their criterion answers into provisional
+  `PASS / EXCLUDE / UNCERTAIN` states;
+- adjudication is triggered by unresolved criteria or criterion-level conflict,
+  not by disagreement between two opaque reviewer labels;
 - `review_editorial`, `benchmark_resource`, and `application_wrapper` are
   direct exclusion classes;
 - `no` on `bio_modality_present` excludes for lack of biological modality;
@@ -77,7 +86,7 @@ The current pilot aggregation logic is conservative:
 - any unresolved decisive criterion can escalate to `UNCERTAIN`.
 
 This is the main difference from the deprecated `v0.1` design: criterion fields
-are primary, and the final label is secondary.
+are primary, and the final label is a derived downstream artifact.
 
 ---
 

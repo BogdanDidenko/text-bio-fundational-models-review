@@ -71,14 +71,15 @@ flowchart TD
     A --> C["Round A: architecture_reviewer"]
     B --> D["Criterion outputs"]
     C --> D
-    D --> E{"Agreement and no unclear core criterion?"}
-    E -- "Yes" --> F["Rule-based aggregation"]
-    E -- "No" --> G["Round B: adjudicator"]
-    G --> F
-    F --> H{"Final decision"}
-    H -- "INCLUDE" --> I["Retain for next stage"]
-    H -- "EXCLUDE" --> J["Log exclusion code and rationale"]
-    H -- "UNCERTAIN" --> K["Manual review / adjudication queue"]
+    D --> E["Python gate logic"]
+    E --> F{"Unclear criterion or criterion conflict?"}
+    F -- "No" --> G["Rule-based aggregation"]
+    F -- "Yes" --> H["Round B: adjudicator"]
+    H --> G
+    G --> I{"Final decision"}
+    I -- "INCLUDE" --> J["Retain for next stage"]
+    I -- "EXCLUDE" --> K["Log exclusion code and rationale"]
+    I -- "UNCERTAIN" --> L["Manual review / adjudication queue"]
 ```
 
 Prompt documents for each stage:
@@ -90,7 +91,8 @@ Prompt documents for each stage:
 Current implementation choices:
 
 - round A uses two role-specialized reviewers rather than one global classifier;
-- round B only runs on disagreement or unresolved criteria;
+- Python gate logic sits between round A and round B;
+- round B only runs on unresolved criteria or criterion-level conflicts;
 - final decision is aggregated from criterion fields rather than trusted as a free-form one-shot label;
 - the operative requirement is a determinism-validated serving profile under the exact production stack, not commitment to any single model family.
 

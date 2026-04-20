@@ -29,7 +29,9 @@ The current structured response schema is:
 - `text_bio_bridge_present`
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
+
+The final `INCLUDE / EXCLUDE / UNCERTAIN` label is derived later from these
+criterion answers and is not treated as the primary reviewer output.

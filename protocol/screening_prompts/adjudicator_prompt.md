@@ -26,7 +26,6 @@ The adjudicator returns exactly one JSON object with these keys:
 - `text_bio_bridge_present`
 - `generative_model_present`
 - `foundation_model_evidence`
-- `reviewer_recommendation`
 - `primary_exclusion_code`
 - `uncertainty_reason`
 - `decision_rationale`
@@ -39,7 +38,6 @@ Allowed values:
 - `text_bio_bridge_present`: `yes | no | unclear`
 - `generative_model_present`: `yes | no | unclear`
 - `foundation_model_evidence`: `yes | no | unclear`
-- `reviewer_recommendation`: `INCLUDE | EXCLUDE | UNCERTAIN`
 
 ## Prompt Assembly
 
@@ -55,7 +53,6 @@ Return exactly one JSON object with these keys:
 - text_bio_bridge_present
 - generative_model_present
 - foundation_model_evidence
-- reviewer_recommendation
 - primary_exclusion_code
 - uncertainty_reason
 - decision_rationale
@@ -67,7 +64,6 @@ Allowed values:
 - text_bio_bridge_present: yes | no | unclear
 - generative_model_present: yes | no | unclear
 - foundation_model_evidence: yes | no | unclear
-- reviewer_recommendation: INCLUDE | EXCLUDE | UNCERTAIN
 
 Global decision policy:
 - Use a sensitivity-first title/abstract screening strategy.
@@ -78,6 +74,7 @@ Global decision policy:
 - If a paper only uses embeddings, metadata descriptions, prompts, or outputs from an existing LLM as auxiliary features for downstream bio tasks, classify it as application_wrapper unless the abstract clearly presents a new joint text-bio generative foundation model.
 - Benchmark/resource papers evaluating LLMs or DNA/protein language models are not in-scope primary model papers.
 - Return a short rationale, not a long essay.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
 ```
 
 ### Reviewer-specific task
@@ -89,7 +86,7 @@ Resolve disagreements between the criterion-level outputs of the scope and archi
 ### Reviewer-specific rules
 
 ```text
-Use the most conservative interpretation consistent with the abstract. Preserve clear review/benchmark/application exclusions. If the abstract only supports wrapper-style LLM use, set paper_type=application_wrapper and text_bio_bridge_present=no. If any decisive criterion remains unresolved, return reviewer_recommendation=UNCERTAIN.
+Use the most conservative interpretation consistent with the abstract. Preserve clear review/benchmark/application exclusions. If the abstract only supports wrapper-style LLM use, set paper_type=application_wrapper and text_bio_bridge_present=no. If any decisive criterion remains unresolved, answer unclear on that criterion rather than forcing certainty.
 ```
 
 ### Shared context
