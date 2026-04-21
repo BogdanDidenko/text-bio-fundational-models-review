@@ -74,8 +74,8 @@ Each benchmark record should have the following labels.
 - `expected_paper_type`
 - `expected_bio_modality_present`
 - `expected_text_component_present`
-- `expected_text_bio_relation`
-- `expected_architecture_type`
+- `expected_text_bio_bridge_present`
+- `expected_generative_model_present`
 - `expected_foundation_model_evidence`
 - `expected_primary_exclusion_code`
 - `expected_uncertainty_reason`
@@ -109,18 +109,16 @@ Each benchmark record should have the following labels.
 - `no`
 - `unclear`
 
-#### `expected_text_bio_relation`
+#### `expected_text_bio_bridge_present`
 
-- `explicit_natural_language_bridge`
-- `biological_token_generative_case`
-- `not_sufficient_for_scope`
+- `yes`
+- `no`
 - `unclear`
 
-#### `expected_architecture_type`
+#### `expected_generative_model_present`
 
-- `generative`
-- `encoder_only`
-- `wrapper_or_pipeline`
+- `yes`
+- `no`
 - `unclear`
 
 #### `expected_foundation_model_evidence`
@@ -161,7 +159,7 @@ Each benchmark record should have the following labels.
 The benchmark should **not** be organized primarily around `Tier A / B / C`.
 
 If we keep the tier language at all, it should only survive as a private mental
-mapping to the single field `expected_text_bio_relation`.
+mapping to the single field `expected_text_bio_bridge_present`.
 
 ### Why
 
@@ -185,8 +183,7 @@ Instead of asking:
 The system should ask:
 
 - "Is there a real text component?"
-- "What kind of text-bio relation is present?"
-- "Is this the biological-token generative exception?"
+- "Is there a substantive text-bio bridge?"
 - "Is the architecture generative?"
 
 This is more transparent and easier to audit.

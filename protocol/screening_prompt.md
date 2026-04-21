@@ -39,20 +39,28 @@ prompting approach.
 
 ## Current Structured Output Schema
 
-The current screening stack uses criterion fields rather than a reviewer-level
-final label.
+The current screening stack uses reviewer-specific criterion fields rather than
+a reviewer-level final label.
 
-Current fields:
+Current reviewer outputs:
 
-- `paper_type`
-- `bio_modality_present`
-- `text_component_present`
-- `text_bio_bridge_present`
-- `generative_model_present`
-- `foundation_model_evidence`
-- `primary_exclusion_code`
-- `uncertainty_reason`
-- `decision_rationale`
+- `scope_reviewer`
+  - `paper_type`
+  - `bio_modality_present`
+  - `text_component_present`
+  - `text_bio_bridge_present`
+  - `primary_exclusion_code`
+  - `uncertainty_reason`
+  - `decision_rationale`
+- `architecture_reviewer`
+  - `paper_type`
+  - `generative_model_present`
+  - `foundation_model_evidence`
+  - `primary_exclusion_code`
+  - `uncertainty_reason`
+  - `decision_rationale`
+- `adjudicator`
+  - union of the above criterion fields when round B is triggered
 
 Allowed high-level values:
 
@@ -72,8 +80,8 @@ The current pilot aggregation logic is conservative:
 
 - the scope reviewer and architecture reviewer do **not** emit the final
   decision as a primary field;
-- Python gate logic converts their criterion answers into provisional
-  `PASS / EXCLUDE / UNCERTAIN` states;
+- Python gate logic converts their criterion answers into provisional gate
+  states such as `INCLUDE / EXCLUDE / UNCERTAIN`;
 - adjudication is triggered by unresolved criteria or criterion-level conflict,
   not by disagreement between two opaque reviewer labels;
 - `review_editorial`, `benchmark_resource`, and `application_wrapper` are
@@ -87,6 +95,19 @@ The current pilot aggregation logic is conservative:
 
 This is the main difference from the deprecated `v0.1` design: criterion fields
 are primary, and the final label is a derived downstream artifact.
+
+## Current Execution Pattern
+
+The preferred development and pilot mode is now:
+
+1. run a remote OpenAI-compatible `vLLM` server on the GPU cluster;
+2. expose it locally through an SSH tunnel;
+3. execute the `LatteReview` workflow locally against that endpoint;
+4. keep all prompt iteration, gate logic, and result analysis local.
+
+This pattern is operationally important because the screening method is now
+decoupled from the GPU runtime environment. The cluster provides the inference
+backend; the screening logic remains local and versioned.
 
 ---
 

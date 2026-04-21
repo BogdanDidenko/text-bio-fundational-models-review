@@ -12,7 +12,7 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 3. Search execution | Done | 7 databases, 2 rounds |
 | 4. Deduplication | Done | `scripts/deduplicate.py` |
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
-| 6. Title/Abstract screening | **In progress** | 4,027 records; criterion-by-criterion `LatteReview` pilot calibrated on a determinism-validated serving profile |
+| 6. Title/Abstract screening | **In progress** | 4,027 records; criterion-by-criterion `LatteReview` workflow with local orchestration, remote `vLLM` serving, and a determinism-validated serving profile |
 
 ## Search Results
 
@@ -66,20 +66,24 @@ In practice we now treat:
 ## Current Screening Topology
 
 ```mermaid
-flowchart TD
-    A["Screening-ready title/abstract records"] --> B["Round A: scope_reviewer"]
-    A --> C["Round A: architecture_reviewer"]
-    B --> D["Criterion outputs"]
-    C --> D
-    D --> E["Python gate logic"]
-    E --> F{"Unclear criterion or criterion conflict?"}
-    F -- "No" --> G["Rule-based aggregation"]
-    F -- "Yes" --> H["Round B: adjudicator"]
-    H --> G
-    G --> I{"Final decision"}
-    I -- "INCLUDE" --> J["Retain for next stage"]
-    I -- "EXCLUDE" --> K["Log exclusion code and rationale"]
-    I -- "UNCERTAIN" --> L["Manual review / adjudication queue"]
+flowchart LR
+    A["Screening-ready title/abstract records"] --> B["Local screening runner"]
+    P1["scope_reviewer prompt"] --> B
+    P2["architecture_reviewer prompt"] --> B
+    P3["adjudicator prompt"] --> B
+    B --> T["SSH tunnel"]
+    T --> V["Remote OpenAI-compatible vLLM server"]
+    V --> B
+    B --> C["Round A: criterion-only reviewers"]
+    C --> D["Python gate logic"]
+    D --> E{"Unresolved criterion or criterion conflict?"}
+    E -- "No" --> F["Rule-based aggregation"]
+    E -- "Yes" --> G["Round B: adjudicator"]
+    G --> F
+    F --> H{"Final screening state"}
+    H -- "INCLUDE" --> I["Retain for next stage"]
+    H -- "EXCLUDE" --> J["Log exclusion code and rationale"]
+    H -- "UNCERTAIN" --> K["Manual review queue"]
 ```
 
 Prompt documents for each stage:
@@ -91,10 +95,40 @@ Prompt documents for each stage:
 Current implementation choices:
 
 - round A uses two role-specialized reviewers rather than one global classifier;
+- reviewers return criterion fields only, not a trusted one-shot final label;
 - Python gate logic sits between round A and round B;
 - round B only runs on unresolved criteria or criterion-level conflicts;
 - final decision is aggregated from criterion fields rather than trusted as a free-form one-shot label;
-- the operative requirement is a determinism-validated serving profile under the exact production stack, not commitment to any single model family.
+- the operative requirement is a determinism-validated serving profile under the exact production stack, not commitment to any single model family;
+- the current preferred development mode is local orchestration plus remote `vLLM` serving over SSH tunneling, rather than remote execution of the whole screening pipeline.
+
+## Current Runtime Pattern
+
+The current operational pattern is:
+
+1. run `vllm serve` on euroHPC / Discoverer under `slurm`;
+2. expose the model through an SSH tunnel to a local OpenAI-compatible endpoint;
+3. run the `LatteReview` workflow locally;
+4. keep screening logic, prompt iteration, and post-processing local;
+5. use the cluster only as the GPU inference backend.
+
+Why this pattern is preferred:
+
+- it reduces friction from fragile remote shell sessions during development;
+- it keeps the full screening logic under local version control and easy debugging;
+- it preserves the same model-serving stack used for actual inference;
+- it makes determinism checks easier because the orchestration layer is held constant locally.
+
+Current evidence:
+
+- a repeated 10-record local-via-tunnel pilot on the same validated serving profile returned an exact match across the two runs on all shared result columns.
+
+The current workflow should therefore be understood as:
+
+- **BMC-style criterion-by-criterion screening logic**
+- **PRISMA-trAIce-style documentation and auditability**
+- **Cochrane-style validation and human oversight**
+- **local orchestration + remote GPU serving**
 
 ## Databases
 

@@ -21,17 +21,25 @@ The prompt stack is intentionally:
 - sensitivity-first rather than aggressive-auto-exclusion-first;
 - structured-output-first rather than rationale-first.
 
-The current structured response schema is:
+The current structured response schema is reviewer-specific:
 
-- `paper_type`
-- `bio_modality_present`
-- `text_component_present`
-- `text_bio_bridge_present`
-- `generative_model_present`
-- `foundation_model_evidence`
-- `primary_exclusion_code`
-- `uncertainty_reason`
-- `decision_rationale`
+- `scope_reviewer`
+  - `paper_type`
+  - `bio_modality_present`
+  - `text_component_present`
+  - `text_bio_bridge_present`
+  - `primary_exclusion_code`
+  - `uncertainty_reason`
+  - `decision_rationale`
+- `architecture_reviewer`
+  - `paper_type`
+  - `generative_model_present`
+  - `foundation_model_evidence`
+  - `primary_exclusion_code`
+  - `uncertainty_reason`
+  - `decision_rationale`
+- `adjudicator`
+  - the union of criterion fields needed to resolve round-A conflicts
 
-The final `INCLUDE / EXCLUDE / UNCERTAIN` label is derived later from these
-criterion answers and is not treated as the primary reviewer output.
+The final `INCLUDE / EXCLUDE / UNCERTAIN` label is derived later by Python gate
+logic and rule-based aggregation, not treated as the primary reviewer output.

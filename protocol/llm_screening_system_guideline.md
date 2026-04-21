@@ -104,18 +104,20 @@ it.
 
 ### Recommendation
 
-The model should produce the following structured fields for each record:
+The workflow should collect structured criterion fields across specialized
+reviewer roles, then derive the final decision outside the LLM.
+
+Current criterion fields across the workflow:
 
 1. `paper_type`
 2. `bio_modality_present`
 3. `text_component_present`
-4. `text_bio_relation`
-5. `architecture_type`
+4. `text_bio_bridge_present`
+5. `generative_model_present`
 6. `foundation_model_evidence`
-7. `final_decision`
-8. `primary_exclusion_code`
-9. `uncertainty_reason`
-10. `decision_rationale`
+7. `primary_exclusion_code`
+8. `uncertainty_reason`
+9. `decision_rationale`
 
 ### Recommended values
 
@@ -139,31 +141,11 @@ The model should produce the following structured fields for each record:
 - `no`
 - `unclear`
 
-#### `text_bio_relation`
-
-- `explicit_natural_language_bridge`
-- `biological_token_generative_case`
-- `not_sufficient_for_scope`
-- `unclear`
-
-#### `architecture_type`
-
-- `generative`
-- `encoder_only`
-- `wrapper_or_pipeline`
-- `unclear`
-
 #### `foundation_model_evidence`
 
 - `yes`
 - `no`
 - `unclear`
-
-#### `final_decision`
-
-- `INCLUDE`
-- `EXCLUDE`
-- `UNCERTAIN`
 
 ### Why this schema is preferable
 
@@ -175,6 +157,8 @@ practice supported by the literature than a tier-first design.
 - It avoids making `Tier A / B / C` the center of the whole system.
 - It allows us to keep our special protocol exception for biological-token
   generative models without forcing the whole pipeline to speak in tiers.
+- It avoids asking the reviewer to emit a final decision as a first-class field
+  when that decision can be derived more transparently by Python gate logic.
 
 ### Source support
 
@@ -235,6 +219,13 @@ Any record should become `UNCERTAIN` if:
 - the abstract is too short or too vague to resolve a key criterion;
 - the two reviewers disagree materially.
 
+### Additional implementation guidance
+
+`UNCERTAIN` should be produced by the gate logic as well as by direct criterion
+ambiguity. In other words, the system should not require the LLM to say
+`UNCERTAIN` explicitly as a primary output field. The workflow may infer
+uncertainty from unresolved decisive criteria.
+
 ### Operational consequence
 
 `UNCERTAIN` means:
@@ -279,15 +270,21 @@ Responsible for:
 - `paper_type`
 - `bio_modality_present`
 - `text_component_present`
-- `text_bio_relation`
+- `text_bio_bridge_present`
+- `primary_exclusion_code`
+- `uncertainty_reason`
+- `decision_rationale`
 
 #### Architecture reviewer
 
 Responsible for:
 
-- `architecture_type`
+- `paper_type`
+- `generative_model_present`
 - `foundation_model_evidence`
-- whether the work looks like a wrapper/application rather than a model paper
+- `primary_exclusion_code`
+- `uncertainty_reason`
+- `decision_rationale`
 
 #### Adjudicator
 
@@ -295,7 +292,8 @@ Responsible only for:
 
 - disagreements;
 - high-ambiguity cases;
-- cases where the exclusion logic conflicts across criteria.
+- cases where the exclusion logic conflicts across criteria;
+- criterion resolution across the union of scope and architecture fields.
 
 ### Why
 
@@ -318,6 +316,18 @@ This topology maps to that structure better than one general reviewer.
   reviewer roles.
   Source:
   [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+
+### Current runtime recommendation
+
+The preferred operational mode is:
+
+- remote OpenAI-compatible `vLLM` server on the GPU cluster;
+- local screening orchestration and post-processing;
+- SSH tunneling from a local endpoint to the remote model server.
+
+This is not a methodological requirement from the papers. It is an engineering
+choice that best preserves debuggability while keeping the serving stack fixed
+for reproducibility checks.
 
 ---
 

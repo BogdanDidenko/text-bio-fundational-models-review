@@ -15,11 +15,13 @@ recommendation for this review, grounded in:
 - the methodological reviews in
   `protocol/llm_screening_methodology/`
 
-The key design principle is:
+The key design principles are:
 
 - use `LatteReview` as an orchestration layer for a
   **criterion-by-criterion, sensitivity-first, human-supervised** workflow;
 - do **not** use it as a wrapper around a one-shot binary classifier.
+- keep screening orchestration local and treat the cluster primarily as a
+  remote OpenAI-compatible `vLLM` serving backend.
 
 ---
 
@@ -155,12 +157,21 @@ The adjudicator should produce:
 The system should use a criterion-level JSON schema, not a simple score-only
 schema.
 
-Recommended fields:
+The current workflow uses reviewer-specific schemas.
+
+### Scope reviewer fields
 
 - `paper_type`
 - `bio_modality_present`
 - `text_component_present`
 - `text_bio_bridge_present`
+- `primary_exclusion_code`
+- `uncertainty_reason`
+- `decision_rationale`
+
+### Architecture reviewer fields
+
+- `paper_type`
 - `generative_model_present`
 - `foundation_model_evidence`
 - `primary_exclusion_code`
@@ -177,13 +188,15 @@ Recommended value sets:
 - `generative_model_present`: `yes`, `no`, `unclear`
 - `foundation_model_evidence`: `yes`, `no`, `unclear`
 
-This is more aligned with the literature than making `Tier A / B / C` the main
-workflow language. If we keep the tier logic at all, it should only survive
-inside the interpretation of whether a substantive `text_bio_bridge_present`
-signal exists.
+The adjudicator uses the union of these fields when round B is triggered.
+
+This is more aligned with the literature than making `Tier A / B / C` the
+main workflow language. If we keep the tier logic at all, it should only
+survive inside the interpretation of whether a substantive
+`text_bio_bridge_present` signal exists.
 
 The reviewer-level output should stop at criterion answers. A provisional gate
-state such as `PASS`, `EXCLUDE`, or `UNCERTAIN` should be computed in Python
+state such as `INCLUDE`, `EXCLUDE`, or `UNCERTAIN` should be computed in Python
 from those answers rather than requested directly from the LLM.
 
 ---
@@ -417,6 +430,24 @@ Therefore, for our review we should document the following rule:
 - any claim of determinism must be supported by a passing benchmark probe on
   the exact serving profile used in production: model, vLLM version, hardware,
   and server configuration.
+
+### Current runtime recommendation
+
+The screening workflow should now be described as:
+
+- local `LatteReview` orchestration;
+- remote `vLLM` serving on the GPU cluster;
+- SSH tunneling from a local OpenAI-compatible endpoint to the remote server;
+- determinism checks performed against that exact end-to-end serving profile.
+
+This reduces dependence on fragile remote development sessions while keeping
+the model-serving stack fixed.
+
+In the current project state, a repeated 10-record local-orchestration run
+against the same remote serving profile produced an exact match across the two
+runs on all shared result columns. This does not prove universal determinism,
+but it is the strongest current operational evidence that the architecture is
+stable under the validated serving profile.
 
 ---
 
