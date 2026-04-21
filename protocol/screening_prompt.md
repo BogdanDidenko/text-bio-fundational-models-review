@@ -96,19 +96,6 @@ The current pilot aggregation logic is conservative:
 This is the main difference from the deprecated `v0.1` design: criterion fields
 are primary, and the final label is a derived downstream artifact.
 
-## Current Execution Pattern
-
-The preferred development and pilot mode is now:
-
-1. run a remote OpenAI-compatible `vLLM` server on the GPU cluster;
-2. expose it locally through an SSH tunnel;
-3. execute the `LatteReview` workflow locally against that endpoint;
-4. keep all prompt iteration, gate logic, and result analysis local.
-
-This pattern is operationally important because the screening method is now
-decoupled from the GPU runtime environment. The cluster provides the inference
-backend; the screening logic remains local and versioned.
-
 ---
 
 ## Why the Prompt Stack Changed

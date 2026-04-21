@@ -317,18 +317,6 @@ This topology maps to that structure better than one general reviewer.
   Source:
   [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
-### Current runtime recommendation
-
-The preferred operational mode is:
-
-- remote OpenAI-compatible `vLLM` server on the GPU cluster;
-- local screening orchestration and post-processing;
-- SSH tunneling from a local endpoint to the remote model server.
-
-This is not a methodological requirement from the papers. It is an engineering
-choice that best preserves debuggability while keeping the serving stack fixed
-for reproducibility checks.
-
 ---
 
 ## 6. Recommended Aggregation Rule

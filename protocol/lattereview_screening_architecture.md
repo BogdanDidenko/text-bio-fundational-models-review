@@ -20,8 +20,6 @@ The key design principles are:
 - use `LatteReview` as an orchestration layer for a
   **criterion-by-criterion, sensitivity-first, human-supervised** workflow;
 - do **not** use it as a wrapper around a one-shot binary classifier.
-- keep screening orchestration local and treat the cluster primarily as a
-  remote OpenAI-compatible `vLLM` serving backend.
 
 ---
 
@@ -430,24 +428,6 @@ Therefore, for our review we should document the following rule:
 - any claim of determinism must be supported by a passing benchmark probe on
   the exact serving profile used in production: model, vLLM version, hardware,
   and server configuration.
-
-### Current runtime recommendation
-
-The screening workflow should now be described as:
-
-- local `LatteReview` orchestration;
-- remote `vLLM` serving on the GPU cluster;
-- SSH tunneling from a local OpenAI-compatible endpoint to the remote server;
-- determinism checks performed against that exact end-to-end serving profile.
-
-This reduces dependence on fragile remote development sessions while keeping
-the model-serving stack fixed.
-
-In the current project state, a repeated 10-record local-orchestration run
-against the same remote serving profile produced an exact match across the two
-runs on all shared result columns. This does not prove universal determinism,
-but it is the strongest current operational evidence that the architecture is
-stable under the validated serving profile.
 
 ---
 
