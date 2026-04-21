@@ -49,13 +49,18 @@ data/
 
 ## Abstract Screening Process
 
-The abstract-screening process is currently documented across these files:
+The operational screening documentation set currently uses **exactly 8 files**.
 
-- [`protocol/eligibility_criteria.md`](protocol/eligibility_criteria.md): formal IC/EC criteria and decision tree.
-- [`protocol/screening_process.md`](protocol/screening_process.md): corpus preparation, enrichment, and screening-ready counts.
-- [`protocol/llm_screening_system_guideline.md`](protocol/llm_screening_system_guideline.md): literature-backed design choice.
-- [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md): current `LatteReview` workflow shape.
-- [`protocol/screening_prompt.md`](protocol/screening_prompt.md): current prompt stack index.
+These are the files that define the current screening method:
+
+1. [`protocol/eligibility_criteria.md`](protocol/eligibility_criteria.md) — formal IC/EC criteria and decision tree
+2. [`protocol/screening_process.md`](protocol/screening_process.md) — how those criteria are applied across phase 1 and phase 2
+3. [`protocol/llm_screening_system_guideline.md`](protocol/llm_screening_system_guideline.md) — literature-backed system design choice
+4. [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md) — current `LatteReview` workflow shape
+5. [`protocol/screening_prompt.md`](protocol/screening_prompt.md) — prompt-stack index and aggregation policy
+6. [`protocol/screening_prompts/scope_reviewer_prompt.md`](protocol/screening_prompts/scope_reviewer_prompt.md) — round-A scope prompt
+7. [`protocol/screening_prompts/architecture_reviewer_prompt.md`](protocol/screening_prompts/architecture_reviewer_prompt.md) — round-A architecture prompt
+8. [`protocol/screening_prompts/adjudicator_prompt.md`](protocol/screening_prompts/adjudicator_prompt.md) — round-B adjudicator prompt
 
 In practice we now treat:
 
@@ -87,6 +92,28 @@ Prompt documents for each stage:
 - [`scope_reviewer`](protocol/screening_prompts/scope_reviewer_prompt.md)
 - [`architecture_reviewer`](protocol/screening_prompts/architecture_reviewer_prompt.md)
 - [`adjudicator`](protocol/screening_prompts/adjudicator_prompt.md)
+
+### Stage-to-File Mapping
+
+The graph above maps to the files like this:
+
+- **Before round A: criteria definition**
+  - [`protocol/eligibility_criteria.md`](protocol/eligibility_criteria.md)
+  - [`protocol/screening_process.md`](protocol/screening_process.md)
+- **System-level design choice**
+  - [`protocol/llm_screening_system_guideline.md`](protocol/llm_screening_system_guideline.md)
+  - [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md)
+- **Round A: `scope_reviewer`**
+  - [`protocol/screening_prompts/scope_reviewer_prompt.md`](protocol/screening_prompts/scope_reviewer_prompt.md)
+- **Round A: `architecture_reviewer`**
+  - [`protocol/screening_prompts/architecture_reviewer_prompt.md`](protocol/screening_prompts/architecture_reviewer_prompt.md)
+- **Python gate logic / aggregation policy**
+  - [`protocol/screening_prompt.md`](protocol/screening_prompt.md)
+  - [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md)
+- **Round B: `adjudicator`**
+  - [`protocol/screening_prompts/adjudicator_prompt.md`](protocol/screening_prompts/adjudicator_prompt.md)
+- **Phase 2 / full-text follow-through**
+  - [`protocol/screening_process.md`](protocol/screening_process.md)
 
 Current implementation choices:
 

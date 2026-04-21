@@ -1,43 +1,93 @@
 # Screening Process
 
 ## Overview
-Two-phase screening following PRISMA 2020 guidelines.
+
+Two-phase screening aligned to the formal protocol in
+[eligibility_criteria.md](eligibility_criteria.md).
+
+The title/abstract phase is now implemented as a **criterion-by-criterion,
+sensitivity-first** workflow:
+
+- `scope_reviewer`
+- `architecture_reviewer`
+- Python gate logic
+- `adjudicator` only for unresolved or criterion-conflict cases
+
+The title/abstract phase is intentionally conservative. `UNCERTAIN` is a valid
+state and should preserve records for further review rather than force early
+exclusion.
 
 ## Phase 1: Title/Abstract Screening
 
-Apply the decision tree from [eligibility_criteria.md](eligibility_criteria.md):
+### Criterion logic
 
-1. Is it about single-cell data? (NO -> EC1)
-2. Does it involve 2+ modalities? (NO -> EC2, note if FM)
-3. Does it have FM characteristics? (NO -> EC3)
-4. Is it a primary research article/preprint? (NO -> EC5/EC6)
-5. Is it in English? (NO -> EC8)
+Apply the decision logic from [eligibility_criteria.md](eligibility_criteria.md)
+through the current workflow:
 
-**Action**: Mark each record as INCLUDE, EXCLUDE (with code), or UNCERTAIN.
-UNCERTAIN records proceed to Phase 2.
+1. Does the record work with biological data?  
+   `NO -> EXCLUDE (EC1)`
+2. Does it contain a **substantive** text/language component as part of the
+   candidate model?  
+   `NO -> EXCLUDE (EC2)`
+3. Does it show a substantive text-bio bridge rather than a wrapper around an
+   existing model?  
+   `NO -> EXCLUDE (EC2/EC4)`
+4. Is the model generative rather than encoder-only or purely predictive?  
+   `NO -> EXCLUDE (EC3)`
+5. Does it show foundation-model evidence?  
+   `NO -> EXCLUDE (EC4)`
+6. Is it a primary research paper/preprint rather than review/editorial,
+   benchmark/resource, or application-wrapper paper?  
+   `NO -> EXCLUDE (EC6/EC7/EC4 depending on failure mode)`
+7. If one or more decisive criteria remain unresolved at title/abstract stage:  
+   `-> UNCERTAIN`
+
+### Metadata checks during phase 1
+
+The following are protocol-level inclusion requirements but may be implemented
+as metadata filters or downstream checks rather than semantic prompt questions:
+
+- date range (`IC6`)
+- language (`IC7`)
+- Open Access / full-text availability (`IC8`)
+
+### Output of phase 1
+
+For each record, produce:
+
+- `INCLUDE`
+- `EXCLUDE` with exclusion code
+- `UNCERTAIN` with uncertainty reason
+
+`UNCERTAIN` records proceed to phase 2.
 
 ## Phase 2: Full-Text Screening
 
-For records marked INCLUDE or UNCERTAIN in Phase 1:
-1. Obtain full text (OA requirement — EC9 if not available)
-2. Verify multi-modal integration (IC2)
-3. Verify FM characteristics (IC3) — pretraining >100K cells, transferable
-4. Check for duplicate publications (EC7) — keep most recent/peer-reviewed version
-5. Confirm computational contribution (EC4)
+For records marked `INCLUDE` or `UNCERTAIN` in phase 1:
 
-## Exclusion Codes
+1. obtain full text
+2. verify that the text/language role is substantive rather than incidental
+3. verify that any claimed text-bio bridge is actually supported by the paper
+4. verify generative architecture from the full methods/model description
+5. verify FM characteristics from the full paper
+6. confirm publication type, duplication status, language, and OA/full-text status
+7. confirm computational contribution if phase-1 evidence was weak
 
-| Code | Reason | Phase |
-|------|--------|-------|
-| EC1 | Not single-cell data | 1 |
-| EC2 | Single-modality only | 1 or 2 |
-| EC3 | No foundation model component | 1 or 2 |
-| EC4 | Non-computational | 1 or 2 |
-| EC5 | Non-scholarly source | 1 |
-| EC6 | Review article | 1 |
-| EC7 | Duplicate publication | 2 |
-| EC8 | Not English | 1 |
-| EC9 | Not Open Access | 2 |
+## Exclusion Code Use In Screening
+
+| Code | Reason | Typical phase |
+|------|--------|---------------|
+| `EC1` | No biological data modality | 1 or 2 |
+| `EC2` | No substantive text/language component | 1 or 2 |
+| `EC3` | Encoder-only / non-generative architecture | 1 or 2 |
+| `EC4` | No foundation-model component / wrapper-only logic | 1 or 2 |
+| `EC5` | Non-computational | 1 or 2 |
+| `EC6` | Non-scholarly source | 1 |
+| `EC7` | Review article / non-primary literature | 1 |
+| `EC8` | Duplicate publication | 1 or 2 |
+
+`IC6-IC8` may also trigger exclusion at metadata/full-text validation if the
+record falls outside date range, language, or OA/full-text requirements.
 
 ## Deduplication Strategy
 
@@ -100,5 +150,13 @@ Deduplication + enrichment output:
 - `data/deduplication_stats.json` — summary statistics
 - `data/enrichment_log.json` — abstract enrichment details per record
 
-Screening results logged to `data/screening_log.csv` with columns:
-- record_id, database_source, doi, title, phase1_decision, phase1_code, phase2_decision, phase2_code, notes
+Screening results logged to `data/screening_log.csv` with columns such as:
+- `record_id`
+- `doi`
+- `title`
+- `phase1_decision`
+- `phase1_code`
+- `phase1_uncertainty_reason`
+- `phase2_decision`
+- `phase2_code`
+- `notes`
