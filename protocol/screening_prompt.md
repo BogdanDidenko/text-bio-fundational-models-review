@@ -18,11 +18,18 @@ This is the prompt stack currently being piloted on the screening corpus.
 
 ## Current Prompt Topology
 
-Stage prompts:
+Prompt notes:
 
 - [`scope_reviewer`](screening_prompts/scope_reviewer_prompt.md)
 - [`architecture_reviewer`](screening_prompts/architecture_reviewer_prompt.md)
 - [`adjudicator`](screening_prompts/adjudicator_prompt.md)
+
+Canonical operative prompt templates:
+
+- [`screening_prompt_templates/README.md`](screening_prompt_templates/README.md)
+- [`screening_prompt_templates/scope_reviewer_prompt.txt`](screening_prompt_templates/scope_reviewer_prompt.txt)
+- [`screening_prompt_templates/architecture_reviewer_prompt.txt`](screening_prompt_templates/architecture_reviewer_prompt.txt)
+- [`screening_prompt_templates/adjudicator_prompt.txt`](screening_prompt_templates/adjudicator_prompt.txt)
 
 The workflow is:
 
@@ -34,6 +41,24 @@ The workflow is:
 
 This is intentionally closer to the BMC paper than to the older one-shot
 prompting approach.
+
+---
+
+## Source Of Truth
+
+The repository now distinguishes between:
+
+- **prompt notes** in `protocol/screening_prompts/`, which explain reviewer
+  responsibilities and schema choices;
+- **operative runtime prompt templates** in
+  `protocol/screening_prompt_templates/`, which are the canonical prompt files
+  intended to be loaded by the screening runner.
+
+This change is motivated by:
+
+- prompt transparency for reporting;
+- prompt versioning for PRISMA-trAIce-style auditability;
+- reduced drift between documentation and execution.
 
 ---
 
@@ -66,6 +91,14 @@ Allowed high-level values:
 
 - `paper_type`: `primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear`
 - criterion fields: `yes | no | unclear`
+
+The operative prompt templates also constrain:
+
+- `primary_exclusion_code`
+- `uncertainty_reason`
+
+to a smaller codebook than earlier prompt versions. This was introduced to make
+criterion-level outputs more reportable and less prone to free-form drift.
 
 The important design choice is that the final screening decision is no longer
 trusted as a pure one-shot model judgment. Instead, the workflow first elicits
@@ -114,6 +147,15 @@ failure modes and to align the repo with the literature-backed recommendation:
 - BMC for screening behavior;
 - PRISMA-trAIce for auditability;
 - Cochrane for validation and human oversight.
+
+The current prompt templates also make three deliberate wording choices that
+are closer to the BMC-style workflow:
+
+- they instruct the model to use **only title/abstract evidence**;
+- they make `unclear` the explicit answer when a criterion is not supported by
+  the record;
+- they request a short evidence-grounded rationale, but do not ask the model to
+  generate a free-form final screening label.
 
 ---
 

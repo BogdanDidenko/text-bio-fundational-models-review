@@ -49,7 +49,8 @@ data/
 
 ## Abstract Screening Process
 
-The operational screening documentation set currently uses **exactly 8 files**.
+The operational **methodology documentation set** currently uses **exactly 8
+files**.
 
 These are the files that define the current screening method:
 
@@ -61,6 +62,14 @@ These are the files that define the current screening method:
 6. [`protocol/screening_prompts/scope_reviewer_prompt.md`](protocol/screening_prompts/scope_reviewer_prompt.md) — round-A scope prompt
 7. [`protocol/screening_prompts/architecture_reviewer_prompt.md`](protocol/screening_prompts/architecture_reviewer_prompt.md) — round-A architecture prompt
 8. [`protocol/screening_prompts/adjudicator_prompt.md`](protocol/screening_prompts/adjudicator_prompt.md) — round-B adjudicator prompt
+
+Separate from that methodology set, the repository now keeps a
+version-controlled **operative prompt template set** in:
+
+- [`protocol/screening_prompt_templates/README.md`](protocol/screening_prompt_templates/README.md)
+
+Those files are intended to be loaded directly by the screening runner so the
+exact runtime prompts can be disclosed and versioned without hardcoding.
 
 In practice we now treat:
 
@@ -93,6 +102,30 @@ Prompt documents for each stage:
 - [`architecture_reviewer`](protocol/screening_prompts/architecture_reviewer_prompt.md)
 - [`adjudicator`](protocol/screening_prompts/adjudicator_prompt.md)
 
+Operative runtime prompt templates:
+
+- [`scope_reviewer_prompt.txt`](protocol/screening_prompt_templates/scope_reviewer_prompt.txt)
+- [`architecture_reviewer_prompt.txt`](protocol/screening_prompt_templates/architecture_reviewer_prompt.txt)
+- [`adjudicator_prompt.txt`](protocol/screening_prompt_templates/adjudicator_prompt.txt)
+
+### Operative Prompt Usage
+
+This is the exact prompt-file mapping for the current workflow:
+
+| Workflow stage | Runtime prompt file | Reviewer metadata file | Notes |
+|---|---|---|---|
+| Round A: `scope_reviewer` | [`protocol/screening_prompt_templates/scope_reviewer_prompt.txt`](protocol/screening_prompt_templates/scope_reviewer_prompt.txt) | [`protocol/screening_prompt_templates/scope_reviewer_backstory.txt`](protocol/screening_prompt_templates/scope_reviewer_backstory.txt) | Loaded by the runner through `prompt_path`; used only for scope/publication/text-bio criteria |
+| Round A: `architecture_reviewer` | [`protocol/screening_prompt_templates/architecture_reviewer_prompt.txt`](protocol/screening_prompt_templates/architecture_reviewer_prompt.txt) | [`protocol/screening_prompt_templates/architecture_reviewer_backstory.txt`](protocol/screening_prompt_templates/architecture_reviewer_backstory.txt) | Loaded by the runner through `prompt_path`; used only for generative/FM criteria |
+| Round B: `adjudicator` | [`protocol/screening_prompt_templates/adjudicator_prompt.txt`](protocol/screening_prompt_templates/adjudicator_prompt.txt) | [`protocol/screening_prompt_templates/adjudicator_backstory.txt`](protocol/screening_prompt_templates/adjudicator_backstory.txt) | Loaded only for unresolved or criterion-conflict cases |
+
+LatteReview also wraps each reviewer with a generic system-prompt scaffold,
+documented here:
+
+- [`protocol/screening_prompt_templates/lattereview_system_prompt_template.txt`](protocol/screening_prompt_templates/lattereview_system_prompt_template.txt)
+
+That wrapper is not reviewer-specific. It is the same structural template used
+around reviewer name, backstory, input description, and response schema.
+
 ### Stage-to-File Mapping
 
 The graph above maps to the files like this:
@@ -105,15 +138,26 @@ The graph above maps to the files like this:
   - [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md)
 - **Round A: `scope_reviewer`**
   - [`protocol/screening_prompts/scope_reviewer_prompt.md`](protocol/screening_prompts/scope_reviewer_prompt.md)
+  - [`protocol/screening_prompt_templates/scope_reviewer_prompt.txt`](protocol/screening_prompt_templates/scope_reviewer_prompt.txt)
+  - [`protocol/screening_prompt_templates/scope_reviewer_backstory.txt`](protocol/screening_prompt_templates/scope_reviewer_backstory.txt)
 - **Round A: `architecture_reviewer`**
   - [`protocol/screening_prompts/architecture_reviewer_prompt.md`](protocol/screening_prompts/architecture_reviewer_prompt.md)
+  - [`protocol/screening_prompt_templates/architecture_reviewer_prompt.txt`](protocol/screening_prompt_templates/architecture_reviewer_prompt.txt)
+  - [`protocol/screening_prompt_templates/architecture_reviewer_backstory.txt`](protocol/screening_prompt_templates/architecture_reviewer_backstory.txt)
 - **Python gate logic / aggregation policy**
   - [`protocol/screening_prompt.md`](protocol/screening_prompt.md)
   - [`protocol/lattereview_screening_architecture.md`](protocol/lattereview_screening_architecture.md)
 - **Round B: `adjudicator`**
   - [`protocol/screening_prompts/adjudicator_prompt.md`](protocol/screening_prompts/adjudicator_prompt.md)
+  - [`protocol/screening_prompt_templates/adjudicator_prompt.txt`](protocol/screening_prompt_templates/adjudicator_prompt.txt)
+  - [`protocol/screening_prompt_templates/adjudicator_backstory.txt`](protocol/screening_prompt_templates/adjudicator_backstory.txt)
 - **Phase 2 / full-text follow-through**
   - [`protocol/screening_process.md`](protocol/screening_process.md)
+
+The generic LatteReview system-prompt wrapper used around reviewer metadata is
+documented here for reporting:
+
+- [`protocol/screening_prompt_templates/lattereview_system_prompt_template.txt`](protocol/screening_prompt_templates/lattereview_system_prompt_template.txt)
 
 Current implementation choices:
 

@@ -3,6 +3,14 @@
 These files document the current `LatteReview` prompt stack for the
 criterion-by-criterion title/abstract workflow.
 
+They are **not** the canonical runtime source of truth for operative prompt
+text.
+
+The canonical prompt templates intended for loading by the screening runner are
+stored in:
+
+- [../screening_prompt_templates/README.md](../screening_prompt_templates/README.md)
+
 Current stage prompts:
 
 - [scope_reviewer_prompt.md](scope_reviewer_prompt.md)

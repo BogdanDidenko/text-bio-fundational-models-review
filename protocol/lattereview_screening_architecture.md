@@ -43,6 +43,10 @@ Operationally:
 - later rounds can consume previous round outputs as part of their
   `text_inputs`.
 
+This also means the current workflow can load reviewer prompt text from
+external files through `prompt_path`, which is preferable for versioned prompt
+reporting over keeping operative prompt text hardcoded in one runner script.
+
 This means LatteReview is already a good fit for our target design:
 
 - round A: independent first-pass reviewers;
@@ -196,6 +200,22 @@ survive inside the interpretation of whether a substantive
 The reviewer-level output should stop at criterion answers. A provisional gate
 state such as `INCLUDE`, `EXCLUDE`, or `UNCERTAIN` should be computed in Python
 from those answers rather than requested directly from the LLM.
+
+## 4.1 Prompt Storage Recommendation
+
+The current recommended pattern is:
+
+- keep **human-readable prompt notes** in `protocol/screening_prompts/`;
+- keep **canonical operative runtime prompt templates** in
+  `protocol/screening_prompt_templates/`;
+- have the screening runner load those runtime templates through
+  `ScoringReviewer(prompt_path=...)`.
+
+This is better than one large hardcoded prompt block because it improves:
+
+- paper-ready prompt disclosure;
+- change tracking and versioning;
+- consistency between what is documented and what is executed.
 
 ---
 
