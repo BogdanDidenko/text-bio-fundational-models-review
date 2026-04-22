@@ -94,6 +94,13 @@ flowchart TD
     I -- "INCLUDE" --> J["Retain for next stage"]
     I -- "EXCLUDE" --> K["Log exclusion code and rationale"]
     I -- "UNCERTAIN" --> L["Manual review queue"]
+
+    B --- Bp["prompt: scope_reviewer_prompt.txt<br/>backstory: scope_reviewer_backstory.txt"]
+    C --- Cp["prompt: architecture_reviewer_prompt.txt<br/>backstory: architecture_reviewer_backstory.txt"]
+    H --- Hp["prompt: adjudicator_prompt.txt<br/>backstory: adjudicator_backstory.txt"]
+    Bp --- Sp["system wrapper: lattereview_system_prompt_template.txt"]
+    Cp --- Sp
+    Hp --- Sp
 ```
 
 Prompt documents for each stage:
