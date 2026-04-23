@@ -98,9 +98,6 @@ flowchart TD
     B --- Bp["scope reviewer prompt\nprotocol/screening_prompt_templates/scope_reviewer_prompt.txt"]
     C --- Cp["architecture reviewer prompt\nprotocol/screening_prompt_templates/architecture_reviewer_prompt.txt"]
     H --- Hp["adjudicator prompt\nprotocol/screening_prompt_templates/adjudicator_prompt.txt"]
-    Bp --- Sp["LatteReview system wrapper\nprotocol/screening_prompt_templates/lattereview_system_prompt_template.txt"]
-    Cp --- Sp
-    Hp --- Sp
 ```
 
 Prompt documents for each stage:
@@ -125,13 +122,9 @@ This is the exact prompt-file mapping for the current workflow:
 | Round A: `architecture_reviewer` | [`protocol/screening_prompt_templates/architecture_reviewer_prompt.txt`](protocol/screening_prompt_templates/architecture_reviewer_prompt.txt) | Loaded by the runner through `prompt_path`; contains both reviewer role text and generative/FM instructions |
 | Round B: `adjudicator` | [`protocol/screening_prompt_templates/adjudicator_prompt.txt`](protocol/screening_prompt_templates/adjudicator_prompt.txt) | Loaded only for unresolved or criterion-conflict cases; contains both reviewer role text and adjudication instructions |
 
-LatteReview also wraps each reviewer with a generic system-prompt scaffold,
-documented here:
-
-- [`protocol/screening_prompt_templates/lattereview_system_prompt_template.txt`](protocol/screening_prompt_templates/lattereview_system_prompt_template.txt)
-
-That wrapper is not reviewer-specific. It is the same structural template used
-around reviewer name, input description, and response schema.
+The current local runner treats these reviewer prompt files as the
+self-contained operative prompt artifacts rather than splitting out a separate
+LatteReview system-wrapper layer.
 
 ### Stage-to-File Mapping
 
@@ -158,10 +151,6 @@ The graph above maps to the files like this:
 - **Phase 2 / full-text follow-through**
   - [`protocol/screening_process.md`](protocol/screening_process.md)
 
-The generic LatteReview system-prompt wrapper used around reviewer metadata is
-documented here for reporting:
-
-- [`protocol/screening_prompt_templates/lattereview_system_prompt_template.txt`](protocol/screening_prompt_templates/lattereview_system_prompt_template.txt)
 
 Current implementation choices:
 

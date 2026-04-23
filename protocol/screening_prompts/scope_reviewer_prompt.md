@@ -17,11 +17,6 @@ The operative runtime artifacts for this reviewer are:
 
 - [../screening_prompt_templates/scope_reviewer_prompt.txt](../screening_prompt_templates/scope_reviewer_prompt.txt)
 
-The generic LatteReview system wrapper used around the reviewer metadata is
-documented in:
-
-- [../screening_prompt_templates/lattereview_system_prompt_template.txt](../screening_prompt_templates/lattereview_system_prompt_template.txt)
-
 ## Structured Output
 
 The reviewer returns exactly one JSON object with these keys:
