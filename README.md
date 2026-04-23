@@ -95,13 +95,13 @@ flowchart TD
     I -- "EXCLUDE" --> K["Log exclusion code and rationale"]
     I -- "UNCERTAIN" --> L["Manual review queue"]
 
-    B --- Bp["prompt\nprotocol/screening_prompt_templates/scope_reviewer_prompt.txt"]
-    B --- Bb["backstory\nprotocol/screening_prompt_templates/scope_reviewer_backstory.txt"]
-    C --- Cp["prompt\nprotocol/screening_prompt_templates/architecture_reviewer_prompt.txt"]
-    C --- Cb["backstory\nprotocol/screening_prompt_templates/architecture_reviewer_backstory.txt"]
-    H --- Hp["prompt\nprotocol/screening_prompt_templates/adjudicator_prompt.txt"]
-    H --- Hb["backstory\nprotocol/screening_prompt_templates/adjudicator_backstory.txt"]
-    Bp --- Sp["system wrapper\nprotocol/screening_prompt_templates/lattereview_system_prompt_template.txt"]
+    B --- Bp["scope prompt\nprotocol/screening_prompt_templates/scope_reviewer_prompt.txt"]
+    B --- Bb["scope backstory\nprotocol/screening_prompt_templates/scope_reviewer_backstory.txt"]
+    C --- Cp["architecture prompt\nprotocol/screening_prompt_templates/architecture_reviewer_prompt.txt"]
+    C --- Cb["architecture backstory\nprotocol/screening_prompt_templates/architecture_reviewer_backstory.txt"]
+    H --- Hp["adjudicator prompt\nprotocol/screening_prompt_templates/adjudicator_prompt.txt"]
+    H --- Hb["adjudicator backstory\nprotocol/screening_prompt_templates/adjudicator_backstory.txt"]
+    Bp --- Sp["LatteReview system wrapper\nprotocol/screening_prompt_templates/lattereview_system_prompt_template.txt"]
     Cp --- Sp
     Hp --- Sp
 ```
