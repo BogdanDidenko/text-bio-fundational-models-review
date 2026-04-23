@@ -95,23 +95,15 @@ flowchart TD
     I -- "EXCLUDE" --> K["Log exclusion code and rationale"]
     I -- "UNCERTAIN" --> L["Manual review queue"]
 
-    B --- Bp["scope_reviewer_prompt.txt"]
-    B --- Bb["scope_reviewer_backstory.txt"]
-    C --- Cp["architecture_reviewer_prompt.txt"]
-    C --- Cb["architecture_reviewer_backstory.txt"]
-    H --- Hp["adjudicator_prompt.txt"]
-    H --- Hb["adjudicator_backstory.txt"]
-    Bp --- Sp["lattereview_system_prompt_template.txt"]
+    B --- Bp["prompt\nprotocol/screening_prompt_templates/scope_reviewer_prompt.txt"]
+    B --- Bb["backstory\nprotocol/screening_prompt_templates/scope_reviewer_backstory.txt"]
+    C --- Cp["prompt\nprotocol/screening_prompt_templates/architecture_reviewer_prompt.txt"]
+    C --- Cb["backstory\nprotocol/screening_prompt_templates/architecture_reviewer_backstory.txt"]
+    H --- Hp["prompt\nprotocol/screening_prompt_templates/adjudicator_prompt.txt"]
+    H --- Hb["backstory\nprotocol/screening_prompt_templates/adjudicator_backstory.txt"]
+    Bp --- Sp["system wrapper\nprotocol/screening_prompt_templates/lattereview_system_prompt_template.txt"]
     Cp --- Sp
     Hp --- Sp
-
-    click Bp href "protocol/screening_prompt_templates/scope_reviewer_prompt.txt" "Open scope reviewer prompt"
-    click Bb href "protocol/screening_prompt_templates/scope_reviewer_backstory.txt" "Open scope reviewer backstory"
-    click Cp href "protocol/screening_prompt_templates/architecture_reviewer_prompt.txt" "Open architecture reviewer prompt"
-    click Cb href "protocol/screening_prompt_templates/architecture_reviewer_backstory.txt" "Open architecture reviewer backstory"
-    click Hp href "protocol/screening_prompt_templates/adjudicator_prompt.txt" "Open adjudicator prompt"
-    click Hb href "protocol/screening_prompt_templates/adjudicator_backstory.txt" "Open adjudicator backstory"
-    click Sp href "protocol/screening_prompt_templates/lattereview_system_prompt_template.txt" "Open LatteReview system wrapper template"
 ```
 
 Prompt documents for each stage:
