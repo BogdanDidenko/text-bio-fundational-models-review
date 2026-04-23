@@ -16,7 +16,6 @@ It is the first-pass scope gate for the current `LatteReview` workflow.
 The operative runtime artifacts for this reviewer are:
 
 - [../screening_prompt_templates/scope_reviewer_prompt.txt](../screening_prompt_templates/scope_reviewer_prompt.txt)
-- [../screening_prompt_templates/scope_reviewer_backstory.txt](../screening_prompt_templates/scope_reviewer_backstory.txt)
 
 The generic LatteReview system wrapper used around the reviewer metadata is
 documented in:

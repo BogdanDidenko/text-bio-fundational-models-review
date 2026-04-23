@@ -15,11 +15,8 @@ These files exist so that:
 The local screening runner loads these files directly:
 
 - [scope_reviewer_prompt.txt](scope_reviewer_prompt.txt)
-- [scope_reviewer_backstory.txt](scope_reviewer_backstory.txt)
 - [architecture_reviewer_prompt.txt](architecture_reviewer_prompt.txt)
-- [architecture_reviewer_backstory.txt](architecture_reviewer_backstory.txt)
 - [adjudicator_prompt.txt](adjudicator_prompt.txt)
-- [adjudicator_backstory.txt](adjudicator_backstory.txt)
 
 ## Reporting file
 
@@ -42,3 +39,7 @@ The current templates are intentionally:
 - conservative about `unclear`;
 - stricter about wrapper papers, benchmark/resource papers, and non-generative
   systems.
+
+Reviewer-role text is now embedded directly inside each reviewer prompt file
+rather than stored in a separate `backstory` file. This keeps the operative
+reviewer prompt easier to read and easier to report verbatim in the paper.
