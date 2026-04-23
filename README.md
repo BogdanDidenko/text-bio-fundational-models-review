@@ -14,6 +14,48 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
 | 6. Title/Abstract screening | **In progress** | 4,027 records; criterion-by-criterion `LatteReview` workflow calibrated on a determinism-validated serving profile |
 
+## Minimal LatteReview Runtime
+
+If you already have an OpenAI-compatible LLM endpoint running on the GPU server
+(for example `vllm serve`), the repository now contains the minimum files
+needed to run the current title/abstract screening pipeline directly from this
+repo clone.
+
+Minimal setup:
+
+```bash
+git clone https://github.com/BogdanDidenko/text-bio-fundational-models-review.git
+cd text-bio-fundational-models-review
+bash scripts/setup_lattereview_runtime.sh
+```
+
+Then run the pipeline against your served model:
+
+```bash
+python3 scripts/run_lattereview_guideline_pilot.py \
+  --base-url http://127.0.0.1:8000/v1 \
+  --model qwen3-30b-a3b \
+  --input-csv /path/to/input.csv \
+  --output-dir /path/to/output_dir
+```
+
+Expected input:
+
+- a CSV with at least `title` and `abstract` columns
+- template: [`data/screening_input_template.csv`](data/screening_input_template.csv)
+
+Key runtime files:
+
+- [`scripts/run_lattereview_guideline_pilot.py`](scripts/run_lattereview_guideline_pilot.py)
+- [`scripts/setup_lattereview_runtime.sh`](scripts/setup_lattereview_runtime.sh)
+- [`scripts/requirements_lattereview_pilot.txt`](scripts/requirements_lattereview_pilot.txt)
+- [`protocol/screening_prompt_templates/`](protocol/screening_prompt_templates/)
+
+This path assumes:
+
+- the LLM endpoint is already running;
+- you only need this repo for the screening logic, prompts, and aggregation.
+
 ## Search Results
 
 ### v3.1 (2026-02-15) — initial search

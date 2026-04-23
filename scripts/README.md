@@ -100,16 +100,43 @@ All queries are stored in `search_config.json`. The file contains the exact Bool
 
 ## Pilot Screening With LatteReview
 
-This repo also includes a separate pilot script for AI-assisted title/abstract screening:
+There are currently two different LatteReview-related scripts in this folder:
+
+- `run_lattereview_pilot.py`
+  - older OpenRouter-oriented pilot
+  - useful as historical reference
+- `run_lattereview_guideline_pilot.py`
+  - current literature-aligned runner
+  - uses the criterion-by-criterion workflow documented in `protocol/`
+  - intended to run against an already served OpenAI-compatible endpoint such as vLLM
+
+### Minimal setup for the current runner
 
 ```bash
-python scripts/run_lattereview_pilot.py --prepare-only
-python scripts/run_lattereview_pilot.py --api-key $OPENROUTER_API_KEY
-python scripts/run_lattereview_pilot.py --api-key $OPENROUTER_API_KEY --model qwen/qwen3.5-35b-a3b
+bash scripts/setup_lattereview_runtime.sh
 ```
 
-Notes:
-- The pilot script uses the local `../LatteReview` clone by default.
-- It is intentionally separate from the main search/dedup/enrichment pipeline.
-- `--prepare-only` builds the pilot CSV without making LLM calls.
-- Pilot-specific Python dependencies are listed in `requirements_lattereview_pilot.txt`.
+This clones `LatteReview` into `external/LatteReview` and installs the minimal
+Python dependencies listed in `requirements_lattereview_pilot.txt`.
+
+### Run the current guideline-aligned pipeline
+
+```bash
+python3 scripts/run_lattereview_guideline_pilot.py \
+  --base-url http://127.0.0.1:8000/v1 \
+  --model qwen3-30b-a3b \
+  --input-csv /path/to/input.csv \
+  --output-dir /path/to/output_dir
+```
+
+Expected input:
+
+- CSV with at least `title` and `abstract` columns
+- template: `data/screening_input_template.csv`
+
+Optional:
+
+- `--lattereview-path /path/to/LatteReview` if you do not want to use the default `external/LatteReview`
+- `--prompt-dir /path/to/protocol/screening_prompt_templates`
+- `--max-records N`
+- `--max-concurrent N`
