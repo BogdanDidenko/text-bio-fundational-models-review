@@ -100,8 +100,13 @@ All queries are stored in `search_config.json`. The file contains the exact Bool
 
 ## Pilot Screening With LatteReview
 
-There are currently two different LatteReview-related scripts in this folder:
+There are currently three screening-related scripts in this folder, at three
+different status levels:
 
+- `screen_test.py`
+  - **deprecated** v0.1 one-shot INCLUDE/EXCLUDE/UNCERTAIN classifier
+  - retained as historical reference only
+  - does NOT implement the current criterion-by-criterion workflow
 - `run_lattereview_pilot.py`
   - older OpenRouter-oriented pilot
   - useful as historical reference

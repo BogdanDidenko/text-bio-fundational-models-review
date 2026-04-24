@@ -1,13 +1,36 @@
 #!/usr/bin/env python3
 """
-Test LLM-based title/abstract screening on a few sample records.
+DEPRECATED: v0.1 one-shot title/abstract screening classifier.
 
+This script is retained as historical reference only. It does NOT implement the
+current criterion-by-criterion LatteReview workflow declared in:
+
+- protocol/llm_screening_system_guideline.md
+- protocol/lattereview_screening_architecture.md
+- protocol/screening_prompt.md
+- protocol/screening_prompts/
+- protocol/screening_prompt_templates/
+
+Specifically, this script violates the current methodology in several ways:
+- it asks the LLM to emit a final INCLUDE/EXCLUDE/UNCERTAIN label directly,
+  instead of eliciting criterion-level answers and deriving the final decision
+  in Python gate logic;
+- it uses a single general-purpose reviewer instead of the scope_reviewer +
+  architecture_reviewer + adjudicator topology;
+- its system prompt is hardcoded in Python rather than loaded from the
+  versioned runtime templates in protocol/screening_prompt_templates/.
+
+For the current screening pipeline use:
+    scripts/run_lattereview_guideline_pilot.py
+
+See also scripts/README.md for the operative runtime entry point.
+
+---
+
+Historical description (v0.1, deprecated):
+Test LLM-based title/abstract screening on a few sample records.
 Uses OpenRouter API with OpenAI-compatible format.
 Model: openai/gpt-oss-120b:free (or any other via --model flag)
-
-Usage:
-  python screen_test.py --api-key YOUR_OPENROUTER_KEY
-  python screen_test.py --api-key YOUR_OPENROUTER_KEY --model openai/gpt-oss-120b:free
 """
 
 import json
