@@ -125,14 +125,23 @@ After deduplication, many records (primarily from Scopus Search API which does n
 2. **API enrichment**: For remaining records without abstracts, fetch from Semantic Scholar (by DOI), CrossRef (by DOI), PubMed Entrez (by PMID), and S2 title search (fallback).
 3. **Exclusion**: Records still lacking an abstract after enrichment are excluded with code `EC_NO_ABSTRACT` and saved to a separate audit file.
 
-| Metric | Value |
-|---|---|
-| Missing before enrichment | 577 (16.2%) |
-| Recovered via API (S2, CrossRef, PubMed) | +393 |
-| Excluded (no abstract after all steps) | 184 (5.2%) |
-| **Records for screening** | **3,371** |
+| Metric | v3.1 (2026-02-15) | Update (2026-04-14) |
+|---|---|---|
+| Missing before enrichment | 577 (16.2%) | 41 of 668 new records |
+| Recovered via API (S2, CrossRef, PubMed) | +393 | +29 |
+| Excluded (no abstract after all steps) | 184 (5.2%) | 12 |
+| **Records for screening** | **3,371** | **+656 new → 4,027 total** |
 
-Script: [scripts/enrich_abstracts.py](../scripts/enrich_abstracts.py)
+A second enrichment pass also replaced 335 truncated Google Scholar snippet
+abstracts with full abstracts via CrossRef/S2 title search and stripped HTML
+tags from 211 records. After this pass, 88.3% of the 4,027 screening records
+have full abstracts (≥250 chars).
+
+Scripts:
+- [scripts/enrich_abstracts.py](../scripts/enrich_abstracts.py) — enrichment
+  for records with no abstract (drops below the EC_NO_ABSTRACT bar)
+- [scripts/enrich_short_abstracts.py](../scripts/enrich_short_abstracts.py) —
+  enrichment for records with short snippet-style abstracts
 
 ### Search update history
 
@@ -140,12 +149,13 @@ Script: [scripts/enrich_abstracts.py](../scripts/enrich_abstracts.py)
 |---------|------|---------|---------------------|
 | v3.0 | 2026-02-06 | Initial search across 7 databases | 3,228 |
 | v3.1 | 2026-02-15 | Added space variants: "RNA seq", "multi omics" (were missing without hyphens) | 3,371 |
+| update | 2026-04-14 | Top-up search 2026-03-01 → 2026-04-14 across 7 DBs; +668 new records after cross-dedup; short-abstract enrichment | 4,027 |
 
 ## Output
 
 Deduplication + enrichment output:
-- `data/deduplicated_records.json` — 3,371 records with abstracts, ready for screening
-- `data/excluded_no_abstract.json` — 184 records excluded for missing abstract (audit trail)
+- `data/deduplicated_records.json` — 4,027 records with abstracts, ready for screening
+- `data/excluded_no_abstract.json` — records excluded for missing abstract (audit trail)
 - `data/deduplication_log.csv` — every merge decision with action, reason, and cluster ID
 - `data/deduplication_stats.json` — summary statistics
 - `data/enrichment_log.json` — abstract enrichment details per record

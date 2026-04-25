@@ -105,11 +105,11 @@ For our team, the main implication is that PRISMA-trAIce should be treated as a 
 
 ### Prompt versioning
 
-This paper implies that prompt versioning must move from informal documentation to controlled protocol metadata. In the current repo, [screening_prompt.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/screening_prompt.md) summarizes the logic of prompt `v0.1`, but it also states that the actual system prompt is embedded in `scripts/screen_test.py`. Under PRISMA-trAIce M6, that is not enough. We need the operative prompt text, prompt version, prompt hash, few-shot examples, generation parameters, and refinement history to be accessible as review artifacts.
+This paper implies that prompt versioning must move from informal documentation to controlled protocol metadata. In the current repo, [screening_prompt.md](../screening_prompt.md) summarizes the logic of prompt `v0.1`, but it also states that the actual system prompt is embedded in `scripts/screen_test.py`. Under PRISMA-trAIce M6, that is not enough. We need the operative prompt text, prompt version, prompt hash, few-shot examples, generation parameters, and refinement history to be accessible as review artifacts.
 
 ### Audit trail
 
-The paper strongly supports a much richer screening trace than our current output schema. [screening_process.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/screening_process.md) currently describes `data/screening_log.csv` with only `record_id`, source metadata, phase decisions, codes, and notes. That is too thin for PRISMA-trAIce. A defensible audit trail should preserve at least the input record snapshot, AI raw output, parsed output, post-processing version, final human decision, and discrepancy reason.
+The paper strongly supports a much richer screening trace than our current output schema. [screening_process.md](../screening_process.md) currently describes `data/screening_log.csv` with only `record_id`, source metadata, phase decisions, codes, and notes. That is too thin for PRISMA-trAIce. A defensible audit trail should preserve at least the input record snapshot, AI raw output, parsed output, post-processing version, final human decision, and discrepancy reason.
 
 ### Human-AI interaction
 
@@ -125,7 +125,7 @@ The paper makes discrepancy handling a reporting obligation. That means AI-human
 
 ### Transparency in PRISMA reporting
 
-Our current [prisma_flow_template.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/prisma_flow_template.md) is still essentially a standard PRISMA template. If title/abstract screening is materially AI-assisted, the flow representation should distinguish:
+Our current [prisma_flow_template.md](../prisma_flow_template.md) is still essentially a standard PRISMA template. If title/abstract screening is materially AI-assisted, the flow representation should distinguish:
 
 - records screened by AI;
 - records excluded by AI at title/abstract stage;
@@ -138,12 +138,12 @@ The paper also matters for how we use external model providers. If we screen via
 
 ## 8. Specific repo/process changes we should consider
 
-- Upgrade [screening_prompt.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/screening_prompt.md) from a descriptive note into a versioned prompt record. Each version should include full prompt text, model, provider, parameters, few-shot examples, prompt hash, validation basis, and approval date.
-- Add an explicit AI-assisted screening subsection to [screening_process.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/screening_process.md) describing reviewer roles, independence, visibility of AI output, escalation rules for `UNCERTAIN`, and adjudication procedure.
+- Upgrade [screening_prompt.md](../screening_prompt.md) from a descriptive note into a versioned prompt record. Each version should include full prompt text, model, provider, parameters, few-shot examples, prompt hash, validation basis, and approval date.
+- Add an explicit AI-assisted screening subsection to [screening_process.md](../screening_process.md) describing reviewer roles, independence, visibility of AI output, escalation rules for `UNCERTAIN`, and adjudication procedure.
 - Expand the screening log schema beyond final labels. Recommended additional columns include `llm_model`, `llm_provider`, `model_version`, `prompt_version`, `prompt_hash`, `run_id`, `raw_output_path`, `postprocess_version`, `ai_decision`, `ai_code`, `ai_confidence`, `ai_reason`, `human1_decision`, `human2_decision`, `consensus_decision`, `disagreement_type`, `adjudicator`, and `validation_basis`.
 - Add a dedicated validation note or manifest for screening runs. This should state the calibration set used, who labeled it, what counts as the reference standard, which metrics were checked, and what acceptance rule justified deployment.
-- Treat prompt revisions and model substitutions as protocol deviations unless prespecified. Those changes should be reflected in [PRISMA_protocol.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/PRISMA_protocol.md), not only in implementation notes.
-- Update [prisma_flow_template.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/prisma_flow_template.md) so the title/abstract stage can separate AI-assisted exclusions from human exclusions and record how many items moved into manual review because of uncertainty or disagreement.
+- Treat prompt revisions and model substitutions as protocol deviations unless prespecified. Those changes should be reflected in [PRISMA_protocol.md](../PRISMA_protocol.md), not only in implementation notes.
+- Update [prisma_flow_template.md](../prisma_flow_template.md) so the title/abstract stage can separate AI-assisted exclusions from human exclusions and record how many items moved into manual review because of uncertainty or disagreement.
 - Add a short data-governance note covering what text is sent to external services, whether identifiers are included, where raw outputs are stored, and which retention/security assumptions apply.
 - Formalize disagreement taxonomy for this review. At minimum, distinguish `ai_vs_human`, `human_vs_human`, `model_vs_model`, and `insufficient_abstract_information`. This is a practical extension of the paper's requirement to describe discrepancy handling.
 - Preserve `UNCERTAIN` as an intentional review state rather than a residual error class. PRISMA-trAIce does not prescribe this label, but its human-oversight logic strongly supports using it as the default sink for ambiguity rather than forcing confident exclusion.

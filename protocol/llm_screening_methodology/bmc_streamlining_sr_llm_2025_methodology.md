@@ -4,9 +4,7 @@
 
 Trad F, Yammine R, Charafeddine J, Chakhtoura M, Rahme M, El-Hajj Fuleihan G, Chehab A. *Streamlining systematic reviews with large language models using prompt engineering and retrieval augmented generation*. **BMC Medical Research Methodology**. 2025;25:130. doi: [10.1186/s12874-025-02583-5](https://doi.org/10.1186/s12874-025-02583-5).
 
-Primary local sources used for this note:
-- `/Users/bogdan.didenko/e-hpc/articles/screening_llm_2026/bmc_streamlining_sr_llm_2025.pdf`
-- `/Users/bogdan.didenko/e-hpc/articles/screening_llm_2026/bmc_streamlining_sr_llm_2025.txt`
+Source: see citation above. Local PDF/TXT references removed for portability.
 
 ## 2. Why this paper matters for AI-assisted screening
 

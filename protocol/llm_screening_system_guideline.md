@@ -7,9 +7,9 @@ system for this review of **text-bio foundational models**.
 
 It is based on three methodological sources:
 
-- [Trad et al. (2025) on LLM-assisted screening](https://doi.org/10.1186/s12874-025-02583-5), summarized locally in [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
-- [Holst et al. (2025) PRISMA-trAIce](https://doi.org/10.2196/80247), summarized locally in [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
-- [Flemyng et al. (2025) Cochrane/Campbell/JBI/CEE position statement](https://doi.org/10.1002/14651858.ED000178), summarized locally in [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+- [Trad et al. (2025) on LLM-assisted screening](https://doi.org/10.1186/s12874-025-02583-5), summarized locally in [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+- [Holst et al. (2025) PRISMA-trAIce](https://doi.org/10.2196/80247), summarized locally in [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+- [Flemyng et al. (2025) Cochrane/Campbell/JBI/CEE position statement](https://doi.org/10.1002/14651858.ED000178), summarized locally in [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 The goal is not to invent a novel screening philosophy. The goal is to choose a
 system design that is:
@@ -46,21 +46,21 @@ It should **not** be built as:
    are retained rather than excluded. This is the clearest empirical support for
    our pipeline architecture.
    Source:
-   [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+   [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 
 2. **PRISMA-trAIce**: the system must be designed so that prompts, versions,
    outputs, validation basis, and human-AI interaction can be reported and
    audited. This is the strongest support for version control, audit trail, and
    disagreement logging.
    Source:
-   [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+   [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 3. **Cochrane position statement**: AI use in screening is acceptable only if
    it is justified, validated locally, and deployed under explicit human
    oversight. This is the strongest support for a benchmark gate and a formal
    safety case before live deployment.
    Source:
-   [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+   [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
@@ -91,12 +91,12 @@ it.
 - BMC paper explicitly used questions identical to the human screening guide and
   required structured responses for each question.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - PRISMA-trAIce requires exact reporting of prompts, outputs, and how humans
   interacted with them, which is easier to satisfy with criterion-level output
   than with opaque free-form classification.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -164,11 +164,11 @@ practice supported by the literature than a tier-first design.
 
 - BMC supports question-by-question screening and explicit `unsure`.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - Cochrane supports explicit justification and oversight for any
   judgment-bearing AI outputs.
   Source:
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
@@ -196,11 +196,11 @@ not grounded as a standard in the literature.
 
 - BMC paper argues for criterion-level screening and `unsure`, not tier labels.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - PRISMA-trAIce supports transparent task-specific operationalization, but does
   not prescribe any tier taxonomy.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -244,10 +244,10 @@ must distinguish "not in scope" from "not resolvable at title/abstract stage."
 - BMC: uncertain records are retained rather than excluded; this is the clearest
   empirical support for our policy.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - Cochrane: human oversight must be strongest where judgment risk is high.
   Source:
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
@@ -310,12 +310,12 @@ This topology maps to that structure better than one general reviewer.
   The paper does not prescribe multi-agent topology, but this topology is a
   direct extension of its criterion-first logic.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - PRISMA-trAIce requires explicit reporting of human-AI interaction and
   discrepancy handling, which is easier to satisfy with clearly differentiated
   reviewer roles.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -338,10 +338,10 @@ stable. Any cross-criterion conflict should preserve recall.
 
 - BMC supports conservative retention of uncertain cases.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - Cochrane supports conservative oversight when the cost of error is high.
   Source:
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
@@ -383,13 +383,13 @@ universal threshold. That means we must create our own local validation basis.
 
 - PRISMA-trAIce: validation basis and metrics must be explicit.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 - Cochrane: AI use must be justified in context, not assumed.
   Source:
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 - BMC: threshold choice changes the safety-efficiency trade-off materially.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 
 ---
 
@@ -419,7 +419,7 @@ Our current problem is not just prompt quality. It is also prompt governance.
 - PRISMA-trAIce explicitly requires reporting prompt structure, settings, and
   iterative refinement.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -460,10 +460,10 @@ This is necessary for:
 
 - BMC logged question-level outputs to support traceability.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - PRISMA-trAIce requires auditable reporting of inputs, outputs, and oversight.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -492,11 +492,11 @@ we can explain why deployment is justified.
 
 - Cochrane statement is the clearest basis for this requirement.
   Source:
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 - PRISMA-trAIce supports protocol-level accountability and reporting of
   deviations.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 
@@ -532,7 +532,7 @@ Only after:
 - BMC supports full-text RAG only as a separate second phase, not as a
   substitute for good title/abstract design.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 
 ---
 

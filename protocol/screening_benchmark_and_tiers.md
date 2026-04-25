@@ -20,11 +20,11 @@ PRISMA-trAIce and the Cochrane/RAISE-style governance position.
 Sources:
 
 - [Trad et al. (2025)](https://doi.org/10.1186/s12874-025-02583-5):
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - [Holst et al. (2025)](https://doi.org/10.2196/80247):
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 - [Flemyng et al. (2025)](https://doi.org/10.1002/14651858.ED000178):
-  [cochrane_ai_position_statement_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
+  [cochrane_ai_position_statement_2025_methodology.md](llm_screening_methodology/cochrane_ai_position_statement_2025_methodology.md)
 
 ---
 
@@ -57,10 +57,10 @@ is unstable or whether the protocol itself is underspecified.
 
 - BMC paper: explicit question-by-question screening and structured logging.
   Source:
-  [bmc_streamlining_sr_llm_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
+  [bmc_streamlining_sr_llm_2025_methodology.md](llm_screening_methodology/bmc_streamlining_sr_llm_2025_methodology.md)
 - PRISMA-trAIce: validation basis and auditable outputs must be reportable.
   Source:
-  [jmir_prisma_trace_2025_methodology.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
+  [jmir_prisma_trace_2025_methodology.md](llm_screening_methodology/jmir_prisma_trace_2025_methodology.md)
 
 ---
 

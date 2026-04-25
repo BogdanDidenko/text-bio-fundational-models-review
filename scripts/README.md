@@ -92,7 +92,10 @@ Results from the original search (2026-02-06). Re-running will produce similar b
 | SpringerNature | ~250 (validated) |
 | Google Scholar | ~514 |
 
-Ground truth: 11/11 must-find models detected across all databases.
+Ground truth: 13/13 must-find models detected across all databases (after the
+2026-04-14 update search added Cell2Seq and X-Cell to the original 11). See
+[`protocol/ground_truth_models.md`](../protocol/ground_truth_models.md) for
+the full list and per-model expected criterion labels.
 
 ## Search Configuration
 

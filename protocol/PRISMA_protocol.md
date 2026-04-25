@@ -1,8 +1,8 @@
 # PRISMA-S Protocol: Generative Foundation Models Bridging Text and Biological Data
 
-**Version**: 3.0
-**Date**: 2026-02-06
-**Type**: Scoping review with PRISMA-S compliant search methodology
+**Version**: 4.0
+**Date**: 2026-04-25
+**Type**: Scoping review (PRISMA-ScR) with PRISMA-S compliant search methodology and PRISMA-trAIce-style LLM screening
 
 ---
 
@@ -45,7 +45,7 @@ See [eligibility_criteria.md](eligibility_criteria.md) for full criteria.
 | 4 | Semantic Scholar | S2 Academic Graph API (bulk search) | Direct API |
 | 5 | arXiv | arXiv API | Direct API |
 | 6 | bioRxiv / medRxiv | EuropePMC REST API | Direct API |
-| 7 | Google Scholar | paper-search-mcp | Supplementary |
+| 7 | Google Scholar | `scholarly` Python library | Supplementary |
 
 ### 5.2 Justification
 - **PubMed**: Primary biomedical database, strong coverage of computational biology
@@ -104,25 +104,30 @@ All searches to be executed on the same date. Date will be recorded in the PRISM
 ### 7.1 Process
 
 1. **Import**: Export results from all 7 databases to `data/exports/<database>_<date>.json`
-2. **Deduplication**: Match by DOI (primary), then fuzzy title+author matching
-3. **Title/Abstract screening**: Apply eligibility criteria decision tree (see [eligibility_criteria.md](eligibility_criteria.md))
-4. **Full-text screening**: For records passing title/abstract screen, verify all inclusion criteria on full text
-5. **Conflict resolution**: Disagreements resolved by discussion (single reviewer with documented rationale)
+2. **Deduplication**: Conservative exact matching only — DOI → PMID → arXiv ID → normalized title (no fuzzy matching). See [scripts/deduplicate.py](../scripts/deduplicate.py).
+3. **Abstract enrichment + exclusion**: Records without abstracts are enriched via S2/CrossRef/PubMed APIs; records still lacking an abstract are excluded.
+4. **Title/Abstract screening**: Apply eligibility criteria decision tree (see [eligibility_criteria.md](eligibility_criteria.md)) using a criterion-by-criterion LatteReview workflow (see [llm_screening_system_guideline.md](llm_screening_system_guideline.md), [lattereview_screening_architecture.md](lattereview_screening_architecture.md)).
+5. **Full-text screening**: For records passing title/abstract screen, verify all inclusion criteria on full text.
+6. **Conflict resolution**: Disagreements between scope and architecture reviewers escalate to an adjudicator round; unresolved cases go to manual review queue.
 
 ### 7.2 Exclusion Codes
+
+The protocol uses 8 high-level exclusion codes (EC1–EC8). The runtime LLM
+screening codebook in `protocol/screening_prompt_templates/` further refines
+these into specific values such as `EC2_no_text_component`,
+`EC2_no_substantive_text_bio_bridge`, `EC3_not_generative`, and
+`EC4_no_foundation_model_evidence`.
 
 | Code | Reason |
 |------|--------|
 | EC1 | No biological data modality |
-| EC2 | No text/language component |
+| EC2 | No text/language component (or no substantive text-bio bridge) |
 | EC3 | Encoder-only architecture (note in supplementary) |
 | EC4 | No foundation model component |
 | EC5 | Non-computational |
 | EC6 | Non-scholarly source |
 | EC7 | Review article |
 | EC8 | Duplicate publication |
-| EC9 | Not English |
-| EC10 | Not Open Access |
 
 ---
 
@@ -168,21 +173,18 @@ See [prisma_flow_template.md](prisma_flow_template.md) — to be populated after
 
 ### Ground Truth Models (from existing reviews + known models)
 
-Models our search MUST capture:
-- scGPT (gene tokens + RNA + ATAC + CITE-seq, generative)
-- tGPT (gene tokens + RNA, decoder-only)
-- LangCell (NL + scRNA)
-- ChatCell (NL + scRNA, generative chat)
-- CellWhisperer (NL + scRNA)
-- CellPLM (gene tokens + spatial, encoder-decoder)
-- Nicheformer (gene tokens + spatial, encoder-decoder)
-- EpiAgent (LLM agent + epigenomics)
-- PathOmCLIP (text + omics via CLIP)
+Must-include (13): scGPT, tGPT, LangCell, ChatCell, CellWhisperer, CellPLM,
+Nicheformer, EpiAgent, GenePT, GeneGPT, PathOmCLIP, Cell2Seq, X-Cell.
 
-Related but excluded (encoder-only, for supplementary):
-- scBERT, Geneformer, scFoundation, UCE, GeneCompass, SCimilarity
+Related but excluded (4, encoder-only, for supplementary table):
+scBERT, Geneformer, scFoundation, UCE.
 
-See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.md) for full ground truth list.
+All 13 must-find models were captured by the combined v3.1 + 2026-04-14 update
+search. See [ground_truth_models.md](ground_truth_models.md) for per-model
+metadata and per-group expected criterion-level labels used as the recall
+anchor for the LLM screening benchmark.
+
+See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.md) for the original ground truth compilation from existing reviews.
 
 ---
 
@@ -205,3 +207,6 @@ See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.
 | 2026-01-28 | 1.0 | Initial draft |
 | 2026-02-03 | 2.0 | Finalized criteria, added SpringerNature, created all query files, completed review of reviews |
 | 2026-02-06 | 3.0 | Scope change: from "multi-modal single-cell FMs" to "generative FMs bridging text and biological data". Rewrote eligibility criteria (IC1-IC4, EC1-EC4), concept blocks, all query files. Updated search interfaces: S2 bulk search, EuropePMC for bioRxiv/medRxiv. |
+| 2026-02-15 | 3.1 | Added space variants `RNA seq` and `multi omics` to all 7 queries; rerun search. 5,534 → 3,371 records for screening. |
+| 2026-04-14 | 3.2 | Top-up search 2026-03-01 → 2026-04-14 across all 7 DBs; 668 truly new records after cross-dedup; added Cell2Seq and X-Cell to ground truth (13 must-find total); short-abstract enrichment via CrossRef title search. 4,027 records for screening. |
+| 2026-04-25 | 4.0 | Adopted criterion-by-criterion LatteReview screening workflow (BMC + PRISMA-trAIce + Cochrane). Three reviewer roles: scope, architecture, adjudicator. Final decision derived in Python gate logic, not emitted by the LLM. Deprecated v0.1 one-shot screening script. Aligned exclusion codebook (EC1–EC8 high-level → runtime codebook with refined codes). |

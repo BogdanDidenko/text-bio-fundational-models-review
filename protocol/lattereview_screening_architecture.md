@@ -11,7 +11,7 @@ recommendation for this review, grounded in:
 
 - the actual structure of the local `LatteReview` codebase
 - the literature-backed guideline in
-  [llm_screening_system_guideline.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/llm_screening_system_guideline.md)
+  [llm_screening_system_guideline.md](llm_screening_system_guideline.md)
 - the methodological reviews in
   `protocol/llm_screening_methodology/`
 

@@ -9,7 +9,7 @@ Purpose:
 - turn generic "LLM for screening" claims into concrete design decisions
   for this review;
 - document practical recommendations before we revise
-  [screening_prompt.md](/Users/bogdan.didenko/e-hpc/text-bio-fundational-models-review/protocol/screening_prompt.md)
+  [screening_prompt.md](../screening_prompt.md)
   and the screening pipeline.
 
 Contents:
