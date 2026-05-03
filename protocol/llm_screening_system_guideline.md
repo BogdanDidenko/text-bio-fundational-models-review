@@ -155,8 +155,8 @@ practice supported by the literature than a tier-first design.
 - It follows the BMC logic of screening by explicit criteria.
 - It preserves `UNCERTAIN` as a real state.
 - It avoids making `Tier A / B / C` the center of the whole system.
-- It allows us to keep our special protocol exception for biological-token
-  generative models without forcing the whole pipeline to speak in tiers.
+- It makes biological-token boundary cases explicit without treating language
+  metaphors over genes or cells as a text component by default.
 - It avoids asking the reviewer to emit a final decision as a first-class field
   when that decision can be derived more transparently by Python gate logic.
 

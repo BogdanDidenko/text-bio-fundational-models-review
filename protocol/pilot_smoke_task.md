@@ -24,7 +24,7 @@ requires 36–48 manually adjudicated records and is a follow-up task.
 | Group | Coverage | Picked count | Selection method |
 |-------|----------|-------------:|------------------|
 | P1 | Clear positives (NL + bio bridge) | 8 | Manual (ground truth) |
-| P2 | Gene-token exception positives | 5 | Manual (ground truth) |
+| P2 | Biological-token stress cases | 5 | Manual (ground truth) |
 | N1 | Review/editorial papers | 5 | Heuristic on title (`"a review"`, `"a survey"`, `": review"`) |
 | N2 | Bio-only multimodal | 4 | Manual seeding (MultiVI etc.) + heuristic on `"multi-omics integration"` |
 | N3 | Encoder-only negatives | 3 | Manual (ground truth, scFoundation not found in corpus) |
@@ -78,18 +78,22 @@ hold on the 35-record pilot:
 - Adjudicator runs only on records flagged by the gate logic, not on all
   records.
 
-### Recall on must-include groups (P1 + P2)
+### Recall on must-include records
 
-- All 13 must-include records produce `expected_final_decision = INCLUDE`.
-- For P2 (gene-token exception), `text_component_present = yes` and
-  `text_bio_bridge_present = yes` per the operative scope-reviewer prompt rule
-  on biological-token modeling.
+- All 9 must-include records produce `expected_final_decision = INCLUDE`.
+- P2 is no longer uniformly must-include. Gene-token-only models without
+  natural-language text or explicit text-bio alignment are expected to be
+  excluded with `EC2_no_text_component`; X-Cell remains an expected include
+  because its abstract describes natural-language-derived biological priors.
 
 ### Specificity on negative groups
 
 - All 5 N1 records → `EXCLUDE` with `paper_type = review_editorial` and
   `primary_exclusion_code = review_editorial`.
 - All 4 N2 records → `EXCLUDE` with
+  `text_component_present = no` and
+  `primary_exclusion_code = EC2_no_text_component`.
+- All 4 gene-token-only P2 records → `EXCLUDE` with
   `text_component_present = no` and
   `primary_exclusion_code = EC2_no_text_component`.
 - All 3 N3 records → `EXCLUDE` with

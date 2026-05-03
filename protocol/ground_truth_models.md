@@ -47,11 +47,13 @@ Papers with explicit text–biology bridge and natural language interaction.
 
 ---
 
-## 2. Must-Include — Protocol-Exception Positives (Benchmark Group P2)
+## 2. Biological-Token Stress Cases (Benchmark Group P2)
 
-Biological-token generative models. These papers use gene tokens in a GPT-style
-decoder without a natural-language component. They are included under the
-explicit protocol exception for biological-token generative models.
+Biological-token generative models. These papers stress-test the boundary
+between biological-token modeling and a substantive text/language component.
+Under the current title/abstract screening rule, biological-token modeling alone
+does not count as a text/language component unless the abstract clearly
+describes natural-language text or explicit text-bio alignment.
 
 | # | Model | Year | Modalities | Architecture | Key source |
 |---|-------|------|-----------|--------------|------------|
@@ -59,25 +61,25 @@ explicit protocol exception for biological-token generative models.
 | 2 | tGPT | 2023 | Gene tokens + cell types | GPT-style autoregressive | Generative cell modeling |
 | 6 | CellPLM | 2024 | Gene tokens + spatial | Transformer decoder | Pathway-level language model |
 | 7 | Nicheformer | 2024 | Gene tokens + spatial niches | Transformer decoder | Niche-aware generation |
-| 13 | X-Cell | 2026 | Perturbation + gene expression | Diffusion language model | DOI: 10.64898/2026.03.18.712807 |
+| 13 | X-Cell | 2026 | Perturbation + gene expression + natural-language priors | Diffusion language model | DOI: 10.64898/2026.03.18.712807 |
 
 ### Expected criterion-level labels for Group P2
 
 | Field | Expected value |
 |-------|---------------|
-| `expected_final_decision` | `INCLUDE` |
+| `expected_final_decision` | `EXCLUDE` for scGPT, tGPT, CellPLM, and Nicheformer; `INCLUDE` for X-Cell |
 | `expected_paper_type` | `primary_model_paper` |
 | `expected_bio_modality_present` | `yes` |
-| `expected_text_component_present` | `yes` — gene-token generative language modeling per protocol exception |
-| `expected_text_bio_bridge_present` | `yes` — gene tokens drive generative modeling |
-| `expected_generative_model_present` | `yes` |
+| `expected_text_component_present` | `no` for gene-token-only models; `yes` for X-Cell because the abstract describes natural-language-derived priors |
+| `expected_text_bio_bridge_present` | `no` for gene-token-only models; `yes` for X-Cell |
+| `expected_generative_model_present` | `yes` for scGPT, tGPT, and X-Cell; `unclear` is acceptable when the abstract does not clearly establish generation |
 | `expected_foundation_model_evidence` | `yes` |
-| `expected_primary_exclusion_code` | `none` |
+| `expected_primary_exclusion_code` | `EC2_no_text_component` for gene-token-only models; `none` for X-Cell |
 | `expected_uncertainty_reason` | (blank) |
 
 These papers are the canonical stress test for whether the screening system
-preserves the biological-token protocol exception instead of collapsing it into
-an EC2 exclusion for "no text component."
+separates biological-token-only language metaphors from true natural-language
+or explicit text-bio alignment evidence.
 
 ---
 
@@ -137,7 +139,7 @@ The manual benchmark in `screening_benchmark_and_tiers.md §4` uses these models
 as two of its seven groups:
 
 - Group P1 (clear positives) — maps to Section 1 of this file
-- Group P2 (protocol-exception positives) — maps to Section 2 of this file
+- Group P2 (biological-token stress cases) — maps to Section 2 of this file
 - Group N3 (encoder-only negatives) — maps to Section 3 of this file
 
 The remaining groups (N1 review/editorial, N2 bio-only, N4 wrappers, N5

@@ -207,14 +207,14 @@ Goal:
 
 - ensure recall on the most canonical in-scope cases
 
-#### Group P2 — Protocol-exception positives
+#### Group P2 — Biological-token boundary cases
 
 - biological-token generative model papers
 
 Goal:
 
-- ensure the system preserves the explicit protocol exception rather than
-  collapsing it into generic exclusion
+- ensure the system separates biological-token-only language metaphors from
+  records with natural-language text or explicit text-bio alignment
 
 #### Group N1 — Review/editorial negatives
 
