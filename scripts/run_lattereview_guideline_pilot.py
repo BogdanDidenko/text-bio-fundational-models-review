@@ -125,6 +125,7 @@ class VLLMOpenAIJSONProvider:
         timeout: int = 300,
         max_retries: int = 3,
         enable_thinking: bool = False,
+        reasoning_effort: str = "high",
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -132,6 +133,7 @@ class VLLMOpenAIJSONProvider:
         self.timeout = timeout
         self.max_retries = max_retries
         self.enable_thinking = enable_thinking
+        self.reasoning_effort = reasoning_effort
         self.system_prompt = ""
         self.response_format: Optional[Dict[str, Any]] = None
 
@@ -170,9 +172,14 @@ class VLLMOpenAIJSONProvider:
             "seed": kwargs.get("seed", 0),
             "n": kwargs.get("n", 1),
             "max_tokens": kwargs.get("max_tokens", 500),
-            "response_format": {"type": "json_object"},
-            "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
         }
+        if not self.enable_thinking:
+            payload["response_format"] = {"type": "json_object"}
+        if self.enable_thinking:
+            payload["chat_template_kwargs"] = {
+                "thinking": True,
+                "reasoning_effort": self.reasoning_effort,
+            }
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -215,11 +222,15 @@ class VLLMOpenAIJSONProvider:
     def _extract_content(data: Dict[str, Any]) -> str:
         if "error" in data:
             raise RuntimeError(data["error"].get("message", str(data["error"])))
-        message = data["choices"][0]["message"]["content"]
-        if isinstance(message, list):
-            text_parts = [part.get("text", "") for part in message if isinstance(part, dict)]
+        message = data["choices"][0]["message"]
+        content = message.get("content")
+        if isinstance(content, list):
+            text_parts = [part.get("text", "") for part in content if isinstance(part, dict)]
             return "".join(text_parts).strip()
-        return str(message).strip()
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+
+        return ""
 
     @staticmethod
     def _parse_json_content(content: str) -> Dict[str, Any]:
@@ -265,7 +276,10 @@ def make_reviewers(
     model: str,
     max_concurrent: int,
     timeout: int,
+    max_tokens: int,
     prompt_dir: Path,
+    enable_thinking: bool,
+    reasoning_effort: str,
 ):
     from lattereview.agents import ScoringReviewer
 
@@ -278,10 +292,12 @@ def make_reviewers(
         "api_key": api_key,
         "model": model,
         "timeout": timeout,
+        "enable_thinking": enable_thinking,
+        "reasoning_effort": reasoning_effort,
     }
 
     shared_args = {
-        "model_args": {"temperature": 0.7, "top_p": 1.0, "n": 1, "seed": 0, "max_tokens": 420},
+        "model_args": {"temperature": 0.7, "top_p": 1.0, "n": 1, "seed": 0, "max_tokens": max_tokens},
         "max_concurrent_requests": max_concurrent,
         "scoring_set": [0],
     }
@@ -325,7 +341,10 @@ def build_round_a_workflow(
     model: str,
     max_concurrent: int,
     timeout: int,
+    max_tokens: int,
     prompt_dir: Path,
+    enable_thinking: bool,
+    reasoning_effort: str,
 ):
     from lattereview.workflows import ReviewWorkflow
 
@@ -335,7 +354,10 @@ def build_round_a_workflow(
         model=model,
         max_concurrent=max_concurrent,
         timeout=timeout,
+        max_tokens=max_tokens,
         prompt_dir=prompt_dir,
+        enable_thinking=enable_thinking,
+        reasoning_effort=reasoning_effort,
     )
 
     return ReviewWorkflow(
@@ -356,7 +378,10 @@ def build_round_b_workflow(
     model: str,
     max_concurrent: int,
     timeout: int,
+    max_tokens: int,
     prompt_dir: Path,
+    enable_thinking: bool,
+    reasoning_effort: str,
 ):
     from lattereview.workflows import ReviewWorkflow
 
@@ -366,7 +391,10 @@ def build_round_b_workflow(
         model=model,
         max_concurrent=max_concurrent,
         timeout=timeout,
+        max_tokens=max_tokens,
         prompt_dir=prompt_dir,
+        enable_thinking=enable_thinking,
+        reasoning_effort=reasoning_effort,
     )
 
     return ReviewWorkflow(
@@ -393,6 +421,168 @@ def build_round_b_workflow(
         ],
         verbose=True,
     )
+
+
+def format_text_input(row: pd.Series, text_inputs: List[str], round_id: str, idx: Any) -> str:
+    parts = []
+    for text_input in text_inputs:
+        value = str(row[text_input]).strip()
+        parts.append(f"=== {text_input} ===\n{value}")
+    return f"Review Task ID: {round_id}-{idx}\n" + "\n\n".join(parts)
+
+
+def normalize_reviewer_output(output: Any, response_format: Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(output, dict):
+        processed = dict(output)
+    else:
+        processed = json.loads(output)
+    for key in response_format:
+        processed.setdefault(key, None)
+    return processed
+
+
+def reviewer_columns(round_id: str, reviewer: Any) -> tuple[str, List[str]]:
+    response_keywords = list(reviewer.response_format.keys())
+    output_col = f"round-{round_id}_{reviewer.name}_output"
+    response_cols = [f"round-{round_id}_{reviewer.name}_{keyword}" for keyword in response_keywords]
+    return output_col, response_cols
+
+
+async def run_reviewer_for_row(
+    reviewer: Any,
+    row: pd.Series,
+    idx: Any,
+    round_id: str,
+    text_inputs: List[str],
+    request_semaphore: asyncio.Semaphore,
+) -> Dict[str, Any]:
+    text_input_string = format_text_input(row, text_inputs, round_id, idx)
+    async with request_semaphore:
+        output, input_prompt, cost = await reviewer.review_item(text_input_string, [])
+
+    if isinstance(cost, dict):
+        cost_value = cost.get("total_cost", 0.0)
+    else:
+        cost_value = cost
+    reviewer.cost_so_far += cost_value
+    reviewer.memory.append(
+        {
+            "system_prompt": reviewer.system_prompt,
+            "model_args": reviewer.model_args,
+            "input_prompt": input_prompt,
+            "response": output,
+            "cost": cost_value,
+        }
+    )
+
+    processed = normalize_reviewer_output(output, reviewer.response_format)
+    output_col, _ = reviewer_columns(round_id, reviewer)
+    row_updates = {output_col: output}
+    for keyword in reviewer.response_format.keys():
+        row_updates[f"round-{round_id}_{reviewer.name}_{keyword}"] = processed.get(keyword)
+    return row_updates
+
+
+async def run_streaming_guideline_pipeline(
+    df: pd.DataFrame,
+    base_url: str,
+    api_key: str,
+    model: str,
+    max_concurrent: int,
+    timeout: int,
+    max_tokens: int,
+    prompt_dir: Path,
+    enable_thinking: bool,
+    reasoning_effort: str,
+) -> pd.DataFrame:
+    scope_reviewer, architecture_reviewer, adjudicator = make_reviewers(
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
+        max_concurrent=max_concurrent,
+        timeout=timeout,
+        max_tokens=max_tokens,
+        prompt_dir=prompt_dir,
+        enable_thinking=enable_thinking,
+        reasoning_effort=reasoning_effort,
+    )
+    for reviewer in (scope_reviewer, architecture_reviewer, adjudicator):
+        reviewer.setup()
+
+    request_semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def process_row(idx: Any, source_row: pd.Series) -> Dict[str, Any]:
+        row_data = source_row.to_dict()
+        working_row = pd.Series(row_data)
+
+        scope_task = asyncio.create_task(
+            run_reviewer_for_row(
+                scope_reviewer,
+                working_row,
+                idx,
+                "A",
+                ["title", "abstract"],
+                request_semaphore,
+            )
+        )
+        architecture_task = asyncio.create_task(
+            run_reviewer_for_row(
+                architecture_reviewer,
+                working_row,
+                idx,
+                "A",
+                ["title", "abstract"],
+                request_semaphore,
+            )
+        )
+        scope_updates, architecture_updates = await asyncio.gather(scope_task, architecture_task)
+        row_data.update(scope_updates)
+        row_data.update(architecture_updates)
+
+        working_row = pd.Series(row_data)
+        row_data["pilot_roundA_scope_gate"] = scope_gate_decision(working_row)
+        row_data["pilot_roundA_architecture_gate"] = architecture_gate_decision(working_row)
+        working_row = pd.Series(row_data)
+        row_data["pilot_needs_adjudication"] = needs_adjudication(working_row)
+
+        if row_data["pilot_needs_adjudication"]:
+            adjudication_updates = await run_reviewer_for_row(
+                adjudicator,
+                pd.Series(row_data),
+                idx,
+                "B",
+                [
+                    "title",
+                    "abstract",
+                    "round-A_scope_reviewer_paper_type",
+                    "round-A_scope_reviewer_bio_modality_present",
+                    "round-A_scope_reviewer_text_component_present",
+                    "round-A_scope_reviewer_text_bio_bridge_present",
+                    "round-A_scope_reviewer_primary_exclusion_code",
+                    "round-A_scope_reviewer_uncertainty_reason",
+                    "round-A_architecture_reviewer_paper_type",
+                    "round-A_architecture_reviewer_generative_model_present",
+                    "round-A_architecture_reviewer_foundation_model_evidence",
+                    "round-A_architecture_reviewer_primary_exclusion_code",
+                    "round-A_architecture_reviewer_uncertainty_reason",
+                ],
+                request_semaphore,
+            )
+            row_data.update(adjudication_updates)
+
+        return row_data
+
+    tasks = [asyncio.create_task(process_row(idx, row)) for idx, row in df.iterrows()]
+    results = []
+    completed = 0
+    total = len(tasks)
+    for task in asyncio.as_completed(tasks):
+        results.append(await task)
+        completed += 1
+        print(f"Streaming pipeline completed {completed}/{total} records")
+
+    result_df = pd.DataFrame(results)
+    return result_df.sort_values("_pilot_row_id").reset_index(drop=True)
 
 
 def scope_gate_decision(row: pd.Series) -> str:
@@ -617,6 +807,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-concurrent", type=int, default=1, help="Max concurrent requests per reviewer")
     parser.add_argument("--max-records", type=int, default=10, help="Run only the first N records")
     parser.add_argument("--timeout", type=int, default=300, help="Per-request timeout in seconds")
+    parser.add_argument("--max-tokens", type=int, default=420, help="Per-request maximum generated tokens")
+    parser.add_argument(
+        "--enable-thinking",
+        action="store_true",
+        help="Pass DeepSeek-V4 thinking controls in chat_template_kwargs",
+    )
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["high", "max"],
+        default="high",
+        help="DeepSeek-V4 reasoning effort used when --enable-thinking is set",
+    )
+    parser.add_argument(
+        "--pipeline-mode",
+        choices=["streaming", "stage-batched"],
+        default="streaming",
+        help=(
+            "streaming runs each record through scope/architecture/adjudication as soon as dependencies are ready; "
+            "stage-batched preserves the original LatteReview all-records-per-stage execution"
+        ),
+    )
     parser.add_argument(
         "--prompt-dir",
         default=str(DEFAULT_PROMPT_DIR),
@@ -654,36 +865,58 @@ def main() -> None:
     df["title"] = df["title"].fillna("").astype(str)
     df["abstract"] = df["abstract"].fillna("").astype(str)
 
-    round_a_workflow = build_round_a_workflow(
-        base_url=args.base_url,
-        api_key=args.api_key,
-        model=args.model,
-        max_concurrent=args.max_concurrent,
-        timeout=args.timeout,
-        prompt_dir=prompt_dir,
-    )
-
-    round_a_results = asyncio.run(round_a_workflow(df))
-    round_a_results["pilot_roundA_scope_gate"] = round_a_results.apply(scope_gate_decision, axis=1)
-    round_a_results["pilot_roundA_architecture_gate"] = round_a_results.apply(architecture_gate_decision, axis=1)
-    round_a_results["pilot_needs_adjudication"] = round_a_results.apply(needs_adjudication, axis=1)
-
-    adjudication_inputs = round_a_results.loc[round_a_results["pilot_needs_adjudication"]].copy()
-    if len(adjudication_inputs):
-        round_b_workflow = build_round_b_workflow(
+    if args.pipeline_mode == "streaming":
+        raw_results = asyncio.run(
+            run_streaming_guideline_pipeline(
+                df=df,
+                base_url=args.base_url,
+                api_key=args.api_key,
+                model=args.model,
+                max_concurrent=args.max_concurrent,
+                timeout=args.timeout,
+                max_tokens=args.max_tokens,
+                prompt_dir=prompt_dir,
+                enable_thinking=args.enable_thinking,
+                reasoning_effort=args.reasoning_effort,
+            )
+        )
+    else:
+        round_a_workflow = build_round_a_workflow(
             base_url=args.base_url,
             api_key=args.api_key,
             model=args.model,
             max_concurrent=args.max_concurrent,
             timeout=args.timeout,
+            max_tokens=args.max_tokens,
             prompt_dir=prompt_dir,
+            enable_thinking=args.enable_thinking,
+            reasoning_effort=args.reasoning_effort,
         )
-        round_b_results = asyncio.run(round_b_workflow(adjudication_inputs))
-        round_b_columns = [col for col in round_b_results.columns if col.startswith("round-B_")]
-        round_b_results = round_b_results[["_pilot_row_id", *round_b_columns]].copy()
-        raw_results = round_a_results.merge(round_b_results, on="_pilot_row_id", how="left")
-    else:
-        raw_results = round_a_results
+
+        round_a_results = asyncio.run(round_a_workflow(df))
+        round_a_results["pilot_roundA_scope_gate"] = round_a_results.apply(scope_gate_decision, axis=1)
+        round_a_results["pilot_roundA_architecture_gate"] = round_a_results.apply(architecture_gate_decision, axis=1)
+        round_a_results["pilot_needs_adjudication"] = round_a_results.apply(needs_adjudication, axis=1)
+
+        adjudication_inputs = round_a_results.loc[round_a_results["pilot_needs_adjudication"]].copy()
+        if len(adjudication_inputs):
+            round_b_workflow = build_round_b_workflow(
+                base_url=args.base_url,
+                api_key=args.api_key,
+                model=args.model,
+                max_concurrent=args.max_concurrent,
+                timeout=args.timeout,
+                max_tokens=args.max_tokens,
+                prompt_dir=prompt_dir,
+                enable_thinking=args.enable_thinking,
+                reasoning_effort=args.reasoning_effort,
+            )
+            round_b_results = asyncio.run(round_b_workflow(adjudication_inputs))
+            round_b_columns = [col for col in round_b_results.columns if col.startswith("round-B_")]
+            round_b_results = round_b_results[["_pilot_row_id", *round_b_columns]].copy()
+            raw_results = round_a_results.merge(round_b_results, on="_pilot_row_id", how="left")
+        else:
+            raw_results = round_a_results
 
     results = postprocess_results(raw_results)
 
@@ -710,6 +943,10 @@ def main() -> None:
         "num_records": int(len(results)),
         "max_concurrent": int(args.max_concurrent),
         "max_records": int(args.max_records),
+        "max_tokens": int(args.max_tokens),
+        "enable_thinking": bool(args.enable_thinking),
+        "reasoning_effort": args.reasoning_effort if args.enable_thinking else None,
+        "pipeline_mode": args.pipeline_mode,
         "elapsed_seconds": round(time.time() - started_at, 2),
         "decision_counts": decision_counts,
         "roundA_gate_pattern_counts": agreement_counts,
