@@ -605,15 +605,14 @@ def scope_gate_decision(row: pd.Series) -> str:
 def architecture_gate_decision(row: pd.Series) -> str:
     paper_type = str(row.get("round-A_architecture_reviewer_paper_type") or "").strip()
     generative = str(row.get("round-A_architecture_reviewer_generative_model_present") or "").strip()
-    fm = str(row.get("round-A_architecture_reviewer_foundation_model_evidence") or "").strip()
 
     if paper_type in {"review_editorial", "benchmark_resource", "application_wrapper"}:
         return "EXCLUDE"
     if paper_type == "unclear":
         return "UNCERTAIN"
-    if generative == "no" or fm == "no":
+    if generative == "no":
         return "EXCLUDE"
-    if generative == "unclear" or fm == "unclear":
+    if generative == "unclear":
         return "UNCERTAIN"
     return "PASS"
 
@@ -646,7 +645,6 @@ def aggregate_decision(
     text_component_present = str(text_component_present or "").strip()
     text_bio_bridge_present = str(text_bio_bridge_present or "").strip()
     generative_model_present = str(generative_model_present or "").strip()
-    foundation_model_evidence = str(foundation_model_evidence or "").strip()
     fallback_code = normalize_optional_label(fallback_code)
 
     if paper_type in {"review_editorial", "benchmark_resource", "application_wrapper"}:
@@ -674,10 +672,6 @@ def aggregate_decision(
         return "EXCLUDE", "EC3_not_generative", None
     if generative_model_present == "unclear":
         return "UNCERTAIN", fallback_code, "generative_status_unclear"
-    if foundation_model_evidence == "no":
-        return "EXCLUDE", "EC4_no_foundation_model_evidence", None
-    if foundation_model_evidence == "unclear":
-        return "UNCERTAIN", fallback_code, "foundation_model_evidence_unclear"
     return "INCLUDE", None, None
 
 
@@ -780,12 +774,16 @@ def postprocess_results(df: pd.DataFrame) -> pd.DataFrame:
     ]
     out = pd.concat([out, aggregate_results], axis=1)
     out["pilot_final_decision"] = out["pilot_rule_based_decision"]
-    out["pilot_final_exclusion_code"] = out["pilot_rule_based_exclusion_code"].fillna(
-        out["pilot_selected_primary_exclusion_code"]
-    )
-    out["pilot_final_uncertainty_reason"] = out["pilot_rule_based_uncertainty_reason"].fillna(
-        out["pilot_selected_uncertainty_reason"]
-    )
+    out["pilot_final_exclusion_code"] = out["pilot_rule_based_exclusion_code"]
+    missing_exclusion_code = out["pilot_final_exclusion_code"].isna() & out["pilot_final_decision"].ne("INCLUDE")
+    out.loc[missing_exclusion_code, "pilot_final_exclusion_code"] = out.loc[
+        missing_exclusion_code, "pilot_selected_primary_exclusion_code"
+    ]
+    out["pilot_final_uncertainty_reason"] = out["pilot_rule_based_uncertainty_reason"]
+    missing_uncertainty_reason = out["pilot_final_uncertainty_reason"].isna() & out["pilot_final_decision"].ne("INCLUDE")
+    out.loc[missing_uncertainty_reason, "pilot_final_uncertainty_reason"] = out.loc[
+        missing_uncertainty_reason, "pilot_selected_uncertainty_reason"
+    ]
     out["pilot_final_exclusion_code"] = out["pilot_final_exclusion_code"].map(normalize_optional_label)
     out["pilot_final_uncertainty_reason"] = out["pilot_final_uncertainty_reason"].map(normalize_optional_label)
     out["pilot_needs_manual_review"] = out["pilot_final_decision"].isin(["UNCERTAIN", None])
