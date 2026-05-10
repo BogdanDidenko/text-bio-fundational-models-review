@@ -103,8 +103,7 @@ All queries are stored in `search_config.json`. The file contains the exact Bool
 
 ## Pilot Screening With LatteReview
 
-There are currently three screening-related scripts in this folder, at three
-different status levels:
+The main screening-related scripts are:
 
 - `screen_test.py`
   - **deprecated** v0.1 one-shot INCLUDE/EXCLUDE/UNCERTAIN classifier
@@ -117,6 +116,10 @@ different status levels:
   - current literature-aligned runner
   - uses the criterion-by-criterion workflow documented in `protocol/`
   - intended to run against an already served OpenAI-compatible endpoint such as vLLM
+- `compare_screening_replicates.py`
+  - compares two completed runs and reports decision drift
+- `build_prompt_regression_set.py`
+  - builds a compact regression CSV from benchmark, stable, and unstable cases
 
 ### Minimal setup for the current runner
 
@@ -148,3 +151,26 @@ Optional:
 - `--prompt-dir /path/to/protocol/screening_prompt_templates`
 - `--max-records N`
 - `--max-concurrent N`
+
+### Compare repeated screening runs
+
+Use `compare_screening_replicates.py` after two full runs to quantify
+nondeterministic decision drift and export mismatch cases for prompt audit:
+
+```bash
+python3 scripts/compare_screening_replicates.py \
+  --run-a runs/first_full_run \
+  --run-b runs/second_full_run \
+  --output-dir runs/second_full_run/repeatability_audit
+```
+
+Use `build_prompt_regression_set.py` to build a compact CSV of benchmark,
+stable-include, and unstable decision cases for targeted prompt regression
+checks:
+
+```bash
+python3 scripts/build_prompt_regression_set.py \
+  --run-a runs/first_full_run \
+  --run-b runs/second_full_run \
+  --compare-dir runs/second_full_run/repeatability_audit
+```

@@ -47,6 +47,10 @@ SCOPE_RESPONSE_FORMAT: Dict[str, Any] = {
     "text_bio_bridge_present": str,
     "primary_exclusion_code": str,
     "uncertainty_reason": str,
+    "evidence_for_text_component": str,
+    "evidence_for_text_bio_bridge": str,
+    "evidence_for_generative_model": str,
+    "boundary_case": str,
     "decision_rationale": str,
 }
 
@@ -56,6 +60,10 @@ ARCHITECTURE_RESPONSE_FORMAT: Dict[str, Any] = {
     "foundation_model_evidence": str,
     "primary_exclusion_code": str,
     "uncertainty_reason": str,
+    "evidence_for_text_component": str,
+    "evidence_for_text_bio_bridge": str,
+    "evidence_for_generative_model": str,
+    "boundary_case": str,
     "decision_rationale": str,
 }
 
@@ -68,6 +76,10 @@ ADJUDICATOR_RESPONSE_FORMAT: Dict[str, Any] = {
     "foundation_model_evidence": str,
     "primary_exclusion_code": str,
     "uncertainty_reason": str,
+    "evidence_for_text_component": str,
+    "evidence_for_text_bio_bridge": str,
+    "evidence_for_generative_model": str,
+    "boundary_case": str,
     "decision_rationale": str,
 }
 
@@ -229,6 +241,10 @@ class VLLMOpenAIJSONProvider:
             return "".join(text_parts).strip()
         if isinstance(content, str) and content.strip():
             return content.strip()
+
+        reasoning = message.get("reasoning")
+        if isinstance(reasoning, str) and reasoning.strip():
+            return reasoning.strip()
 
         return ""
 
@@ -494,6 +510,7 @@ async def run_streaming_guideline_pipeline(
     prompt_dir: Path,
     enable_thinking: bool,
     reasoning_effort: str,
+    output_dir: Optional[Path] = None,
 ) -> pd.DataFrame:
     scope_reviewer, architecture_reviewer, adjudicator = make_reviewers(
         base_url=base_url,
@@ -572,14 +589,35 @@ async def run_streaming_guideline_pipeline(
 
         return row_data
 
-    tasks = [asyncio.create_task(process_row(idx, row)) for idx, row in df.iterrows()]
+    pending_rows = list(df.iterrows())
+    active_rows = min(len(pending_rows), max(1, max_concurrent))
+    tasks = [asyncio.create_task(process_row(*pending_rows.pop(0))) for _ in range(active_rows)]
     results = []
     completed = 0
-    total = len(tasks)
-    for task in asyncio.as_completed(tasks):
-        results.append(await task)
-        completed += 1
-        print(f"Streaming pipeline completed {completed}/{total} records")
+    total = len(df)
+    raw_jsonl = output_dir / "guideline_pilot_raw_completed.jsonl" if output_dir else None
+    partial_raw_csv = output_dir / "guideline_pilot_raw_completed.csv" if output_dir else None
+    partial_csv = output_dir / "guideline_pilot_results_partial.csv" if output_dir else None
+
+    while tasks:
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        tasks = list(pending)
+        for task in done:
+            row_result = await task
+            results.append(row_result)
+            if pending_rows:
+                tasks.append(asyncio.create_task(process_row(*pending_rows.pop(0))))
+
+            completed += 1
+            current_raw = pd.DataFrame(results).sort_values("_pilot_row_id").reset_index(drop=True)
+            if raw_jsonl:
+                with raw_jsonl.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(row_result, ensure_ascii=False, default=str) + "\n")
+            if partial_raw_csv:
+                serialize_for_output(current_raw).to_csv(partial_raw_csv, index=False)
+            if partial_csv:
+                serialize_for_output(postprocess_results(current_raw)).to_csv(partial_csv, index=False)
+            print(f"Streaming pipeline completed {completed}/{total} records", flush=True)
 
     result_df = pd.DataFrame(results)
     return result_df.sort_values("_pilot_row_id").reset_index(drop=True)
@@ -686,6 +724,10 @@ def choose_final_columns(df: pd.DataFrame, source_prefix: str) -> pd.DataFrame:
         "foundation_model_evidence",
         "primary_exclusion_code",
         "uncertainty_reason",
+        "evidence_for_text_component",
+        "evidence_for_text_bio_bridge",
+        "evidence_for_generative_model",
+        "boundary_case",
         "decision_rationale",
     )
     for field in fields:
@@ -696,6 +738,11 @@ def choose_final_columns(df: pd.DataFrame, source_prefix: str) -> pd.DataFrame:
 
 def merge_round_a_fields(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+    def get_text_col(name: str) -> pd.Series:
+        if name in out.columns:
+            return out[name]
+        return pd.Series([""] * len(out), index=out.index)
+
     out["pilot_selected_paper_type"] = out["round-A_scope_reviewer_paper_type"]
     fallback_mask = out["pilot_selected_paper_type"].fillna("").isin(["", "unclear"])
     out.loc[fallback_mask, "pilot_selected_paper_type"] = out.loc[
@@ -711,6 +758,30 @@ def merge_round_a_fields(df: pd.DataFrame) -> pd.DataFrame:
     )
     out["pilot_selected_uncertainty_reason"] = out["round-A_scope_reviewer_uncertainty_reason"].fillna(
         out["round-A_architecture_reviewer_uncertainty_reason"]
+    )
+    out["pilot_selected_evidence_for_text_component"] = get_text_col(
+        "round-A_scope_reviewer_evidence_for_text_component"
+    )
+    out["pilot_selected_evidence_for_text_bio_bridge"] = get_text_col(
+        "round-A_scope_reviewer_evidence_for_text_bio_bridge"
+    )
+    out["pilot_selected_evidence_for_generative_model"] = get_text_col(
+        "round-A_architecture_reviewer_evidence_for_generative_model"
+    )
+    scope_boundary = get_text_col("round-A_scope_reviewer_boundary_case").fillna("").astype(str).str.strip()
+    arch_boundary = get_text_col("round-A_architecture_reviewer_boundary_case").fillna("").astype(str).str.strip()
+    out["pilot_selected_boundary_case"] = scope_boundary
+    use_arch_boundary = scope_boundary.isin(["", "none", "not_assessed"]) & arch_boundary.ne("")
+    out.loc[use_arch_boundary, "pilot_selected_boundary_case"] = arch_boundary[use_arch_boundary]
+    combine_boundary = (
+        scope_boundary.ne("")
+        & arch_boundary.ne("")
+        & ~scope_boundary.isin(["none", "not_assessed"])
+        & ~arch_boundary.isin(["none", "not_assessed"])
+        & scope_boundary.ne(arch_boundary)
+    )
+    out.loc[combine_boundary, "pilot_selected_boundary_case"] = (
+        scope_boundary[combine_boundary] + "|" + arch_boundary[combine_boundary]
     )
     scope_rationale = out["round-A_scope_reviewer_decision_rationale"].fillna("").astype(str).str.strip()
     arch_rationale = out["round-A_architecture_reviewer_decision_rationale"].fillna("").astype(str).str.strip()
@@ -803,7 +874,7 @@ def parse_args() -> argparse.Namespace:
         help="Path to a local LatteReview clone; ignored if lattereview is already importable",
     )
     parser.add_argument("--max-concurrent", type=int, default=1, help="Max concurrent requests per reviewer")
-    parser.add_argument("--max-records", type=int, default=10, help="Run only the first N records")
+    parser.add_argument("--max-records", type=int, default=10, help="Run only the first N records; use 0 for all records")
     parser.add_argument("--timeout", type=int, default=300, help="Per-request timeout in seconds")
     parser.add_argument("--max-tokens", type=int, default=420, help="Per-request maximum generated tokens")
     parser.add_argument(
@@ -858,7 +929,10 @@ def main() -> None:
     if "title" not in df.columns or "abstract" not in df.columns:
         raise ValueError("Input CSV must contain 'title' and 'abstract' columns")
 
-    df = df.head(args.max_records).copy()
+    if args.max_records > 0:
+        df = df.head(args.max_records).copy()
+    else:
+        df = df.copy()
     df["_pilot_row_id"] = range(len(df))
     df["title"] = df["title"].fillna("").astype(str)
     df["abstract"] = df["abstract"].fillna("").astype(str)
@@ -876,6 +950,7 @@ def main() -> None:
                 prompt_dir=prompt_dir,
                 enable_thinking=args.enable_thinking,
                 reasoning_effort=args.reasoning_effort,
+                output_dir=output_dir,
             )
         )
     else:

@@ -11,6 +11,10 @@ Return exactly one JSON object with these keys:
 - foundation_model_evidence
 - primary_exclusion_code
 - uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
 - decision_rationale
 
 Allowed values:
@@ -19,6 +23,10 @@ Allowed values:
 - foundation_model_evidence: yes | no | unclear
 - primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
 - uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the title/abstract, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
 
 Criterion questions for this reviewer:
 5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
@@ -28,12 +36,22 @@ Decision policy:
 - Use a sensitivity-first title/abstract screening strategy.
 - Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
 - `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the title/abstract.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the title/abstract. If evidence is absent, use `none`.
 - Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
 - Encoder-only architectures are not positive evidence for inclusion.
 - Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
 - If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the abstract explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the abstract clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
 - If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
 - Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the abstract says so.
 
 Record:
 ${item}$
