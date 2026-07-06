@@ -9,11 +9,12 @@ an unstructured dump of the whole local `data/` tree.
 ## Contents
 
 - `full_runs/codex_gpt54mini_all4027_20260706/`: full 4,027-record title/abstract rerun.
+- `update_runs/codex_gpt54mini_update431_20260610/`: June update cohort run.
 - `update_runs/codex_gpt54mini_update155_20260706/`: July update cohort run.
-- `inputs/`: July 2026 search exports, deduplication, Crossref audit, and screening-ready inputs.
+- `inputs/`: June and July 2026 search exports, deduplication, Crossref audit, and screening-ready inputs.
 - `prompt_templates/`: operative role prompts used by the Codex runner.
 - `pipeline_code/`: copy of the `run_codex_screening_pipeline.py` runner used for these artifacts.
-- `search_configs/`: July 2026 update search configuration.
+- `search_configs/`: June and July 2026 update search configurations.
 - `manifest.csv`: SHA-256 manifest for all files in this bundle.
 
 ## Run Summary
@@ -26,8 +27,20 @@ Full 4,027-record rerun:
 - INCLUDE: 134
 - Adjudicated: 1,338
 
+June update cohort:
+
+- Raw records retrieved: 933
+- Update-unique records after within-update deduplication: 785
+- Truly new records after cross-corpus deduplication and Crossref audit: 445
+- New title/abstract records screened: 431
+- New screened EXCLUDE: 409
+- New screened UNCERTAIN: 7
+- New screened INCLUDE: 15
+- Adjudicated: 158
+
 July update cohort:
 
+- Raw records retrieved: 197
 - Update-unique records before cross-dedup: 155
 - New title/abstract records screened: 119
 - Already present in the master corpus/full rerun: 21
@@ -65,3 +78,6 @@ available and is not included.
 The role logs are archived rather than committed as thousands of loose files.
 This keeps the bundle aligned with the repository's existing curated artifact
 format while still preserving the audit material needed to trace each decision.
+
+The current PRISMA search/screening log is maintained in
+`protocol/prisma_search_screening_log_2026-07-07.md`.

@@ -1,7 +1,7 @@
 # PRISMA-S Protocol: Generative Foundation Models Bridging Text and Biological Data
 
-**Version**: 4.0
-**Date**: 2026-04-25
+**Version**: 4.2
+**Date**: 2026-07-07
 **Type**: Scoping review (PRISMA-ScR) with PRISMA-S compliant search methodology and PRISMA-trAIce-style LLM screening
 
 ---
@@ -146,26 +146,43 @@ See [data_extraction.md](data_extraction.md) for extraction template.
 
 ---
 
-## 9. PRISMA-S Search Log
+## 9. PRISMA-S Search and Screening Log
 
-To be populated after search execution:
+The current PRISMA-S search, deduplication, and Codex title/abstract screening
+log is maintained in
+[prisma_search_screening_log_2026-07-07.md](prisma_search_screening_log_2026-07-07.md).
 
-| Database | Interface | Date | Query (ref) | Filters | Results | Notes |
-|----------|-----------|------|-------------|---------|---------|-------|
-| PubMed | Entrez API | TBD | queries/pubmed.txt | OA, EN, 2018-2026 | TBD | |
-| Scopus | Elsevier API | TBD | queries/scopus.txt | OA, EN, 2018-2026, AR+CP | TBD | |
-| SpringerNature | Meta API v2 | TBD | queries/springernature.txt | 2018-2026 | TBD | |
-| SpringerNature | OA API | TBD | queries/springernature.txt | 2018-2026, OA only | TBD | |
-| arXiv | arXiv API | TBD | queries/arxiv.txt | 2018-2026 | TBD | Inherently OA |
-| bioRxiv/medRxiv | EuropePMC API | TBD | queries/biorxiv_medrxiv.txt | 2018-2026, SRC:PPR | TBD | Inherently OA |
-| Google Scholar | paper-search-mcp | TBD | queries/google_scholar.txt | 2018-2026 | TBD | Supplementary |
-| Semantic Scholar | S2 Bulk API | TBD | queries/semantic_scholar.txt | 2018-2026, OA | TBD | |
+Current cumulative status:
+
+| Stage | Count | Notes |
+|---|---:|---|
+| Raw database records identified | 7,531 | v3.1 baseline plus 2026-04-14, 2026-06-10, and 2026-07-06 top-up searches |
+| Unique records before no-abstract exclusions | 4,618 | After within-window deduplication, cross-corpus deduplication, and Crossref hidden-duplicate audit |
+| No-abstract records excluded before title/abstract screening | 41 | 12 in the pre-June master corpus, 14 in the June top-up, 15 in the July top-up |
+| Records screened by Codex title/abstract pipeline | 4,577 | 4,027 full rerun + 431 June update + 119 July update |
+| Title/abstract EXCLUDE | 4,327 | Codex final `EXCLUDE` |
+| Title/abstract UNCERTAIN | 95 | Manual/full-text eligibility queue |
+| Title/abstract provisional INCLUDE | 155 | Requires full-text confirmation |
+
+Exact query strings and database-specific update configs are preserved in:
+
+- [queries/](queries/)
+- `analysis/codex_screening_run_artifacts_20260706/search_configs/search_config_update_2026-06-10.json`
+- `analysis/codex_screening_run_artifacts_20260706/search_configs/search_config_update_2026-07-06.json`
+
+Codex screening artifacts and per-record role logs are preserved in:
+
+- `analysis/codex_screening_run_artifacts_20260706/full_runs/codex_gpt54mini_all4027_20260706/`
+- `analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update431_20260610/`
+- `analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update155_20260706/`
 
 ---
 
 ## 10. PRISMA Flow Diagram
 
-See [prisma_flow_template.md](prisma_flow_template.md) — to be populated after screening.
+See [prisma_flow_template.md](prisma_flow_template.md) for the current
+title/abstract-stage PRISMA flow. Full-text eligibility and final qualitative
+synthesis counts remain pending.
 
 ---
 
@@ -210,3 +227,5 @@ See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.
 | 2026-02-15 | 3.1 | Added space variants `RNA seq` and `multi omics` to all 7 queries; rerun search. 5,534 → 3,371 records for screening. |
 | 2026-04-14 | 3.2 | Top-up search 2026-03-01 → 2026-04-14 across all 7 DBs; 668 truly new records after cross-dedup; added Cell2Seq and X-Cell to ground truth (13 must-find total); short-abstract enrichment via CrossRef title search. 4,027 records for screening. |
 | 2026-04-25 | 4.0 | Adopted criterion-by-criterion LatteReview screening workflow (BMC + PRISMA-trAIce + Cochrane). Three reviewer roles: scope, architecture, adjudicator. Final decision derived in Python gate logic, not emitted by the LLM. Deprecated v0.1 one-shot screening script. Aligned exclusion codebook (EC1–EC8 high-level → runtime codebook with refined codes). |
+| 2026-06-10 | 4.1 | Top-up search 2026-04-15 → 2026-06-10 across all 7 DBs; 933 raw records, 785 update-unique after within-window deduplication, 445 truly new after cross-corpus deduplication and Crossref audit, 431 screening-ready records. Codex `gpt-5.4-mini` screened 431 records: 409 EXCLUDE, 7 UNCERTAIN, 15 INCLUDE. |
+| 2026-07-07 | 4.2 | Added PRISMA-S search/screening log covering all current windows and Codex audit artifacts. July top-up search 2026-06-11 → 2026-07-06 found 197 raw records, 155 update-unique records, 134 truly new after cross-corpus deduplication/Crossref audit, and 119 screening-ready records. Codex `gpt-5.4-mini` screened 119 records: 113 EXCLUDE, 0 UNCERTAIN, 6 INCLUDE. Full pre-June 4,027-record corpus was rerun with the same Codex pipeline: 3,805 EXCLUDE, 88 UNCERTAIN, 134 INCLUDE. |

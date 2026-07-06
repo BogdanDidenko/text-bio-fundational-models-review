@@ -1,44 +1,41 @@
-# PRISMA 2020 Flow Diagram (to be populated after search execution)
+# PRISMA 2020 Flow Diagram Data
+
+Current as of 2026-07-07. This is the title/abstract-stage flow after the
+Codex screening reruns and update searches. Full-text eligibility is pending.
 
 ## Identification
 
-Records identified via database searching: ____
-  - PubMed: ____
-  - Scopus: ____
-  - SpringerNature (Meta API): ____
-  - SpringerNature (OA API): ____
-  - arXiv: ____
-  - bioRxiv: ____
-  - medRxiv: ____
-  - Google Scholar: ____
-  - Semantic Scholar: ____
+Records identified via database searching: 7,531
+  - v3.1 baseline, 2018-01-01 to 2026-02-28: 5,534
+  - 2026-03-01 to 2026-04-14 top-up: 867
+  - 2026-04-15 to 2026-06-10 top-up: 933
+  - 2026-06-11 to 2026-07-06 top-up: 197
 
-Records identified via other sources (citation chasing, hand search): ____
+Records identified via other sources (citation chasing, hand search): 0
+
+Records removed before screening: 2,954
+  - duplicate / previously identified / hidden duplicate / record-management removals: 2,913
+  - no abstract after enrichment or source export: 41
 
 ## Screening
 
-Records after duplicates removed: ____
-Records screened (title/abstract): ____
-Records excluded at title/abstract: ____
-  - EC1 Not single-cell: ____
-  - EC2 Single-modality only: ____
-  - EC3 No FM component: ____
-  - EC4 Non-computational: ____
-  - EC5 Non-scholarly: ____
-  - EC6 Review article: ____
-  - EC8 Not English: ____
+Records after duplicates removed and abstract availability checks: 4,577
+Records screened (title/abstract): 4,577
+Records excluded at title/abstract: 4,327
+Records retained as title/abstract provisional INCLUDE: 155
+Records retained as title/abstract UNCERTAIN/manual queue: 95
+Candidate records for full-text/manual eligibility: 250
 
 ## Eligibility
 
-Full-text articles assessed: ____
-Full-text articles excluded (with reasons): ____
-  - EC2 Single-modality only: ____
-  - EC3 No FM component: ____
-  - EC9 Not Open Access: ____
-  - EC7 Duplicate publication: ____
-  - Other: ____
+Full-text articles assessed: Pending
+Full-text articles excluded (with reasons): Pending
 
 ## Inclusion
 
-Studies included in qualitative synthesis: ____
-Studies noted in supplementary (single-modality FMs): ____
+Studies included in qualitative synthesis: Pending
+Studies noted in supplementary: Pending
+
+See `protocol/prisma_search_screening_log_2026-07-07.md` for search strings,
+database-level counts, deduplication details, Codex screening counts, and role
+log locations.
