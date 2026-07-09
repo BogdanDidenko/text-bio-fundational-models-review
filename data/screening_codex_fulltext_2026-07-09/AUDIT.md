@@ -302,6 +302,21 @@ For every role and every batch, the log tree contains:
 - CLI stdout: `batch_*.stdout.log`
 - CLI stderr: `batch_*.stderr.log`
 
+## Section Input Statistics
+
+Section-level statistics for the exact Docling headings used as agent input are
+stored in:
+
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/SECTION_INPUT_STATS.md`
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/summary.json`
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/section_input_by_record.csv`
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/section_instances.csv`
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/section_heading_counts.csv`
+- `data/screening_codex_fulltext_2026-07-09/section_input_stats/section_type_counts.csv`
+
+These files answer which exact section headings were used for each article and
+how often each heading/type appeared across the rerun.
+
 ## Known Runtime Issue
 
 In three batches, the model returned the expected record plus an extra
