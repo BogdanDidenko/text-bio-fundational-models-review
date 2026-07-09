@@ -1,0 +1,143 @@
+2026-07-09T09:16:18.853630Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T09:16:18.881913Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T09:16:18.939923Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4629-dcbf-7811-b37e-dab64e3b92e2
+--------
+user
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record plus the structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the abstract and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided provided title, abstract, and selected full-text sections/full-text-section evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the abstract only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the abstract clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the abstract clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the abstract presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided provided title, abstract, and selected full-text sections/full-text-section evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because an abstract is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the abstract, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000711","candidate_id":"full_2026-07-06__rec_000711","source_record_id":"rec_000711","source_corpus":"uncertain","title":"PTM-Mamba: a PTM-aware protein language model with bidirectional gated Mamba blocks","abstract":"","doi":"10.1038/s41592-025-02656-9","year":"","venue":"","sources":[],"full_text_context":"[data_representation: Data curation]\nModel training data were curated from UniProt 15 . Specifically, 311,350 experimentally validated PTM records were collected from Swiss-Prot, and the PTM annotations of their proteins were mapped to their respective sequences to construct the new PTM sequences. The final dataset includes a total of 79,707 PTM sequences. Data curation code can be found at https://github.com/programmablebio/ptm-mamba/tree/ main/ptm\\_data\\_preprocessing.\n\nDatasets for the four benchmarking tasks were collected from the following sources. Phosphorylation site data were obtained from the corresponding ProteinBERT benchmark 25 , originally derived from PhospoSitePlus 18 and filtered for sequences between 256 and 512 amino acids in length, yielding a training set of 15,588 sequences, a validation set of 1,707 sequences and a testing set of 3,106 sequences. Non-histone acetylation site prediction was performed equivalently as described in prior literature, using the non-histone acetylation collection dataset 26 . Druggability and disease association datasets were curated from the dbPTM database 17 . PPI data describing the effect of PTMs were curated from PTMint, which encompasses 2,477 nonredundant PTM sites in 1,169 proteins affecting 2,371 protein-protein pairs 20 . In brief, wild-type sequences were mapped to corresponding entries in the PTM-Mamba dataset, and wild-type residues were replaced by the corresponding position-specific PTMs for tokenization by specified models. [truncated]\n\n[data_representation: nature methods]\n##### Brief Communication\n\n[https://doi.org/10.1038/s41592-025-02656-9](https://doi.org/10.1038/s41592-025-02656-9)\n\n[data_representation: Methods]\n###### Data curation\n\nModel training data were curated from UniProt 15 . Specifically, 311,350 experimentally validated PTM records were collected from Swiss-Prot, and the PTM annotations of their proteins were mapped to their respective sequences to construct the new PTM sequences. The final dataset includes a total of 79,707 PTM sequences. Data curation code can be found at https://github.com/programmablebio/ptm-mamba/tree/ main/ptm\\_data\\_preprocessing.\n\nDatasets for the four benchmarking tasks were collected from the following sources. Phosphorylation site data were obtained from the corresponding ProteinBERT benchmark 25 , originally derived from PhospoSitePlus 18 and filtered for sequences between 256 and 512 amino acids in length, yielding a training set of 15,588 sequences, a validation set of 1,707 sequences and a testing set of 3,106 sequences. Non-histone acetylation site prediction was performed equivalently as described in prior literature, using the non-histone acetylation collection dataset 26 . Druggability and disease association datasets were curated from the dbPTM database 17 . PPI data describing the effect of PTMs were curated from PTMint, which encompasses 2,477 nonredundant PTM sites in 1,169 proteins affecting 2,371 protein-protein pairs 20 . In brief, wild-type sequences were mapped to corresponding entries in the PTM-Mamba dataset, and wild-type residues were replaced by the corresponding position-specific PTMs for tokenization by specified models. [truncated]","section_evidence":[{"section_type":"data_representation","heading":"Data curation","heading_level":6,"line_start":123,"line_end":128,"text":"Model training data were curated from UniProt 15 . Specifically, 311,350 experimentally validated PTM records were collected from Swiss-Prot, and the PTM annotations of their proteins were mapped to their respective sequences to construct the new PTM sequences. The final dataset includes a total of 79,707 PTM sequences. Data curation code can be found at https://github.com/programmablebio/ptm-mamba/tree/ main/ptm\\_data\\_preprocessing.\n\nDatasets for the four benchmarking tasks were collected from the following sources. Phosphorylation site data were obtained from the corresponding ProteinBERT benchmark 25 , originally derived from PhospoSitePlus 18 and filtered for sequences between 256 and 512 amino acids in length, yielding a training set of 15,588 sequences, a validation set of 1,707 sequences and a testing set of 3,106 sequences. Non-histone acetylation site prediction was performed equivalently as described in prior literature, using the non-histone acetylation collection dataset 26 . Druggability and disease association datasets were curated from the dbPTM database 17 . PPI data describing the effect of PTMs were curated from PTMint, which encompasses 2,477 nonredundant PTM sites in 1,169 proteins affecting 2,371 protein-protein pairs 20 . In brief, wild-type sequences were mapped to corresponding entries in the PTM-Mamba dataset, and wild-type residues were replaced by the corresponding position-specific PTMs for tokenization by specified models. [truncated]","original_chars":1624},{"section_type":"data_representation","heading":"nature methods","heading_level":3,"line_start":1,"line_end":6,"text":"##### Brief Communication\n\n[https://doi.org/10.1038/s41592-025-02656-9](https://doi.org/10.1038/s41592-025-02656-9)","original_chars":115},{"section_type":"data_representation","heading":"Methods","heading_level":4,"line_start":121,"line_end":150,"text":"###### Data curation\n\nModel training data were curated from UniProt 15 . Specifically, 311,350 experimentally validated PTM records were collected from Swiss-Prot, and the PTM annotations of their proteins were mapped to their respective sequences to construct the new PTM sequences. The final dataset includes a total of 79,707 PTM sequences. Data curation code can be found at https://github.com/programmablebio/ptm-mamba/tree/ main/ptm\\_data\\_preprocessing.\n\nDatasets for the four benchmarking tasks were collected from the following sources. Phosphorylation site data were obtained from the corresponding ProteinBERT benchmark 25 , originally derived from PhospoSitePlus 18 and filtered for sequences between 256 and 512 amino acids in length, yielding a training set of 15,588 sequences, a validation set of 1,707 sequences and a testing set of 3,106 sequences. Non-histone acetylation site prediction was performed equivalently as described in prior literature, using the non-histone acetylation collection dataset 26 . Druggability and disease association datasets were curated from the dbPTM database 17 . PPI data describing the effect of PTMs were curated from PTMint, which encompasses 2,477 nonredundant PTM sites in 1,169 proteins affecting 2,371 protein-protein pairs 20 . In brief, wild-type sequences were mapped to corresponding entries in the PTM-Mamba dataset, and wild-type residues were replaced by the corresponding position-specific PTMs for tokenization by specified models. [truncated]","original_chars":5952}],"docling_markdown":"data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_000711.md","first_pass_outputs":{"scope_reviewer":{"record_id":"full_2026-07-06__rec_000711","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper for a PTM-aware protein language model, with biological sequence/PTM data central to training and evaluation. The provided sections show no natural-language text component or text-bio bridge.","evidence_snippet":"“PTM-aware protein language model”; “311,350 experimentally validated PTM records… mapped to their respective sequences”; “wild-type residues were replaced by the corresponding position-specific PTMs for tokenization”"},"architecture_reviewer":{"record_id":"full_2026-07-06__rec_000711","paper_type":"primary_model_paper","generative_model_present":"unclear","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"generative_status_unclear","decision_rationale":"The record presents a new PTM-aware protein language model and training on 79,707 PTM sequences, with benchmarking on multiple downstream tasks. However, the provided text does not explicitly state an autoregressive, decoder, or other clearly generative mechanism.","evidence_snippet":"\"PTM-aware protein language model with bidirectional gated Mamba blocks\"; \"Model training data were curated from UniProt\"; \"final dataset includes a total of 79,707 PTM sequences\"; \"four benchmarking tasks\"; "},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"EC2_no_text_component","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"unclear","foundation_model_evidence":"yes"}}}]
+
+2026-07-09T09:16:18.964090Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T09:16:18.972755Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T09:16:20.261925Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.262269Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.380174Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.380201Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.415395Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.415409Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.461503Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.461518Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.500299Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.500330Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.606675Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.606692Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:20.893096Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T09:16:34.194520Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T09:16:34.802535Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.802557Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.803169Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.803176Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.803851Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.803856Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.804548Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.804555Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.804992Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.805006Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.806214Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:16:34.806224Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T09:17:01.595558Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T09:17:02.123364Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T09:17:02.123436Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_000711","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"no","foundation_model_evidence":"yes","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary protein language model paper, but the provided record only shows PTM/protein sequences and benchmarking tasks, not natural-language text or text-bio alignment. The generative mechanism is also not explicitly stated, so the decisive exclusion is absence of a text component.","evidence_snippet":"\"PTM-aware protein language model\"; \"311,350 experimentally validated PTM records... mapped to their respective sequences\"; \"wild-type residues were replaced by the corresponding position-specific PTMs for tokenization\"; \"four benchmarking tasks\"; \"PTM sequences\"; \"protein-protein pairs\"; \"no natural-language text described\"; \"no autoregressive/decoder mechanism stated\"; \"biological sequences only\"; \"tokenization by specified models\"; \"PTM-aware protein language model with bidirectional gated Mamba blocks\"; \"Model training data were curated from UniProt\"; \"final dataset includes a total of 79,707 PTM sequences\"; \"four benchmarking tasks\""}]}
+2026-07-09T09:17:22.958317Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4629-dcbf-7811-b37e-dab64e3b92e2.1783588578802135000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+7,684

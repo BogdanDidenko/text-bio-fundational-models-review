@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the abstract provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the abstract explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the abstract clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the abstract says so.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003214","candidate_id":"full_2026-07-06__rec_003214","source_record_id":"rec_003214","source_corpus":"include","title":"Biomedgpt: Open multimodal generative pre-trained transformer for biomedicine","abstract":"Foundation models (FMs) have exhibited remarkable performance across a wide range of downstream tasks in many domains. Nevertheless, general-purpose FMs often face challenges when confronted with domain-specific problems, due to their limited access to the proprietary training data in a particular domain. In biomedicine, there are various biological modalities, such as molecules, proteins, and cells, which are encoded by the language of life and exhibit significant modality gaps with human natural language. In this paper, we introduce BioMedGPT, an open multimodal generative pre-trained transformer (GPT) for biomedicine, to bridge the gap between the language of life and human natural language. BioMedGPT allows users to easily 'communicate' with diverse biological modalities through free text, which is the first of its kind. BioMedGPT aligns different biological modalities with natural language via a large generative language model, namely, BioMedGPT-LM. We publish BioMedGPT-10B, which unifies the feature spaces of molecules, proteins, and natural language via encoding and alignment. Through fine-tuning, BioMedGPT-10B outperforms or is on par with human and significantly larger general-purpose foundation models on the biomedical QA task. It also demonstrates promising performance in the molecule QA and protein QA tasks, which could greatly accelerate the discovery of new drugs and therapeutic targets. In addition, BioMedGPTLM-7B is the first large generative language model based on Llama2 in the biomedical domain, therefore is commercial friendly. [truncated]","doi":"","year":"","venue":"","sources":[],"full_text_context":"[abstract: ABSTRACT]\nFoundation models (FMs) have exhibited remarkable performance across a wide range of downstream tasks in many domains. Nevertheless, general-purpose FMs often face challenges when confronted with domain-specific problems, due to their limited access to the proprietary training data in a particular domain. In biomedicine, there are various biological modalities, such as molecules, proteins, and cells, which are encoded by the language of life and exhibit significant modality gaps with human natural language. In this paper, we introduce BioMedGPT, an open multimodal generative pre-trained transformer (GPT) for biomedicine, to bridge the gap between the language of life and human natural language. BioMedGPT allows users to easily 'communicate' with diverse biological modalities through free text, which is the first of its kind. BioMedGPT aligns different biological modalities with natural language via a large generative language model, namely, BioMedGPT-LM. We publish BioMedGPT-10B, which unifies the feature spaces of molecules, proteins, and natural language via encoding and alignment. Through fine-tuning, BioMedGPT-10B outperforms or is on par with human and significantly larger general-purpose foundation models on the biomedical QA task. It also demonstrates promising performance in the molecule QA and protein QA tasks, which could greatly accelerate the discovery of new drugs and therapeutic targets. In addition, BioMedGPTLM-7B is the first large generative language model based on Llama2 in the biomedical domain, therefore is commercial friendly. [truncated]\n\n[introduction: Introduction]\nFoundation models (FMs) are large AI models trained on enormous amounts of unlabelled data through self-supervised learning. FMs such as ChatGPT [OpenAI, 2022], Bard [Google, 2023], and Chinchilla [Hoffmann et al., 2022] have showcased impressive general intelligence across a broad spectrum of tasks. Most recently, Meta introduced Llama2 [Touvron et al., 2023a], a family of pre-trained and instruction-tuned large language models (LLMs), demonstrating prevailing results over existing open-source LLMs and on-par performance with some of the closed-source models based on human evaluations in terms of helpfulness and safety.\n\nHowever, these general-purpose FMs are typically trained on internet-scale generic public datasets, and their depth of knowledge within particular domains is restricted by the lack of access to proprietary training data. To solve this challenge, domain-specific FMs are becoming more prevalent, and attracting tremendous attention to their widespread applications in many fields. For instance, BloombergGPT [Wu et al., 2023a] is a large-scale GPT model for finance.\n\n∗ Supported by PharMolix Inc.\n\n† Corresponding author\n\nChatLaw [Cui et al., 2023] fine-tunes Llama on a legal database and shows promising results on downstream legal applications.\n\nRecently, research works about FMs in the biomedical domain have emerged. BioMedLM, an open-source GPT model with 2.7 billion parameters, is trained exclusively using PubMed abstracts and the PubMed Central section from the Pile data [Gao et al., 2020]. [truncated]","section_evidence":[{"section_type":"abstract","heading":"ABSTRACT","heading_level":3,"line_start":13,"line_end":18,"text":"Foundation models (FMs) have exhibited remarkable performance across a wide range of downstream tasks in many domains. Nevertheless, general-purpose FMs often face challenges when confronted with domain-specific problems, due to their limited access to the proprietary training data in a particular domain. In biomedicine, there are various biological modalities, such as molecules, proteins, and cells, which are encoded by the language of life and exhibit significant modality gaps with human natural language. In this paper, we introduce BioMedGPT, an open multimodal generative pre-trained transformer (GPT) for biomedicine, to bridge the gap between the language of life and human natural language. BioMedGPT allows users to easily 'communicate' with diverse biological modalities through free text, which is the first of its kind. BioMedGPT aligns different biological modalities with natural language via a large generative language model, namely, BioMedGPT-LM. We publish BioMedGPT-10B, which unifies the feature spaces of molecules, proteins, and natural language via encoding and alignment. Through fine-tuning, BioMedGPT-10B outperforms or is on par with human and significantly larger general-purpose foundation models on the biomedical QA task. It also demonstrates promising performance in the molecule QA and protein QA tasks, which could greatly accelerate the discovery of new drugs and therapeutic targets. In addition, BioMedGPTLM-7B is the first large generative language model based on Llama2 in the biomedical domain, therefore is commercial friendly. [truncated]","original_chars":1975},{"section_type":"introduction","heading":"Introduction","heading_level":2,"line_start":19,"line_end":53,"text":"Foundation models (FMs) are large AI models trained on enormous amounts of unlabelled data through self-supervised learning. FMs such as ChatGPT [OpenAI, 2022], Bard [Google, 2023], and Chinchilla [Hoffmann et al., 2022] have showcased impressive general intelligence across a broad spectrum of tasks. Most recently, Meta introduced Llama2 [Touvron et al., 2023a], a family of pre-trained and instruction-tuned large language models (LLMs), demonstrating prevailing results over existing open-source LLMs and on-par performance with some of the closed-source models based on human evaluations in terms of helpfulness and safety.\n\nHowever, these general-purpose FMs are typically trained on internet-scale generic public datasets, and their depth of knowledge within particular domains is restricted by the lack of access to proprietary training data. To solve this challenge, domain-specific FMs are becoming more prevalent, and attracting tremendous attention to their widespread applications in many fields. For instance, BloombergGPT [Wu et al., 2023a] is a large-scale GPT model for finance.\n\n∗ Supported by PharMolix Inc.\n\n† Corresponding author\n\nChatLaw [Cui et al., 2023] fine-tunes Llama on a legal database and shows promising results on downstream legal applications.\n\nRecently, research works about FMs in the biomedical domain have emerged. BioMedLM, an open-source GPT model with 2.7 billion parameters, is trained exclusively using PubMed abstracts and the PubMed Central section from the Pile data [Gao et al., 2020]. [truncated]","original_chars":8188}],"docling_markdown":"data/docling_include_no_vlm_2026-07-09/markdown/full_2026_07_06_rec_003214.md"}]

@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the abstract provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the abstract explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the abstract clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the abstract says so.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003259","candidate_id":"full_2026-07-06__rec_003259","source_record_id":"rec_003259","source_corpus":"uncertain","title":"Large language models for biological sequence analysis in infectious disease research","abstract":"","doi":"","year":"","venue":"","sources":[],"full_text_context":"[introduction: Introduction]\nInfectious diseases represent a major global health challenge, contributing signi fi cantly to worldwide morbidity and mortality. Pathogen transmission and evolution are governed by complex hostpathogen dynamics, environmental factors, and selective pressures including immune responses and medical interventions [1,2]. Recent outbreaks, particularly severe acute respiratory syndrome coronavirus (SARS-CoV) and severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), have demonstrated rapid pathogen adaptability, resulting in altered transmission dynamics, enhanced virulence, and immune escape capabilities. These evolutionary adaptations strain public health systems and underscore the critical need for comprehensive genomic surveillance [3 -5].\n\n⁎ Corresponding author: Guangzhou National Laboratory, No. 9 XingDaoHuanBei Road, Guangzhou International Bio Island, Guangzhou 510005, China.\n\nE-mail address: li\\_yixue@gzlab.ac.cn (Y. Li).\n\n1 These authors contributed equally to this work.\n\n2 Given his role as Editorial Board Member, Yixue Li had no involvement in the peerreview of this article and had no access to information regarding its peer-review. Full responsibility for the editorial process for this article was delegated to Editor Di Qu.\n\nContents lists available at ScienceDirect\n\n[discussion_conclusion: Conclusion]\nLLMs have demonstrated remarkable potential in advancing infectious disease research through improved sequence analysis capabilities. Their ability to capture complex biological patterns and relationships has enhanced pathogen surveillance, evolutionary tracking, host-pathogen prediction, and therapeutic development. However, realizing their full potential requires addressing critical challenges in data quality, long-context processing, model interpretability, and standardized validation. Additionally, careful consid- eration of biosafety and ethical implications is essential for responsible deployment. Future work could focus on improving data diversity, developing more ef fi cient and interpretable architectures for ultra-long-range dependencies, and establishing robust safety frameworks. As these challenges are addressed, LLMs are poised to become indispensable tools in the global fi ght against infectious diseases.\n\n[data_representation: Data quality and data representation]\nData quality and representation constitute fundamental barriers to training robust LLMs. Biological sequence datasets frequently contain noise, biases, and incomplete annotations that adversely impact model performance [60,61]. For example, repetitive genomic regions, comprising substantial fractions of genomes, pose particular challenges, often leading to over fi tting rather than meaningful generalization. Proposed solutions include masking or down-weighting repetitive sequences and employing advanced long-range context modeling architectures [40,42].\n\nSampling bias represents a pervasive challenge manifesting across multiple dimensions. Natural selection bias occurs when certain pathogens are preferentially sampled due to clinical relevance or outbreak prominence, skewing datasets toward well-characterized variants [62,63]. Geographic bias emerges from uneven sequencing capacity and surveillance infrastructure, resulting in overrepresentation of speci fi c populations or regions [45,64]. Additionally, data richness varies dramatically across pathogens, while SARS-CoV-2 has been extensively sequenced, many infectious agents lack comprehensive genomic resources [4,65,66]. This uneven landscape constrains the ability of LLMs to learn robust, biologically meaningful representations that generalize across taxa and ecological contexts. [truncated]","section_evidence":[{"section_type":"introduction","heading":"Introduction","heading_level":3,"line_start":27,"line_end":40,"text":"Infectious diseases represent a major global health challenge, contributing signi fi cantly to worldwide morbidity and mortality. Pathogen transmission and evolution are governed by complex hostpathogen dynamics, environmental factors, and selective pressures including immune responses and medical interventions [1,2]. Recent outbreaks, particularly severe acute respiratory syndrome coronavirus (SARS-CoV) and severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), have demonstrated rapid pathogen adaptability, resulting in altered transmission dynamics, enhanced virulence, and immune escape capabilities. These evolutionary adaptations strain public health systems and underscore the critical need for comprehensive genomic surveillance [3 -5].\n\n⁎ Corresponding author: Guangzhou National Laboratory, No. 9 XingDaoHuanBei Road, Guangzhou International Bio Island, Guangzhou 510005, China.\n\nE-mail address: li\\_yixue@gzlab.ac.cn (Y. Li).\n\n1 These authors contributed equally to this work.\n\n2 Given his role as Editorial Board Member, Yixue Li had no involvement in the peerreview of this article and had no access to information regarding its peer-review. Full responsibility for the editorial process for this article was delegated to Editor Di Qu.\n\nContents lists available at ScienceDirect","original_chars":1303},{"section_type":"discussion_conclusion","heading":"Conclusion","heading_level":3,"line_start":239,"line_end":242,"text":"LLMs have demonstrated remarkable potential in advancing infectious disease research through improved sequence analysis capabilities. Their ability to capture complex biological patterns and relationships has enhanced pathogen surveillance, evolutionary tracking, host-pathogen prediction, and therapeutic development. However, realizing their full potential requires addressing critical challenges in data quality, long-context processing, model interpretability, and standardized validation. Additionally, careful consid- eration of biosafety and ethical implications is essential for responsible deployment. Future work could focus on improving data diversity, developing more ef fi cient and interpretable architectures for ultra-long-range dependencies, and establishing robust safety frameworks. As these challenges are addressed, LLMs are poised to become indispensable tools in the global fi ght against infectious diseases.","original_chars":932},{"section_type":"data_representation","heading":"Data quality and data representation","heading_level":4,"line_start":191,"line_end":202,"text":"Data quality and representation constitute fundamental barriers to training robust LLMs. Biological sequence datasets frequently contain noise, biases, and incomplete annotations that adversely impact model performance [60,61]. For example, repetitive genomic regions, comprising substantial fractions of genomes, pose particular challenges, often leading to over fi tting rather than meaningful generalization. Proposed solutions include masking or down-weighting repetitive sequences and employing advanced long-range context modeling architectures [40,42].\n\nSampling bias represents a pervasive challenge manifesting across multiple dimensions. Natural selection bias occurs when certain pathogens are preferentially sampled due to clinical relevance or outbreak prominence, skewing datasets toward well-characterized variants [62,63]. Geographic bias emerges from uneven sequencing capacity and surveillance infrastructure, resulting in overrepresentation of speci fi c populations or regions [45,64]. Additionally, data richness varies dramatically across pathogens, while SARS-CoV-2 has been extensively sequenced, many infectious agents lack comprehensive genomic resources [4,65,66]. This uneven landscape constrains the ability of LLMs to learn robust, biologically meaningful representations that generalize across taxa and ecological contexts. [truncated]","original_chars":3454}],"docling_markdown":"data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_003259.md"}]

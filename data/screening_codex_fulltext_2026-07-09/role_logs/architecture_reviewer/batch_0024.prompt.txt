@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the abstract provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the abstract explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the abstract clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the abstract says so.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000867","candidate_id":"full_2026-07-06__rec_000867","source_record_id":"rec_000867","source_corpus":"include","title":"A long-context language model for deciphering and generating bacteriophage genomes","abstract":"","doi":"10.1038/s41467-024-53759-4","year":"","venue":"","sources":[],"full_text_context":"[discussion_conclusion: Discussion]\nIn this work, we present a long-context generative model for genomic sequences, which effectively learns the language of gene coding and regulatory sequences via a single step of self-supervised training on unannotated whole genomes. We demonstrated that the model loss can be utilized for unsupervised prediction of essential genes in phage genomes, and the information-rich sequence embeddings enable the prediction of genetic variant effects and regulatory element activities across a wide range of organisms. The generated sequences match the length of natural bacteriophage genomes and display functional genomic architectures. It is worth noting that these sequences have not been optimized at the codon or gene level to allow for ef fi cient protein expression in bacteria. In addition, the training dataset only covers a limited subset of the global phage diversity, which may impact the model ' s ability to generalize to phage taxa not included in the training data. A recent study by Ratcliff et al. also shows that the generated sequences are compositionally more similar to certain bacteriophage families than the others 28 . Lastly, our pretrained model still lacks the ability to generate the complete set of genes covering all the necessary functions of the phage life cycle. Despite these limitations, we envision that our generative genomic model represents the fi rst step towards the de novo design of the whole functional genome, paving the way for advancements in medicine, agriculture, and environmental science. [truncated]\n\n[data_representation: Methods]\n#### Model training\n\nOur training dataset was curated from three sources. Firstly, we downloadedallthecompletevirus genomes from NCBIGenBank (asof February 2023) and retained only those with ' phage ' in the organism ' s name. Secondly, the phage genomes from MGV (version 1.0) were downloaded, and we only included genomes with a completeness score larger than 95% and classi fi ed under the order Caudovirales . Our third source was GPD (https://www.sanger.ac.uk/data/gut-phage- database/), and we kept all the genomes with a completeness score above0.95.Followingtheinitialcollection, we undertook anadditional round of fi ltering. We used geNomad (version 1.6.1, default parameters with '-relaxed ' fl ag) to predict the taxonomy of these genomes and then deleted all the genomes whose predicted host is not a unicellular organism. All genomes smaller than 96 K bp were then collected to construct the fi nal training dataset.\n\nOurmegaDNAmodelutilizedathree-layertransformerstructure 9 . Each layer had a depth of 8 and progressively larger dimensions (local: 196, middle: 256, global: 512). The context lengths for the three layers are 16, 64, and 128. The model contains 145 M parameters in total. We assigned numerical tokens (1, 2, 3, and 4) to the nucleotides A, T, C, and G, respectively. For model training, we used a batch size of 1 and set the learning rate at 0.0002. The learning rate was progressively increased during the initial 50,000 steps as part of a warmup schedule. [truncated]","section_evidence":[{"section_type":"discussion_conclusion","heading":"Discussion","heading_level":3,"line_start":73,"line_end":76,"text":"In this work, we present a long-context generative model for genomic sequences, which effectively learns the language of gene coding and regulatory sequences via a single step of self-supervised training on unannotated whole genomes. We demonstrated that the model loss can be utilized for unsupervised prediction of essential genes in phage genomes, and the information-rich sequence embeddings enable the prediction of genetic variant effects and regulatory element activities across a wide range of organisms. The generated sequences match the length of natural bacteriophage genomes and display functional genomic architectures. It is worth noting that these sequences have not been optimized at the codon or gene level to allow for ef fi cient protein expression in bacteria. In addition, the training dataset only covers a limited subset of the global phage diversity, which may impact the model ' s ability to generalize to phage taxa not included in the training data. A recent study by Ratcliff et al. also shows that the generated sequences are compositionally more similar to certain bacteriophage families than the others 28 . Lastly, our pretrained model still lacks the ability to generate the complete set of genes covering all the necessary functions of the phage life cycle. Despite these limitations, we envision that our generative genomic model represents the fi rst step towards the de novo design of the whole functional genome, paving the way for advancements in medicine, agriculture, and environmental science. [truncated]","original_chars":2017},{"section_type":"data_representation","heading":"Methods","heading_level":3,"line_start":77,"line_end":118,"text":"#### Model training\n\nOur training dataset was curated from three sources. Firstly, we downloadedallthecompletevirus genomes from NCBIGenBank (asof February 2023) and retained only those with ' phage ' in the organism ' s name. Secondly, the phage genomes from MGV (version 1.0) were downloaded, and we only included genomes with a completeness score larger than 95% and classi fi ed under the order Caudovirales . Our third source was GPD (https://www.sanger.ac.uk/data/gut-phage- database/), and we kept all the genomes with a completeness score above0.95.Followingtheinitialcollection, we undertook anadditional round of fi ltering. We used geNomad (version 1.6.1, default parameters with '-relaxed ' fl ag) to predict the taxonomy of these genomes and then deleted all the genomes whose predicted host is not a unicellular organism. All genomes smaller than 96 K bp were then collected to construct the fi nal training dataset.\n\nOurmegaDNAmodelutilizedathree-layertransformerstructure 9 . Each layer had a depth of 8 and progressively larger dimensions (local: 196, middle: 256, global: 512). The context lengths for the three layers are 16, 64, and 128. The model contains 145 M parameters in total. We assigned numerical tokens (1, 2, 3, and 4) to the nucleotides A, T, C, and G, respectively. For model training, we used a batch size of 1 and set the learning rate at 0.0002. The learning rate was progressively increased during the initial 50,000 steps as part of a warmup schedule. [truncated]","original_chars":10163}],"docling_markdown":"data/docling_include_no_vlm_2026-07-09/markdown/full_2026_07_06_rec_000867.md"}]

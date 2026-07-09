@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the abstract provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the abstract explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the abstract clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the abstract says so.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001289","candidate_id":"full_2026-07-06__rec_001289","source_record_id":"rec_001289","source_corpus":"include","title":"scGPT: Towards Building a Foundation Model for Single-Cell Multi-omics Using Generative AI","abstract":"","doi":"10.1101/2023.04.30.538439","year":"","venue":"","sources":[],"full_text_context":"[data_representation: Influence of pre-training data size]\nTo investigate the effect of pre-training data size on scGPT's performance, we pre-trained the scGPT model on smaller scales of the normal human cells, i.e. 30K, 300K and 3M cells. The resultant models were evaluated in both zero-shot and fi ne-tuned configurations across multiple tasks. Supplementary Figure 13 reveals that, with growth in pre-training data size, scGPT has increasing performance for both zero-shot and fine-tuning scenarios.\n\nWe demonstrate the influence of pre-training data size spanning various tasks of cell type annotation, reference mapping, and perturbation response prediction. Constant trends of increasing fine-tuning performance were observed across all datasets (Supplementary Figure 13A-C). On cell type annotation (utilizing softmax classifiers) and reference mapping, we observed significant increases regarding all evaluation metrics. On the other hand, the performance gain on perturbation is marginal. From the 30k data pre-training to 33M, the result fine-tuning differences are less than 7%, exemplified by the Pearson delta improvement from 0.229 to 0.242. One of the reasons can be the Perturb-seq data sparsity, which we further depicted in Supplementary Note 10.\n\nNext, we examined the performance of zero-shot settings for reference mapping and integration. For these two tasks, the cell embeddings computed from the pre-trained scGPT can be used to compute either the nearest neighbors for propagating reference labels, or for integrating similar cells across samples. [truncated]","section_evidence":[{"section_type":"data_representation","heading":"Influence of pre-training data size","heading_level":2,"line_start":124,"line_end":133,"text":"To investigate the effect of pre-training data size on scGPT's performance, we pre-trained the scGPT model on smaller scales of the normal human cells, i.e. 30K, 300K and 3M cells. The resultant models were evaluated in both zero-shot and fi ne-tuned configurations across multiple tasks. Supplementary Figure 13 reveals that, with growth in pre-training data size, scGPT has increasing performance for both zero-shot and fine-tuning scenarios.\n\nWe demonstrate the influence of pre-training data size spanning various tasks of cell type annotation, reference mapping, and perturbation response prediction. Constant trends of increasing fine-tuning performance were observed across all datasets (Supplementary Figure 13A-C). On cell type annotation (utilizing softmax classifiers) and reference mapping, we observed significant increases regarding all evaluation metrics. On the other hand, the performance gain on perturbation is marginal. From the 30k data pre-training to 33M, the result fine-tuning differences are less than 7%, exemplified by the Pearson delta improvement from 0.229 to 0.242. One of the reasons can be the Perturb-seq data sparsity, which we further depicted in Supplementary Note 10.\n\nNext, we examined the performance of zero-shot settings for reference mapping and integration. For these two tasks, the cell embeddings computed from the pre-trained scGPT can be used to compute either the nearest neighbors for propagating reference labels, or for integrating similar cells across samples. [truncated]","original_chars":2664}],"docling_markdown":"data/docling_include_no_vlm_2026-07-09/markdown/full_2026_07_06_rec_001289.md"}]

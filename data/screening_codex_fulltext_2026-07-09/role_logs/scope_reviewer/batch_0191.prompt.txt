@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the abstract support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the abstract clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the abstract clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the abstract presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the abstract makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided provided title, abstract, and selected full-text sections/full-text-section evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because an abstract is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the abstract, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the abstract, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002555","candidate_id":"full_2026-07-06__rec_002555","source_record_id":"rec_002555","source_corpus":"uncertain","title":"Let the data speak - single-cell analysis with CellWhisperer.","abstract":"","doi":"10.1038/s41576-025-00927-x","year":"","venue":"","sources":[],"full_text_context":"[document_opening: Docling opening text]\n# Let the data speak - single-cell analysis with CellWhisperer\n- [Moritz Schaefer](#auth-Moritz-Schaefer-Aff1-Aff2-Aff3-Aff4-Aff5) [ORCID: orcid.org/0000-0001-6489-1947](https://orcid.org/0000-0001-6489-1947) [1](#Aff1) , [2](#Aff2) , [3](#Aff3) , [4](#Aff4) , [5](#Aff5)\n[*Nature Reviews Genetics*](/nrg) **volume 27** , page 189 ( 2026 ) [Cite this article](#citeas)\n[Save article](/articles/s41576-025-00927-x/save-research?_csrf=Rmkcd-a1w4-xNTaEIEgglwuhZITQvuqE)\n[View saved research](/saved-research)\n- 1885 Accesses\n- 3 Altmetric\n- [Metrics details](/articles/s41576-025-00927-x/metrics)\n### Subjects\n- [Machine learning](/subjects/machine-learning)\n- [RNA sequencing](/subjects/rna-sequencing)\n- [Software](/subjects/software)\n- [Transcriptomics](/subjects/transcriptomics)\n[Access through your institution](https://wayf.springernature.com/?redirect_uri=https%3A%2F%2Fwww.nature.com%2Farticles%2Fs41576-025-00927-x)\n[Buy or subscribe](#access-options)\nSingle-cell RNA sequencing (scRNA-seq) captures the state of thousands of cells simultaneously, establishing it as a cornerstone assay in modern biomedical research. Yet, interpreting the resulting data relies on specialized software tools and on writing code. As a result, scRNA-seq analysis has been largely confined to bioinformaticians, creating a bottleneck in scientific workflows. [truncated]","section_evidence":[{"section_type":"document_opening","heading":"Docling opening text","heading_level":0,"line_start":1,"line_end":0,"text":"# Let the data speak - single-cell analysis with CellWhisperer\n- [Moritz Schaefer](#auth-Moritz-Schaefer-Aff1-Aff2-Aff3-Aff4-Aff5) [ORCID: orcid.org/0000-0001-6489-1947](https://orcid.org/0000-0001-6489-1947) [1](#Aff1) , [2](#Aff2) , [3](#Aff3) , [4](#Aff4) , [5](#Aff5)\n[*Nature Reviews Genetics*](/nrg) **volume 27** , page 189 ( 2026 ) [Cite this article](#citeas)\n[Save article](/articles/s41576-025-00927-x/save-research?_csrf=Rmkcd-a1w4-xNTaEIEgglwuhZITQvuqE)\n[View saved research](/saved-research)\n- 1885 Accesses\n- 3 Altmetric\n- [Metrics details](/articles/s41576-025-00927-x/metrics)\n### Subjects\n- [Machine learning](/subjects/machine-learning)\n- [RNA sequencing](/subjects/rna-sequencing)\n- [Software](/subjects/software)\n- [Transcriptomics](/subjects/transcriptomics)\n[Access through your institution](https://wayf.springernature.com/?redirect_uri=https%3A%2F%2Fwww.nature.com%2Farticles%2Fs41576-025-00927-x)\n[Buy or subscribe](#access-options)\nSingle-cell RNA sequencing (scRNA-seq) captures the state of thousands of cells simultaneously, establishing it as a cornerstone assay in modern biomedical research. Yet, interpreting the resulting data relies on specialized software tools and on writing code. As a result, scRNA-seq analysis has been largely confined to bioinformaticians, creating a bottleneck in scientific workflows. [truncated]","original_chars":1358}],"docling_markdown":"data/docling_uncertain_html_no_vlm_2026-07-08/markdown/html_rec_002555.md"}]

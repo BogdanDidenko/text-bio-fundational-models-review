@@ -1,0 +1,139 @@
+2026-07-09T08:32:44.706875Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:32:44.827247Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:32:44.856499Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:32:44.878579Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:32:44.885832Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4601-ff38-7f23-9135-54332a86091a
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the abstract support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the abstract clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the abstract clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the abstract presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the abstract makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided provided title, abstract, and selected full-text sections/full-text-section evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because an abstract is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the abstract, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the abstract, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000106","candidate_id":"full_2026-07-06__rec_000106","source_record_id":"rec_000106","source_corpus":"uncertain","title":"CELLama: Foundation Model for Single Cell and Spatial Transcriptomics by Cell Embedding Leveraging Language Model Abilities.","abstract":"","doi":"10.1002/advs.202513210","year":"","venue":"","sources":[],"full_text_context":"[introduction: Introduction]\nRecent advancements in single-cell RNA-seq (scRNA-seq) and spatial transcriptomics (ST) have facilitated the creation of extensive data atlases under normal and disease conditions. [ 1-4] Understanding these large datasets through an integrative approach, coupled with detailed molecular expression data at the cellular\n\nJ. Park, S. Kim, J. Kim, D. Lee, S. Bae, H. Shin, D. Lee, H. Choi Portrai, Inc.\n\nSeoul 04798, Republic of Korea\n\nE-mail: chy1000@snu.ac.kr\n\nH.Choi\n\nDepartmentofNuclearMedicine\n\nSeoulNationalUniversity Hospital\n\nSeoulNationalUniversity College of Medicine\n\nSeoul03080,RepublicofKorea\n\n<!-- image -->\n\n©2025 The Author(s). Advanced Science published by Wiley-VCH GmbH. This is an open access article under the terms of the Creative Commons Attribution License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.\n\nDOI: 10.1002/advs.202513210\n\nlevel, paves the way for a deeper understanding of diseases and transforms biomedical research into a data-driven field. These cellular atlases and recently developed high resolution ST-based data are invaluable resources for dissecting pathophysiological processes and discovering new therapeutic targets that influence drug development and enhance our understanding of disease mechanisms and cellular functions. [truncated]\n\n[discussion_conclusion: Discussion]\nLarge-scale scRNA-seq and ST have shifted biomedical research paradigms toward data-driven approaches. [4] Experiments on diseased tissues or experimental samples now routinely generate transcriptomic data from hundreds of thousands of cells, necessitating a universal analytic workflow that leverages the power of recently developed AI algorithms. [ 32,33] The development and application of CELLama have demonstrated significant strides in addressing the complexities of interpreting large-scale scRNAseq and ST data. By harnessing a language model framework, CELLama effectively embedded cellular data into a common data space, which not only streamlines the cell typing process across various tissue samples without reliance on manual reference data but also introduces a novel approach for integrating cellular metadata including spatial context. This integration allows for more nuanced analysis and understanding of cellular behaviors and interactions within their respective microenvironments.\n\n<!-- image -->\n\n<!-- image -->\n\n[www.advancedscience.com](http://www.advancedscience.com/)\n\nFigure 5. Spatial mapping and cell type annotation using CELLama on ST data. a) Process of generating sentences using common genes between scRNA-seq and ST panels from lung cancer data. CELLama co-embedded scRNA-seq and ST data with limited number of gene panel. b) Comparison of spatial cell type maps generated by CELLama and TACCO, a specialized cell type mapping tool for image-based ST. [truncated]","section_evidence":[{"section_type":"introduction","heading":"Introduction","heading_level":3,"line_start":11,"line_end":50,"text":"Recent advancements in single-cell RNA-seq (scRNA-seq) and spatial transcriptomics (ST) have facilitated the creation of extensive data atlases under normal and disease conditions. [ 1-4] Understanding these large datasets through an integrative approach, coupled with detailed molecular expression data at the cellular\n\nJ. Park, S. Kim, J. Kim, D. Lee, S. Bae, H. Shin, D. Lee, H. Choi Portrai, Inc.\n\nSeoul 04798, Republic of Korea\n\nE-mail: chy1000@snu.ac.kr\n\nH.Choi\n\nDepartmentofNuclearMedicine\n\nSeoulNationalUniversity Hospital\n\nSeoulNationalUniversity College of Medicine\n\nSeoul03080,RepublicofKorea\n\n<!-- image -->\n\n©2025 The Author(s). Advanced Science published by Wiley-VCH GmbH. This is an open access article under the terms of the Creative Commons Attribution License, which permits use, distribution and reproduction in any medium, provided the original work is properly cited.\n\nDOI: 10.1002/advs.202513210\n\nlevel, paves the way for a deeper understanding of diseases and transforms biomedical research into a data-driven field. These cellular atlases and recently developed high resolution ST-based data are invaluable resources for dissecting pathophysiological processes and discovering new therapeutic targets that influence drug development and enhance our understanding of disease mechanisms and cellular functions. [truncated]","original_chars":4973},{"section_type":"discussion_conclusion","heading":"Discussion","heading_level":3,"line_start":145,"line_end":184,"text":"Large-scale scRNA-seq and ST have shifted biomedical research paradigms toward data-driven approaches. [4] Experiments on diseased tissues or experimental samples now routinely generate transcriptomic data from hundreds of thousands of cells, necessitating a universal analytic workflow that leverages the power of recently developed AI algorithms. [ 32,33] The development and application of CELLama have demonstrated significant strides in addressing the complexities of interpreting large-scale scRNAseq and ST data. By harnessing a language model framework, CELLama effectively embedded cellular data into a common data space, which not only streamlines the cell typing process across various tissue samples without reliance on manual reference data but also introduces a novel approach for integrating cellular metadata including spatial context. This integration allows for more nuanced analysis and understanding of cellular behaviors and interactions within their respective microenvironments.\n\n<!-- image -->\n\n<!-- image -->\n\n[www.advancedscience.com](http://www.advancedscience.com/)\n\nFigure 5. Spatial mapping and cell type annotation using CELLama on ST data. a) Process of generating sentences using common genes between scRNA-seq and ST panels from lung cancer data. CELLama co-embedded scRNA-seq and ST data with limited number of gene panel. b) Comparison of spatial cell type maps generated by CELLama and TACCO, a specialized cell type mapping tool for image-based ST. [truncated]","original_chars":14141}],"docling_markdown":"data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_000106.md"}]
+
+2026-07-09T08:32:44.911668Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:32:45.676728Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.676760Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.683740Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.683751Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.700708Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.700724Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.705369Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.705386Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.708751Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.708793Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.728256Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:45.728272Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:32:59.874348Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:33:00.703024Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.703040Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.712970Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.712988Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.717961Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.717978Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.741979Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.742010Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.757363Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.757377Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.844850Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:00.844866Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:33:17.062135Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:33:17.531979Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:33:17.532028Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_000106","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"CELLama is presented as a new foundation model for scRNA-seq and spatial transcriptomics, not a review or wrapper. The full text describes sentence generation and a language-model framework that embeds cellular data into a shared space, supporting a substantive text-bio bridge.","evidence_snippet":"“process of generating sentences using common genes between scRNA-seq and ST panels”; “harnessing a language model framework” / “embedded cellular data into a common data space”"},{"record_id":"full_2026-07-06__rec_000106","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"CELLama is presented as a new foundation model for scRNA-seq and spatial transcriptomics, not a review or wrapper. The full text describes sentence generation and a language-model framework that embeds cellular data into a shared space, supporting a substantive text-bio bridge.","evidence_snippet":"“process of generating sentences using common genes between scRNA-seq and ST panels”; “harnessing a language model framework” / “embedded cellular data into a common data space”"}]}
+2026-07-09T08:33:33.335631Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4601-ff38-7f23-9135-54332a86091a.1783585964780077000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+2,916

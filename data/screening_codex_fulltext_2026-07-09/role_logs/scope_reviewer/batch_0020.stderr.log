@@ -1,0 +1,147 @@
+2026-07-09T08:28:08.586259Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.620622Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.651263Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f45fd-cb76-7913-a285-57a3beff2771
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the abstract support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the abstract clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the abstract clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the abstract presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the abstract makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided provided title, abstract, and selected full-text sections/full-text-section evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because an abstract is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the abstract, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the abstract, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000709","candidate_id":"full_2026-07-06__rec_000709","source_record_id":"rec_000709","source_corpus":"include","title":"Protein-nucleic acid language model-assisted design of precise and compact adenine base editor","abstract":"","doi":"10.1038/s41467-025-65311-z","year":"","venue":"","sources":[],"full_text_context":"[data_representation: Screening of precise and compact ABEs via PNLM Using our constructed PNLM model, we explored using PNLM for further engineering TadA-8e proteins. We fine-tuned the PNLM with our curated TadA-8e variant dataset. We utilized the PNLM to generate 150 TadA-8elike sequences, including 39 insertion, 73 mutation, and 38 truncated variants (Fig. 2a and Supplementary Data 1). During the fine-tuning process, we observed that incorporating nucleic acid and editing position information, compared to only using protein sequences, led to a reduction in the model's fine-tuning loss (Fig. 2b). We used ESM-1v 26 to predict the transformed log-likelihood of all generated sequences and PNLM has higher conservation degree of the catalytic domain (Fig. 2c). Existing machine learning scoring methods demonstrated diverse evaluation techniques. Using the sequence-based evaluation method, ESM-1v 26 reported 21 of the generated sequences outperformed the wild-type (Supplementary Fig. 2c and Supplementary Data 1). We further combined ESM-1v 26 ， MIF-ST 27 ， Rosetta 28 and AlphaFold2 29 to screen and characterize the generated truncated sequences(Fig. 2a and Supplementary Fig. 2). ARTICLE IN PRESS]\nBased on the principles above, the top 20 ABE8e variants with size-\n\n173\n\n174\n\n175\n\n176\n\n177\n\n178\n\n179\n\n180\n\n181\n\n182\n\n183\n\n184\n\n185\n\n186\n\n187\n\n188\n\n189\n\n190\n\n191\n\n192\n\n193\n\n194\n\n195\n\n196\n\n197\n\n198\n\n199\n\n200\n\ntruncated were selected for construction and a positive endogenous target containing multiple As and editable Cs (ABE site27) was used for testing their performance in HEK293T cells (Supplementary Fig. 3). Highthroughput sequencing (HTS) showed that 3 out of 20 ABE8e variantsABE8e Δ2-8, Δ158-167 and Δ147-152 had editing activity comparable to ABE8e by analyzing the most edited adenine at ABE site 27 (Fig. 2d). Notably, ABE8e Δ147-152 had reduced A-to-G bystander editing and narrowed major A-to-G editing window (A6) compared to ABE8e (A6-A9) (Fig. 2d). Notably, the C bystander editing (C5) activity decreased near background (Fig. 2d). Compared to ABE9, a high-precision version of ABE, the editing activity of ABE8e Δ147-152 was higher and the major editing window was similar (Fig. 2d). The remaining variants exhibited far lower or no activity (Fig. 2d). To further optimize the precision and size of ABE8e Δ147-152, we combined these ABE8e variants and deleted the linker between TadA-8e and Cas9n to narrow the editing window. The results show that ABE8e Δ2-8-NL also maintain comparable editing activity and its major editing window were not changed (Fig. 2e). ABE8e Δ2-8+147-152-NL and ABE8e 147-152-NL exhibited similar base editing activity, reduced bystander editing and narrowed major editing window compared to ABE8e (Fig. 2e). [truncated]","section_evidence":[{"section_type":"data_representation","heading":"Screening of precise and compact ABEs via PNLM Using our constructed PNLM model, we explored using PNLM for further engineering TadA-8e proteins. We fine-tuned the PNLM with our curated TadA-8e variant dataset. We utilized the PNLM to generate 150 TadA-8elike sequences, including 39 insertion, 73 mutation, and 38 truncated variants (Fig. 2a and Supplementary Data 1). During the fine-tuning process, we observed that incorporating nucleic acid and editing position information, compared to only using protein sequences, led to a reduction in the model's fine-tuning loss (Fig. 2b). We used ESM-1v 26 to predict the transformed log-likelihood of all generated sequences and PNLM has higher conservation degree of the catalytic domain (Fig. 2c). Existing machine learning scoring methods demonstrated diverse evaluation techniques. Using the sequence-based evaluation method, ESM-1v 26 reported 21 of the generated sequences outperformed the wild-type (Supplementary Fig. 2c and Supplementary Data 1). We further combined ESM-1v 26 ， MIF-ST 27 ， Rosetta 28 and AlphaFold2 29 to screen and characterize the generated truncated sequences(Fig. 2a and Supplementary Fig. 2). ARTICLE IN PRESS","heading_level":7,"line_start":351,"line_end":412,"text":"Based on the principles above, the top 20 ABE8e variants with size-\n\n173\n\n174\n\n175\n\n176\n\n177\n\n178\n\n179\n\n180\n\n181\n\n182\n\n183\n\n184\n\n185\n\n186\n\n187\n\n188\n\n189\n\n190\n\n191\n\n192\n\n193\n\n194\n\n195\n\n196\n\n197\n\n198\n\n199\n\n200\n\ntruncated were selected for construction and a positive endogenous target containing multiple As and editable Cs (ABE site27) was used for testing their performance in HEK293T cells (Supplementary Fig. 3). Highthroughput sequencing (HTS) showed that 3 out of 20 ABE8e variantsABE8e Δ2-8, Δ158-167 and Δ147-152 had editing activity comparable to ABE8e by analyzing the most edited adenine at ABE site 27 (Fig. 2d). Notably, ABE8e Δ147-152 had reduced A-to-G bystander editing and narrowed major A-to-G editing window (A6) compared to ABE8e (A6-A9) (Fig. 2d). Notably, the C bystander editing (C5) activity decreased near background (Fig. 2d). Compared to ABE9, a high-precision version of ABE, the editing activity of ABE8e Δ147-152 was higher and the major editing window was similar (Fig. 2d). The remaining variants exhibited far lower or no activity (Fig. 2d). To further optimize the precision and size of ABE8e Δ147-152, we combined these ABE8e variants and deleted the linker between TadA-8e and Cas9n to narrow the editing window. The results show that ABE8e Δ2-8-NL also maintain comparable editing activity and its major editing window were not changed (Fig. 2e). ABE8e Δ2-8+147-152-NL and ABE8e 147-152-NL exhibited similar base editing activity, reduced bystander editing and narrowed major editing window compared to ABE8e (Fig. 2e). [truncated]","original_chars":1982}],"docling_markdown":"data/docling_include_no_vlm_2026-07-09/markdown/full_2026_07_06_rec_000709.md"}]
+
+2026-07-09T08:28:08.660860Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:08.674867Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.699067Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.714837Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.714851Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.716821Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.716833Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.735781Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.735795Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.737553Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.738220Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.738228Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.739417Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.739426Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.743762Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.743772Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:08.767840Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.788273Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:08.825778Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:28:09.222761Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:13.671161Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:13.796828Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:13.796876Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:15.163724Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:15.556901Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.556916Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.561801Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.561813Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.576653Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.576671Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.585870Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.585883Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.587871Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.587977Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.605346Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:15.605361Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:28:19.874418Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:19.922387Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:28:19.922438Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_000709","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper about a protein-nucleic acid language model for engineering TadA-8e/base editors, with biological sequence data and editing-position information. The provided title and section evidence do not show natural-language text, prompts, or a substantive text-bio bridge.","evidence_snippet":"“protein-nucleic acid language model-assisted design of precise and compact adenine base editor”; “fine-tuned the PNLM with our curated TadA-8e variant dataset” and “incorporating nucleic acid and editing position information”,"},{"record_id":"full_2026-07-06__rec_000709","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper about a protein-nucleic acid language model for engineering TadA-8e/base editors, with biological sequence data and editing-position information. The provided title and section evidence do not show natural-language text, prompts, or a substantive text-bio bridge.","evidence_snippet":"“protein-nucleic acid language model-assisted design of precise and compact adenine base editor”; “fine-tuned the PNLM with our curated TadA-8e variant dataset” and “incorporating nucleic acid and editing position information”,"}]}
+2026-07-09T08:28:34.464828Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f45fd-cb76-7913-a285-57a3beff2771.1783585688550772000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+14,467

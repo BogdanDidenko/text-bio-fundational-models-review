@@ -1,0 +1,475 @@
+2026-07-09T08:35:13.864352Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:35:14.286045Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:35:14.333171Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:35:14.361619Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:35:14.395970Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-09T08:35:18.485151Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4604-4615-79a3-8c00-55bf46ce7629
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the provided title, abstract, and selected full-text sections/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided provided title, abstract, and selected full-text sections/full-text-section record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the abstract support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first provided title, abstract, and selected full-text sections screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the abstract clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the abstract clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the abstract presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the abstract makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided provided title, abstract, and selected full-text sections/full-text-section evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because an abstract is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the abstract, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the abstract, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003113","candidate_id":"full_2026-07-06__rec_003113","source_record_id":"rec_003113","source_corpus":"uncertain","title":"scELMo: Embeddings from Language Models","abstract":"","doi":"","year":"","venue":"","sources":[],"full_text_context":"[document_opening: Docling opening text]\n## A Examples of the text description outputs of different LLMs.\nIn this section, we present the differences between the text description from NCBI and the text description from GPT 3.5 for the same gene. We highlight the problematic output information of each text using red color, the description of functional information of each text using blue color, and the specific information contained in each text using bold text.\nHere is an example for the text description of gene COL1A1 from NCBI:\nOfficial Symbol COL1A1provided by HGNC Official Full Name collagen type I alpha 1 chainprovided by HGNC Primary source HGNC:HGNC:2197 See related Ensembl:ENSG00000108821 MIM:120150; AllianceGenome:HGNC:2197 Gene type protein coding RefSeq status REVIEWED Organism Homo sapiens Lineage Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini; Catarrhini; Hominidae; Homo Also known as OI1; OI2; OI3; OI4; EDSC; CAFYD; EDSARTH1 Summary This gene encodes the pro-alpha1 chains of type I collagen whose triple helix comprises two alpha1 chains and one alpha2 chain. Type I is a fibril-forming collagen found in most connective tissues and is abundant in bone, cornea, dermis and tendon. Mutations in this gene are associated with osteogenesis imperfecta types I-IV, Ehlers-Danlos syndrome type VIIA, Ehlers-Danlos syndrome Classical type, Caffey Disease and idiopathic osteoporosis. [truncated]","section_evidence":[{"section_type":"document_opening","heading":"Docling opening text","heading_level":0,"line_start":1,"line_end":0,"text":"## A Examples of the text description outputs of different LLMs.\nIn this section, we present the differences between the text description from NCBI and the text description from GPT 3.5 for the same gene. We highlight the problematic output information of each text using red color, the description of functional information of each text using blue color, and the specific information contained in each text using bold text.\nHere is an example for the text description of gene COL1A1 from NCBI:\nOfficial Symbol COL1A1provided by HGNC Official Full Name collagen type I alpha 1 chainprovided by HGNC Primary source HGNC:HGNC:2197 See related Ensembl:ENSG00000108821 MIM:120150; AllianceGenome:HGNC:2197 Gene type protein coding RefSeq status REVIEWED Organism Homo sapiens Lineage Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini; Catarrhini; Hominidae; Homo Also known as OI1; OI2; OI3; OI4; EDSC; CAFYD; EDSARTH1 Summary This gene encodes the pro-alpha1 chains of type I collagen whose triple helix comprises two alpha1 chains and one alpha2 chain. Type I is a fibril-forming collagen found in most connective tissues and is abundant in bone, cornea, dermis and tendon. Mutations in this gene are associated with osteogenesis imperfecta types I-IV, Ehlers-Danlos syndrome type VIIA, Ehlers-Danlos syndrome Classical type, Caffey Disease and idiopathic osteoporosis. [truncated]","original_chars":1455}],"docling_markdown":"data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_003113.md"}]
+
+2026-07-09T08:35:20.108729Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.108744Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.113807Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.113838Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.116106Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.116119Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.139635Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.139677Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.174677Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.174693Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.307126Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:20.309989Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:30.355731Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:35:31.530977Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.531028Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.654427Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.654445Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.690039Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.690142Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.710426Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.710456Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.714541Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.714555Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.746143Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:35:31.746160Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:02.452916Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:36:02.719166Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:36:02.719224Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+exec
+/bin/bash -lc "sed -n '1,220p' data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_003113.md" in /Users/bogdan.didenko/lpnu/review
+2026-07-09T08:36:11.641544Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+ succeeded in 1028ms:
+/Users/bogdan.didenko/.bash_profile: line 49: /Users/bogdan.didenko/.openclaw/completions/openclaw.bash: No such file or directory
+826
+
+827
+
+828
+
+829
+
+830
+
+831
+
+832
+
+833
+
+834
+
+835
+
+836
+
+837
+
+838
+
+839
+
+840
+
+841
+
+842
+
+843
+
+844
+
+845
+
+846
+
+847
+
+848
+
+849
+
+850
+
+851
+
+852
+
+853
+
+854
+
+855
+
+856
+
+## A Examples of the text description outputs of different LLMs.
+
+In this section, we present the differences between the text description from NCBI and the text description from GPT 3.5 for the same gene. We highlight the problematic output information of each text using red color, the description of functional information of each text using blue color, and the specific information contained in each text using bold text.
+
+Here is an example for the text description of gene COL1A1 from NCBI:
+
+Official Symbol COL1A1provided by HGNC Official Full Name collagen type I alpha 1 chainprovided by HGNC Primary source HGNC:HGNC:2197 See related Ensembl:ENSG00000108821 MIM:120150; AllianceGenome:HGNC:2197 Gene type protein coding RefSeq status REVIEWED Organism Homo sapiens Lineage Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini; Catarrhini; Hominidae; Homo Also known as OI1; OI2; OI3; OI4; EDSC; CAFYD; EDSARTH1 Summary This gene encodes the pro-alpha1 chains of type I collagen whose triple helix comprises two alpha1 chains and one alpha2 chain. Type I is a fibril-forming collagen found in most connective tissues and is abundant in bone, cornea, dermis and tendon. Mutations in this gene are associated with osteogenesis imperfecta types I-IV, Ehlers-Danlos syndrome type VIIA, Ehlers-Danlos syndrome Classical type, Caffey Disease and idiopathic osteoporosis. Reciprocal translocations between chromosomes 17 and 22, where this gene and the gene for platelet-derived growth factor beta are located, are associated with a particular type of skin tumor called dermatofibrosarcoma protuberans, resulting from unregulated expression of the growth factor. Two transcripts, resulting from the use of alternate polyadenylation signals, have been identified for this gene. [provided by R. Dalgleish, Feb 2008] Expression Biased expression in gall bladder (RPKM 850.7), urinary bladder (RPKM 497.1) and 11 other tissues See more Orthologs mouse all .
+
+Here is an example for the text description of gene COLA1 from GPT 3.5 using the prompt: Please summarize the major function of a gene: COL1A1. Use academic language in one paragraph and include pathway information. :
+
+COL1A1 is a gene that encodes the alpha1 chain of type I collagen, which is 857 the most abundant extracellular matrix protein and a major component 858 of the bone, skin, tendon, and other connective tissues. The gene plays a 859 crucial role in the synthesis and assembly of type I collagen fibers, con860 tributing to the structural integrity and mechanical properties of these 861 tissues. Additionally, type I collagen is involved in the regulation of signal862 ing pathways, such as the TGFβ signaling pathway, which plays a key role 863 in the regulation of cell growth, differentiation, and extracellular matrix 864 synthesis. Mutations in COL1A1 are associated with various connective 865 tissue disorders, including osteogenesis imperfecta and Ehlers-Danlos syn866 drome. Therefore, understanding the function of COL1A1 is important 867 in elucidating the pathogenesis of these disorders and developing potential 868 therapeutic strategies. 869
+
+For the text description from NCBI, we need to clean the format of the original 870 data and transfer them into text representations. Therefore, the sentences and words 871 in this text are incoherent and their format does not strictly follow the grammar. Such 872 difference poses the problem of model alignment with human value. Moreover, text 873 descriptions of NCBI focus specifically on the variety of gene names, symbols, refseq 874 status, and other properties. Moreover, it contained detailed functional information 875 of the given gene. Some of the information may be redundant. One advantage of 876 the text representation from NCBI is its authority, which means the reliability of 877 text descriptions from NCBI is generally greater than the outputs from LLMs for 878 researchers. 879
+
+880
+
+881
+
+882
+
+883
+
+884
+
+885
+
+886
+
+887
+
+888
+
+For the text description from GPT 3.5, we can see that the sentences and words are coherent and formalized under the correct grammar framework. This text focuses more on the overview of functions for this given gene, including its major functional tissues and cell types (for cell-type marker genes like CD79). Moreover, this text also includes the relation between COLA1A1 and certain diseases, highlighting the potential of this gene as a therapeutic target. Such prior information will be helpful in the in-silico treatment analysis research. Moreover, different prompts can generate different types of descriptions for the same gene, exploring the diversity of the outputs from LLMs is also an interesting research track.
+
+889
+
+890
+
+891
+
+892
+
+893
+
+894
+
+895
+
+896
+
+897
+
+898
+
+899
+
+900
+
+901
+
+902
+
+903
+
+904
+
+905
+
+906
+
+907
+
+908
+
+909
+
+910
+
+911
+
+Therefore, these two different types of text descriptions have their own advantages and disadvantages, which might be the explanation for their different suitable scenarios. One interesting research topic will be how to combine the advantages of these two kinds of text descriptions to enhance their downstream applications.
+
+Here is an example for the text description of B cells from GPT 3.5 using the prompt: Please summarize the major function of cell type: B. Use academic language in one paragraph. :
+
+B cells, a crucial component of the adaptive immune system, play a pivotal role in humoral immunity by generating antibodies (immunoglobulins) in response to the recognition of specific antigens. Following activation, B cells undergo clonal expansion and differentiation into plasma cells, which are specialized antibody-producing cells. The antibodies secreted by plasma cells serve as effectors in immune responses, neutralizing pathogens, facilitating their removal by phagocytic cells, and promoting various immune processes such as opsonization and complement activation. Additionally, B cells can differentiate into memory B cells, which confer long-term immunity by enabling a rapid and robust antibody response upon re-exposure to the same pathogen. Overall, B cells are central to the adaptive immune system's ability to recognize and respond to a wide array of infectious agents and contribute significantly to immune memory and protection.
+
+For the text description from GPT 3.5, we find that the text description is also coherent and follows the standard grammar. It summarizes the major functions of B cells as well as the cell-cell communication that B cells involve.
+
+912
+
+913
+
+914
+
+915
+
+916
+
+917
+
+918
+
+919
+
+920
+
+921
+
+922
+
+923
+
+924
+
+925
+
+926
+
+927
+
+928
+
+929
+
+930
+
+931
+
+932
+
+933
+
+934
+
+935
+
+936
+
+937
+
+938
+
+939
+
+940
+
+941
+
+942
+
+943
+
+944
+
+945
+
+946
+
+
+2026-07-09T08:36:12.251483Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.253283Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.309918Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.310266Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.335564Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.335578Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.340124Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.340138Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.350871Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.350887Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.435658Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:12.435669Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:43.340108Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:36:44.015336Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:36:44.015383Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+exec
+/bin/bash -lc 'rg -n "scELMo|ELMo|embedding|model|pretrain|gene|cell type|LLM|GPT" data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_003113.md' in /Users/bogdan.didenko/lpnu/review
+2026-07-09T08:36:51.349222Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+ succeeded in 2160ms:
+/Users/bogdan.didenko/.bash_profile: line 49: /Users/bogdan.didenko/.openclaw/completions/openclaw.bash: No such file or directory
+63:## A Examples of the text description outputs of different LLMs.
+65:In this section, we present the differences between the text description from NCBI and the text description from GPT 3.5 for the same gene. We highlight the problematic output information of each text using red color, the description of functional information of each text using blue color, and the specific information contained in each text using bold text.
+67:Here is an example for the text description of gene COL1A1 from NCBI:
+69:Official Symbol COL1A1provided by HGNC Official Full Name collagen type I alpha 1 chainprovided by HGNC Primary source HGNC:HGNC:2197 See related Ensembl:ENSG00000108821 MIM:120150; AllianceGenome:HGNC:2197 Gene type protein coding RefSeq status REVIEWED Organism Homo sapiens Lineage Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini; Catarrhini; Hominidae; Homo Also known as OI1; OI2; OI3; OI4; EDSC; CAFYD; EDSARTH1 Summary This gene encodes the pro-alpha1 chains of type I collagen whose triple helix comprises two alpha1 chains and one alpha2 chain. Type I is a fibril-forming collagen found in most connective tissues and is abundant in bone, cornea, dermis and tendon. Mutations in this gene are associated with osteogenesis imperfecta types I-IV, Ehlers-Danlos syndrome type VIIA, Ehlers-Danlos syndrome Classical type, Caffey Disease and idiopathic osteoporosis. Reciprocal translocations between chromosomes 17 and 22, where this gene and the gene for platelet-derived growth factor beta are located, are associated with a particular type of skin tumor called dermatofibrosarcoma protuberans, resulting from unregulated expression of the growth factor. Two transcripts, resulting from the use of alternate polyadenylation signals, have been identified for this gene. [provided by R. Dalgleish, Feb 2008] Expression Biased expression in gall bladder (RPKM 850.7), urinary bladder (RPKM 497.1) and 11 other tissues See more Orthologs mouse all .
+71:Here is an example for the text description of gene COLA1 from GPT 3.5 using the prompt: Please summarize the major function of a gene: COL1A1. Use academic language in one paragraph and include pathway information. :
+73:COL1A1 is a gene that encodes the alpha1 chain of type I collagen, which is 857 the most abundant extracellular matrix protein and a major component 858 of the bone, skin, tendon, and other connective tissues. The gene plays a 859 crucial role in the synthesis and assembly of type I collagen fibers, con860 tributing to the structural integrity and mechanical properties of these 861 tissues. Additionally, type I collagen is involved in the regulation of signal862 ing pathways, such as the TGFβ signaling pathway, which plays a key role 863 in the regulation of cell growth, differentiation, and extracellular matrix 864 synthesis. Mutations in COL1A1 are associated with various connective 865 tissue disorders, including osteogenesis imperfecta and Ehlers-Danlos syn866 drome. Therefore, understanding the function of COL1A1 is important 867 in elucidating the pathogenesis of these disorders and developing potential 868 therapeutic strategies. 869
+75:For the text description from NCBI, we need to clean the format of the original 870 data and transfer them into text representations. Therefore, the sentences and words 871 in this text are incoherent and their format does not strictly follow the grammar. Such 872 difference poses the problem of model alignment with human value. Moreover, text 873 descriptions of NCBI focus specifically on the variety of gene names, symbols, refseq 874 status, and other properties. Moreover, it contained detailed functional information 875 of the given gene. Some of the information may be redundant. One advantage of 876 the text representation from NCBI is its authority, which means the reliability of 877 text descriptions from NCBI is generally greater than the outputs from LLMs for 878 researchers. 879
+95:For the text description from GPT 3.5, we can see that the sentences and words are coherent and formalized under the correct grammar framework. This text focuses more on the overview of functions for this given gene, including its major functional tissues and cell types (for cell-type marker genes like CD79). Moreover, this text also includes the relation between COLA1A1 and certain diseases, highlighting the potential of this gene as a therapeutic target. Such prior information will be helpful in the in-silico treatment analysis research. Moreover, different prompts can generate different types of descriptions for the same gene, exploring the diversity of the outputs from LLMs is also an interesting research track.
+145:Here is an example for the text description of B cells from GPT 3.5 using the prompt: Please summarize the major function of cell type: B. Use academic language in one paragraph. :
+147:B cells, a crucial component of the adaptive immune system, play a pivotal role in humoral immunity by generating antibodies (immunoglobulins) in response to the recognition of specific antigens. Following activation, B cells undergo clonal expansion and differentiation into plasma cells, which are specialized antibody-producing cells. The antibodies secreted by plasma cells serve as effectors in immune responses, neutralizing pathogens, facilitating their removal by phagocytic cells, and promoting various immune processes such as opsonization and complement activation. Additionally, B cells can differentiate into memory B cells, which confer long-term immunity by enabling a rapid and robust antibody response upon re-exposure to the same pathogen. Overall, B cells are central to the adaptive immune system's ability to recognize and respond to a wide array of infectious agents and contribute significantly to immune memory and protection.
+149:For the text description from GPT 3.5, we find that the text description is also coherent and follows the standard grammar. It summarizes the major functions of B cells as well as the cell-cell communication that B cells involve.
+237:In this section, we explored the contribution of LLM embeddings for analyzing omic data from Mouse. We first analyzed the ability of clustering in Figure 8 (a) for both single-cell data and spatial transcriptomic data. While gene embeddings from GPT 3.5 wa mode can generate clustering performance better than PCA for scRNA-seq data (MCA) [88], such embeddings cannot improve the clustering for spatial data sequenced by Slide-seq v2 [89]. Moreover, cell-type embeddings from GPT 3.5 can also carry information from Mouse, proved by high scores for evaluating clustering performance.
+239:We also considered the cross-species analysis for the similarity of embeddings from Human genes and embeddings from Mouse genes, which can enrich the study of gene similarity in addition to orthologous genes. We computed the Euclidean distance (ED) for all gene pairs based on gene embeddings from Mouse and Human, shown in Figure 8 (b). We then ranked the ED to retrieve most similar genes. To verify the similarity, we figured out that the closet gene pairs were the orthologous genes, thus the gene embeddings from LLMs could also reflect the common information from two species.
+241:## C Understanding the effect of the number of cells and the number of genes towards GenePT and scELMo.
+245:First, we directly plotted the visualization results of three different methods for the hPancreas-train dataset in Extended Data Figure 6. From this figure, we found that using neither gene embeddings from GenePT nor GPT 3.5 with the aa mode could preserve the cell-type-specific clusters in the space of UMAPs. However, using gene embeddings from GPT 3.5 with wa mode could preserve the major cell-type-specific clustering information. Based on this interesting observation, we further compared the weights used for these two averaging modes based on KL-divergence (KL-Div) [83], which could reflect the difference for the distribution of gene expression levels in each cell and a uniform distribution with P = 1 m . For each dataset, the row sum is one for both these two cases. Based on Extended Data Figure 9 (a), we found that for all the four datasets we compared in the cell clustering task, the KL-div was larger than two and none of them had cells with zero divergence. Therefore, the distribution of gene expression levels carried more information compared with the weights based on uniform distribution. Moreover, we also showed that using wa mode was better for batch effect correction. Therefore, the wa mode is more suitable to handle tasks under the zero-shot learning framework.
+247:Second, we analyzed the relation between the clustering performance and the number of genes. The first scenario we intended to investigate is the relation between the number of recorded genes and the clustering performance. In Extended Data Figure 9 (b), we display the change of clustering metrics with respect to the change of recorded genes based on the hPancreas-train dataset using aa mode. We noticed that the wa mode was not suitable for this research because we might have cells with 954 zero expression by filtering some genes. There is no obvious correlation between the 955 number of recorded genes and the clustering performance. Moreover, since the sources 956 of GenePT or scELMo do not match all of the genes for every scRNA-seq dataset, 957 sometimes we need to fill the gene embeddings of missing genes as zero. Therefore, 958 we also investigated the relation between the number of matched genes and the clus959 tering performance, shown in Extended Data Figure 9 (c). From this figure, we still 960 did not observe a strong correlation between the number of matched genes and the 961 clustering performance under the aa mode. However, for the wa mode, we found an 962 obvious correlation between these two values. Therefore, having more matched genes 963 can contribute to cell clustering under the wa mode of scELMo. Such conclusion also 964 demonstrates the importance of extending our databases of feature embeddings. 965
+265:Third, we analyzed the relation between the clustering performance and the number of cells. We subsampled different proportions of cells from the large-scale Onek1k PBMC dataset and computed the clustering results under different numbers of cells. Based on Extended Data Figure 9 (d), we found that there was no obvious correlation between the number of cells and the clustering performance for Onek1k PBMC dataset. Therefore, cell number may not be a factor that can affect the performance of gene embeddings in this task. Moreover, scELMo is also capable of the analysis of large-scale scRNA-seq datasets.
+311:In this section, we explored the possibility of utilizing gene embeddings from GPT 3.5 to resolve multi-omic data integration task. Here we consider datasets from scRNA-seq and scATAC-seq without paired information. To reduce the dimensions of the scATACseq dataset, we transfer the feature information of such dataset from the space of peaks to the space of gene activity scores. The visualization results are summarized in Extended Data Figures 7 (a) and (b). According to these figures, we can still observe significant batch effect or the difference of cell embeddings from the cells with same cell types. Therefore, the function of scELMo for multi-omic data integration under the zero-shot learning framework is not good. Moreover, based on Extended Data Figure 7 (c), neither the wa mode nor the aa mode can improve the S batch score and the s bio score significantly. Incorporating the cell-type information into the cell embeddings space can significantly improve the averaged scores, but for metrics like iLISI to evaluate the mixture of batch information, such embeddings still had zero score. Therefore, scELMo is not capable of multi-omic data integration under the zero-shot learning framework.
+313:## E The contribution of finetuned model in the in-silico treatment analysis.
+315:In this section, we demonstrated the necessity of using a finetuned model rather than zero-shot learning for in-silico treatment analysis. In Extended Data Figure 10 (a), we display the change of CS for the same group of DEGs under the ascending aortic aneurysm disease and all genes were not significant for the Ascending only state. 995 Moreover, the change of CS under PCA was nearly constant by varying different genes 996 for removal, and the change of CS was very small for cell embeddings based on GenePT 997 across all three states. Therefore, we concluded that the cell embeddings from either 998 GenePT or PCA were not capable of modeling this disease without the knowledge of 999 the intercellular variability due to diseases. Moreover, based on Extended Data Figures 1000 10 (b) and (c), such variability was covered by the noise in the original expression 1001 space. Therefore, we need to learn a model that can distinguish the cells under different 1002 conditions as well as generate representative cell embeddings for the inference of novel 1003 therapeutic targets. Our ideas aligned with the strategy adopted by Geneformer. 1004
+333:Moreover, we compared the classification metrics for the cell-level disease condition under different gene embeddings for these two datasets and displayed the results in Extended Data Figure 11. From this figure, we found using gene embeddings containing information from genes generally had better performance than using embeddings from random numbers. Moreover, the classification results of scELMo based on gene embeddings from GPT 3.5 were slightly better than the results based on gene embeddings from GenePT. Therefore, using gene embeddings from GenePT and GPT 3.5 all contributed to generating representative latent space for different diseases.
+357:We also considered genes whose silence might shift the cell embeddings from the control condition to diseased conditions. Therefore, our candidate genes became DEGs for the control case and we reversed our score to keep its direction (higher score means that the removal of this gene contributes to the change of cells from the healthy condition to diseased conditions). Our results are summarized in Extended Data Figures 12 (a) and (b). Based on our results, we identified different number of genes for different diseases. Moreover, there existed gene overlap across three states of the given disease, which implied that the removal or silence of such gene might have different contributions for different disease. Because the function of genes is closely related to the pathway [90], our findings can help analyze the pathogenesis of some diseases.
+361:Extended Data Fig. 1 Evaluations of the similarity for embeddings under different conditions. (a) Heatmaps of correlation of embeddings from the same gene under 10 different LLM outputs. We randomly selected 10 genes and generated the LLMs' outputs for these 10 genes based on the same set of prompts. We then computed the embeddings of these outputs and calculated the Pearson correlation for these embeddings, hence we have 10 different heatmaps to represent the results for 10 different genes. (b) Heatmap of the correlation of embeddings from 10 different genes. We computed the Pearson correlation for the embeddings of different genes. The number 0 represents the index of embeddings we computed based on 10 different LLM outputs.
+365:Extended Data Fig. 2 UMAPs for the visualization of gene functional information. (a) UMAPs for the genes with known functional information and unknown functional information. (b) UMAPs for the genes with annotated functional information based on a kNN classifier. For genes with multiple functional annotation, we combined the functions as a new label.
+377:Extended Data Fig. 5 UMAPs for the results of CINEMA-OT under different input settings and datasets. (a) UMAPs visualization for the confounder space of CINEMA-OT under different methods based on the ChangYe2021 dataset. All cells in this dataset have the same cell type. (b) UMAPs visualization for the confounder space of CINEMA-OT under different methods based on perturbed PBMC dataset. The labels for the UMAPs include perturbation conditions (upper panel) and cell types (lower panel). (c) Plots for the gene synergy score distribution, labelled by different methods. (d) Plots for the gene synergy distribution across cell types, labelled by different methods.
+381:Extended Data Fig. 6 UMAPs for cell embeddings with different sources based on the hPancreastrain dataset. Each panel is colored by the cell types. (a) UMAPs for the cell embeddings based on GenePT. (b) UMAPS for the cell embeddings based on aa mode. (c) UMAPs for the cell embeddings based on wa mode.
+387:Extended Data Fig. 7 Results of batch effect correction for multi-omic data (scATAC-seq, scRNAseq). (a) UMAPs of batch information for the raw data and cell embeddings from GPT 3.5 wa mode. (b) UMAPs of cell-type information for the raw data and cell embeddings from GPT 3.5 wa mode. (c) Evaluations of the batch effect correction for multi-omic datasets across different methods.
+391:Extended Data Fig. 8 Results of our exploration for gene embeddings from Mouse. (a) Clustering performance for Mouse data. The left panel represents the clustering metrics based on Slide-seq v2 data. The right panel represents the clustering metrics based on MCA data. (b) A heatmap for genegene interaction colored by the value of ED.
+395:Extended Data Fig. 9 Results of our exploration for the cell clustering task. (a) KL-Div for the two distributions across different datasets. (b) The relation between the number of recorded genes and clustering metrics is based on the GPT 3.5 aa mode. (c) The relation between the number of matched genes and clustering metrics is based on the GPT 3.5 aa mode (left panel) and the GPT 3.5 wa mode (right panel). (d) The relation between the proportion of cells and clustering metrics is based on the GPT 3.5 aa mode (left panel) and the GPT 3.5 wa mode (right panel).
+399:Extended Data Fig. 10 Change of CS under the zero-shot (ZS) learning framework and UMAPs for visualization. (a) The change of CS based on cell embeddings from GenePT or PCA for the Aorta dataset. We considered all three different disease states. (b) UMAPs visualization for the original gene expression space (left panel) and cell embeddings from finetuned scELMo (right panel) based on the Heart dataset. Figures are colored by cell conditions. (c) UMAPs visualization for the original gene expression space (left panel) and cell embeddings from finetuned scELMo (right panel) based on the Aorta dataset. Figures are colored by cell conditions.
+403:Extended Data Fig. 11 Metrics for disease classification under different gene embeddings across the two datasets. Different panels represent values from different metrics, and we have four metrics in this task.
+407:Extended Data Fig. 12 Change of CS for silencing DEGs in the control case. (a) The change of CS based on cell embeddings from scELMo for the Aorta dataset. (b) The change of CS based on the cell embeddings from scELMo for the Heart dataset. We highlighted the genes detected by both GenePT and scELMo using stars (*) and marked the genes that were discovered by previous research as genes related to disease pathway using bold type.
+
+2026-07-09T08:36:52.560083Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.560115Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.588067Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.588089Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.601096Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.601110Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.614319Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.614353Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.626423Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.626438Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.695525Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:36:52.695539Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:27.264272Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:37:28.158212Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:37:28.159804Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+exec
+/bin/bash -lc "rg -n \"scELMo|Figure 1|Methods|Model|prompt|embedding|zero-shot|GenePT\" data/docling_uncertain_no_vlm_2026-07-08/markdown/full_2026_07_06_rec_003113.md | sed -n '1,120p'" in /Users/bogdan.didenko/lpnu/review
+2026-07-09T08:37:50.650048Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+ succeeded in 1658ms:
+/Users/bogdan.didenko/.bash_profile: line 49: /Users/bogdan.didenko/.openclaw/completions/openclaw.bash: No such file or directory
+71:Here is an example for the text description of gene COLA1 from GPT 3.5 using the prompt: Please summarize the major function of a gene: COL1A1. Use academic language in one paragraph and include pathway information. :
+95:For the text description from GPT 3.5, we can see that the sentences and words are coherent and formalized under the correct grammar framework. This text focuses more on the overview of functions for this given gene, including its major functional tissues and cell types (for cell-type marker genes like CD79). Moreover, this text also includes the relation between COLA1A1 and certain diseases, highlighting the potential of this gene as a therapeutic target. Such prior information will be helpful in the in-silico treatment analysis research. Moreover, different prompts can generate different types of descriptions for the same gene, exploring the diversity of the outputs from LLMs is also an interesting research track.
+145:Here is an example for the text description of B cells from GPT 3.5 using the prompt: Please summarize the major function of cell type: B. Use academic language in one paragraph. :
+237:In this section, we explored the contribution of LLM embeddings for analyzing omic data from Mouse. We first analyzed the ability of clustering in Figure 8 (a) for both single-cell data and spatial transcriptomic data. While gene embeddings from GPT 3.5 wa mode can generate clustering performance better than PCA for scRNA-seq data (MCA) [88], such embeddings cannot improve the clustering for spatial data sequenced by Slide-seq v2 [89]. Moreover, cell-type embeddings from GPT 3.5 can also carry information from Mouse, proved by high scores for evaluating clustering performance.
+239:We also considered the cross-species analysis for the similarity of embeddings from Human genes and embeddings from Mouse genes, which can enrich the study of gene similarity in addition to orthologous genes. We computed the Euclidean distance (ED) for all gene pairs based on gene embeddings from Mouse and Human, shown in Figure 8 (b). We then ranked the ED to retrieve most similar genes. To verify the similarity, we figured out that the closet gene pairs were the orthologous genes, thus the gene embeddings from LLMs could also reflect the common information from two species.
+241:## C Understanding the effect of the number of cells and the number of genes towards GenePT and scELMo.
+245:First, we directly plotted the visualization results of three different methods for the hPancreas-train dataset in Extended Data Figure 6. From this figure, we found that using neither gene embeddings from GenePT nor GPT 3.5 with the aa mode could preserve the cell-type-specific clusters in the space of UMAPs. However, using gene embeddings from GPT 3.5 with wa mode could preserve the major cell-type-specific clustering information. Based on this interesting observation, we further compared the weights used for these two averaging modes based on KL-divergence (KL-Div) [83], which could reflect the difference for the distribution of gene expression levels in each cell and a uniform distribution with P = 1 m . For each dataset, the row sum is one for both these two cases. Based on Extended Data Figure 9 (a), we found that for all the four datasets we compared in the cell clustering task, the KL-div was larger than two and none of them had cells with zero divergence. Therefore, the distribution of gene expression levels carried more information compared with the weights based on uniform distribution. Moreover, we also showed that using wa mode was better for batch effect correction. Therefore, the wa mode is more suitable to handle tasks under the zero-shot learning framework.
+247:Second, we analyzed the relation between the clustering performance and the number of genes. The first scenario we intended to investigate is the relation between the number of recorded genes and the clustering performance. In Extended Data Figure 9 (b), we display the change of clustering metrics with respect to the change of recorded genes based on the hPancreas-train dataset using aa mode. We noticed that the wa mode was not suitable for this research because we might have cells with 954 zero expression by filtering some genes. There is no obvious correlation between the 955 number of recorded genes and the clustering performance. Moreover, since the sources 956 of GenePT or scELMo do not match all of the genes for every scRNA-seq dataset, 957 sometimes we need to fill the gene embeddings of missing genes as zero. Therefore, 958 we also investigated the relation between the number of matched genes and the clus959 tering performance, shown in Extended Data Figure 9 (c). From this figure, we still 960 did not observe a strong correlation between the number of matched genes and the 961 clustering performance under the aa mode. However, for the wa mode, we found an 962 obvious correlation between these two values. Therefore, having more matched genes 963 can contribute to cell clustering under the wa mode of scELMo. Such conclusion also 964 demonstrates the importance of extending our databases of feature embeddings. 965
+265:Third, we analyzed the relation between the clustering performance and the number of cells. We subsampled different proportions of cells from the large-scale Onek1k PBMC dataset and computed the clustering results under different numbers of cells. Based on Extended Data Figure 9 (d), we found that there was no obvious correlation between the number of cells and the clustering performance for Onek1k PBMC dataset. Therefore, cell number may not be a factor that can affect the performance of gene embeddings in this task. Moreover, scELMo is also capable of the analysis of large-scale scRNA-seq datasets.
+311:In this section, we explored the possibility of utilizing gene embeddings from GPT 3.5 to resolve multi-omic data integration task. Here we consider datasets from scRNA-seq and scATAC-seq without paired information. To reduce the dimensions of the scATACseq dataset, we transfer the feature information of such dataset from the space of peaks to the space of gene activity scores. The visualization results are summarized in Extended Data Figures 7 (a) and (b). According to these figures, we can still observe significant batch effect or the difference of cell embeddings from the cells with same cell types. Therefore, the function of scELMo for multi-omic data integration under the zero-shot learning framework is not good. Moreover, based on Extended Data Figure 7 (c), neither the wa mode nor the aa mode can improve the S batch score and the s bio score significantly. Incorporating the cell-type information into the cell embeddings space can significantly improve the averaged scores, but for metrics like iLISI to evaluate the mixture of batch information, such embeddings still had zero score. Therefore, scELMo is not capable of multi-omic data integration under the zero-shot learning framework.
+315:In this section, we demonstrated the necessity of using a finetuned model rather than zero-shot learning for in-silico treatment analysis. In Extended Data Figure 10 (a), we display the change of CS for the same group of DEGs under the ascending aortic aneurysm disease and all genes were not significant for the Ascending only state. 995 Moreover, the change of CS under PCA was nearly constant by varying different genes 996 for removal, and the change of CS was very small for cell embeddings based on GenePT 997 across all three states. Therefore, we concluded that the cell embeddings from either 998 GenePT or PCA were not capable of modeling this disease without the knowledge of 999 the intercellular variability due to diseases. Moreover, based on Extended Data Figures 1000 10 (b) and (c), such variability was covered by the noise in the original expression 1001 space. Therefore, we need to learn a model that can distinguish the cells under different 1002 conditions as well as generate representative cell embeddings for the inference of novel 1003 therapeutic targets. Our ideas aligned with the strategy adopted by Geneformer. 1004
+333:Moreover, we compared the classification metrics for the cell-level disease condition under different gene embeddings for these two datasets and displayed the results in Extended Data Figure 11. From this figure, we found using gene embeddings containing information from genes generally had better performance than using embeddings from random numbers. Moreover, the classification results of scELMo based on gene embeddings from GPT 3.5 were slightly better than the results based on gene embeddings from GenePT. Therefore, using gene embeddings from GenePT and GPT 3.5 all contributed to generating representative latent space for different diseases.
+357:We also considered genes whose silence might shift the cell embeddings from the control condition to diseased conditions. Therefore, our candidate genes became DEGs for the control case and we reversed our score to keep its direction (higher score means that the removal of this gene contributes to the change of cells from the healthy condition to diseased conditions). Our results are summarized in Extended Data Figures 12 (a) and (b). Based on our results, we identified different number of genes for different diseases. Moreover, there existed gene overlap across three states of the given disease, which implied that the removal or silence of such gene might have different contributions for different disease. Because the function of genes is closely related to the pathway [90], our findings can help analyze the pathogenesis of some diseases.
+361:Extended Data Fig. 1 Evaluations of the similarity for embeddings under different conditions. (a) Heatmaps of correlation of embeddings from the same gene under 10 different LLM outputs. We randomly selected 10 genes and generated the LLMs' outputs for these 10 genes based on the same set of prompts. We then computed the embeddings of these outputs and calculated the Pearson correlation for these embeddings, hence we have 10 different heatmaps to represent the results for 10 different genes. (b) Heatmap of the correlation of embeddings from 10 different genes. We computed the Pearson correlation for the embeddings of different genes. The number 0 represents the index of embeddings we computed based on 10 different LLM outputs.
+369:Extended Data Fig. 3 Average ranks for clustering and cell-type annotation. (a) Average-rank information for different methods across datasets. (b) The left panel represents the average-rank information of methods based on fine-tuning for cell-type annotation. The right panel represents the average-rank information of methods based on zero-shot learning for cell-type annotation.
+381:Extended Data Fig. 6 UMAPs for cell embeddings with different sources based on the hPancreastrain dataset. Each panel is colored by the cell types. (a) UMAPs for the cell embeddings based on GenePT. (b) UMAPS for the cell embeddings based on aa mode. (c) UMAPs for the cell embeddings based on wa mode.
+387:Extended Data Fig. 7 Results of batch effect correction for multi-omic data (scATAC-seq, scRNAseq). (a) UMAPs of batch information for the raw data and cell embeddings from GPT 3.5 wa mode. (b) UMAPs of cell-type information for the raw data and cell embeddings from GPT 3.5 wa mode. (c) Evaluations of the batch effect correction for multi-omic datasets across different methods.
+391:Extended Data Fig. 8 Results of our exploration for gene embeddings from Mouse. (a) Clustering performance for Mouse data. The left panel represents the clustering metrics based on Slide-seq v2 data. The right panel represents the clustering metrics based on MCA data. (b) A heatmap for genegene interaction colored by the value of ED.
+399:Extended Data Fig. 10 Change of CS under the zero-shot (ZS) learning framework and UMAPs for visualization. (a) The change of CS based on cell embeddings from GenePT or PCA for the Aorta dataset. We considered all three different disease states. (b) UMAPs visualization for the original gene expression space (left panel) and cell embeddings from finetuned scELMo (right panel) based on the Heart dataset. Figures are colored by cell conditions. (c) UMAPs visualization for the original gene expression space (left panel) and cell embeddings from finetuned scELMo (right panel) based on the Aorta dataset. Figures are colored by cell conditions.
+403:Extended Data Fig. 11 Metrics for disease classification under different gene embeddings across the two datasets. Different panels represent values from different metrics, and we have four metrics in this task.
+407:Extended Data Fig. 12 Change of CS for silencing DEGs in the control case. (a) The change of CS based on cell embeddings from scELMo for the Aorta dataset. (b) The change of CS based on the cell embeddings from scELMo for the Heart dataset. We highlighted the genes detected by both GenePT and scELMo using stars (*) and marked the genes that were discovered by previous research as genes related to disease pathway using bold type.
+
+2026-07-09T08:37:51.513237Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.513252Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.552090Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.552108Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.591244Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.591261Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.816300Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.816317Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.880961Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.880976Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.944373Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:37:51.944389Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-09T08:38:23.072002Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:38:23.347754Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-09T08:38:23.347803Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_003113","paper_type":"application_wrapper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"no","primary_exclusion_code":"application_wrapper","uncertainty_reason":"none","decision_rationale":"The record uses GPT-3.5/NCBI gene and cell text descriptions as inputs to produce embeddings for omic clustering, cross-species similarity, and disease analysis. That is an external-LLM feature pipeline rather than a primary text-bio generative model.","evidence_snippet":"\"text description from NCBI\" and \"text description from GPT 3.5\"; \"we explored the contribution of LLM embeddings for analyzing omic data\"; \"gene embeddings from GPT 3.5\" for clustering and disease analysis"}]}
+2026-07-09T08:38:53.420340Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4604-4615-79a3-8c00-55bf46ce7629.1783586114208631000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+13,181
