@@ -9,10 +9,10 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 0. Review of reviews | Done | `data/existing_reviews_compilation.md` |
 | 1. Protocol | Done | `protocol/PRISMA_protocol.md`, `protocol/eligibility_criteria.md` |
 | 2. Search queries (v3.1) | Done | `protocol/queries/`, `scripts/search_config.json` |
-| 3. Search execution | Done | 7 databases, 2 rounds |
+| 3. Search execution | Done | 7 databases, 4 rounds |
 | 4. Deduplication | Done | `scripts/deduplicate.py` |
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
-| 6. Title/Abstract screening | **In progress** | 4,027 records; criterion-by-criterion `LatteReview` workflow calibrated on a determinism-validated serving profile |
+| 6. Title/Abstract screening | **In progress** | 4,027 master records; June and July top-up batches prepared separately for Codex screening |
 
 ## Minimal LatteReview Runtime
 
@@ -70,6 +70,21 @@ This path assumes:
 - Abstract enrichment: 29/41 enriched, 12 excluded
 - **Combined: 3,371 + 668 − 12 = 4,027 records for screening**
 
+### Update (2026-06-10) — new publications
+- Date range: 2026-04-15 to 2026-06-10
+- PubMed: 68, Scopus: 39, S2: 215, arXiv: 21, bioRxiv/medRxiv: 33, SN: 27, GS: 530
+- Total: 933 → 785 unique (internal dedup) → 447 new (cross-dedup with 4,027-record master)
+- Crossref audit: 2 hidden duplicates removed; 126 DOI enrichments
+- Final top-up screening-ready set: 431 records
+
+### Update (2026-07-06) — new publications
+- Date range: 2026-06-11 to 2026-07-06
+- PubMed: 25, Scopus: 12, S2: 118, arXiv: 6, bioRxiv/medRxiv: 16, SN: 20, GS: 0
+- Total: 197 → 155 unique (internal dedup) → 134 new (cross-dedup with 4,027-record master)
+- Crossref audit: 0 hidden duplicates; 0 DOI enrichments
+- Final top-up screening-ready set: 119 records
+- Note: Google Scholar was fully rate-limited on this run and returned 0 records.
+
 ## Repo Structure
 
 ```
@@ -79,6 +94,8 @@ scripts/
   reproduce_search.py       Reproducible search across 7 databases
   search_config.json        v3.1 search configuration
   search_config_update.json Update search configuration (Mar-Apr 2026)
+  search_config_update_2026-06-10.json June 2026 top-up configuration
+  search_config_update_2026-07-06.json July 2026 top-up configuration
   deduplicate.py            Conservative exact-match deduplication
   enrich_abstracts.py       Abstract enrichment via S2/CrossRef/PubMed APIs
 data/
@@ -87,6 +104,10 @@ data/
   exports/                  v3.0 database exports (2026-02-06)
   exports_v31/              v3.1 database exports (2026-02-15)
   exports_update/           Update exports (2026-04-14)
+  exports_update_2026-06-10/ Update exports (2026-06-10)
+  exports_update_2026-07-06/ Update exports (2026-07-06)
+  dedup_update_2026-06-10/  Dedup/cross-dedup artifacts for June update
+  dedup_update_2026-07-06/  Dedup/cross-dedup artifacts for July update
 ```
 
 ## Abstract Screening Process

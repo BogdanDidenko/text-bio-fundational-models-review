@@ -122,7 +122,23 @@ def search_pubmed(config, keys):
     if api_key:
         params["api_key"] = api_key
 
-    r = retry_request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi", params=params)
+    # PubMed can return transient 500s for long Boolean queries sent as GET URLs.
+    # POST keeps the query body identical while avoiding URL-length/proxy issues.
+    for attempt in range(5):
+        try:
+            r = requests.post(
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                data=params,
+                timeout=60,
+            )
+            r.raise_for_status()
+            break
+        except requests.exceptions.RequestException as e:
+            if attempt == 4:
+                raise
+            wait = 2 * (2 ** attempt)
+            log(f"  PubMed ESearch error: {e}. Retrying in {wait:.0f}s...")
+            time.sleep(wait)
     data = r.json()
     result = data["esearchresult"]
     count = int(result["count"])

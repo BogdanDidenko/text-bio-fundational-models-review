@@ -71,6 +71,18 @@ Results are saved to `output/` (default):
 
 All searches cover **2018-01-01 to 2026-02-28**. For databases without month-level date filtering (Scopus, Semantic Scholar), a post-retrieval date filter is applied.
 
+For update searches, use a dated config file instead of editing the baseline
+configuration:
+
+```bash
+python3 scripts/reproduce_search.py \
+  --config scripts/search_config_update_2026-07-06.json \
+  --keys api_keys.json \
+  --output-dir data/exports_update_2026-07-06
+```
+
+The latest completed update search covers **2026-06-11 to 2026-07-06**.
+
 ## Notes
 
 - **SpringerNature** searches full-text body (title/abstract restriction is premium-only). A mandatory post-retrieval validation step filters records to those matching all 3 concept blocks in the title or abstract. Expect ~98% noise removal.
@@ -96,6 +108,14 @@ Ground truth: 13/13 must-find models detected across all databases (after the
 2026-04-14 update search added Cell2Seq and X-Cell to the original 11). See
 [`protocol/ground_truth_models.md`](../protocol/ground_truth_models.md) for
 the full list and per-model expected criterion labels.
+
+## Update Search Runs
+
+| Search date | Date range | Raw records | Internal dedup | New after master cross-dedup | Screening-ready | Notes |
+|---|---|---:|---:|---:|---:|---|
+| 2026-04-14 | 2026-03-01 to 2026-04-14 | 867 | 762 | 668 | 668 | Google Scholar rate-limited after query 5/7. |
+| 2026-06-10 | 2026-04-15 to 2026-06-10 | 933 | 785 | 447 | 431 | CrossRef audit removed 2 hidden duplicates and enriched 126 DOIs. |
+| 2026-07-06 | 2026-06-11 to 2026-07-06 | 197 | 155 | 134 | 119 | Google Scholar returned 0 due full rate-limit; CrossRef audit found no hidden duplicates. |
 
 ## Search Configuration
 
