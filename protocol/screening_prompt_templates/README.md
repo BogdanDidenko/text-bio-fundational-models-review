@@ -1,7 +1,7 @@
 # Operative Prompt Templates
 
 This folder contains the **canonical runtime prompt artifacts** for the
-criterion-by-criterion title/abstract screening workflow.
+criterion-by-criterion screening workflow.
 
 These files exist so that:
 
@@ -18,9 +18,22 @@ The local screening runner loads these files directly:
 - [architecture_reviewer_prompt.txt](architecture_reviewer_prompt.txt)
 - [adjudicator_prompt.txt](adjudicator_prompt.txt)
 
+The templates use `{{...}}` placeholders for evidence-source wording. The
+runner renders them with `--evidence-mode`:
+
+- `title_abstract` (default): renders to the original title/abstract wording
+  and sends only title, abstract, and metadata fields to reviewers.
+- `full_text_sections`: renders to selected-full-text-section wording and sends
+  title, abstract, `full_text_context`, `section_evidence`, and traceability
+  paths for Docling-derived evidence.
+
+The reviewer topology, criterion fields, allowed values, Python gate, and
+adjudicator logic are shared across both modes. Only the evidence input profile
+and prompt wording change.
+
 ## Design notes
 
-The current templates are intentionally:
+In default `title_abstract` mode the rendered templates are intentionally:
 
 - criterion-by-criterion rather than one-shot;
 - sensitivity-first rather than aggressive auto-exclusion first;

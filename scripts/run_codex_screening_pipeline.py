@@ -26,7 +26,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +35,49 @@ DEFAULT_OUTDIR = ROOT / "data/screening_codex_2026-06-10"
 PROMPT_DIR = ROOT / "protocol/screening_prompt_templates"
 
 MODEL = "gpt-5.4-mini"
+EVIDENCE_MODE = "title_abstract"
+
+EvidenceMode = Literal["title_abstract", "full_text_sections"]
+
+EVIDENCE_MODE_CONFIG: dict[EvidenceMode, dict[str, str]] = {
+    "title_abstract": {
+        "record_kind": "title/abstract record",
+        "evidence_record": "provided title/abstract record",
+        "evidence_scope": "title/abstract",
+        "evidence_source": "title/abstract",
+        "evidence_unit": "abstract",
+        "short_evidence_subject": "an abstract",
+        "screening_strategy": "title/abstract",
+        "insufficient_evidence_phrase": "thin abstracts",
+        "adjudicator_evidence_record": "provided title/abstract record plus the structured outputs from the first-pass reviewers",
+        "adjudicator_evidence_scope": "title/abstract evidence",
+        "adjudicator_evidence_phrase": "title/abstract or reviewer outputs",
+        "adjudicator_source": "abstract and reviewer outputs",
+        "full_text_mode_block": "",
+    },
+    "full_text_sections": {
+        "record_kind": "title/abstract/full-text-section record",
+        "evidence_record": "provided title, abstract, and selected full-text sections",
+        "evidence_scope": "provided title, abstract, and selected full-text sections",
+        "evidence_source": "provided title, abstract, and selected full-text sections",
+        "evidence_unit": "provided evidence",
+        "short_evidence_subject": "the provided evidence",
+        "screening_strategy": "full-text-section",
+        "insufficient_evidence_phrase": "insufficient selected full-text evidence",
+        "adjudicator_evidence_record": "provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers",
+        "adjudicator_evidence_scope": "provided title, abstract, selected full-text sections, and reviewer outputs",
+        "adjudicator_evidence_phrase": "provided title, abstract, selected full-text sections, or reviewer outputs",
+        "adjudicator_source": "provided evidence and reviewer outputs",
+        "full_text_mode_block": (
+            "\n\nFull-text evidence mode:\n"
+            "- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.\n"
+            "- Treat these fields as part of the provided record, not as outside knowledge.\n"
+            "- Use the selected full-text sections when they clarify criteria.\n"
+            "- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.\n"
+            "- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.\n"
+        ),
+    },
+}
 
 ROLE_FIELDS = {
     "scope_reviewer": [
@@ -184,6 +227,17 @@ def strip_record_placeholder(prompt: str) -> str:
     return re.sub(r"\nRecord:\n\$\{item\}\$\s*$", "", prompt.strip(), flags=re.S)
 
 
+def render_prompt_template(template: str, evidence_mode: EvidenceMode) -> str:
+    values = EVIDENCE_MODE_CONFIG[evidence_mode]
+    rendered = template
+    for key, value in values.items():
+        rendered = rendered.replace("{{" + key + "}}", value)
+    leftover = sorted(set(re.findall(r"{{([a-zA-Z0-9_]+)}}", rendered)))
+    if leftover:
+        raise ValueError(f"unresolved prompt template placeholders for {evidence_mode}: {leftover}")
+    return rendered
+
+
 def schema_for_role(role: str, outdir: Path) -> Path:
     fields = ROLE_FIELDS[role]
     props: dict[str, Any] = {
@@ -232,26 +286,20 @@ def schema_for_role(role: str, outdir: Path) -> Path:
     return path
 
 
-def build_role_prompt(role: str, batch: list[dict[str, Any]], reviewer_context: dict[str, dict[str, Any]] | None = None) -> str:
+def build_role_prompt(
+    role: str,
+    batch: list[dict[str, Any]],
+    reviewer_context: dict[str, dict[str, Any]] | None = None,
+    evidence_mode: EvidenceMode = "title_abstract",
+) -> str:
     prompt_file = {
         "scope_reviewer": "scope_reviewer_prompt.txt",
         "architecture_reviewer": "architecture_reviewer_prompt.txt",
         "adjudicator": "adjudicator_prompt.txt",
     }[role]
-    base = strip_record_placeholder((PROMPT_DIR / prompt_file).read_text(encoding="utf-8"))
-    full_text_mode = any(rec.get("full_text_context") for rec in batch)
-    if full_text_mode:
-        base = base.replace("title/abstract record", "title/abstract/full-text-section record")
-        base = base.replace("title/abstract evidence", "provided title/abstract/full-text-section evidence")
-        base = base.replace("title/abstract", "provided title, abstract, and selected full-text sections")
-        base += (
-            "\n\nFull-text evidence mode:\n"
-            "- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.\n"
-            "- Treat these fields as part of the provided record, not as outside knowledge.\n"
-            "- Use abstract, introduction, discussion/conclusion, and data/model/input sections when they clarify criteria.\n"
-            "- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.\n"
-            "- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.\n"
-        )
+    template = strip_record_placeholder((PROMPT_DIR / prompt_file).read_text(encoding="utf-8"))
+    base = render_prompt_template(template, evidence_mode)
+    base += EVIDENCE_MODE_CONFIG[evidence_mode]["full_text_mode_block"]
     records = []
     for rec in batch:
         item = {
@@ -266,11 +314,11 @@ def build_role_prompt(role: str, batch: list[dict[str, Any]], reviewer_context: 
             "venue": rec.get("venue", ""),
             "sources": rec.get("sources", []),
         }
-        if rec.get("full_text_context"):
+        if evidence_mode == "full_text_sections" and rec.get("full_text_context"):
             item["full_text_context"] = rec.get("full_text_context", "")
-        if rec.get("section_evidence"):
+        if evidence_mode == "full_text_sections" and rec.get("section_evidence"):
             item["section_evidence"] = rec.get("section_evidence", [])
-        if rec.get("docling_markdown"):
+        if evidence_mode == "full_text_sections" and rec.get("docling_markdown"):
             item["docling_markdown"] = rec.get("docling_markdown", "")
         if reviewer_context:
             item["first_pass_outputs"] = reviewer_context.get(rec["record_id"], {})
@@ -341,6 +389,7 @@ def codex_batch(
     schema: Path,
     reviewer_context: dict[str, dict[str, Any]] | None = None,
     model: str = MODEL,
+    evidence_mode: EvidenceMode = "title_abstract",
 ) -> dict[str, Any]:
     role_dir = outdir / "role_logs" / role
     role_dir.mkdir(parents=True, exist_ok=True)
@@ -350,7 +399,7 @@ def codex_batch(
     if parsed_path.exists():
         return {"role": role, "batch_index": batch_index, "status": "skipped", "parsed_path": str(parsed_path)}
 
-    prompt = build_role_prompt(role, batch, reviewer_context)
+    prompt = build_role_prompt(role, batch, reviewer_context, evidence_mode=evidence_mode)
     prompt_path = role_dir / f"{batch_name}.prompt.txt"
     raw_stdout_path = role_dir / f"{batch_name}.stdout.log"
     raw_stderr_path = role_dir / f"{batch_name}.stderr.log"
@@ -398,6 +447,7 @@ def codex_batch(
         "batch_index": batch_index,
         "record_ids": [r["record_id"] for r in batch],
         "model": model,
+        "evidence_mode": evidence_mode,
         "returncode": proc.returncode,
         "elapsed_seconds": elapsed,
         "prompt_path": str(prompt_path),
@@ -512,6 +562,7 @@ def run_role(
     max_workers: int,
     reviewer_context: dict[str, dict[str, Any]] | None = None,
     model: str = MODEL,
+    evidence_mode: EvidenceMode = "title_abstract",
 ) -> None:
     schema = schema_for_role(role, outdir)
     batches = chunks(records, batch_size)
@@ -527,6 +578,7 @@ def run_role(
                 schema=schema,
                 reviewer_context=reviewer_context,
                 model=model,
+                evidence_mode=evidence_mode,
             )
             for i, batch in enumerate(batches, 1)
         ]
@@ -552,6 +604,12 @@ def main() -> None:
     parser.add_argument("--adjudicator-batch-size", type=int, default=6)
     parser.add_argument("--max-workers", type=int, default=2)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument(
+        "--evidence-mode",
+        choices=list(EVIDENCE_MODE_CONFIG),
+        default=EVIDENCE_MODE,
+        help="Evidence profile for prompt wording and record fields.",
+    )
     parser.add_argument("--start-at", choices=["scope", "architecture", "gate", "adjudicator", "final"], default="scope")
     args = parser.parse_args()
 
@@ -559,19 +617,28 @@ def main() -> None:
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
     source = load_json(input_path)
-    records = [safe_record(r, i) for i, r in enumerate(source["records"], 1)]
+    source_records = source["records"] if isinstance(source, dict) and "records" in source else source
+    if not isinstance(source_records, list):
+        raise ValueError("input must be a JSON array of records or an object with records[]")
+    records = [safe_record(r, i) for i, r in enumerate(source_records, 1)]
     if args.limit:
         records = records[: args.limit]
+    full_text_record_count = sum(1 for r in records if r.get("full_text_context") or r.get("section_evidence"))
+    if args.evidence_mode == "full_text_sections" and full_text_record_count == 0:
+        raise ValueError("--evidence-mode full_text_sections requires records with full_text_context or section_evidence")
 
     run_meta = {
         "created": now(),
         "input": str(input_path),
         "output_dir": str(outdir),
         "model": args.model,
+        "evidence_mode": args.evidence_mode,
         "batch_size": args.batch_size,
         "adjudicator_batch_size": args.adjudicator_batch_size,
         "max_workers": args.max_workers,
         "limit": args.limit,
+        "full_text_record_count": full_text_record_count,
+        "evidence_mode_config": EVIDENCE_MODE_CONFIG[args.evidence_mode],
         "protocol_files": {
             "scope_prompt": str(PROMPT_DIR / "scope_reviewer_prompt.txt"),
             "architecture_prompt": str(PROMPT_DIR / "architecture_reviewer_prompt.txt"),
@@ -585,10 +652,26 @@ def main() -> None:
     write_json(outdir / "input_records.json", records)
 
     if args.start_at == "scope":
-        run_role("scope_reviewer", records, outdir, args.batch_size, args.max_workers, model=args.model)
+        run_role(
+            "scope_reviewer",
+            records,
+            outdir,
+            args.batch_size,
+            args.max_workers,
+            model=args.model,
+            evidence_mode=args.evidence_mode,
+        )
 
     if args.start_at in {"scope", "architecture"}:
-        run_role("architecture_reviewer", records, outdir, args.batch_size, args.max_workers, model=args.model)
+        run_role(
+            "architecture_reviewer",
+            records,
+            outdir,
+            args.batch_size,
+            args.max_workers,
+            model=args.model,
+            evidence_mode=args.evidence_mode,
+        )
 
     scope_outputs = collect_role_outputs(outdir, "scope_reviewer")
     arch_outputs = collect_role_outputs(outdir, "architecture_reviewer")
@@ -631,6 +714,7 @@ def main() -> None:
             args.max_workers,
             reviewer_context=reviewer_context,
             model=args.model,
+            evidence_mode=args.evidence_mode,
         )
 
     adjudicator_outputs = collect_role_outputs(outdir, "adjudicator")

@@ -120,6 +120,8 @@ def matches(section: Section, group: str) -> bool:
 
 def trim(text: str, max_chars: int) -> str:
     text = clean_text(text)
+    if max_chars <= 0:
+        return text
     if len(text) <= max_chars:
         return text
     cut = text[: max_chars - 20]
@@ -141,7 +143,7 @@ def extract_document_opening(path: Path, max_chars: int) -> str:
         if stripped.startswith("<!--") and stripped.endswith("-->"):
             continue
         kept.append(stripped)
-        if len("\n".join(kept)) >= max_chars * 2:
+        if max_chars > 0 and len("\n".join(kept)) >= max_chars * 2:
             break
     return trim("\n".join(kept), max_chars)
 
@@ -264,7 +266,12 @@ def main() -> int:
     parser.add_argument("--include-manifest", default=str(DEFAULT_INCLUDE))
     parser.add_argument("--uncertain-manifest", default=str(DEFAULT_UNCERTAIN))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUT))
-    parser.add_argument("--max-section-chars", type=int, default=1600)
+    parser.add_argument(
+        "--max-section-chars",
+        type=int,
+        default=0,
+        help="Maximum characters per selected section; 0 keeps full selected sections.",
+    )
     parser.add_argument("--limit", type=int, default=0)
     args = parser.parse_args()
 
@@ -323,7 +330,7 @@ def main() -> int:
             "uncertain_manifest": rel(args.uncertain_manifest),
             "max_section_chars": args.max_section_chars,
             "record_count": len(records),
-            "note": "Records contain title, extracted abstract, and Docling-derived full_text_context sections for full-text screening.",
+            "note": "Records contain title, extracted abstract, and selected Docling-derived full_text_context sections for full-text screening. Full articles are not embedded unless a selected section itself spans the article.",
         },
         "records": records,
     }
