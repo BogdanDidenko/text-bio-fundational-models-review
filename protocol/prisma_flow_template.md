@@ -58,7 +58,17 @@ semantic eligibility exclusion.
 | Automated INCLUDE candidates | 50 |
 | Automated UNCERTAIN/manual-review candidates | 6 |
 | Routed to adjudication | 67 |
+| Manual resolution of automated UNCERTAIN candidates | 6 |
+| Current INCLUDE after manual resolution | 52 |
+| Current EXCLUDE after manual resolution | 169 |
+| Remaining UNCERTAIN after manual resolution | 0 |
 
 The 14 records without a valid evidence pair are not semantic PRISMA
 exclusions. They remain in the audit as full-text evidence-preprocessing
 limitations. See [full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md) for the complete method and logs.
+
+The six automated-uncertain records were then inspected and confirmed by the
+review lead using the relevant full Docling sections. This append-only manual
+resolution added two INCLUDE and four EXCLUDE decisions without altering the
+automated logs. The six-record rationale is in
+[`manual_resolution_2026-07-10.md`](../data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/manual_resolution_2026-07-10.md).

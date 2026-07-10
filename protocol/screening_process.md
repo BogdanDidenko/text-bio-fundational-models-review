@@ -73,8 +73,11 @@ For records marked `INCLUDE` or `UNCERTAIN` in phase 1:
    types before this machine-assisted pass;
 4. verify that the text/language role is substantive rather than incidental;
 5. verify that any claimed text-bio bridge is actually supported by the paper;
-6. verify generative architecture and foundation-model evidence from the
-   selected methods/model evidence;
+6. assess generative architecture and foundation-model evidence to the extent
+   supported by the selected sections; if decisive architecture, generation, or
+   publication-status evidence lies outside them, retain the record as
+   `UNCERTAIN` for documented manual resolution against the relevant full
+   Docling sections;
 7. confirm publication type, duplication status, language, OA/full-text status,
    and computational contribution where phase-1 evidence was weak.
 
@@ -83,6 +86,20 @@ not raw PDFs or whole-document markdown. Structured Docling provenance remains
 in the audit artifact but is not duplicated in the reviewer input. The executed
 2026-07-10 run, input quality controls, log layout, and counts are documented
 in [full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md).
+
+## Phase 3: Human-confirmed Manual Resolution
+
+Only records that remain `UNCERTAIN` after automated adjudication enter this
+phase. The reviewer inspects the relevant full Docling sections required to
+resolve the undecided criterion, such as model architecture, decoder/generation
+mechanism, publication status, or the actual role of a text component.
+
+The manual decision is stored as an append-only mapping keyed by `record_id`.
+It must retain the automated decision, cite the inspected Docling section, and
+state the manual rationale and exclusion code where applicable. It must not
+overwrite model prompts, responses, or automated outputs. The executed
+2026-07-10 manual-resolution audit is documented in
+[full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md).
 
 ## Exclusion Code Use In Screening
 

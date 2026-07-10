@@ -30,5 +30,19 @@ exact prompt, raw final response, schema-validated response, and runtime
 metadata for each call. They preserve short rationales and evidence snippets,
 not hidden chain-of-thought.
 
+## Human-confirmed resolution layer
+
+The six automated `UNCERTAIN` records were subsequently inspected against the
+relevant full Docling sections and confirmed by the review lead. The original
+automated artifacts above are immutable. The append-only manual layer is:
+
+- `manual_resolution_2026-07-10.md` -- evidence-grounded decision rationale;
+- `manual_resolution_2026-07-10.csv` -- machine-readable six-record mapping.
+
+The manual layer resolves two records to `INCLUDE` and four to `EXCLUDE`, giving
+the current eligibility checkpoint of 52 INCLUDE, 169 EXCLUDE, and 0 UNCERTAIN
+among the 221 records. It is not a replacement for later data extraction or
+model-level duplicate handling.
+
 See `protocol/full_text_section_screening_2026-07-10.md` for the complete
 method, section-quality controls, and PRISMA checkpoint.

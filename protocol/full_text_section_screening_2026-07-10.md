@@ -23,6 +23,8 @@ subsequent human/manual eligibility confirmation and data-charting steps.
 | Automated EXCLUDE | 165 | Exclusion code is retained per record in the final output. |
 | Automated UNCERTAIN | 6 | Retained for manual review. |
 | Adjudicated | 67 | Records sent to the adjudicator because the first-pass criteria were unresolved or conflicted. |
+| Human-confirmed resolution of the 6 UNCERTAIN records | 6 | Two confirmed INCLUDE and four confirmed EXCLUDE decisions after inspection of relevant full Docling sections. |
+| Current eligibility checkpoint after manual resolution | 52 INCLUDE / 169 EXCLUDE / 0 UNCERTAIN | This is a separate, append-only decision layer; automated outputs remain unchanged. |
 
 The 14 records without a valid dual-section input must remain visible in the
 PRISMA-style accounting. They were not excluded for topic, model, or paper
@@ -133,6 +135,35 @@ underlying model. They are not a substitute for two independent human
 reviewers. This limitation and the remaining manual-review role for UNCERTAIN
 records must be reported in the manuscript.
 
+## Stage E: Human-confirmed manual resolution of uncertainty
+
+The six records left as `UNCERTAIN` after automated adjudication were reviewed
+against the full Docling markdown, including the relevant architecture,
+generation, and publication-status sections when these were outside the two
+targeted sections provided to the automated roles. The review lead inspected
+and confirmed the evidence-grounded decisions.
+
+This layer is deliberately non-destructive:
+
+1. it does not rewrite automated JSONL outputs, prompts, raw responses, or
+   Python-gate results;
+2. it records each override as a stable `record_id` mapping with the original
+   automated decision, the confirmed decision, exclusion code when relevant,
+   and the specific Docling section/reason;
+3. it makes visible two evidence-selection limitations: ALTER's selected
+   `data_source` was `7 Conclusion`, while H2O's decisive decoder occurred in
+   `Methods > Training objective`, outside the two selected target sections.
+
+The complete six-record audit is in:
+
+- `data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/manual_resolution_2026-07-10.md`
+- `data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/manual_resolution_2026-07-10.csv`
+
+The manual layer resolves two records to INCLUDE and four to EXCLUDE. Therefore
+the current full-text eligibility checkpoint among the 221 entered records is
+52 INCLUDE, 169 EXCLUDE, and 0 UNCERTAIN. This is still distinct from later
+data extraction, model-level duplicate linkage, and manuscript synthesis.
+
 ## Final run outputs and logs
 
 The canonical final output is:
@@ -187,4 +218,7 @@ artifact contains only successful, schema-validated role outputs.
 > We retained prompts, raw responses, schema-validated outputs, routing data,
 > and final decisions for every processed record. The two reviewer roles used
 > different prompts but the same underlying model and were therefore not
-> independent human reviewers.
+> independent human reviewers. Six remaining automated-uncertain records were
+> then inspected and confirmed by the review lead against the relevant full
+> Docling sections; that append-only manual layer resolved two to INCLUDE and
+> four to EXCLUDE without rewriting the automated decision logs.
