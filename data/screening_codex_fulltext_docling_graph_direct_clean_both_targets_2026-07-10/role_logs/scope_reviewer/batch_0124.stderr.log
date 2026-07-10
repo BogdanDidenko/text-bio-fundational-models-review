@@ -1,0 +1,158 @@
+2026-07-10T09:54:42.535541Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b73-6887-75e2-86bb-4782866b2d99
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003129","candidate_id":"full_2026-07-06__rec_003129","source_record_id":"rec_003129","source_corpus":"uncertain","title":"BioArc: Discovering Optimal Neural Architectures for Biological Foundation Models","abstract":"Foundation models have revolutionized AI, yet biological applications often repurpose general architectures without accounting for the intrinsic structural and functional properties of distinct modalities, such as genomic and proteomic sequences. Consequently, these architectures lack the inductive biases required to capture the complex 'grammars' inherent to biological data, resulting in suboptimal performance. To address this, we introduce BIOARC, a framework utilizing Neural Architecture Search (NAS) to shift from intuition-driven design to automated datadriven discovery. Unlike standard NAS restricted to homogeneous spaces, BIOARC navigates a heterogeneous space for open-ended composition of architectural blocks. By systematically analyzing the interplay between architecture, tokenization, and training across modalities, BIOARC identifies novel hybrid architectures that surpass stateof-the-art models while being up to 25x smaller. We distill these findings into empirical design principles and validate their biological relevance, demonstrating how our designs hierarchically capture the underlying biological grammar. Additionally, we introduce an agentic framework to predict optimal architectures for new tasks. Overall, BIOARC provides a data-driven methodology for developing the next generation of efficient biological foundation models and task-specific networks. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: 4. Experiment > 4.1. Settings and baselines]\nDNA For pretraining, we use the full human reference genome GRCh38 . For downstream evaluation, we employ the human subset of the GUE benchmark (Zhou et al., 2024), comprising 12 datasets to cover a variety of tasks. Detailed descriptions are provided in Appendix A.1.1.\n\nProtein For pretraining, we use a 10% randomly sampled UniRef50 (Suzek et al., 2007) subset, containing 72.1M representative sequences clustered at 50% identity. For evaluation, we select 6 tasks from the PEER benchmark (Xu et al., 2022), covering protein function, structure, and interactions. Detailed descriptions are provided in Appendix A.1.2.\n\nBaselines For DNA, we use Nucleotide Transformer (Dalla-Torre et al., 2023), DNABERT-2 (Zhou et al., 2024), and VQDNA (Li et al., 2024) as baselines. These pretrained large foundation models all share human DNA GRCh38 in pretraining with finetuing on additional multi-species genome datasets. For protein, we use ESM-1 and ESM-2 (Rives et al., 2021; Lin et al., 2023) and ProtBert (Elnaggar et al., 2021) as baselines. ProtBert is pretrained on BFD (Steinegger et al., 2019) with 393B amino acids and ESM-1b is pretrained on UniParc (Consortium, 2007) with 86B amino acids. More details of training setting could be found in Appendix A.5.1.\n\nTokenization To thoroughly investigate the impact of tokenization on performance, we conducted experiments using different tokenizers, including k-mer and Byte Pair Encoding (BPE) (Sennrich et al., 2016). K-mer tokenizers operate by dividing a sequence into overlapping or non-overlapping substrings of a fixed length, denoted as k . BPE is a subword tokenization strategy that begins with a vocabulary of individual characters and iteratively merges the most frequently occurring adjacent pairs of tokens into a new, single token."}]
+
+2026-07-10T09:54:42.560621Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.569897Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:42.587225Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.618630Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.646226Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.667164Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.667177Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.667978Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.667984Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.669172Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.669184Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.670397Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.670428Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.670434Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.671684Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.671696Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.674236Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.674252Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:42.694647Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.719214Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.746087Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.770193Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.793108Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.817411Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.841715Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.910237Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.934229Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.958468Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:42.982298Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:43.006332Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:43.030660Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:43.054979Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:54:43.093157Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:43.358077Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:43.373091Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:43.373133Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:44.340305Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:44.356985Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.356997Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.357390Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.357397Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.357868Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.357873Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.358232Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.358237Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.358585Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.358590Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.359906Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.359916Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:44.787412Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:44.801196Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:44.801237Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_003129","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"The record describes a new biological foundation-model framework for DNA and protein architectures, not a review or wrapper. The provided evidence shows only biological sequences and tokenizers, with no natural-language text component or text-bio bridge.","evidence_snippet":"“For pretraining, we use the full human reference genome GRCh38” and “Protein For pretraining, we use ... UniRef50” with “k-mer and Byte Pair Encoding (BPE) tokenization”,"},{"record_id":"full_2026-07-06__rec_003129","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"The record describes a new biological foundation-model framework for DNA and protein architectures, not a review or wrapper. The provided evidence shows only biological sequences and tokenizers, with no natural-language text component or text-bio bridge.","evidence_snippet":"“For pretraining, we use the full human reference genome GRCh38” and “Protein For pretraining, we use ... UniRef50” with “k-mer and Byte Pair Encoding (BPE) tokenization”,"}]}
+2026-07-10T09:54:54.290831Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b73-6887-75e2-86bb-4782866b2d99.1783677282500223000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+2,381

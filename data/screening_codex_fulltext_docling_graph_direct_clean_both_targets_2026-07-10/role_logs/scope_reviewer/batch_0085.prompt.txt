@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003763","candidate_id":"full_2026-07-06__rec_003763","source_record_id":"rec_003763","source_corpus":"uncertain","title":"Escaping the forest: a sparse, interpretable, and foundational neural network alternative for tabular data","abstract":"","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Escaping the forest: a sparse, interpretable, and foundational neural network alternative for tabular data > Results > sTabNet on complex real-world datasets]\nWe evaluated our model on complex multi-omics datasets, which pose unique challenges for machine learning models 19 -22 . Our sTabNet architecture was constructed using the METABRIC multi-omics dataset, as described earlier. Because there is no consensus in the literature regarding the most suitable activation function for biologically constrained networks 18,23 , we systematically tested several activation functions during training. However, no signi fi cant differences in performance were observed across activation choices (Supplementary Fig. 7A).\n\nMore importantly, we observed that a standard FFNN trained on this dataset predominantly predicted the majority class, indicating a severe sensitivity to class imbalance. Consequently, we did not include further experiments with fully connected architectures in this study. Similarly, CNNs did not achieve satisfactory performance on this dataset (Fig. 3A).\n\nsTabNet yields results comparable to those of XGBoost (Fig. 3A). Furthermore, prepending an attention layer results in a slight performance increase (Supplementary Fig. 7B and Supplementary Table 2). Since we do not have the ground truth for feature importance for this dataset, we have selected the 100 features with the highest attention weights, and we conducted a gene-set enrichment 24 for diseases on this feature subset. The results show that the features with the highest attention weights are attributed to cancer-related genes (Fig. 3E, F and supplementary Table 3), which is consistent with the results from the synthetic dataset.\n\n[input_representation: Escaping the forest: a sparse, interpretable, and foundational neural network alternative for tabular data > Results > sTabNet: a sparse model for tabular data > Fig. 1 | A sparse and interpretable neural network.]\nA sTabNet Architecture: Features can be grouped according to prior knowledge or by using unsupervised learning (clustering or random walk) to build a matrix A where rows are features and columns are clusters (neurons). In this sparse model, a feature is connected to a neuron (which represents a cluster) only if it is a member of the cluster. B sTabNet Sparsity: The representation and the de fi nition of the classical dense layer (left) and of the proposed sparse layer (right). The sparse layer is identical to the dense layer except for the Hadamard product between the weight matrix W and the matrix A . C sTabNet Grouping: (left) The matrix A can be intended as a compressed view of an adjacency matrix of the feature graph. The neuron can also be de fi ned as a random walk in the feature graph, thus learning a local approximation of the neighbourhood of a feature. Alternatively, one can use clustering (not shown in the fi gure). (right) Unrolling of the process on the left: When information about features in a dataset is not present, we calculate the cosine similarity matrix of the features. We assigned an edge between two features if their similarity is higher than 0.5. We performed random walks on the obtained graph and used the obtained random walks to build the sparse matrix in the modi fi ed layer. D sTAbNet as a Tabular Foundational Model: A scheme of sTabNet used for different tasks and data types. The same architecture can be used for common and challenging biological tasks (binary/multiclass classi fi cation, censored regression) and complex data (RNA-seq, single-cell and multi-omics data). sTabNet has been tested with real-world datasets for all these tasks. On the left, we are showing that the model can be trained on a dataset, and then the trained model can be used for other datasets and tasks through fi ne-tuning or feature extraction.\n\n<!-- image -->\n\nIf X 2 R m × n is a tabular dataset, where m denotes the number of data points (rows) and n the number of features (columns), we de fi ne a design matrix A 2 R n × n that encodes the relationships among features. Our groupingalgorithmsoperate along the feature dimension ( n ) to form a set of K &lt; n clusters, where each cluster corresponds to a group of related features. This contrasts with conventional clustering methods, which are typically applied along the sample dimension ( m ) to group data points rather than features. This grouping process dictates the number of neurons in the model, specifying the connectivities between the input layer and the fi rst hidden layer. Features connected to the neurons are only those that belong to the group/cluster represented by this neuron.\n\nWhenpriorinformationaboutthefeaturesisavailable,it can be used to construct a binary matrix that controls the structure of the neural network (Fig. 1A). For instance, in RNA expression datasets, pathway databases can de fi ne which features are grouped together. This binary matrix is then applied as a mask to the weight matrix of the neural network, thereby enforcing sparsity (Fig. 1B).\n\nIn the absence of speci fi c domain knowledge, the matrix can be derived through data-driven grouping. Considering feature similarity (e.g. cosine similarity), we either apply standard clustering algorithms or construct a feature graph anduserandomwalkstogeneratethebinarymask.Thisprocess enables the exploration of global or local feature interactions, depending on the chosen hyperparameters (Fig. 1C, D and Supplementary Fig. 1).\n\nSupplementary Fig. 2 shows that this approach substantially reduces the parameter count. In Supplementary Fig. 3, we benchmark sTabNet against XGBoost across increasing feature dimensionalities (100 -50,000) using synthetic datasets ( N =6000). sTabNet demonstrates superior scalability, particularly in terms of wall-clock time and peak training memory. Collectively, these results indicate that sTabNet achieves stable compute costs, fi xed parameterisation and lower memory demands, making it wellsuited to high-dimensional feature spaces. Finally, an ablation study (Supplementary Fig. 4) demonstrates that induced sparsity serves as a form of regularisation, and not performing conventional regularisation techniques, such as dropout, has only a minimal effect on performance."}]

@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000882","candidate_id":"full_2026-07-06__rec_000882","source_record_id":"rec_000882","source_corpus":"uncertain","title":"Transformer model generated bacteriophage genomes are compositionally distinct from natural sequences","abstract":"No v el applications of language models in genomics promise to ha v e a large impact on the field. The megaDNA model is the first publicly available generativ e model f or creating synthetic viral genomes. To e v aluate megaDNA's ability to recapitulate the nonrandom genome composition of viruses and assess whether synthetic genomes can be algorithmically detected, compositional metrics for 4969 natural bacteriophage genomes and 1002 de no v o synthetic bacteriophage genomes w ere compared. Transf ormer-generated sequences had varied but realistic genome lengths, and 58% were classified as viral by geNomad. However, the sequences demonstrated consistent differences in various compositional metrics when compared to natural bacteriophage genomes by rank-sum tests and principal component analyses. A simple neural network trained to detect transformer-generated sequences on global compositional metrics alone displayed a median sensitivity of 93.0% and specificity of 97 .9% ( n = 12 independent models). Overall, these results demonstrate that megaDNA does not yet generate bacteriophage genomes with realistic compositional biases and that genome composition is a reliable method for detecting sequences generated by this model. While the results are specific to the megaDNA model, the e v aluated frame w ork described here could be applied to an y generativ e model f or genomic sequences.","doi":"10.1093/nargab/lqae129","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Materials and methods > Identification of natural bacteriophage genomes]\nShao ( 6 ) does not list the accession numbers for all sequences used to train the transformer model described in the preprint. To ensure that only high-confidence and high-quality sequences of real bacteriophages were used for comparison, n = 4984 RefSeq sequences containing 'phage' within the organism's name were identified from the NCBI virus database in December 2023. There is a high likelihood these sequences are present within the training set used by Shao ( 6 ). It is currently unknown whether the training data used by megaDNA are as or more diverse than the sequences used in this study, although this information may become available with revisions to the megaDNA manuscript. GenBank files for each accession number were downloaded from NCBI using the Entrez API available via Biopython ( 11 ).\n\n[input_representation: Introduction]\nThe widespread development and application of language models has expanded their impact beyond traditional application in natural language processing. Transformer models, which leverage self-attention mechanisms and deep neural networks, are able to learn the intricate patterns and implicit rules of language. Genomics is essentially a form of language, with nucleotide (and protein) sequences encoding biological information based on the content and order of characters. Transformer-based genomic language models have proven to be particularly adept at identifying 'missing' annotations for nucleotide sequence data, including for promoters, splice sites, enhancers, chromatin accessibility, transcription factor binding sites and more ( 1-5 ). Less common, however, has been the application of transformer-based models for generating novel nucleotide sequences.\n\nIn December 2023, Shao published the first version of their language model 'megaDNA' for the generation of de novo synthetic bacteriophage genomes ( 6 ). The megaDNA model leverages the architecture underlying the MEGABYTE model from Meta AI, which is specifically designed for long input sequences ( 7 ). In the preprint, Shao used a random four-base pair (bp) primer to generate 1024 sequences longer than 1 kilobase (kb) and demonstrated that a portion of these sequences can be classified as viruses by an artificial intelligence / machine learning (AI / ML)-based classification framework, showing realistic gene lengths and distributions, and encode potentially functional 5 ′ untranslated regions, genes and promoters.\n\nGenome composition is the reduction of nucleotide sequences into quantitative descriptions of the frequency of specific patterns. These measures can be used to assess the nonrandom distribution of nucleotides in a genome, includ- ing measures such as guanine and cytosine (GC) content, diand trinucleotide odds ratios, codon pair bias and secondary structure elements, among others. RNA viruses have been extensively studied for compositional biases, showing familyand host-dependent patterns ( 8 ,9 ). While less thoroughly studied, bacteriophages have also shown diversity in GC content and select dinucleotide ratios ( 10 ). These biases, manifesting in genome-level measurements, were hypothesized to be an appropriate benchmark for megaDNA's ability to recapitulate higher-order relationships. Identification of a computational method to discriminate transformer-generated from natural sequences would have broad applicability to synthetic biology, biosecurity and future applications of AI / ML to genomics.\n\nHere, compositional biases in sequences generated by megaDNA were compared to those of natural bacteriophage sequences from the NCBI RefSeq database. Using a variety of approaches, these sequences are shown to be compositionally distinct from the natural sequences upon which they were trained. A variety of methods of varying complexity, from single metric rank-sum tests to 19-feature neural networks, differentiate the two populations with high accuracy on the basis of quantitative compositional metrics alone."}]

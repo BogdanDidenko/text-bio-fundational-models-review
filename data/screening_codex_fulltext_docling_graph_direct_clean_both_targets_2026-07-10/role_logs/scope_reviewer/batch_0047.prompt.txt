@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001277","candidate_id":"full_2026-07-06__rec_001277","source_record_id":"rec_001277","source_corpus":"uncertain","title":"WITHDRAWN: OKR-Cell: Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training","abstract":"Recent advancements in single-cell multi-omics, particularly RNA-seq, have provided profound insights into cellular heterogeneity and gene regulation. While pre-trained language model (PLM) paradigm based single-cell foundation models have shown promise, they remain constrained by insufficient integration of indepth individual profiles and neglecting the influence of noise within multi-modal data. To address both issues, we propose an Open-world Language KnowledgeAided Robust Single-Cell Foundation Model (OKR-CELL). It is built based on a cross-modal Cell-Language pre-training framework, which comprises two key innovations: (1) leveraging Large Language Models (LLMs) based workflow with retrieval-augmented generation (RAG) enriches cell textual descriptions using open-world knowledge; (2) devising a Cross-modal Robust Alignment (CRA) objective that incorporates sample reliability assessment, curriculum learning, and coupled momentum contrastive learning to strengthen the model's resistance to noisy data. After pretraining on 32M cell-text pairs, OKR-CELL obtains cutting-edge results across 6 evaluation tasks. Beyond standard benchmarks such as cell clustering, cell-type annotation, batch-effect correction, and few-shot annotation, the model also demonstrates superior performance in broader multimodal applications, including zero-shot cell-type annotation and bidirectional cell-text retrieval.\n\nKeywords: Single-cell Foundation Model, Cross-modal Pretraining, Large Language Model, Noise-robust Contrastive Learning","doi":"10.64898/2026.01.09.698573","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 2 Results > 2.1 Method Overview > 2.1.2 Pre-training Objective and Pipeline]\nOur OKR-Cell model is constructed by projecting scRNA-seq data and text into a common latent space. The pretraining objective of our model includes two parts: 1) One part is Intra-Modal Generative Pre-training (IMGP) objective on single-cell transcriptomics domain, including Gene Expression Prediction (GEP), Gene Expression Prediction for Cell Modelling (GEPC) and Cell Type Classification (CLS) (see Section 4.3.1). 2) The other part is Cell-Text Cross-modal Robust Alignment (CRA) objective (see Section 4.3.2), which leverages the high-level knowledge contained in natural language as guidance to assist cell representation learning.\n\nOur model is achieved by two-stage pre-training. A two-stage pre-training paradigm is adopted for our model, trained based on the SCxGEN-32M dataset (see details in Section 5.1) along with the textual corpus enriched by LLM (see details in Section 4.2). On the first stage, we aim to establish basic alignment between cellular data and textual representations. Thus we freeze the parameters of textual encoder and optimize the parameters of the cell encoder and the cell-to-text projector. Based on the alignment between cellular and textual modality after stage-1, on the second stage, we unfreeze the textual encoder to further facilitate mutual propagation of information between the two modalities. Both IMGP and CMA objectives are employed on the two stages.\n\nFig. 1 (A) The schematic overview of the OKR-CELL method. (B) The illustration of several downstream tasks implemented via OKR-CELL, including cell clustering, batch affect correlation, cell-type annotation and cross-modal retrieval.\n\n<!-- image -->\n\n[input_representation: 4 Methods > 4.1 Single-cell RNA-seq encoder > 4.1.2 Model Architecture and Inference]\nThe cellular encoder retains scGPT's self-attention Transformer backbone to capture complex gene-gene interaction patterns embedded in the input embedding h ( i ) . The encoding process involves feeding h ( i ) ∈ R M × D through a stack of Transformer blocks, which can be formulated as:\n\n<!-- formula-not-decoded -->\n\nwhere n denotes the number of Transformer blocks, and the final output h ( i ) n ∈ R MD provides a comprehensive representation that supports both gene-level and celllevel downstream tasks.\n\nCell-level Representation. We adopt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks. After processing through n Transformer blocks, the embedding corresponding to the &lt; cls &gt; token in the final output h ( i ) n is extracted as the cell representation h ( i ) cls ∈ R D , which aggregates global information of the cell's transcriptomic profile.\n\nAttention Masking Strategy. We employ the masked attention strategy in scGPT [14] during self-attention computation. We first divide the input tokens into three groups:\n\n- &lt; cls &gt; token: For cell embedding aggregation.\n\n- Known genes: Genes with seen token/expression embeddings.\n- Unknown genes: Targets for expression value prediction (randomly sampled during training).\n\nThe principle of mask generation is 'predicting the expression value of Unknown genes based on known genes'. The binary attention mask ( M × M , matching the input token length M ) restricts attention computation to 'known' tokens when predicting 'unknown' ones.\n\nInference Manner. The inference of the model is performed by two iterative steps: Gene-prompt Generation and Cell-prompt Generation . First, geneprompt generation aims to predict the expression values of unknown genes using a subset of 'known gene' as the initial prompt, meanwhile outputs a &lt; cls &gt; token embedding. Afterwards, for cell-prompt generation, the model take the obtained &lt; cls &gt; token embedding as input &lt; cls &gt; tokens for incorporating cell type into model as context. The forward propagation process similar to gene-prompt generation is repeated. Finally, we obtain the cell representation h ( i ) cls ."}]

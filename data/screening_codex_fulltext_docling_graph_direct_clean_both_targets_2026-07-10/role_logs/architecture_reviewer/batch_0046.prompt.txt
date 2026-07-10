@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000709","candidate_id":"full_2026-07-06__rec_000709","source_record_id":"rec_000709","source_corpus":"include","title":"Protein-nucleic acid language model-assisted design of precise and compact adenine base editor","abstract":"","doi":"10.1038/s41467-025-65311-z","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: ARTICLE IN PRESS > Fig.  1:  The  construction  of  the  Protein-Nucleic  Acid  constrained Language Model]\na . Transfer learning. Pre-trained protein language models leverage largescale datasets of protein sequences to learn the relationships and patterns within the amino acid sequences, capturing the underlying grammar and structure of proteins. Generate embeddings on the collected tRNA-specific adenosine  deaminase  protein  sequences  by  ESM-2  and  align  PNLM embeddings with them. b . Pre-trained language models with expertise were fine-tuned on the collected TadA-8e-like protein sequences and their target ssDNA  sequences. c .  During  the  autoregressive  process,  masks  can  be retained in the output to generate sequences with masks, allowing for the creation of truncated, mutated and inserted sequences. ARTICLE IN PRESS\n\n679\n\n680\n\n681\n\n682\n\n683\n\n684\n\n685\n\n686\n\n687\n\n688\n\n689\n\n690\n\n691\n\n692\n\n693\n\n694\n\n695\n\n696\n\n697\n\n698\n\n699\n\n700\n\n701\n\n- 702\n\n[input_representation: ARTICLE IN PRESS]\n403\n\n404\n\n405\n\n406\n\n407\n\n408\n\n409\n\n410\n\n411\n\n412\n\n413\n\n414\n\n415\n\n416\n\n417\n\n418\n\n419\n\n420\n\n421\n\n422\n\n423\n\n424\n\n425\n\n426\n\n427\n\n428\n\n429\n\n430\n\n431\n\n432\n\n433\n\n<!-- formula-not-decoded -->\n\nwhere 𝑥𝑖 denotes the 𝑖 -th animo acid of sequence. The model was allowed to produce mask tokens in place of amino acids and to continue predictions based on the masked context. Consecutive masks shorter  than  five  tokens  were  treated  as  true  labels,  thereby  encouraging  truncated  sequence generation during inference.\n\n####### Sequence generation and screening\n\nA  total  of  150  TadA-8e-like  protein  sequences  were  generated,  with  a  sampling  initiation temperature of T = 1 and top\\_p=0.9. In this context, top\\_p refers to the cumulative probability used during the generation process when dynamically selecting the next token. After removing sequences containing  insertions  and  mutations,  38  truncated  proteins  were  retained  to  prioritize  smaller candidates.  These  proteins  were  screened  through  a  sequential  sequence-  and  structure-based filtering  pipeline. AlphaFold2  (ColabFold  v1.5.5 39 )  was  used  to  predict  protein  structures,  and sequences  with  pLDDT  &lt;  84  were  excluded.  ESM-IF  was  then  applied  to  score  the  predicted structures according to log-likelihood. Rosetta energy evaluation was subsequently performed to assess structural stability and charge, retaining sequences with total scores within 100 units of the wild  type  and  charge  differences  within  50  units.  Finally,  20  candidates  were  selected  for experimental validation. Evaluation Script ARTICLE IN PRESS\n\nThe scores derived from the ESM-1v 26 models represent the mean of the logarithmic probabilities assigned to each amino acid at various positions within a sequence. MIF-ST scores are the average log-likelihood of query residues in predicted structures using alphafold2. Rosetta-based analyses were conducted using the Rosetta software suite, which is available through Rosetta Commons under a specific academic license (https://www.rosettacommons.org).\n\n####### Plasmid construction\n\nThe plasmid DNA sequences employed in this research are listed in the Supplementary Data 5. The\n\nABE8e (#138489) and lentiCRISPR v2 (#52961) plasmids were obtained from Addgene. To amplify\n\n- the target fragment, Polymerase chain reaction (PCR) was conducted using KOD-Plus-Neo DNA\n- Polymerase (TOYOBO, Code: KOD-401). The plasmids in this study were generated using the\n- ClonExpress MultiS One Step Cloning Kit (Vazyme), with ABE8e or lentiCRISPR v2 serving as\n- the backbone vectors for molecular cloning. The construction of sgRNA expression plasmids was\n- performed in accordance with the methodology previously described 9 . In brief, the oligonucleotides\n- from  Supplementary  Data  2  were  annealed  at  95 ℃ for  five  minutes,  then  cooled  to  room 434\n- temperature and ligated into BbsI-linearized vectors for sgRNA (Thermo Fisher Scientific). 435\n\n####### Human cell culture 436\n\n437\n\n- The HEK293T (ATCC; CRL-3216) cell lines were maintained in Dulbecco's Modified Eagle's\n\n438\n\n439\n\n440\n\n- Medium (DMEM, Gibco) supplemented with 10% (v/v) fetal bovine serum (FBS, Gibco) and 1%\n- penicillin-streptomycin (Gibco) antibiotic. All cell lines were maintained under standard conditions\n\nat 37℃ with 5% CO2 in the incubator.\n\n####### Stable cell line generation 441\n\n442\n\n443\n\n444\n\n445\n\n446\n\n447\n\n448\n\n449\n\n450\n\n451\n\n452\n\n453\n\n454\n\n455\n\n456\n\n457\n\n458\n\nTo  construct  the  HEK293T  stable  cell  line,  a  220-bp  fragment  containing  disease-associated mutation flanked by ~100 bp was cloned into the lentiviral vector with puromycin-resistant gene expression  maker.  For  lentiviral  production,  a  total  of  12  μg  of  the  lentiviral  specified  transfer plasmid (LentiGALT -sg1 and LentiOTC -sg1), alongside 6 μg of pMD2.G (#12259) and 9 μg of psPAX2 (#12260) were co-transfected into HEK293T cells in a 10 cm dish at approximately 85% confluence.  The  virus-containing  supernatant  was  harvested  at  72  hours  post-transfection.  The supernatant was subjected to centrifugation at 1,699 × g for 10 minutes at 4 ℃, with the objective of  precipitating  cell  debris.  Following  this,  the  supernatant  was  filtered  through  a  0.45  µm  low protein binding membrane (Millipore). And then serially diluted to add into a 24-well plate cultured with 5 × 10 4 HEK293T cells per well. After 24 hours, transduced cells were replated in 2 μg/mL puromycin-containing medium for selection. Following 7 days of the puromycin selection, the pools cells  were  spread  into  96-well  plate  and  single  clone  cells  were  harvested  and  expand  for  cell transfection. Cell transfection ARTICLE IN PRESS\n\n459\n\n460\n\n461\n\n462\n\n463\n\n464\n\n465\n\n466\n\nFor both the on-target and off-target base editing experiments utilizing DNA, HEK293T cells were seeded into 24-well plates and transfected at approximately 80% confluency. Subsequently, 100 μl serum-free medium, comprising 3 μl of polyethyleneimine (PEI, Polysciences), 750 ng of the ABEs expression plasmid and 250 ng of the sgRNA expression plasmid (1 μg of plasmid DNA in total), was added to the cells. Three days following transfection, genomic DNA was extracted using the QuickExtract™ DNA  Extraction Solution (QE09050,  Epicenter), in accordance with the manufacturer's instructions.\n\n####### High-throughput DNA sequencing (HTS) and data analysis\n\n- On- and off-target genomic regions were amplified by PCR using primers detailed in Supplementary\n- Data 2. HTS amplification libraries were prepared by PCR using KOD-Plus-Neo DNA Polymerase\n- and,  site-specific  primers  containing  an  adaptor  sequence  (Forward  5′-ggagtgagtacggtgtgc-3′;\n- Backward 5′-gagttggatgctggatgg-3′) at their 5′ ends. The resulting products underwent a second 467\n- PCR  using  primers  containing  different  barcode  sequences.  Subsequently,  PCR  products  with 468\n- different tags were pooled together for deep sequencing on Illumina HiSeq platform. The reference 469\n- sequence between the positive direction primers was selected for sequencing analysis. The base 470"}]

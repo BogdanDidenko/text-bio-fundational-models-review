@@ -1,0 +1,147 @@
+2026-07-10T10:08:29.893112Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b80-084c-7643-b8e1-2a26b0d4dc2f
+--------
+user
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002243","candidate_id":"full_2026-07-06__rec_002243","source_record_id":"rec_002243","source_corpus":"uncertain","title":"Human Genome Book:Words,Sentences and Paragraphs","abstract":"","doi":"10.1101/2025.01.23.634629","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Human Genome Book: Words, Sentences and Paragraphs > 1. Construction of the Pre-trained Model gpt2-gene-eng > 2.2. Pretrained model > Natural Language Data]\nWe primarily used the OpenWebText dataset, combined with Wikipedia data, as the natural language training dataset, focusing on English text. From these datasets, we extracted 10 GB of data for pretraining purposes.\n\nOne important condition for achieving multilingual transfer ability is the use of a unied tokenizer, typically  based  on  the  Byte  Pair  Encoding  (BPE)  method.  In  this  study,  we  trained  a  BPE  tokenizer from scratch using DNA, protein, and English data, resulting in a vocabulary of approximately 100,000 tokens. For  the  model,  we  employed  the  GPT2-small  architecture  and  trained  a  GPT2  model  from  scratch using DNA, protein, and English data, referred to as gpt2-gene-eng . The specic network structure is detailed as follows:\n\n7\n\nFigure 2. Structure of gpt2-gene-eng . The model architecture is identical to that of GPT-2 small. Pretraining and instruction tuning use the same causal language header, the layer mapped 768 hidden units to 100000 units (the number of tokens in the vocabulary). Classication uses sequence classication header, The layer maps from 768 hidden units to only 2 units, where the 2 units represent the two classes id.\n\n<!-- image -->\n\nAccording  to  the  typical  design  of  GPT-2,  it  accepts  sequences  with  a  maximum  length  of  1024  as input.  We used the same architecture as the GPT-2 Small model, which consists of 12 Transformer layers, each with 768 hidden units and 12 attention heads. This small model has approximately 117 million parameters.We trained the GPT-2 model using mixed-precision oating-point arithmetic on a machine equipped with a single Nvidia 4090 GPU. We employed a dynamic learning rate schedule, and the model was trained for a total of 3 to 5 epochs.\n\n[input_representation: Human Genome Book: Words, Sentences and Paragraphs > 2. Binary Classication Problem > 2.6. Summary model > Model Training]\nFor  model  selection,  we  again  adopted  the  GPT2LMHeadModel,  which  is  based  on  GPT-2  and specically  designed  for  causal  language  modeling  tasks.  Since  GPT-2  does  not  directly  support Seq2Seq problems, we indirectly achieved this by formatting the training samples. Specically, each training sample was organized into the format '[Original Text] TL;DR: [Summary]', where 'TL;DR:' serves as a prompt to guide the model in understanding the relationship between the input text and the  target  summary.  During  training,  the  model  learned  to  generate  concise  summaries  from  long texts  by  maximizing  the  log-likelihood  estimation  of  the  training  data,  while  preserving  the  core information of the input text."}]
+
+2026-07-10T10:08:29.917430Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:29.926855Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:29.951409Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:29.990648Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.015065Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.042215Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.042230Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.043211Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.043219Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.044008Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.044264Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.044274Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.045625Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.045635Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.046651Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.046661Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.048983Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.048994Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:30.096199Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.123659Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.147765Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.171058Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.195096Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.217824Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.243638Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.267019Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.291080Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.314846Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.339189Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.363338Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.387698Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.412170Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.422521Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:30.433746Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at "/Users/bogdan.didenko/.codex/shell_snapshots/019f4b7f-fffe-77f3-8872-0cdb387ca778.1783678107698937000.sh": Os { code: 2, kind: NotFound, message: "No such file or directory" }
+2026-07-10T10:08:30.448987Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:08:30.988081Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:31.003458Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:31.003498Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:31.887328Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:31.911392Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.911405Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.911989Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.912000Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.912688Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.912695Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.913314Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.913323Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.914097Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.914107Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.915550Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:31.915562Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:08:32.720393Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:32.739360Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:08:32.739402Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_002243","paper_type":"primary_model_paper","generative_model_present":"yes","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record describes training a GPT-2-small causal language model from scratch on DNA, protein, and English data, and also using GPT2LMHeadModel to generate summaries. The broad mixed-domain pretraining and stated transfer ability are foundation-model-like characteristics.","evidence_snippet":"\"trained a GPT2 model from scratch using DNA, protein, and English data\"; \"GPT2LMHeadModel... designed for causal language modeling tasks\"; \"generate concise summaries\""}]}
+2026-07-10T10:08:43.845619Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b80-084c-7643-b8e1-2a26b0d4dc2f.1783678109864152000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+1,756

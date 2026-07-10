@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000003","candidate_id":"full_2026-07-06__rec_000003","source_record_id":"rec_000003","source_corpus":"include","title":"Short-Context Regulatory DNA Language Models with Motif-Discovery Regularization.","abstract":"Self-supervised DNA language models (DNALMs) are typically trained at massive scale on whole genomes and long contexts. However, regulatory sequence features are sparse, heterogeneous, and dominated by poorly conserved flexible syntax of short motifs, which can be difficult to learn from genome-wide self-supervision. As a result, annotation agnostic, long-context DNALMs struggle to learn regulatory syntax and can underperform simpler baseline models on key regulatory tasks. We therefore introduce ARSENAL , a short-context masked DNA language model trained on a functionally enriched regulatory corpus and augmented with a novel regularizer than that encourages motif discovery. ARSENAL improves recovery of diverse transcription factor motifs de novo and prediction of regulatory variant effects in the zero-shot setting compared to other DNALMs. Incorporating ARSENAL embeddings also improves supervised chromatin accessibility prediction over strong ab-initio baselines across multiple cell types and yields improved regulatory variant scoring. Finally, ARSENAL serves as a practical generative prior, enabling targeted regulatory sequence design under downstream functional constraints.\n\nAll code can be found at https://github.com/kundajelab/regulatory\\_lm , and models and data can be found at https://sageb.io/4ZpEnk","doi":"10.64898/2026.02.05.703637","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 Methods > 4.1 Pretraining Data]\nARSENAL was pretrained on the ENCODE consortium's official list of candidate cis -regulatory elements (cCREs) [9, 20]. This list comprises approximately 2.3 million high-confidence regulatory elements, spanning enhancers, promoters, and more ambiguous regions with regulatory signal. cCREs are identified and categorized according to sequencing experiments measuring chromatin accessibility (DNase-seq and ATAC-seq), histone mark occupancy (H3K27ac and H3K4me3 ChIP-seq), and transcription factor binding (CTCF and other TF CHIP-seq). Overall, the ENCODE cCREs represent the most extensive set of high-confidence regulatory elements curated for the human genome.\n\nData was split by chromosome. The validation set consisted of chromosomes 6 and 21, the test set consisted of chromosomes 5, 10, 14, 18, 20, and 22, and the rest of the genome comprised the training set.\n\n[input_representation: 1 Introduction]\nDNA language models (DNALMs) promise a unified foundation for genomic sequence understanding, variant interpretation, and functional sequence design. Motivated by the success of protein language models [29, 18, 16], recent work has scaled masked and autoregressive architectures to long contexts and trained them on one or more whole genomes. Representative examples include Nucleotide Transformer, HyenaDNA, DNABERT-2, Caduceus, GENA-LM, Evo, and Evo2 [25, 34, 12, 22, 2, 10, 7]. These models aim to learn general-purpose sequence representations by increasing model capacity and training corpus size, often with explicit support for long input contexts.\n\nLearning useful representations of regulatory DNA is particularly challenging for genome-wide selfsupervision. In contrast to the dense and regular constraints in coding sequences, regulatory syntax is sparse, combinatorial, diverse, and strongly context dependent [24]. As a result, functional motif-scale patterns are rare relative to background composition and repetitive structure, and model learning can be dominated by non-functional sequence statistics. Consistent with this claim, multiple benchmarking studies report that whole-genome DNALMs often show limited performance on regulatory tasks such as variant effect prediction and regulatory activity inference, and may fail to capture nucleotide co-dependencies characteristic of functional motifs [24, 28, 19, 6, 30]. These gaps can persist even as models scale to very long contexts and large parameter counts, suggesting that scale alone does not guarantee learning of motif-scale regulatory grammar.\n\nFor DNALMs to be useful in practice, they must learn the sequence syntax of functional genomic elements rather than primarily capturing genome-wide background composition. The human genome spans ∼ 3 × 10 9 base pairs and contains diverse functional sequence classes embedded within a large fraction of neutrally evolving DNA. Broadly, functional sequence can be grouped into two major categories. First, protein-coding regions from ∼ 20 , 000 genes (about 1 . 5% of the genome) encode transcripts and proteins. Second, non-coding cis -regulatory elements-estimated to cover roughly 5 -20% of the genome-control when and where genes are expressed and thus shape cell-type-specific transcriptional programs [8]. Regulatory elements such as promoters and enhancers often act through short (6-20 bp) binding sites for transcription factors and other DNA-binding proteins, where motif affinity, spacing, and combinatorial arrangement collectively determine regulatory output.\n\nSeveral approaches have been proposed to inject additional biological structure into DNALMs. In particular, the GPN family of models (e.g., GPN-MSA and GPN-Star) leverages evolutionary information by incorporating multiple sequence alignments and/or upsampling conserved regions during training, improving variant effect prediction in many settings [6, 33]. However, MSA-based formulations may be less flexible when alignments are unavailable and can complicate sequence generation and synthetic design workflows. This motivates complementary strategies that bias learning toward regulatory function while preserving standard singlesequence modeling and generation.\n\nWe evaluate ARSENAL across several biologically meaningful settings. We show that ARSENAL's zero-shot likelihood landscape recovers diverse transcription factor motifs de novo and captures interpretable motif-scale dependencies; that it substantially improves zero-shot regulatory variant effect prediction relative to prior single-sequence DNALMs; that its embeddings improve supervised chromatin accessibility prediction and supervised variant scoring when used in sequence-to-function models; and that it serves as a generative prior for both realistic sampling and targeted regulatory sequence design under downstream constraints. Together, these results highlight that short-context, functionally targeted DNALMs with biologically informed priors can yield more useful representations of regulatory DNA than long-context genome-wide pretraining alone.\n\nHere we introduce ARSENAL ( A R egulatory SE quence N ucleic A cid L earner), a short-context (350 bp) masked DNALM designed to learn regulatory motif syntax through two key principles: targeted pretraining on ENCODE candidate cis -regulatory elements (cCREs) [9, 20], and a frequency-domain auxiliary objective that encourages predicted likelihood profiles to emphasize motif-scale structure. Conceptually, this regularizer is inspired by Fourier-transform attribution priors that we previously introduced for supervised regulatory models, which penalize high-frequency components in sequence attributions during training to improve motif recovery and stability [31]; here we adapt the same motif-scale frequency bias to self-supervised masked reconstruction in a DNALM."}]

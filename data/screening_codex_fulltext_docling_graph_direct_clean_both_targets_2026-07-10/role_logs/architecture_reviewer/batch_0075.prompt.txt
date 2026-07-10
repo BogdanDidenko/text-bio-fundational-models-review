@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000822","candidate_id":"full_2026-07-06__rec_000822","source_record_id":"rec_000822","source_corpus":"include","title":"HydraRNA: a hybrid architecture based full-length RNA language model","abstract":"Background RNA, an essential component of the central dogma of molecular biology, plays versatile roles in all cellular processes. RNA large language models (LLMs) are emerging as powerful methods in RNA research to decipher its intricate network of function and regulation. However, previous RNA LLMs were based on the Transformer model and pre-trained on short segment of non-coding RNAs, which limits their general usability. Here we present the first full-length RNA foundation model, HydraRNA, which is based on a hybrid architecture of bidirectional state space model and multi-head attention mechanism.\n\nResults HydraRNA is pre-trained on a large amount of both protein-coding mRNAs and non-coding RNAs. Despite being pre-trained with the fewest parameters and the least GPU resources, HydraRNA learns better RNA representations and outperforms the existing foundation models on a variety of mRNA-related tasks, including coding/ non-coding RNA classification, prediction of RNA secondary structure, RBP binding sites, splicing and polyadenylation sites, mRNA stability and translation efficiency. Furthermore, HydraRNA can accurately predict the effect of mutations and estimate the relative contributions of different mRNA regions to the RNA stability and translation.\n\nConclusions Our results demonstrate that the hybrid architecture outperforms the pure Transformer architectures in RNA language modeling. [truncated]","doi":"10.1186/s13059-025-03853-7","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: HydraRNA: a hybrid architecture based fulllength RNA language model > Results > Development of HydraRNA]\nHydraRNA is based on a hybrid architecture consisting of both Hydra [18] and multihead attention (MHA) [13] layers (Fig. 1a). It has 12 layers in total. Each layer contains a Hydra module except the 6th and 12th layer, which contains an MHA module. Hydra is  a  natural  bidirectional  extension  of  the  structured  state  space  model  [18]  (Fig.  1b). HydraRNA takes advantages of Hydra's linear scalability of sequence length and high efficiency in in-context learning. The MHA layer was inserted into the stack of Hydra layers  to  further  improve  the  model  quality  as  well  as  to  enhance  the  explainability.\n\nFig. 1 Overview of HydraRNA. a HydraRNA employs a hybrid architecture with 12 layers. Each layer contains a Hydra module except the 6th and 12th layer, which contains a MHA module, i.e. C = 2,N = 5,M = 1 in this case. b Illustration of Hydra module. c HydraRNA was pretrained on 28.1 million RNAs including both non-coding and protein-coding RNAs using masked language modeling. d Task-specific prediction head was added to the HydraRNA encoder. e Radar plot for overview of prediction performance comparison\n\n<!-- image -->\n\nEach layer has a hidden state dimension of 1024. HydraRNA was pre-trained on 28 million sequences of non-coding RNAs and protein-coding mRNAs from RNAcentral and NCBI databases (Fig. 1c). Each nucleotide is processed as a single token. A BERT-like random masking strategy was used in the pre-training step. To speed up training, RNA sequences longer than 4096 nt were split into segments of length at most 4096 nt. About 90% of RNAs were pre-trained as full-length  sequences  without  segmentation  (Additional file 1: Figure S1). It took only about 92 h to pre-train HydraRNA on a server with 8  consumer-grade 4090D GPU cards. The time and cost of training were significantly reduced compared to previous RNA LLMs (Additional file 1: Table S1). We conducted several ablation studies to determine the optimal choice of architecture and pre-training  strategy.  More  technical  details  were  provided  in  the  Methods  section.  For  each downstream task, a task-specific prediction head was added to the HydraRNA encoder (Fig. 1d). Unless otherwise specified, a simple MLP predictor with a single 128-dimensional hidden layer was employed for each task. We fully or partially fine-tuned other RNA LLM models using the same approach as we employed for HydrRNA. A radar plot (Fig. 1e) was shown for overview of the prediction performance comparison.\n\n[input_representation: HydraRNA: a hybrid architecture based fulllength RNA language model > Methods > Random span masked language model]\nThe  masking  strategy  used  in  RNA-FM,  RNABERT  [10],  RNA-MSM  [11],  LAMAR [49],  3UTRBERT and UTR-LM was originally from BERT [50], which is essentially at base-level.  Specifically,  15%  of  the  nucleobases  are  randomly  selected  within  an  RNA sequence.  Among  the  selected  tokens,  80%  are  masked,  10%  are  preserved  without any alterations, and the remaining 10% are replaced with other nucleobases. Based on ERNIE,  RNAErnie  introduced  a  motif-aware  multilevel  masking  strategy  to  pre-train the model. It maintained a proportion of 1:1:1 across the three different masking levels (base-level, subsequence-level and motif-level), with the training algorithm randomly selecting  one  strategy  for  each  training  session.  Although  this  motif-aware  masking strategy  could  incorporate  biological  priors  into  the  training  process,  it  may  complicate the training process and biased to the known motif databases. We also noticed that another RNA foundation model, ERNIE-RNA [51] also used ERNIE masking strategy during pre-training.\n\nWe  proposed  a  novel  unified  masking  strategy  for  masked  language  modelling, which is called random span masking. In this strategy, multiple span regions (contiguous nucleobase sequences) that covering 15% of the nucleobases are randomly selected. Among  the  selected  nucleobases,  80%  are  masked  with &lt; mask &gt; token,  10%  are  preserved without any alterations, and the remaining 10% are replaced with other nucleobases. This unified masking strategy generalize the classical BERT-like masking strategy to implicitly capture the deeper biological information underling the consecutive region in the whole RNA transcript context, while it also avoid explicitly using biased motif priors. If the mean length of the span masks is set to be 1, it degenerates to the conventional BERT-like masking strategy."}]

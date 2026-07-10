@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002357","candidate_id":"full_2026-07-06__rec_002357","source_record_id":"rec_002357","source_corpus":"include","title":"CD-GPT As a Biological Foundation Model Bridging the Gap between Molecular Sequences Through Central Dogma","abstract":"| 15 | The central dogma serves as a fundamental framework for understanding the flow |\n|------|-------------------------------------------------------------------------------------|\n| 16 | and expression of genetic information within living organisms, facilitating the |\n| 17 | connection of diverse biological sequences across molecule types. In this study, we |\n| 18 | present CD-GPT (Central Dogma Generative Pretrained Transformer), a genera- |\n| 19 | tive biological foundation model with 1 billion parameters, aiming to capture the |\n| 20 | sequence relationships between DNA, RNA, and proteins. We model sequences in |\n| 21 | a unified representational space and employ a shared, multi-molecule vocabulary |\n| 22 | to narrow their distances in the embedding space effectively. Through exten- |\n| 23 | sive pretraining on nucleotide and amino acid sequence data, CD-GPT exhibits |\n| 24 | exceptional performance in a wide range of predictive and generative down- |\n| 25 | stream tasks, including mono-molecular and multi-molecular analyses. Notably, |\n| 26 | CD-GPT excels in tasks such as genomic element detection, protein property |\n| 27 | prediction, RNA-protein interaction identification and also generative tasks like |\n| 28 | protein generation and reverse translation. The versatility of CD-GPT opens up |\n| 29 | promising avenues for advanced multi-omics analysis. |","doi":"10.1101/2024.06.24.600337","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 Methods > 4.2 Dataset details > 4.2.1 pretraining dataset]\nThe pretraining data corpus for CD-GPT is primarily sourced from the RefSeq [54] and UniRef50 [55]. We initially acquired a comprehensive dataset that covers 14 different organisms, originally provided in FASTA and GenBank file formats. The FASTA files contain the sequence information, while the GenBank files contain detailed annotations of the sequences.\n\nIn the first phase of pretraining, we utilized the mono-sequences for training. We removed sequences containing invalid symbols like 'N', and then we performed character-level tokenization on the sequences with a probability of 5%. Finally, we obtained 39,771,575 DNA sequences, 51,237,428 RNA sequences, and 26,238,387 protein sequences for pretraining.\n\nIn the second phase of pretraining, we employed paired sequences that involve the translation process of the central dogma. Based on the sequence annotations in the GenBank files of RNA data, we pinpointed the CDS regions and forward strands of their upstream DNA sequences, pairing them with the corresponding translated protein sequences to form a complete set of paired sequences. Utilizing this method, we acquired a total of 337,780,146 high-quality sequence pairs, providing a rich corpus for the second phase of pretraining.\n\nWe performed additional training on a vast array of PDB data from RCSB [56], thereby integrating structural information into CD-GPT. Utilizing the spatial structures of proteins recorded in PDB files, we calculated their secondary structures and contact maps, ultimately compiling a dataset of 595,108 proteins.\n\n[input_representation: 4 Methods > 4.1 Model details > 4.1.1 tokenization]\n- We constructed our vocabulary using the Byte Pair Encoding (BPE) algorithm [23], 380\n- which incrementally merges frequent pairs to build up the vocabulary over iterations. 381\n- Retaining special symbols such as digits and letters on top of this BPE vocabulary 382\n\n383\n\n384\n\n385\n\n386\n\n387\n\n388\n\n389\n\n390\n\n391\n\n392\n\n393\n\n394\n\n395\n\n396\n\n397\n\n398\n\n399\n\n400\n\n401\n\n402\n\n403\n\n404\n\n405\n\n406\n\n407\n\n408\n\n409\n\n410\n\n411\n\n412\n\n413\n\n414\n\n415\n\nallows for subsequent finetuning and sequence generation tasks. This approach culminates in a comprehensive vocabulary of 64,000 tokens with length ranging from 1 to 16.\n\nWe specifically randomly sampled DNA, RNA, and protein sequences from various model organisms, including Homo sapiens, Mus musculus, Danio rerio, Drosophila melanogaster, Caenorhabditis elegans, Saccharomyces cerevisiae, Escherichia coli, and Arabidopsis thaliana. The sampling was done in a 5:3:1 ratio, reflecting the proportionate lengths of the DNA, RNA, and protein sequences, respectively. We constructed a vocabulary using SentencePiece [51] and manually added special symbols such as numbers and letters to enhance the universality and applicability of the vocabulary."}]

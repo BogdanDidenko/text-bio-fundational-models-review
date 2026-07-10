@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003853","candidate_id":"full_2026-07-06__rec_003853","source_record_id":"rec_003853","source_corpus":"uncertain","title":"From Modality Translation to Regulatory Reasoning: Interpretable AI for Single-Cell Multi-Omic Systems","abstract":"","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: GRIDS: Learnable Subset Perturbations for Global Regulatory Redundancy Reasoning > 5.3 Methods > 5.3.5 Evaluation Metrics]\nSingle-Cell Multimodal Dataset. We curated a deeply sequenced single-cell multimodal dataset from postmortem human PFC [79, 5]. The dataset contains N = 10 , 266 cells spanning T = 8 cell types, with each cell profiled for both chromatin accessibility (ATAC-seq) and transcriptional activity (RNA-seq). On the ATAC-seq modality, we called d a = 127 , 219 peaks using Macs2 [296], and the average sequencing depth (i.e., the number of open states per cell) is 4811 . 34. For RNA-seq, we applied standard quality control and preprocessing using the default parameters recommended by Pegasus [154], and retained d r = 3000 genes. Additional dataset details are provided in Appendix D.2. We evaluate GRIDS by learning global feature subsets r of varying sequence length L for multiple target genes, using masking-based perturbations on the CRE input with p = 0. In each experiment, we randomly split the full dataset into training, validation, and test sets with ratios 0 . 7, 0 . 1, and 0 . 2, respectively. Global explanations are learned on the training set and evaluated on the held-out test set. Hyperparameter settings are reported in Appendix D.3.\n\nMNIST Dataset. To further demonstrate the ability of GRIDS to recover combinatorial feature effects, we performed additional experiments on binary digit classification using MNIST. We compared GRIDS with strong baselines under the same global explanation evaluation protocol. The full set of results is summarized in Appendix D.4, where we observe that GRIDS can effectively identify combinatorial features in the input space.\n\nBaseline Comparisons. We compare GRIDS with a collection of local and global featureimportance methods: (1) Random , a naive baseline that selects features uniformly at random for perturbation. (2) Saliency [230], a widely used gradient-based attribution method; we aggregate instance-wise saliency scores across samples to obtain global importance estimates. (3) LIME [212], a local explanation method that uses the submodular pick procedure to derive global feature importance from local explanations. (4) SmoothGrad [232], which samples noisy neighbors and estimates importance using averaged gradient-based saliency maps. (5) FIMAP [46], a neural-network-based approach that learns feature importance by finding minimal adversarial perturbations. (6) CXPlain [228], a global method that trains a surrogate explainer and perturbs features with predefined values to infer their importance. (7) SAGE [63], which extends SHAP [169] to provide global explanations via sampling-based approximations to Shapley values over feature subsets.\n\n[input_representation: GRIDS: Learnable Subset Perturbations for Global Regulatory Redundancy Reasoning > 5.3 Methods > 5.3.1 Problem Setup]\nFollowing the formulation in Wu et al. [273], we represent the cis-regulatory landscape of a cell by an ATAC-seq vector x ∈ { 0 , 1 } d a , where each entry corresponds to the accessibility state of a genomic peak (1 for open and 0 for closed). In practice, ATAC-seq profiles are extremely high-dimensional, typically with d a &gt; 10 5 . The corresponding gene expression measurements (RNA-seq) are denoted by a real-valued vector y ∈ R d r , where d a and d r indicate the numbers of peaks and genes, respectively.\n\nAsingle-cell multi-omics dataset is given as a collection of N paired multi-modal observations C = { c (1) , c (2) , . . . , c ( N ) } , where each cell c ( i ) = ( x ( i ) , y ( i ) ) consists of an ATAC-seq profile x ( i ) and its matched RNA-seq profile y ( i ). In addition, each cell c ( i ) is associated with a semantic label ℓ ( i ) ∈ { 1 , . . . , T } indicating its cell type among T classes. For a given cell type T = k , we denote by C k the subset of C containing all cells whose labels satisfy ℓ ( i ) = k .\n\nAs introduced above, gene expression is regulated through CRE-mediated transcriptional control implemented by complex intracellular processes. We abstract this relationship using a regulatory function y = F ( x ), where F ( x ) : R d a → R d r . Because F corresponds to an underlying biological mechanism, it is costly to query directly and is treated as a black box. The regulatory redundancy dissection problem then aims to identify a subset of L peak indices r = { r 1 , . . . , r L } within the CRE space (i.e., the subset feature in the ATAC-seq x r ≡ { x j | j ∈ r } ) that are crucial for controlling a target gene's expression over a population of cells. The search domain of r is the binomial subset space ( d a L ) , which is prohibitively large given that x typically contains more than 10 5 dimensions.\n\nTo make this problem tractable, we model redundancy dissection within a global feature explanation framework. In general, global explanations quantify how much a model's performance degrades over a sample population when selected features are removed [46]. Under the regulatory redundancy setting, the corresponding global objective can be written as\n\n<!-- formula-not-decoded -->\n\nwhere L measures the expected degradation in gene expression. Here, x \\ r denotes the perturbed CRE representation induced by r , obtained by replacing the original features x r j with preset perturbation values p ∈ R d a at the indices specified by r (i.e., x \\ r,r j = p r j ). When p = 0, this reduces to a removal-based perturbation. The specific form of the loss depends on the model and task [63]; for instance, cross-entropy is commonly used to measure probability degradation in classification, whereas in our setting we adopt a mean-squared loss to quantify degradation of gene expression values. The optimal subset r ∗ in Eq. 1 corresponds to the solution of the regulatory redundancy problem described above.\n\nIn practice, directly optimizing Eq. 1 is infeasible because the regulatory function F is a black box and cannot be queried efficiently, which also makes many model-agnostic explanation procedures intractable. We therefore introduce a surrogate model ˆ F ( x ; θ f ) : R d a → R d r , implemented as a neural network trained to serve as a differentiable approximation of F using the collected single-cell multi-modal dataset C . Replacing F with ˆ F ( x ; θ f ) in Eq. 1 yields the tractable objective\n\nFigure 5.1: Overview of our proposed GRIDS method. It comprises two steps: training a crossmodality surrogate model and using a global explanation method to dissect regulatory redundancy. The left panel visualizes the learned ATAC-RNA joint embeddings and the heatmap of GAD1 gene expression.\n\n<!-- image -->\n\n<!-- formula-not-decoded -->\n\nWe describe the surrogate construction and training procedure in Section 5.3.2. Nonetheless, even after introducing a differentiable surrogate, existing global explanation methods remain inefficient in large feature spaces and are often impractical for high-dimensional ATAC-seq data. In particular, prior approaches either approximate combinatorial subset effects using additive importance measures that ignore interactions among features [228, 169], or rely on random sampling strategies to estimate subset contributions [63]. We present our approach for addressing this challenge in Section 5.3.3-5.3.4."}]

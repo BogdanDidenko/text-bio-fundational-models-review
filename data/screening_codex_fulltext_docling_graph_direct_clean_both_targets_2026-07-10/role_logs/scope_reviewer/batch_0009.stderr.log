@@ -1,0 +1,158 @@
+2026-07-10T09:50:49.061813Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b6f-d890-7472-a4e9-f3e159fb8381
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002990","candidate_id":"full_2026-07-06__rec_002990","source_record_id":"rec_002990","source_corpus":"uncertain","title":"Enhancing recognition and interpretation of functional phenotypic sequences through fine-tuning pre-trained genomic models","abstract":"Background Decoding human genomic sequences requires comprehensive analysis of DNA sequence functionality. Through computational and experimental approaches, researchers have studied the genotype-phenotype relationship and generate important datasets that help unravel complicated genetic blueprints. Thus, the recently developed artificial intelligence methods can be used to interpret the functions of those DNA sequences.\n\nMethods This study explores the use of deep learning, particularly pre-trained genomic models like DNA\\_bert\\_6 and human\\_gpt2-v1, in interpreting and representing human genome sequences. Initially, we meticulously constructed multiple datasets linking genotypes and phenotypes to fine-tune those models for precise DNA sequence classification. Additionally, we evaluate the influence of sequence length on classification results and analyze the impact of feature extraction in the hidden layers of our model using the HERV dataset. To enhance our understanding of phenotype-specific patterns recognized by the model, we perform enrichment, pathogenicity and conservation analyzes of specific motifs in the human endogenous retrovirus (HERV) sequence with high average local representation weight ( ALRW ) scores.\n\nResults We have constructed multiple genotype-phenotype datasets displaying commendable classification performance in comparison with random genomic sequences, particularly in the HERV dataset, which achieved binary and multi-classification accuracies and F1 values exceeding 0.935 and 0.888, respectively. [truncated]","doi":"10.1186/s12967-024-05567-z","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Enhancing recognition and interpretation of functional phenotypic sequences through fine-tuning pre-trained genomic models > Background]\nThe Human Genome Project marked the beginning of an era characterized by the assembly to resolve high-quality genome sequences, in which the complete genetic code of DNA is gradually being deciphered [1]. The improvement  of  high-quality  reference  genome  sequences  and their gene annotation information, enhancing molecular diagnostics  capabilities  and  enabling  advances  in  disease  prevention  and  personalized  treatment  strategies [2].  However,  the  current  functional  studies  of  genome sequences focus primarily on ∼ 3% protein-coding regions, leaving the vast majority of regulatory functions largely  unexplored  [3].  Therefore,  we  need  to  employ more strategies to explore even the unknown functional regulatory  elements  in  the  human  genome,  such  as  the recently  prominent  HERV  sequences,  which  are  closely associated  with  gene  regulation,  immune  modulation, carcinogenesis and the pathophysiology of complex diseases such as neurodegenerative disorders [4].\n\nIn  the  field  of  artificial  intelligence,  natural  language processing  (NLP)  has  made  rapid  progress,  particularly owing to  advancements  in  transfer  learning  and  Transformer architectures, which has led to innovative methods  for  processing  and  analyzing  large-scale  complex datasets  [5,  6].  The  development  of  models  like  Bidirectional  Encoder  Representations  from  Transformers (BERT) and Generative Pre-trained Transformer (GPT), leveraging the Transformer architecture, has significantly boosted NLP by capturing context and data dependencies through  self-attention  mechanisms  [7].  These  advances have  not  only  revolutionized  traditional  text  processing tasks, but also provided new methods for fields such as  bioinformatics  and  healthcare.  In  bioinformatics,  the adoption  of  Transformer  models  has  been  particularly transformative  in  sequence  analysis,  gene  expression, proteomics,  and  drug  discovery,  with  notable  advancements made in the latter two domains due to their ability to model long-range associations [8]. Moreover, the integration of NLP techniques with bioinformatics enhances data analysis and interpretation, opens new avenues for personalized and precision medicine, and facilitates scientific discovery.\n\nOwing to their length and complexity, genomic DNA sequences present unique challenges for machine learning.  However,  their  structural  similarity  to  human  language (long strings consisting of basic units such as bases or words) provides opportunities for modeling and interpreting DNA sequences using NLP methods [9, 10]. Scientists  are  increasingly  leveraging  pre-trained  genomic models,  leading  to  significant  successes  with  Transformer-based  frameworks  [11,  12]  and  other  language framework models [10]. For sequence classification evaluation, researchers have constructed benchmark datasets for DNA classification and used modified Convolutional Neural Network (CNN) models as baselines. Ultimately, they  reported  that  fine-tuning  the  pre-trained  genomic model DNABERT achieved better performance in classification tasks than the DNABERT model with randomly initialized  weights  and  the  CNN  model  [13,  14].  Nevertheless,  there  is  a  notable  shortage  of  comprehensive datasets for evaluating the performance of large genomic models, especially for analyses involving complex genotypes [13, 15].\n\nThis study has constructed several medically significant genotype-phenotype  datasets  by  utilizing  human  reference  and  pan-genome  data  [16],  as  well  as  information from  the  1000  Genomes  Project.  We  performed  DNA sequence balanced binary classification  and  imbalanced multi-classification  performance  evaluation  by  optimizing pre-trained models such as DNA\\_bert\\_6 and human\\_ gpt2-v1.  Focusing  on  the  HERV  dataset,  we  extensively investigated  the  representability  of  the  models  on  these data and identified phenotype-specific motifs within the HERV  sequences.  Further  analysis  revealed  that  genes associated with these motif sequences play critical roles in  various  biological  processes,  including  neural  development  and  synaptic  functions,  oncogenesis,  cellular adhesion, and spatial localization (Fig. 1; Supplementary Fig. 1). The genotype-phenotype datasets we constructed can  be  used  as  benchmarks  for  DNA  sequence  modeling and performance evaluation of pre-trained genomic models,  providing  novel  insights  into  the  functionality of genomic sequences when exploring the HERV dataset based on fine-tuned models.\n\n[input_representation: Enhancing recognition and interpretation of functional phenotypic sequences through fine-tuning pre-trained genomic models > Binary classification of functional phenotypic sequences]\nThe  fine-tuning  process  for  binary  classification  was performed on balanced multi-functional phenotype datasets, ultimately achieving good robustness and high accuracy (Fig. 1B). After the sequence data related to the phenotype were processed into 6-mer, the first 300 and last  212  6-mer  strings  in  the  sequence  were  extracted. Phenotypic  sequences  consisting  of  512  tokens  were then used as the input for the DNA\\_bert\\_6 model using padding and truncation strategies. Meanwhile, the phenotype-related  sequence  data  were  processed  via  BPE, and the first 1,024 tokens of the sequence were selected using padding and truncation strategies as the inputs for the  human\\_gpt2-v1  model.  Subsequently,  independent fine-tuning  trials  (RUN0,  RUN1,  RUN2)  process  these data under specified models and parameters, with evaluations across training, validation, and test sets following an  approximate  6:2:2  ratio.  In  each  round  of  independent  fine-tuning,  we  selected  the  optimal  model  based on  the  minimum  validation  loss  and  calculated  various evaluation metrics. After the three rounds of fine-tuning, we averaged these metrics to assess the model's performance. Additionally, a voting mechanism was employed, with two identical predicted labels being retained. Otherwise, the predicted label from RUN0 was used, resulting in the final RUN\\_Vote. The entire training process, facilitated by Huggingface and PyTorch, is streamlined by the Trainer function's embedded optimization strategies for efficient fine-tuning of large models."}]
+
+2026-07-10T09:50:49.080889Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:49.085957Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.104528Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.163031Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.175184Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.175197Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.176034Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.176046Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.176779Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.176790Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.177566Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.177576Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.178284Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.178292Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.179923Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.179932Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.185228Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.209379Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.256171Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.280554Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.303732Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.331338Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.362390Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.396870Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.421094Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.445078Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.469252Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.492981Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.517218Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.541306Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.565612Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.589584Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.619791Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.001540Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.051554Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.051606Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:52.665566Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:52.695584Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.695600Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.696178Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.696188Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.696770Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.696777Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.697422Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.697434Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.698101Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.698114Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.699685Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.699699Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:53.470148Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:53.488599Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:53.488644Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_002990","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary study fine-tuning pre-trained genomic models on genotype-phenotype DNA sequence datasets. The provided evidence shows biological sequence modeling only, with no substantive natural-language text component or text-bio bridge.","evidence_snippet":"\"6-mer strings\" and \"phenotype-related sequence data were processed via BPE\"; \"fine-tuning pre-trained genomic models like DNA_bert_6 and human_gpt2-v1\"; \"input for the DNA_bert_6 model\"; \"inputs for the human_gpt2-v1 model\"; no natural-language text descriptions or prompts are described in the candidate model context. [not_assessed]"}]}
+2026-07-10T09:51:09.553327Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b6f-d890-7472-a4e9-f3e159fb8381.1783677049011556000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+12,254

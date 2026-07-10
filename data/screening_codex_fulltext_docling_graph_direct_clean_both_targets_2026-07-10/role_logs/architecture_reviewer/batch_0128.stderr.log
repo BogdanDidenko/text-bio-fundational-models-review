@@ -1,0 +1,146 @@
+2026-07-10T10:09:38.227629Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.252201Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b81-1369-7f51-a67f-81e70eb57c82
+--------
+user
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003947","candidate_id":"full_2026-07-06__rec_003947","source_record_id":"rec_003947","source_corpus":"uncertain","title":"CLIP-IT: CLIP-based Pairing of Histology Images with Privileged Textual Information","abstract":"Multimodal learning has shown promise in medical imaging, combining complementary modalities like images and text. Vision-language models (VLMs) capture rich diagnostic cues but often require large paired datasets and promptor text-based inference. Their practicality is therefore limited due to annotation cost, privacy, and compute demands. Unpaired external text, like pathology reports, can still provide complementary diagnostic cues if semantically relevant content is retrievable per image. To address this, we introduce CLIP-IT , a novel framework that relies on rich unpaired text reports. Specifically, CLIP-IT uses a CLIP model pre-trained on histology image-text pairs from a separate dataset to retrieve the most relevant unpaired textual report for each image in the downstream unimodal dataset. These reports, sourced from the same disease domain and tissue type, form pseudo-pairs that reflect shared clinical semantics rather than exact alignment. Knowledge from these texts is distilled into the vision model during training, while LoRA-based adaptation mitigates the semantic gap between unaligned modalities. At inference, only the vision model is used, maintaining low overhead while still benefiting from multimodal training without requiring paired data in the downstream dataset. Experiments 1 show that CLIP-IT consistently improves classification accuracy over both unimodal and multimodal CLIP-based baselines in most cases, without requiring paired annotations per dataset or incurring additional inference-time complexity.\n\n* Equal contribution [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4. Results and Discussion > 4.1. Experimental Methodology]\nMethods were evaluated using three challenging histology image datasets: PCAM [28], BACH [2], and CRC [24]. PCAM includes 327,680 breast lymph node patches ( 96 × 96 at 10 × magnification, 0 . 97 , µm/px ), labeled as tumor or normal. BACH contains 400 breast tissue patches ( 2048 × 1536 at 20 × , 0 . 42 , µm/px ) labeled as normal, benign, in situ, or invasive carcinoma. CRC provides 107,180 colorec- tal tissue patches ( 224 × 224 at 20 × , 0 . 50 , µm/px ) across 9 tissue types, including stroma and lymphocytes. For external text pairing, we use pathology reports from the TCGA dataset [6], due to its wide tissue and cancer-type coverage and public accessibility. We filter TCGA reports by organ terms (e.g., 'breast', 'colorectal') to restrict domain overlap. For the modality pairing step, we use the CONCH model [20]. While CONCH was pretrained on paired histopathology data, we reuse it here as a one-time resource to retrieve semantically relevant reports for unpaired downstream datasets. Its domain-specific training and contrastive objectives empirically yield reliable pairings without additional manual annotations in the downstream datasets. For the text model, the text encoder of CONCH is used, and for the vision model, the best backbones introduced in [9] were used, i.e., the self-supervised pretrained DINO-L/14 and the supervised vanilla Vision Transformers (ViT-B/16, ViT-B/8, ViT-S/16, ViT-S/8), along with UNI [8]. The average accuracy is reported across three different vision backbone runs from [9] passed through our setting. Details of the models, datasets, evaluation metrics, used hardware, and hyperparameters are in the Supplementary Material.\n\n[input_representation: Abstract]\nMultimodal learning has shown promise in medical imaging, combining complementary modalities like images and text. Vision-language models (VLMs) capture rich diagnostic cues but often require large paired datasets and promptor text-based inference. Their practicality is therefore limited due to annotation cost, privacy, and compute demands. Unpaired external text, like pathology reports, can still provide complementary diagnostic cues if semantically relevant content is retrievable per image. To address this, we introduce CLIP-IT , a novel framework that relies on rich unpaired text reports. Specifically, CLIP-IT uses a CLIP model pre-trained on histology image-text pairs from a separate dataset to retrieve the most relevant unpaired textual report for each image in the downstream unimodal dataset. These reports, sourced from the same disease domain and tissue type, form pseudo-pairs that reflect shared clinical semantics rather than exact alignment. Knowledge from these texts is distilled into the vision model during training, while LoRA-based adaptation mitigates the semantic gap between unaligned modalities. At inference, only the vision model is used, maintaining low overhead while still benefiting from multimodal training without requiring paired data in the downstream dataset. Experiments 1 show that CLIP-IT consistently improves classification accuracy over both unimodal and multimodal CLIP-based baselines in most cases, without requiring paired annotations per dataset or incurring additional inference-time complexity.\n\n* Equal contribution\n\n1 https://github.com/BanafshehKarimian/ModalityPairing/tree/main"}]
+
+2026-07-10T10:09:38.272261Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:38.276656Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.300889Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.329340Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.337992Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.338003Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.338616Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.338623Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.339183Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.339194Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.339727Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.339734Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.340259Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.340264Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.341484Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.341490Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:38.353658Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.378076Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.426347Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.450428Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.473738Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.496982Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.522314Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.545833Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.568316Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.592532Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.616786Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.640751Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.664982Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.688644Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.712947Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.737180Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:09:38.794929Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:39.032769Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:39.047025Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:39.047078Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:40.007999Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:40.063574Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.063598Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.064703Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.064714Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.065980Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.065991Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.067024Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.067031Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.067987Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.068002Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.070184Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:40.070197Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:09:41.559687Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:41.578946Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:09:41.578995Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_003947","paper_type":"application_wrapper","generative_model_present":"no","foundation_model_evidence":"no","primary_exclusion_code":"application_wrapper","uncertainty_reason":"none","decision_rationale":"CLIP-IT is a retrieval-and-distillation framework that uses a pre-trained CLIP model to pair reports with images and then improves classification accuracy. The provided evidence does not describe the candidate method as a generative architecture or a foundation model.","evidence_snippet":"\"uses a CLIP model pre-trained on histology image-text pairs... to retrieve the most relevant unpaired textual report\" and \"improves classification accuracy\" with \"only the vision model\" at inference; evidence_for_text_component\":\"not_assessed\",\"evidence_for_text_bio_bridge\":\"not_assessed\",\"evidence_for_generative_model\":\"none\",\"boundary_case\":\"wrapper_boundary\"}]}"}]}
+2026-07-10T10:09:51.829642Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b81-1369-7f51-a67f-81e70eb57c82.1783678178201936000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+2,088

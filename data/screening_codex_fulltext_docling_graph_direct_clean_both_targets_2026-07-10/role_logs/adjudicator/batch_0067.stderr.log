@@ -1,0 +1,166 @@
+2026-07-10T10:36:32.737831Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.760708Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b99-b615-7a33-85c8-c0a6cc42e329
+--------
+user
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000021","candidate_id":"june_update_2026-06-10__rec_000021","source_record_id":"rec_000021","source_corpus":"include","title":"A fine-tuned genomic language model adds complementary nucleotide-context information to missense variant interpretation.","abstract":"Missense variant interpretation remains a central challenge in clinical genomics. Missense pathogenicity predictors achieve strong performance, but many emphasize protein-level consequences or overlapping annotation priors. Whether genomic language models add non-redundant nucleotide-context signal to missense interpretation remains unclear. Here, we systematically adapted genomic language models to ClinVar missense pathogenicity prediction across backbone architectures, representation strategies, classifier heads, and adaptation regimes. In our analysis, variant-position embeddings consistently outperformed pooled sequence representations, multi-species pretraining provided the strongest backbone-level advantage, and low-rank adaptation generalized better than full fine-tuning. The resulting fine-tuned model, GLM-Missense, substantially outperformed zero-shot scoring from the same pretrained model. To test whether GLM-Missense contributes information beyond existing methods, we built MetaMissense, an XGBoost ensemble combining GLM-Missense with AlphaMissense, ESM1b, REVEL, CADD, SIFT, and PolyPhen-2. GLMMissense showed the lowest concordance with other predictors, retained the strongest partial association with pathogenicity after controlling for the other predictors, and ranked as the most informative non-ensemble input to MetaMissense. MetaMissense achieved the best performance in both cross-validation and held-out testing. [truncated]","doi":"10.64898/2026.05.06.723362","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 5 Methods > 5.6 GLM-Missense training and NT-2 zero-shot scoring]\nThe GLM-Missense model used the NT-2 backbone, LoRA fine-tuning with rank r = 32, learning rate 5 × 10 -5 , a 2-layer MLP classifier head, and the variant-position refalt-diff input representation. Training used the earlier-release expanded training set, and model selection used the earlier-release expanded validation set.\n\nFor zero-shot scoring, we used the pretrained NT-2 backbone without task-specific fine-tuning. For each variant, we encoded matched reference and alternate sequences with the same 11,999-bp centered input window and 6-mer tokenization used for supervised NT-2 experiments. We then masked the k-mer token containing the centered variant position in the alternate sequence and computed a masked marginal log-likelihood ratio,\n\n```\nlog P (alt | context) -log P (ref | context) .\n```\n\nWe transformed this quantity into a pathogenicity score by applying 801\n\n```\nsigmoid ( -[log P (alt | context) -log P (ref | context)]) ,\n```\n\n802\n\n803\n\n804\n\n805\n\nso that variants for which the alternate allele was less compatible with the pretrained model received higher pathogenicity scores. Zero-shot NT-2 scoring was evaluated on the later-release full set and compared directly with GLM-Missense.\n\n[input_representation: 5 Methods > 5.2 Backbone-specific input sequence construction]\nAll sequence inputs were centered on the candidate missense variant so that the altered position occupied a fixed location after tokenization. Depending on the experiment, the model received either the alternate sequence alone or paired reference and alternate sequences processed separately and combined only at the classifier input. This design enabled consistent extraction of variant-position and local-context embeddings across backbones while allowing each model to operate at its native tokenization scheme and context length.\n\nNucleotide Transformer v2 (NT-2). For each variant, we extracted an 11,999bp sequence centered on the variant position and tokenized it using 6-mer encoding with stride 6. This yielded 2,000 tokens, with the variant located at token index 1,000. We used the pretrained Nucleotide Transformer v2 (NT-2, 500M parameters), a BERT-style model trained by masked language modeling on 850 genomes from diverse species Dalla-Torre et al. (2025). NT-2 produces a 1,024-dimensional embedding per token. For the matched NT-2 versus NT-1 comparison, we also evaluated NT-2 on a 5,999-bp input window.\n\nNucleotide Transformer v1 (NT-1). NT-1 is a 500M-parameter model with a similar architecture to NT-2 but pretrained on human genomes only. For NT-1, we extracted a 5,999-bp sequence centered on the variant and applied the same 6-mer tokenization strategy as NT-2, yielding 1,000 tokens with the variant at token index 500. NT-1 produces a 1,280-dimensional embedding per token.\n\nCaduceus-PS. For Caduceus-PS, we extracted a 29,999-bp sequence centered on the variant. Caduceus-PS is a bi-directional Mamba-based DNA language model with reverse-complement equivariance achieved by parameter sharing Schiff et al. (2024). Unlike NT-1 and NT-2, it operates at single-nucleotide resolution. The resulting sequence therefore contains 29,999 tokens, with the variant at nucleotide index 15,000. 687 Caduceus-PS produces a 512-dimensional embedding per token. Although Caduceus 688 models were pretrained with substantially longer contexts (up to 131 kb) Schiff et al. 689 (2024), we limited inputs to ∼ 30 kb to fit our available GPU memory while still 690 capturing distal sequence context. 691\n\n692\n\n693","first_pass_outputs":{"scope_reviewer":{"record_id":"june_update_2026-06-10__rec_000021","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"Primary model paper on genomic variant interpretation, but the candidate model is a genomic language model over nucleotide sequences rather than a natural-language text-bio model. The provided evidence shows masked language modeling on genomes and variant-position embeddings, with no substantive text component or text-bio bridge.","evidence_snippet":"\"BERT-style model trained by masked language modeling on 850 genomes\"; \"variant-position embeddings consistently outperformed pooled sequence representations\"; \"6-mer tokenization\"; \"GLM-Missense training and NT-2 zero-shot scoring\"; \"model selection\"; \"paired reference and alternate sequences\"; \"missense variant prediction\"; \"pretrained Nucleotide Transformer v2\"; \"DNA language model\"; \"genomes\"; \"nucleotide-context information\"; \"variant-position refalt-diff input representation\"; \"masked marginal log-likelihood ratio\"; \"sequence inputs were centered on the candidate missense variant\"; \"applied the same 6-mer tokenization strategy\"; \"produces a 1,024-dimensional embedding per token\"; \"Caduceus-PS is a bi-directional Mamba-based DNA language model\"; \"operates at single-nucleotide resolution\"; \"capturing distal sequence context\"; none; not_assessed; biological_token_only_boundary"},"architecture_reviewer":{"record_id":"june_update_2026-06-10__rec_000021","paper_type":"application_wrapper","generative_model_present":"no","foundation_model_evidence":"yes","primary_exclusion_code":"application_wrapper","uncertainty_reason":"none","decision_rationale":"The record describes LoRA fine-tuning of an existing pretrained NT-2 backbone for missense pathogenicity prediction, so the contribution is an application wrapper rather than a new generative foundation model. The backbone does show foundation-model-like pretraining across diverse genomes, but the candidate model is a downstream classifier.","evidence_snippet":"\"The pretrained Nucleotide Transformer v2 (NT-2, 500M parameters), a BERT-style model trained by masked language modeling on 850 genomes from diverse species\"; \"GLM-Missense training and NT-2 zero-shot scoring\"; \"LoRA fine-tuning\"; \"2-layer MLP classifier head\"; \"Missense pathogenicity prediction\"; \"concordance with other predictors\"; \"MetaMissense\"; \"fine-tuned model, GLM-Missense\"; \"backbone architectures\"; \"representation strategies\"; \"adaptation regimes\"; \"variant-position embeddings\"; \"zero-shot scoring\"; \"trained by masked language modeling\"; \"850 genomes from diverse species\"; \"pretrained NT-2 backbone without task-specific fine-tuning\"; \"pathogenicity score\"; \"classifier input\"; \"lower compatibility with the pretrained model\"; \"broad pretraining\"; \"transferable representations\"; \"broad applicability\"; \"trained by masked language modeling on 850 genomes from diverse species\"; \"fine-tuned model\"; \"downstream application\"; \"classifier heads\"; \"LoRA fine-tuning with rank r = 32\"; \"variant-position refalt-diff input representation\"; \"held-out testing\"; \"best performance\"; \"non-ensemble input\"; \"broad species\"; \"representation learning\"; \"nucleotide-context information\"; \"missense variant interpretation\"; \"pretrained NT-2 backbone\"; \"sequence inputs\"; \"local-context embeddings\"; \"pretrained on human genomes only\"; \"bi-directional Mamba-based DNA language model\"; \"masked marginal log-likelihood ratio\"; \"sigmoid\"; \"pathogenicity score\"; \"genomic language models\"; \"non-redundant nucleotide-context signal\"; \"systematically adapted genomic language models\"; \"classifier head\"; \"trained by masked language modeling\"; \"BERT-style model\"; \"850 genomes from diverse species\"; \"multi-species pretraining provided the strongest backbone-level advantage\"; \"low-rank adaptation generalized better than full fine-tuning\"; \"zero-shot scoring\"; \"compared directly with GLM-Missense\"; \"pathogenicity predictors\"; \"complementary nucleotide-context information\"; \"missense interpretation\"; \"fine-tuned genomic language model\"; \"adds complementary nucleotide-context information\"; \"downstream classifier\"; \"application wrapper\"; \"wrapper_boundary\"; \"foundation model-like characteristics\"; \"adapted\"; \"pretrained model\"; \"broad applicability\"; \"diverse species\""},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"EC2_no_text_component","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"no","foundation_model_evidence":"yes"}}}]
+
+2026-07-10T10:36:32.784846Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.785619Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:32.815915Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.841898Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.865919Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.892877Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.912416Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.912442Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.914080Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.914088Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.915448Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.915462Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.916946Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.916957Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.918707Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.918717Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.921307Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.926601Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.926614Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:32.946563Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.969909Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:32.994035Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.016277Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.051284Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.076097Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.099495Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.121844Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.146720Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.172098Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.228295Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:33.230321Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.267988Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.293339Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.308773Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.333374Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:33.351005Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:34.580967Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:34.606217Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:34.606264Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:35.775990Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:35.813323Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.813337Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.814255Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.814267Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.815247Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.815256Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.816158Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.816170Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.817114Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.817124Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.819035Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:35.819045Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:36.905638Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:36.923551Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:36.923605Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"june_update_2026-06-10__rec_000021","paper_type":"application_wrapper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"no","foundation_model_evidence":"yes","primary_exclusion_code":"application_wrapper","uncertainty_reason":"none","decision_rationale":"The record describes LoRA fine-tuning of a pretrained NT-2 genomic language model with a 2-layer MLP classifier head for missense pathogenicity prediction. The evidence supports biological sequence modeling only, with no natural-language text or text-bio bridge, so this is an application wrapper and out of scope.","evidence_snippet":"\"The pretrained Nucleotide Transformer v2 (NT-2, 500M parameters), a BERT-style model trained by masked language modeling on 850 genomes from diverse species\"; \"LoRA fine-tuning\"; \"2-layer MLP classifier head\"; \"missense pathogenicity prediction\"; \"6-mer tokenization\"; \"variant-position refalt-diff input representation\"; \"pathogenicity score\"; \"masked marginal log-likelihood ratio\"; \"genomic language models\"; \"DNA language model\"; \"sequence inputs were centered on the candidate missense variant\"; \"pretrained NT-2 backbone\"; \"no task-specific fine-tuning\"; \"classifier input\"; \"variant-position embeddings\"; \"pathogenicity predictors\"; \"nucleotide-context information\"; none; biological_token_only_boundary"}]}
+2026-07-10T10:37:17.417520Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b99-b615-7a33-85c8-c0a6cc42e329.1783679792712355000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+6,192

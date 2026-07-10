@@ -1,0 +1,159 @@
+2026-07-10T09:55:42.549408Z ERROR codex_models_manager::cache: failed to load models cache: unknown variant `max`, expected one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh` at line 29 column 25
+2026-07-10T09:55:42.934012Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:42.957620Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b74-5499-70d3-9413-3b15f7c118ce
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000248","candidate_id":"june_update_2026-06-10__rec_000248","source_record_id":"rec_000248","source_corpus":"include","title":"Cell2Text: Multimodal LLM for generating textual descriptions from single-cell RNA-Seq profiles","abstract":"Single-cell RNA sequencing has transformed biology by enabling the measurement of gene expression at cellular resolution, providing information for cell types, states, and disease contexts. Recently, single-cell foundation models have emerged as powerful tools for learning transferable representations directly from expression profiles, improving performance on classification and clustering tasks. However, these models are limited to discrete prediction heads, which collapse cellular complexity into predefined labels that fail to capture the richer, contextual explanations biologists need. We introduce Cell2Text, a multimodal generative framework that translates scRNA-seq profiles into structured natural language descriptions. By integrating gene-level embeddings from single-cell foundation models with pretrained large language models, Cell2Text generates coherent summaries that capture cellular identity, tissue origin, disease associations, and pathway activity, generalizing to unseen cells. Empirically, Cell2Text outperforms baselines on classification accuracy, demonstrates strong ontological consistency using PageRank-based similarity metrics, and achieves high semantic fidelity in text generation. These results demonstrate that coupling expression data with natural language offers both stronger predictive performance and inherently interpretable outputs, pointing to a scalable path for label-efficient characterization of unseen cells.","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 EXPERIMENTS AND RESULTS > 4.1 EXPERIMENTAL SETUP > 4.1.1 DATASET CONSTRUCTION]\nWe construct a large-scale multimodal dataset that pairs single-cell gene expression profiles with natural language descriptions to enable cross-modal learning between genomic data and biological knowledge. The dataset is derived from the CELLxGENE Census (Program et al., 2024), using a principled sampling strategy\n\n(Appendix A.1) to select 1,000,000 cells from 7,331 donors, spanning 783 cell types, 347 tissue types, and 128 disease conditions (Appendix B).\n\nFor each cell, we generate structured text descriptions by combining metadata annotations with functional context. Cell type information is enriched using OBO Cell Ontology (Smith et al., 2007) definitions, while biological processes are captured through pathway activity analysis with pySCENIC (Aibar et al., 2017) applied to 34 curated MSigDB Hallmark pathways (Liberzon et al., 2011) (Appendix A.2, Figure 8). For each cell, we identify the two most enriched pathways and translate them into human-readable descriptions of active biological processes using the corresponding MSigDB (Liberzon et al., 2011) definitions. An example of such a description can be found in Appendix A.3.\n\nThe resulting descriptions provide interpretable summaries of both cellular identity and functional state, bridging high-dimensional expression profiles with structured biological knowledge. To ensure robust evaluation, we perform donor-level data splitting (80/10/10) to prevent information leakage between training and test sets.\n\n[input_representation: 3 METHODOLOGY]\nCell2Text goal is to generate comprehensive and accurate natural language descriptions of single cells. These descriptions synthesize crucial information including cell type, associated disease, tissue origin, donor development stage, and active pathways derived directly from gene expression profiles. Our approach combines a specialized cell encoder with a natural language decoder through an adapter mechanism that projects highdimensional cellular representations into the language model's semantic space, enabling the generation of detailed, biologically meaningful descriptions.\n\nFigure 1: Overview of the Cell2Text framework. The model takes single-cell RNA-seq profiles as input and processes them through a pretrained Geneformer encoder to generate contextualized gene-level embeddings. These embeddings are projected into the semantic space of the language model via a lightweight adapter module, aligning biological signals with linguistic representations. A pretrained, instruction-tuned LLM decoder then generates structured natural language descriptions that capture cellular identity, tissue of origin, disease associations, and pathway activity.\n\n<!-- image -->\n\n### 3.1 MODEL ARCHITECTURE\n\n#### 3.1.1 CELL ENCODER\n\nThe Cell Encoder module represents the first critical component of Cell2Text, responsible for converting raw single-cell gene expression data into meaningful, context-aware embeddings that our language model can effectively interpret. We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes. What makes Geneformer particularly well-suited for our task is its training on large-scale single-cell transcriptomic datasets, which allows it to learn gene-gene interactions and produce contextualized gene representations.\n\nWe propose a gene-level embedding strategy that differs from the conventional cell-level pooling approach adopted in most prior studies. Instead of compressing each cell into a single embedding vector, which would lose important biological nuances, we extract individual embeddings for each gene within the cell. For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence. The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M ; this constraint is not limiting since most cells express fewer than 4096 genes, while the highest-expressed genes include most of the biological information. Each of these high-dimensional gene embeddings captures both the expression level and the regulatory context of its corresponding gene within that specific single-cell environment.\n\nThis gene-level approach offers several advantages: it preserves the granular transcriptional information that distinguishes different cell types and states, and it provides our downstream language model with a richer, more detailed representation of the single cell.\n\n#### 3.1.2 ADAPTER MODULE\n\nWe introduce a lightweight adapter module to bridge the dimensional and semantic gaps between the Geneformer's output and the LLM's input embedding space. This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.\n\n#### 3.1.3 NATURAL LANGUAGE DECODER\n\nThe Decoder Module constitutes the text generation component of Cell2Text, where contextualized gene embeddings are transformed into cell descriptions using a pretrained LLM. To assess the impact of LLM architecture and scale on description quality, we conducted ablation studies utilizing different publicly available instruction-tuned models:\n\n- Meta-Llama-3.2-1B-Instruct : A compact variant of the Meta-Llama series, selected for its efficiency and strong performance on instruction-following tasks, offering a balance between computational demands and descriptive capabilities.\n- Gemma3-4B-it : Google's 4-billion parameter model featuring a distinctive hybrid attention mechanism with 5:1 interleaving of local sliding window and global self-attention layers, contrasting with Llama's uniform attention architecture. This selection enables evaluation across different architectural paradigms and model scales (4B vs 1B parameters).\n\n### 3.2 TRAINING PROCESS\n\nGiven that Geneformer is already pre-trained on extensive single-cell data and its gene embeddings effectively capture biological information and gene-gene interactions, we freeze the Geneformer encoder throughout training to preserve these learned representations. The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.\n\n#### 3.2.1 FULL FINE-TUNING\n\nWe performed full fine-tuning on both Meta-Llama-3.2-1B-Instruct and Gemma3-4B-it models, updating all parameters to adapt the pre-trained LLMs to our domain-specific cell description task. To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:\n\nSystem : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;\n\nHere, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space. This structured prompt explicitly defines the task and the desired output format, facilitating the generation of detailed single-cell descriptions.\n\n#### 3.2.2 PARAMETER-EFFICIENT FINE-TUNING (PEFT)\n\nGiven the substantial computational requirements of full fine-tuning and the specificity of our task, we additionally explored parameter-efficient fine-tuning using Low-Rank Adaptation (LoRA) (Hu et al., 2022) specifically on the Meta-Llama-3.2-1B-Instruct model. LoRA selectively injects trainable low-rank matrices into the transformer architecture's attention mechanism, significantly reducing the number of trainable parameters while maintaining a performance close to full fine-tuning. This approach allowed us to efficiently adapt the pre-trained LLM to our domain-specific task with limited computational resources, while investigating its effect on generation quality compared to the full fine-tuning approach.\n\n### 3.3 CELL TYPE ONTOLOGY PAGERANK SIMILARITY\n\nTo evaluate our cell type classification beyond simple accuracy, we employ a similarity metric that captures the biological and hierarchical relatedness between cell types, accommodating 'near misses' where a predicted cell type is incorrect but closely related to the true label (e.g., predicting 'T Cell' instead of 'CD4+ T-cell'). Inspired by scCello (Yuan et al., 2024), we utilize the structured knowledge of the Cell Ontology (CL) (Smith et al., 2007) to compute these similarities, enabling a nuanced assessment of how well predictions align with true cell types in terms of biological meaning. Unlike scCello, which applies ontology-based similarity for contrastive learning to train a single-cell encoder, our approach uses this metric to evaluate predictions, providing deeper insight into the model's understanding of cell type relationships and its ability to navigate the hierarchical structure of cell biology.\n\nWemodel the Cell Ontology as an undirected graph with cell types as nodes and 'is a' relationships as edges. We use Personalized PageRank (Page et al., 1998) to quantify relatedness. Imagine a random walker starting at a cell type (source node) exploring the graph but biased to return to the starting node (personalization). This bias ensures higher scores for biologically related cell types, like subtypes or parents, while distant ones score lower. For a cell type c i , we compute a Personalized PageRank vector, with personalization centered on c i , where PPR ( c j | c i ) measures relatedness to c j . The similarity score S ( c i , c j ) is:\n\n<!-- formula-not-decoded -->\n\nwhere τ scales scores before normalization to [0 , 1] . The resulting similarity matrix gives identical cell types a score of 1, with scores decreasing with ontological distance. The similarity distribution is heavy-tailed, distinguishing related from unrelated cell types (see Appendix Section C)."}]
+
+2026-07-10T09:55:42.984323Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.010508Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.035155Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.052874Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.074839Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.125652Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.149843Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.173980Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.192232Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:43.195664Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.196781Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:43.219876Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.238368Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.238388Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.239563Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.239610Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.240758Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.240773Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.242179Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.242191Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.243303Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.243313Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.244136Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.245446Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.245455Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:43.275383Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.300366Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.324619Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.348973Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.372201Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.396965Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:43.420905Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:55:44.221966Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:44.240900Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:44.240955Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:45.552021Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:45.573484Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.573498Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.573858Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.573864Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574206Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574213Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574564Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574569Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574934Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.574940Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.575884Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:45.575891Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:55:46.090940Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:46.100858Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:55:46.100900Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"june_update_2026-06-10__rec_000248","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record presents a new multimodal generative framework, Cell2Text, that translates single-cell RNA-seq profiles into structured natural language descriptions. The text decoder and adapter explicitly bridge gene-expression embeddings to language generation.","evidence_snippet":"\"Cell2Text, a multimodal generative framework that translates scRNA-seq profiles into structured natural language descriptions\"; \"adapter ... projects each gene embedding to the natural language semantic space\"; \"pretrained LLM decoder then generates structured natural language descriptions\""}]}
+2026-07-10T09:55:52.265716Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b74-5499-70d3-9413-3b15f7c118ce.1783677342908559000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+9,398

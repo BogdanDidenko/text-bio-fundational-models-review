@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003035","candidate_id":"full_2026-07-06__rec_003035","source_record_id":"rec_003035","source_corpus":"include","title":"Multi-megabase scale genome interpretation with genetic language models","abstract":"Understanding how molecular changes caused by genetic variation drive disease risk is crucial for deciphering disease mechanisms. However, interpreting genome sequences is challenging because of the vast size of the human genome, and because its consequences manifest across a wide range of cells, tissues and scales - spanning from molecular to whole organism level. Here, we present Phenformer, a multi-scale genetic language model that learns to generate mechanistic hypotheses as to how differences in genome sequence lead to disease-relevant changes in expression across cell types and tissues directly from DNA sequences of up to 88 million base pairs. Using whole genome sequencing data from more than 150 000 individuals, we show that Phenformer generates mechanistic hypotheses about disease-relevant cell and tissue types that match literature better than existing state-of-theart methods, while using only sequence data. Furthermore, disease risk predictors enriched by Phenformer show improved prediction performance and generalisation to diverse populations. Accurate multi-megabase scale interpretation of whole genomes without additional experimental data enables both a deeper understanding of molecular mechanisms involved in disease and improved disease risk prediction at the level of individuals.\n\nFigure 1 | Phenformer is a genetic language model that learns to connect individual genomes to changes in cell-type-specific expression to disease directly from sequence. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Multi-megabase scale genome interpretation with genetic language models > Abstract]\nUnderstanding how molecular changes caused by genetic variation drive disease risk is crucial for deciphering disease mechanisms. However, interpreting genome sequences is challenging because of the vast size of the human genome, and because its consequences manifest across a wide range of cells, tissues and scales - spanning from molecular to whole organism level. Here, we present Phenformer, a multi-scale genetic language model that learns to generate mechanistic hypotheses as to how differences in genome sequence lead to disease-relevant changes in expression across cell types and tissues directly from DNA sequences of up to 88 million base pairs. Using whole genome sequencing data from more than 150 000 individuals, we show that Phenformer generates mechanistic hypotheses about disease-relevant cell and tissue types that match literature better than existing state-of-theart methods, while using only sequence data. Furthermore, disease risk predictors enriched by Phenformer show improved prediction performance and generalisation to diverse populations. Accurate multi-megabase scale interpretation of whole genomes without additional experimental data enables both a deeper understanding of molecular mechanisms involved in disease and improved disease risk prediction at the level of individuals.\n\nFigure 1 | Phenformer is a genetic language model that learns to connect individual genomes to changes in cell-type-specific expression to disease directly from sequence. Phenformer is an end-to-end multi-scale model that directly processes genomes following the information flow in molecular biology 1 〈sequence → cell context → expression → phenotype〉. A variable number of m windows of 196 kilobases (kb) centred around the transcription start site (TSS) of genes are first transformed by a sequence-to-expression backbone (Enformer 2 ) that was pretrained to predict expression and chromatin accessibility across a wide range of cell types. Tokens of sequence embeddings (3 072 dimensions per TSS) are then passed to an expression-to-phenotype core that consists of multiple transformer encoder layers 3 that later aggregate information across sequence embeddings using Pooling by Multihead Attention 4 (PMA). A prediction head outputs individual risk predictions for the phenotype of interest. Phenformer integrates up to 88 million base pairs - almost 3% of an individual genome and an order of magnitude larger than the largest existing genetic language model 5 - to highlight potential molecular mechanisms underlying diseases, predict disease risk, and identify disease subtypes.\n\n<!-- image -->\n\n[input_representation: 4 Materials and methods > 4.1 Phenformer - Neural Architecture]\nStep 1: Tokenization via Enformer embeddings. In a first step, we infer sequence embeddings from a pretrained and frozen sequence-to-expression model. Here, the Enformer model 2 , a state-of-the-art gene expression model, is being leveraged for this task. Enformer was trained to predict gene expression from input sequence windows of 1 536 tokens each comprising 128 base pairs. Specifically, we extract the 3 072-dimensional embedding vector which is being passed to predict the 5 313-dimensional human gene expression and epigenetic output (and 1 643-dimensional mouse output) from the token centred around the transcription start site (TSS) from the two Enformer prediction heads. In total, the model is given m sequence embeddings per individual from m distinct raw sequence windows chosen (details in the 'Data' paragraph below). The rationale of using these sequence embeddings is to capture the genetic variation of 196 kilobases (kb) long sequence windows centred around the TSS in compressed lower-dimensional tractable vectors that serve as tokens for the subsequent self-attention blocks. In cases where a gene has multiple TSSs inside the 196 kb window, the embedding vectors of the tokens containing TSSs are averaged into a single embedding vector.\n\nStep 2: Process via Phenformer backbone. In the second step, the m sequence embeddings serve as the input tokens of the Phenformer backbone. First, the sequence embeddings are further down-projected using a shared two-layer Multi-Layer Perceptron (MLP) to d model = 512 dimensional embeddings. The size of hidden layers is 512 units. We add a 512-dimensional positional Fourier encodings to each down-projected token, which provides the necessary information about the genetic location of each vector. The m 512dimensional embeddings are further processed by four Transformer encoder layers 3 . A Transformer encoder layer is a neural network that seeks to learn a rich representation of its input. It comprises two main sub-components: (1) a multi-head self-attention mechanism and (2) a position-wise feed-forward network that facilitates the modeling of interactions between long-ranged variations in the genome of an individual. The position-wise feed-forward network transforms the output of the attention mechanism. Residual connections and layer normalization are applied around each sub-layer, facilitating deeper stacking of these layers and aiding in the model's convergence during training. We use 8 heads, pre-layer normalization, 0.2 as dropout rate, 2 048 as the dimension of the feedforward network model as well as a variant of the gated linear unit (GLU) activation function, GEGLU 68 , throughout the model.\n\nStep 3: Predicting disease risk. Finally, the m processed embeddings from the Transformer layers are pooled into a single representation. We use Pooling by Multihead Attention (PMA) 4 . The PMA module incorporates one learnable query vector and the resulting pooled embedding is finally passed to a 2-layer (256, 128) MLP head which outputs a single-disease logit. Optionally, additional information such as age, sex and HLA type of the individual can be introduced to the model at the PMA layer, or adjusted for after model training."}]

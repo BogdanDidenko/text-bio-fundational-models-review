@@ -1,0 +1,159 @@
+2026-07-10T09:56:22.890124Z ERROR codex_models_manager::cache: failed to load models cache: unknown variant `max`, expected one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh` at line 29 column 25
+2026-07-10T09:56:23.343192Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.367242Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b74-f262-79b2-a011-55e8649c2ac7
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001784","candidate_id":"full_2026-07-06__rec_001784","source_record_id":"rec_001784","source_corpus":"uncertain","title":"Self-supervised learning on millions of pre-mRNA sequences improves sequence-based RNA splicing prediction","abstract":"RNA splicing is an important post-transcriptional process of gene expression in eukaryotic organisms. Here, we developed a novel language model, SpliceBERT, pre-trained on the precursor messenger RNA sequences of 72 vertebrates to improve sequence-based modelling of RNA splicing. SpliceBERT is capable of generating embeddings that preserve the evolutionary information of nucleotides and functional characteristics of splice sites. Moreover, the pre-trained model can be utilized to prioritize potential splice-disrupting variants in an unsupervised manner based on genetic variants' impact on the output of SpliceBERT for sequence context. Benchmarked on a multi-species splice site and a human branchpoint prediction task, SpliceBERT outperformed not only conventional baseline models but also other language models pretrained only on the human genome. Our study highlighted the importance of unsupervised learning with genomic sequences of multiple species and indicated that language models were promising approaches to decipher the determinants of RNA splicing.","doi":"10.1101/2023.01.31.526427","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Self-supervised learning on millions of pre-mRNA sequences improves sequence-based RNA splicing prediction > TABLE AND FIGURES LEGENDS]\nFigure 1\n\nFigure 1. An overview of SpliceBERT. (A) SpliceBERT was pre-trained on the pre-mRNA sequences of 72 vertebrates under the masked language  modeling  (MLM)  framework.  We  additionally  applied  SpliceBERT  for  downstream  tasks  of  (a)  unsupervised  variant  effect prediction, (b) visualization of nucleotide embeddings, (c) cross-species splice sites prediction and (d) branchpoints prediction and variant analysis. (B) The accuracy of masked language modelling (MLM ACC) of SpliceBERT and the fraction of repeats in different genomic function regions. (C) The distribution of phastCons(100way) score of randomly selected sites in pre-mRNA sequences. (D) The precisionrecall curves of linear regression (LR) models for predicting conservative/non-conservative sites based on SpliceBERT, SpliceBERT-human and one-hot encoded nucleotide embeddings.\n\n<!-- image -->\n\nFigure 2\n\nFigure  2. SpliceBERT  enables  unsupervised  splice-disrupting  variant  prediction.    The  relationship  between  the  median  value  of  KLdivergence between the MLM logits of wild-type sequences and mutant sequences and the distances to variants in (A) conservative and nonconservative  sites  sampled  by  in  silico  mutagenesis,  (B)  VexSeq  SDV  (splice-disrupting  variant)  and  non-SDV  (non-splice-disrupting variant)  group, and (C) MFASS SDV and non-SDV group. The boxplot of delta-logit ( logit), the sum of KL-divergence in neighboring nucleotides  (KL-div(context))  and  the  KL-divergence  at  splice  donors/acceptors  (KL-div(SS))  of  the  SDV  and  non-SDV  group  in  (D) VexSeq and (E) MFASS. The precision-recall curves of SpliceBERT and baseline methods for classifying SDV and non-SDV samples in (F) VexSeq and (G) MFASS.\n\n<!-- image -->\n\nFigure 3\n\nFigure  3. UMAP  visualization  of  splice  site  embeddings.  Visualization  of  canonical  splice  sites  and  non-splice  sites  with  GT  and  AG dinucleotides based on (A) SpliceBERT embeddings, (B) DNABERT(k=3) embeddings and (C) one-hot encodings.  Visualization of splice sites  of  high  and  low  usage  in  K562  cell  line  estimated  by  SpliSER  based  on  (D)  SpliceBERT  embeddings,  (E)  DNABERT(k=3) embeddings or (F) one-hot encodings.\n\n<!-- image -->\n\n<!-- image -->\n\nFigure 4\n\nFigure 4. Analysis of the attention weights in SpliceBERT. (A) The distribution of attention weights between donors and acceptors from the same intron (D-A(intron)), the same exon (D-A(exon)), different intron/exon (D-A(unpair)), between donors and donors (D-D) and between acceptors and acceptors (A-A). A control group of randomly paired nuelcotides is also shown (random pair). The average attention weights across  all  the  6  layers  in  SpliceBERT  were  used.  The  statistical  significance  was  assessed  with  t-test. (B) The  distribution  of phastCons(100way) scores around donors and acceptors. The average value and standard error of the conservations scores in 1000 randomly selected donor-acceptor pairs (from the same introns) are shown. (C) The distribution of donors' and acceptor's atteiton around acceptors and  donors,  respectively,  in  each  Transformer  layer.  The  median  attention  weights  across  different  samples  were  used.  (D-A:  donoracceptor, D-D: donor-donor, A-A: acceptor-acceptor, L: layer. ***: P-value &lt; )\n\nFigure 5. SpliceBERT predicts splice sites in different species. (A) The F1-score of SpliceBERT and baseline models on 5 different species. The visualization of the impact of in silico mutagenesis variants on splice site scores for (B) donors and (D) acceptors and corresponding sequence logos of wild-type sequences (C and E).\n\n<!-- image -->\n\nFigure 6\n\nFigure 6. SpliceBERT predicts human branchpoint sites. (A) The distribution of high-confidence branchpoints in the Mercer et al dataset. (B) The UMAP visualization of branchpoint and non-branchpoint site embeddings (only adenine sites are shown). (C) The precision-recall curves of the models for predicting branchpoints. (D) The impact of variants at different sites on SpliceBERT predicted BP scores and (E) the corresponding logos of wild-type sequences. (F) The predicted BP score change induced by different types of mutations at BP sites and their 2nt- and 3nt- upstream.\n\n<!-- image -->\n\n[input_representation: Self-supervised learning on millions of pre-mRNA sequences improves sequence-based RNA splicing prediction > The SpliceBERT model]\nPre-training  data We  extracted  the  pre-mRNA  sequences  from  72  vertebrate  genomes  for  pre-training.  The  reference  genomes  in  fasta format and gene annotations in gtf format were downloaded from UCSC genome browser (21). The versions of the genomes and annotations are available in Table S1. The pre-mRNA sequences were extracted from genome sequences using 'bedtools getfasta' (22) based on gene annotations and overlapping transcripts were merged. In this way, we obtained a total number of 2011517 pre-mRNA sequences covering about  65  billion  nucleotides  (nt).  We  randomly  reserved  50000  sequences  for  validation  and  pre-trained  SpliceBERT  using  the  other sequences.\n\nModel  architecture We  adopted  the  BERT  architecture  (14)  to  build  SpliceBERT.  SpliceBERT  is  consisted  of  6  Transformer  encoder layers,  where  the  hidden  layer  size  and  the  number  of  attention  heads  are  512  and  16,  respectively.  The  position  information  of  the nucleotides in each sequence are encoded using the one-hot positional embedding method. SpliceBERT has a total of about 19.4 million parameters.\n\nTokenization Previous pre-trained models for DNA sequences mainly adopted the k-mer tokenization (19, 20, 23) or the Byte Pair Encoding (BPE) tokenization (24) strategy. However, in this study, we simply used each nucleotide type (A, G, C, T/U) as a single token for the ease of getting embeddings for individual nucleotides. The [CLS] token (classification) and [SEP] token (separator) were added to the beginning and the end of each sequence input to SpliceBERT, which is a routine operation in most BERT models. The [MASK] token was used to represent the masked tokens in MLM task.\n\nPre-training by masked language modelling task We pre-trained SpliceBERT by the masked language modelling (MLM) task, which is a self-supervised  learning  strategy  to  pre-train  language  models.  Specifically,  for  each  input  sequence,  we  randomly  picked  15%  of  the nucleotides and 80%, 10%, 10% of which were replaced with the special token '[MASK]', random nucleotides, and original nucleotides (they  were  kept  unchanged),  respectively.  During  pre-training,  the  model  was  optimized  to  predict  the  correct  base  type  of  the  original nucleotides.  Intuitively, the  model  was  required  to  learn the  dependencies between  the  nucleotides in the input sequences  to recover the corrupted tokens.  In this way, we expected the model could capture the complex logic that may be encoded in the DNA/RNA sequences. Model implementation and pre-training We implemented SpliceBERT in PyTorch with the Huggingface transformer library (v4.24.0). The maximum length of input sequences was set to 1024. Since most pre-mRNA sequences are longer than 1024nt, fragments no longer than 1024nt  were  randomly  sampled  for  pre-training.  We  used  the  cross-entropy  loss  as  the  objective  to  optimize  the  model.  The  AdamW optimizer  was  used  and  the  initial  learning  rate  was  set  to  0.0001.  The  learning  rate  will  be  reduced  by  a  factor  of  2  when  model's performance on the validation data stops improving for 3 epochs. The model was trained in the automatic mixed precision (AMP) mode to decrease the consumption of memory and speed up model training. In practice, we pre-trained SpliceBERT in two stages. In the first stage, we used fixed-length sequences of 510nt to train SpliceBERT on 8 V100 GPUs for a week and the accuracy of MLM task finally reached about 0.56. Then, we continued to pre-train SpliceBERT with sequences ranging from 64nt to 1024nt until the MLM accuracy reached 0.56 again."}]
+
+2026-07-10T09:56:23.386859Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:23.389841Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.426954Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.453481Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.462571Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.462585Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.463380Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.463388Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.464175Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.464188Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.464973Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.464986Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.465760Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.465769Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.467025Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.467036Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:23.477807Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.501866Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.525067Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.535538Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:23.549149Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.573498Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.597597Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.632981Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.660959Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.684777Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.708819Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.730477Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.776531Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.799514Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.823264Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:23.846365Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:56:24.368524Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:24.384521Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:24.384562Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:25.832386Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:25.860637Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.860653Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.861350Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.861362Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.861960Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.861968Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.862660Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.862669Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.863303Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.863312Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.864661Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:25.864671Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:56:26.475814Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:26.486046Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:56:26.486089Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001784","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper on SpliceBERT for pre-mRNA sequence modeling and splicing prediction. The evidence shows biological sequence tokens only, with no natural-language text component or text-bio bridge.","evidence_snippet":"\"used each nucleotide type (A, G, C, T/U) as a single token\"; \"pre-trained on the pre-mRNA sequences of 72 vertebrates\"; \"masked language modelling (MLM)\" for sequences only"}]}
+2026-07-10T09:56:37.766940Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b74-f262-79b2-a011-55e8649c2ac7.1783677383316852000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+4,194

@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001425","candidate_id":"full_2026-07-06__rec_001425","source_record_id":"rec_001425","source_corpus":"uncertain","title":"Zygosity-Aware DNA Language Modeling Improves Ancestry and Gene Expression Prediction","abstract":"DNA language models (DNA-LMs) are transforming how genomic sequence information is represented and interpreted. Yet most current approaches treat DNA as a single sequence, overlooking the diploid structure and zygosity information that distinguish the two parental copies of the genome. Here, we systematically evaluate explicit diploid, zygosity-aware representations in DNA-LMs for two downstream tasks: ancestry classification and gene expression prediction. For ancestry, we use HyenaDNA embeddings of the extended MHC region and show that concatenating maternal and paternal haplotype embeddings consistently improves predictive performance across five superpopulations compared to single-haplotype inputs. For gene expression, we compare convolutional neural networks (CNNs) trained from scratch with Nucleotide Transformer models using reference-only, single-copy, and two-copy (zygosity-aware) sequence encodings. CNNs showed increased performance by incorporating genetic variation and zygosity via simple additive genotype encoding, whereas na¨ ıvely injecting variation into pretrained Nucleotide Transformer models yields mixed effects, highlighting a mismatch between current pretraining objectives and variation-sensitive prediction. Together, our results demonstrate that zygosity-aware representations can capture biologically meaningful information beyond reference-only views and underscore the need for diploid- and population-aware pretraining strategies in future DNA-LMs for variant interpretation and precision medicine.","doi":"10.1101/2025.11.19.689326","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 2 METHODS > 2.1 DATA SOURCES > 2.1.1 1000 GENOMES PROJECT]\nFor ancestry prediction, we used phased variant calls from 2,548 individuals in the 1000 Genomes Project (Auton et al., 2015), focusing on the extended MHC region of chromosome 6 (28,510,12033,480,577, hg38) (Dilthey, 2021). Individuals were assigned to five superpopulations (AFR, EUR, AMR, SAS, EAS) based on sample metadata. Diploid sequences, including single-nucleotide variants (SNVs), were reconstructed from VCF data by extracting phased genotypes and applying variants to the reference genome. Haplotype A corresponded to the left column and haplotype B to the right column of the GT field, with variants stored in chr:pos:ref:alt format for reproducibility and direct use with GenomeKit. This region was selected for its high genetic diversity and relevance to ancestry due to the presence of polymorphic HLA genes (Arrieta-Bola˜ nos et al., 2023; Buhler &amp; Sanchez-Mazas, 2011).\n\n[input_representation: 2 METHODS > 2.2 STUDY DESIGN > 2.2.2 GENE EXPRESSION PREDICTION]\nWe formulated gene expression prediction as a regression task in which the input is a 1,000 bp DNA sequence centered on the transcription start site (TSS) and the output is the corresponding log-transformed gene expression level in LCLs. This design enables a direct comparison between models that ignore genetic variation (reference genome only) and models that incorporate individual genotypes and zygosity. We systematically varied both the encoder (CNN versus NT-based) and the sequence representation (reference only, one copy with genetic variation, two copies with genetic variation and zygosity) to disentangle their contributions.\n\nSpecifically, we extracted 1,000 bp windows centered on TSSs for all protein-coding genes. For the reference genome condition, each gene's sequence was paired with the average expression across individuals. For the Geuvadis condition, the same sequence window was reconstructed for each individual using their diploid genotype data, and the model was trained to predict that individual's expression level (Figure 2)."}]

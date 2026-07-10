@@ -60,7 +60,7 @@ This means LatteReview is already a good fit for our target design:
 
 ### Round A
 
-Two independent reviewers:
+Two role-separated reviewer passes:
 
 1. `scope_reviewer`
 2. `architecture_reviewer`
@@ -74,7 +74,10 @@ One adjudicator:
 ### Why this topology
 
 This is the cleanest mapping between our review problem and the workflow model
-implemented by LatteReview.
+implemented by LatteReview. In the executed Codex pipeline, the two roles use
+different prompts and schemas but the same underlying model. They are therefore
+independent role passes, not independent human reviewers; this distinction must
+be reported in the manuscript.
 
 Our difficult records tend to fail for one of two reasons:
 

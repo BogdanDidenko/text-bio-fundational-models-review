@@ -61,17 +61,28 @@ For each record, produce:
 
 `UNCERTAIN` records proceed to phase 2.
 
-## Phase 2: Full-Text Screening
+## Phase 2: Targeted Full-Text Evidence Screening
 
 For records marked `INCLUDE` or `UNCERTAIN` in phase 1:
 
-1. obtain full text
-2. verify that the text/language role is substantive rather than incidental
-3. verify that any claimed text-bio bridge is actually supported by the paper
-4. verify generative architecture from the full methods/model description
-5. verify FM characteristics from the full paper
-6. confirm publication type, duplication status, language, and OA/full-text status
-7. confirm computational contribution if phase-1 evidence was weak
+1. obtain and convert full text with Docling;
+2. use Docling Graph provenance to locate `data_source` and
+   `input_representation` evidence and reconstruct the complete bounded source
+   sections;
+3. reject document-level or duplicate evidence sections and require both target
+   types before this machine-assisted pass;
+4. verify that the text/language role is substantive rather than incidental;
+5. verify that any claimed text-bio bridge is actually supported by the paper;
+6. verify generative architecture and foundation-model evidence from the
+   selected methods/model evidence;
+7. confirm publication type, duplication status, language, OA/full-text status,
+   and computational contribution where phase-1 evidence was weak.
+
+The reviewer prompt receives title, abstract, and complete selected sections,
+not raw PDFs or whole-document markdown. Structured Docling provenance remains
+in the audit artifact but is not duplicated in the reviewer input. The executed
+2026-07-10 run, input quality controls, log layout, and counts are documented
+in [full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md).
 
 ## Exclusion Code Use In Screening
 

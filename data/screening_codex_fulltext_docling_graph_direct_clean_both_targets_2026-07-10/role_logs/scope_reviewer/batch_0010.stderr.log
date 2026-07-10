@@ -1,0 +1,159 @@
+2026-07-10T09:50:49.254457Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.278439Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b6f-d94f-7a60-ba67-2738fb881fcb
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003081","candidate_id":"full_2026-07-06__rec_003081","source_record_id":"rec_003081","source_corpus":"include","title":"scMulan: a multitask generative pre-trained language model for single-cell analysis","abstract":"Cells can be viewed as complex stories written by coordinated expression of genes. The success of AI large language models (LLMs) in mastering the human language inspired us to develop a large AI model scMulan with 368 million parameters to generate cell transcriptomics with designated attributes by learning the cell language. We defined a unified c-sentence to incorporate cell transcriptomics and meta-attributes, and pre-trained scMulan on the equivalence of 100 million human cells. Experiments showed that scMulan can generate designated pseudo transcriptomics, predict missing attributes of cells, reconstruct unobserved cells along functional gradients, and can help to identify driving regulators of cell fates. The generated data passed tests of current tools and can reflect the underlying biology.\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\n12\n\n13\n\n14\n\n15\n\n16\n\n17\n\n18\n\n19\n\n20\n\n21\n\n22\n\n23\n\n24\n\n25\n\n26\n\n27\n\n28\n\n29\n\n30","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Methods > hECA-10M dataset for pre-training and validation]\nWe curated a subset from hECA 24 for training scMulan, named hECA-10M. The hECA-10M dataset contains over 10 million high-quality single-cell transcriptomic profiles derived from key human organs and tissues, including the heart, brain, lung, liver, bone marrow, blood, and thymus ( Fig. S1B ). Each cell in hECA-10M is characterized by the expression of 42,117 genes, accompanied by metadata capturing attributes such as the organ of origin, specific region within the organ, donor age, donor gender, sequencing technology, and cell type. This rich and diverse dataset enables the design and compilation of metadata and gene expression profiles for multiple pre-training tasks, without requiring any supervision or additional labeling.\n\n[input_representation: Results > Overview of scMulan]\nscMulan is a large-scale pre-trained generative model for the language of single-cell transcriptomics, built on a special Transformer decoder-only architecture with an attention mechanism 21 . We designed a unified form of structured cell sentences, or 'c-sentences', to operationalize the cell language and developed a pre-training strategy to complete partially given c-sentences. The design allows scMulan to handle multiple tasks as specific cases of the general task of generating unobserved attributes conditioned on given or designated attributes within a c-sentence. A c-sentence is a sequence where each 'word' represents a specific attribute of the cell ( Fig. 1A , Methods). Each word is structured as a 2-tuple, corresponding to an attribute and its associated value (if applicable). This tuple can denote a gene and its expression level, a type of other attributes of the cell (such as annotated cell type, donor age, donor gender, source organ, etc., referred to here as 'meta-attributes' for convenience) paired with its value, or an analytical task token accompanied by a placeholder. The design of c-sentences enables scMulan to be consistently trained and applied using a unified generative approach. During training, a c-sentence functions similarly to a sentence in natural language processing, where the model can extend a partially provided c-sentence based on the part given. In this way, scMulan can effectively capture the complex dependencies and interactions within cell language through predictive modeling. In practical applications, this framework provides flexibility in generating biological insights. For example, scMulan can generate gene expressions from meta-attributes or vice versa , adapting its output to the given input attributes. This flexibility ensures that whether partial gene expressions or meta-attributes are provided, scMulan can complete the missing information by generating a full c-sentence. This unified approach facilitates a smooth transition from model training to real-world applications, ensuring that 'insights' gained during pre-training are directly applicable to enhance scMulan's performance in deployment. An analytical task token directs scMulan's output during both pre-training and application. We preset three types of analytical task tokens: 'cell type generation', 'organ generation', and 'gene expression generation' in the current version, allowing the model to adjust its output for the\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\n12\n\n13\n\n14\n\n15\n\n16\n\n17\n\n18\n\n19\n\n20\n\n21\n\n22\n\n23\n\n24\n\n25\n\n26\n\n27\n\n28\n\n29\n\n30\n\n31\n\ncorresponding tasks. Using these task tokens, we developed a series of pre-training tasks to help scMulan learn complex relationships among genes and between genes and various meta-attributes. This provides a framework for linking molecular, cellular and phenotypic information. The pre-training tasks include conditional cell generation, hierarchical cell type annotation, and meta-attribute prediction ( Fig. 1B ). Conditional cell generation is a foundational task, which requires scMulan to generate genes and their expression values based on designated meta-attribute conditions, such as organ/tissue name, cell type, donor age, donor gender, sequencing technology, or any combination of these attributes. This task enforces the model to grasp the nuanced relationships between genes and their associated meta-attribute contexts. Hierarchical cell type annotation requires scMulan to generate coarse-grained and fine-grained cell type annotations for each cell. It enforces the model to learn the hierarchical relationship within cell types and their association with gene expressions, which is crucial for understanding cellular homogeneity and heterogeneity. Meta-attribute prediction, exemplified by tasks like predicting the originating organ region of a cell, requires scMulan to recognize meta-attribute-related expression patterns. This task is essential for embedding an understanding of the physical context of cell behavior within the model. This approach can efficiently handle various downstream tasks in a unified generative manner ( Fig. 1C ) and is readily extendable to other meta-attributes, supporting scMulan's scalability across diverse biological contexts. We built scMulan upon a Transformer decoder-only architecture with an attention mechanism 22 ( Fig. S1A ), inspired by causal language modeling in LLMs for natural language processing. In NLP, such models are typically trained to predict the next token (word) based on prior context. A recent model, tGPT, adopted this approach by ordering genes in descending expression level and predicting the next gene based on the preceding ones 23 . However, unlike natural language, gene tokens within a c-sentence do not have a natural sequential order or intrinsic order of importance. Thus, we designed a new strategy and let scMulan to predict the entire set of subsequent tokens based on part of the tokens (Methods). To ensure scMulan's insensitivity to word order in c-sentences, we randomly shuffled genes within each c-sentence during pre-training. This strategy reinforces the model's non-sequential learning ability while serving as a data augmentation technique to enlarge the effective size of training data by a factor of 10, enhancing overall model performance. We utilized the data of the upgraded version of human Ensemble Cell Atlas (hECA) 24 to train\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\n12\n\n13\n\n14\n\n15\n\n16\n\n17\n\n18\n\n19\n\n20\n\nscMulan ( Fig. S1B ). This dataset, named hECA-10M for convenience, includes over 10 million high-quality single-cell transcriptome data from healthy human organs or tissues such as the heart, brain, lung, liver, bone marrow, blood, and thymus. The equivalence size of this dataset is ~100M cells after the data augmentation. Each cell in the hECA-10M dataset is characterized by 42,117 gene expressions, along with standardized metadata detailing the organ, donor age, donor gender, and cell type. For the sake of saving computational cost, we identified 2,000 highly variable genes (HVGs) in this dataset, and used the HVGs and all metadata as the tokens of c-sentences in the current version. This design enables the inclusion of multiple tasks in the pre-training of scMulan without the need for further supervised labeling, and provides a natural framework for linking molecular, cellular and phenotypic attributes of cells in a unified model. The current version of scMulan possesses 368 million learnable parameters to facilitate the grasping of the complexity of the cell language. We utilized four A100 80G GPUs to train scMulan on the equivalence of ~100M cells over a period of 148 hours. Notably, the training efficiency of scMulan significantly surpasses that of previous large cellular models, making it more accessible to labs with limited computing resources. This enhanced efficiency stems largely from the strategic selection of HVGs and the parallel processing capabilities of Transformer decoders. Users can also select their own sets of genes and data of interest, enabling the rapid training of their customized scMulan models. This adaptability ensures that researchers with varying data and resources can leverage the power of large AI models for their specific fields.\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\n12\n\n13\n\n14\n\n15\n\nFig. 1. Overview of scMulan. ( A ) The design of c-sentences. Each c-sentence encodes the information of a cell, with each word representing an attribute paired with its value. A word is a 2-tuple which can be a gene and its expression level, a type of meta-attributes paired with its value, or an analytical task token accompanied by a placeholder. ( B ) The workflow of scMulan. scMulan was pre-trained on the hECA-10M dataset with multiple tasks, including conditional cell generation, cell type annotation, and meta-attribute prediction. ( C ) Downstream applications of scMulan. The cell embeddings derived by scMulan can be used for single-cell analysis, and scMulan can perform various downstream tasks in a unified generative manner.\n\n<!-- image -->"}]
+
+2026-07-10T09:50:49.299395Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:49.305585Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.328612Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.357577Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.382531Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.400320Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.400332Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.401565Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.401577Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.402309Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.402316Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.403055Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.403063Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.403900Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.403910Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.405309Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.405318Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:49.407072Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at "/Users/bogdan.didenko/.codex/shell_snapshots/019f4b6f-a0ab-7541-8b39-3b414dc8a7bf.1783677035771915000.sh": Os { code: 2, kind: NotFound, message: "No such file or directory" }
+2026-07-10T09:50:49.431092Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.453409Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.477822Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.501959Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.526133Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.550324Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.572291Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.595058Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.619027Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.643047Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.667158Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.689860Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.713836Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.735326Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:50:49.912294Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.433520Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.471898Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:51.471967Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:52.937489Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:52.965565Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.965580Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.966490Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.966502Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.967207Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.967216Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.967987Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.967994Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.968610Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.968618Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.970186Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:52.970194Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:50:56.405986Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:56.742646Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:50:56.742715Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_003081","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a new generative model for single-cell transcriptomics, not a review or wrapper. The evidence describes only biological cell tokens/meta-attributes in c-sentences, with no natural-language text component or text-bio alignment.","evidence_snippet":"\"large-scale pre-trained generative model for the language of single-cell transcriptomics\"; \"Each word represents a specific attribute of the cell\""}]}
+2026-07-10T09:51:08.639310Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b6f-d94f-7a60-ba67-2738fb881fcb.1783677049228636000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+12,672

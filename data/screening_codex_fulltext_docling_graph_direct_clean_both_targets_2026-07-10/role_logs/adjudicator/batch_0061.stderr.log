@@ -1,0 +1,166 @@
+2026-07-10T10:36:15.188262Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.211447Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b99-7179-79d0-ad8f-4f9b4e5c81ef
+--------
+user
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001833","candidate_id":"full_2026-07-06__rec_001833","source_record_id":"rec_001833","source_corpus":"uncertain","title":"Generation of Multimodal Longitudinal Synthetic Data By Artificial Intelligence to Improve Personalized Medicine in Hematology","abstract":"","doi":"10.1182/blood-2024-209541","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: 803.EMERGING TOOLS, TECHNIQUES, AND ARTIFICIAL INTELLIGENCE IN HEMATOLOGY > Generation of Multimodal Longitudinal Synthetic Data By Artificial Intelligence to Improve Personalized Medicine in Hematology > POSTER ABSTRACTS]\nMethods. We developed a SD generation pipeline with conditional GAN, Tabular-VAE and Tabular-GPT architectures to generate tabular data including clinical information, cytogenetics, somatic mutations and transcriptomics (bulk RNA-seq of CD34+ bone marrow (BM) cells). Longitudinal information was generated by a hematological fine-tuned Large Language Model. Starting from clinical and genomic features, BM Hematoxylin and Eosin, May-Grunwald Giemsa stained images were generated by a Stable Diffusion model with hematological-trained CLIP module. Privacy preservability, statistical and clinical fidelity of SD were assessed with SVF. MOSAIC framework (PMID: 38875514) was exploited to perform disease classification and personalized prognostic assessment, explained by SHAP. Deep learning-based framework for multimodal analysis in hematology (based on PMID:35944502) was implemented for survival analysis.\n\nResults. Our pipeline, trained on 605 MDS and 877 AML patients, generated 1,210 and 2,631 synthetic patients. Fidelity was assessed by comparing real and SD using SVF. Feature distributions and correlations of clinical information and BM morphological features were comparable (91% and 87% of fidelity respectively). Genomic alterations distribution and pairwise gene association showed 88% of fidelity.\n\nWe assessed quality and biological fidelity of real vs. synthetic RNA-seq data. Descriptive statistics, reads coverage distribution, gene-wise dispersion estimates and PCA were comparable in both sets (90% of fidelity). Differentially expressed genes and enriched biological pathways were overlapping as well. Transcriptomic signatures were compared and clinically validated using unsupervised clustering and survival analysis.\n\nWe then compared longitudinal outcomes in real and synthetic patients, finding overlapping Overall survival (OS) and leukemia-free survival (LFS) with 96% and 92% of fidelity, and log-rank p-value of 0.77 and 0.52, respectively. In terms of privacy preservability no real patients were copied in SD and NNDR scored 0.84 indicating poor privacy risk.\n\nAs clinical validation, we showed that SD augmentation improved performances on disease classification based on clinical, genomic, cytogenetic and BM morphological features. Two XGBOOST classification models trained on real and SD, and tested on a separate real set, resulted in comparable performance (F1-score 76% vs 81%). All features were included in a multimodal deep learning-based framework with OS as primary endpoint. Results showed similar concordance in both models trained on real and SD (0.85 vs 0.84). Preliminary analysis showed that training models on a hybrid dataset (real and SD), improved the performance of classification and prognostic models. We implemented the JUNO platform (https://juno-xkb3corsxqew.a.run.app/) to enable clinicians to generate multimodal SD from an existing biobank of real patients.\n\nConclusion. AI-generated SD accurately replicates statistical properties and complexity of multimodal features in MN. They provide reliable, privacy-compliant and clinically accurate information that can be customized to test scientific hypotheses, validate models, and potentially accelerate clinical trials, thereby improving personalized medicine in hematology.\n\nDisclosures Santoro: Beigene: Speakers Bureau; Sandoz: Speakers Bureau; Lilly: Speakers Bureau; Arqule: Speakers Bureau; Astrazeneca: Speakers Bureau; Celgene: Speakers Bureau; Amgen: Speakers Bureau; Abb-vie: Speakers Bureau; Roche: Speakers Bureau; Takeda: Speakers Bureau; MSD: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Bayer: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; EISAI: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Pfizer: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Gilead: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Servier: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; BMS: Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Incyte: Consultancy; Sanofi: Consultancy; Novartis: Speakers Bureau. Sanz: AstraZeneca, GSK: Consultancy, Honoraria; Novartis, ExCellera: Speakers Bureau; BMS: Research Funding; Novartis, BMS, J&amp;J, Takeda, Amgen, Menarini, Bayer, Pfizer: Other. Santini: Ascentage, AbbVie, Bristol Myers Squibb, CTI BioPharma, Geron, Gilead, Novartis, Servier, Syros Pharmaceuticals: Other: Advisory Board. Platzbecker: Amgen: Consultancy, Research Funding; BMS: Consultancy, Membership on an entity's Board of Directors or advisory committees, Other: Travel support, Research Funding; MDS Foundation: Membership on an entity's Board of Directors or advisory committees; Abbvie: Consultancy, Research Funding; Curis: Consultancy, Honoraria, Research Funding; Geron: Consultancy; Janssen: Consultancy, Honoraria, Research Funding; Merck: Research Funding; Novartis: Consultancy, Research Funding. Fenaux: Astex: Research Funding; Agios: Research Funding; Servier: Research Funding; AbbVie: Honoraria, Research Funding; BMS: Honoraria, Research Funding; Janssen: Research Funding; Novartis: Research Funding; Jazz Pharmaceuticals: Honoraria, Research Funding. Diez-Campelo: AGIOS: Consultancy, Membership on an entity's Board of Directors or advisory committees; SYROS: Membership on an entity's Board of Directors or advisory committees; HEMAVAN: Membership on an entity's Board of Directors or advisory committees; ASTEX/OTSUKA: Membership on an entity's Board of Directors or advisory committees, Other: TRAVEL TO MEETINGS; BLUEPRINT MEDICINES: Consultancy, Membership on an entity's Board of Directors or advisory committees; KEROS: Honoraria, Membership on an entity's Board of Directors or advisory committees; Novartis: Consultancy, Honoraria, Membership on an entity's Board of Directors or advisory committees; GSK: Consultancy, Membership on an entity's Board of Directors or advisory committees; BMS/Celgene: Consultancy, Honoraria, Membership on an entity's Board of Directors or advisory committees, Other: Advisory board fees; Gilead: Other: Travel reimbursement; CURIS: Membership on an entity's Board of Directors or advisory committees. Kordasti: Pfizer: Consultancy, Speakers Bureau; MorphoSys: Research Funding; BeckmanCoulter: Speakers Bureau; Alexion: Consultancy; API: Consultancy; Boston Biomed: Consultancy; Celgene: Research Funding; Novartis: Consultancy, Honoraria, Research Funding, Speakers Bureau. Komrokji: Celgene/BMS: Consultancy, Membership on an entity's Board of Directors or advisory committees, Research Funding; BMS: Honoraria, Membership on an entity's Board of Directors or advisory committees; Sobi: Consultancy, Membership on an entity's Board of Directors or advisory committees, Speakers Bureau; Sumitomo Pharma: Consultancy, Membership","first_pass_outputs":{"scope_reviewer":{"record_id":"full_2026-07-06__rec_001833","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"unclear","text_bio_bridge_present":"unclear","primary_exclusion_code":"none","uncertainty_reason":"mixed_signals","decision_rationale":"This is a new multimodal synthetic-data framework in hematology, not a review or wrapper, and it clearly uses biological modalities. The record mentions a fine-tuned Large Language Model, but it does not clearly show natural-language text or a substantive text-bio bridge.","evidence_snippet":"\"Longitudinal information was generated by a hematological fine-tuned Large Language Model\"; \"generated tabular data including clinical information, cytogenetics, somatic mutations and transcriptomics\""},"architecture_reviewer":{"record_id":"full_2026-07-06__rec_001833","paper_type":"application_wrapper","generative_model_present":"yes","foundation_model_evidence":"unclear","primary_exclusion_code":"application_wrapper","uncertainty_reason":"mixed_signals","decision_rationale":"The record describes a synthetic-data generation pipeline, but it is built from existing generative models rather than presenting a new foundational text-bio model. The evidence supports generation, but foundation-model characteristics are not clearly established for the candidate itself.","evidence_snippet":"conditional GAN, Tabular-VAE and Tabular-GPT architectures ... longitudinal information was generated by a hematological fine-tuned Large Language Model ... Stable Diffusion model"},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"application_wrapper","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"unclear","text_bio_bridge_present":"unclear","generative_model_present":"yes","foundation_model_evidence":"unclear"}}}]
+
+2026-07-10T10:36:15.234237Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.234878Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:15.261802Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.287593Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.311929Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.323851Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.323865Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.324651Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.324663Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.325594Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.325603Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.326508Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.326520Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.327384Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.327395Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.329200Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.329208Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:15.336032Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.358220Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.382583Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.406846Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.428655Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.452955Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.477065Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.504206Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.528321Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.552422Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.576555Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.598553Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.620370Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.641979Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.666376Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.685198Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.714501Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.738069Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:36:15.750623Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:16.448615Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:16.467663Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:16.467719Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:17.341482Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:17.390784Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.390804Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.392018Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.392033Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.393164Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.393178Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.394376Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.394387Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.395926Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.395942Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.399781Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:17.399795Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:36:18.830842Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:18.857615Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:36:18.857664Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001833","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"unclear","text_bio_bridge_present":"unclear","generative_model_present":"yes","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"text_component_unclear","decision_rationale":"This is a primary multimodal synthetic-data framework in hematology using GAN/VAE/GPT/Stable Diffusion, not a review or downstream wrapper. The record does not explicitly show natural-language text or a substantive text-bio bridge beyond a vague LLM mention, so the text criteria remain unclear.","evidence_snippet":"\"generated tabular data including clinical information, cytogenetics, somatic mutations and transcriptomics\"; \"Longitudinal information was generated by a hematological fine-tuned Large Language Model\"; \"conditional GAN, Tabular-VAE and Tabular-GPT architectures\""}]}
+2026-07-10T10:37:01.510639Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b99-7179-79d0-ad8f-4f9b4e5c81ef.1783679775162033000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+6,046

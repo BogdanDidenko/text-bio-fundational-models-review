@@ -1,0 +1,159 @@
+2026-07-10T09:51:20.432376Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.456918Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b70-5307-7780-b646-0042fb385916
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001881","candidate_id":"full_2026-07-06__rec_001881","source_record_id":"rec_001881","source_corpus":"uncertain","title":"End-to-end multitask learning, from protein language to protein features without alignments","abstract":"Correctly predicting features of protein structure and function from amino acid sequence alone remains a supreme challenge for computational biology. For almost three decades, state-ofthe-art approaches combined machine learning and evolutionary information from multiple sequence alignments. Exponentially growing sequence databases make it infeasible to gather evolutionary information for entire microbiomes or meta-proteomics. On top, for many important proteins (e.g. dark proteome and intrinsically disordered proteins ) evolutionary information remains limited. Here, we introduced a novel approach combining recent advances of Language Models (LMs) with multi-task learning to successfully predict aspects of protein structure (secondary structure) and function (cellular component or subcellular localization) without using any evolutionary information from alignments. Our approach fused selfsupervised pre-training LMs on an unlabeled big dataset (UniRef50, corresponding to 9.6 billion words) with supervised training on labelled high-quality data in one single end-to-end network. We provided a proof-of-principle for the novel concept through the semi-successful per-residue prediction of protein secondary structure and through per-protein predictions of localization (Q10=69%) and the distinction between integral membrane and water-soluble proteins (Q2=89%). [truncated]","doi":"10.1101/864405","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: End-to-end multitask learning, from protein language to protein features without alignments > Data]\nLanguage modeling. The self-supervised, language modelling task was trained on UniRef50 a subset of UniProt (Consortium, 2018) clustered at 50% pairwise sequence identity (PIDE). The  database  contained  33M  protein  sequences  with  9,577,889,953  residues  and  a vocabulary of 25 words: the standard 20 and two rare amino acids (U and O) along with three letters  for  ambiguous  (B,  Z)  or  unknown  amino  acids  (X).  Each  protein  was  treated  as  a sentence and each amino acid was interpreted as a single word. The model was trained using 99.9% of the data, while randomly keeping 0.01% (~33k) of the proteins for validation. In this case,  since  the  goal  is  self-supervision,  homology  doesn't  play  a  major  role  and  thus train/validation splits could be drawn at random. The maximal model length was set to 1024; for proteins longer than 1024 residues only the first 1024 residues were used.\n\nPer-residue:  secondary  structure. Using  a  data  set  of  protein  secondary  structure previously published (Klausen, et al., 2019) simplified comparisons of this task to state-of-theart prediction methods, including: NetSurfP2.0 (Klausen, et al., 2019), Spider3 (Heffernan, et al., 2017), RaptorX (Wang, et al., 2016) and JPred4 (Drozdetskiy, et al., 2015). For training, 10,837 sequence-unique (at 25% PIDE) proteins with high-quality 3D structures (&lt;2.5Å or 0.25nm) were collected by the PISCES server (Wang and Dunbrack Jr, 2003) from the Protein Data  Bank  -  PDB  (Berman,  et  al.,  2000).  DSSP  (Kabsch  and  Sander,  1983)  assigned secondary structure; residues without atomic coordinates ( REMARK-465 ) were removed. The seven DSSP states (+ one for unknown) were mapped to three states as in previous works (Rost and Sander, 1993): [G,H,I] à H: helix, [B,E] à E: strand, all others to O: other). Since NetSurfP-2.0 only published pre-computed profiles, protein sequences were extracted through SIFTS (Velankar, et al., 2012). During this mapping step, 56 proteins were removed from the training and three from the test set due to differences in lengths between SIFTS and NetSurfP2.0 (two from CB513 (Cuff and Barton, 1999); one from CASP12 (Abriata, et al., 2018); none from TS115 (Yang, et al., 2016)). Proteins longer than 512 residues were also removed due to constraints of our transformer models. Three test sets (also referred to as validation sets) were distinguished: TS115: 115 proteins from high-quality structures (&lt;3Å) released after 2015 (and at most 30% PIDE to any protein of known structure in the PDB at the time); CB513: 513 non-redundant sequences compiled 20 years ago (511 after SIFTS mapping); CASP12: 21 proteins taken from the CASP12 free-modelling targets (20 after SIFTS mapping; all 21 fulfilled a stricter criterion toward non-redundancy than the two other sets; non-redundant with respect to all 3D structures known until May 2018 and all their relatives). The NetSurfP-2.0 authors removed all proteins from training with &gt;25% PIDE to any protein in the test sets.\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\n12\n\n13\n\n14\n\n15\n\n16\n\n17\n\n18\n\n19\n\n20\n\n21\n\n22\n\n23\n\n24\n\n25\n\n26\n\n27\n\n28\n\n29\n\n30\n\n31\n\n32\n\n33\n\n34\n\n35\n\n36\n\n37\n\n38\n\n39\n\n40\n\n41\n\n42\n\n43\n\n44\n\n45\n\n46\n\n47\n\n48\n\n49\n\n50\n\n51\n\nA Elnaggar, M Heinzinger, C Dallago &amp; B Rost End-to-end multi-task learning for protein prediction\n\nPer-protein  data:  subcellular  localization  and  membrane/soluble. The  prediction  of subcellular localization (also referred to as location or cellular component )  was trained and evaluated through data from the authors of DeepLoc (Almagro Armenteros, et al., 2017), one of  the  state-of-the-art  prediction  methods  for  this  task.  The  performance  of  several  other methods was also evaluated on this set, namely: LocTree2 (Goldberg, et al., 2012), MultiLoc2 (Blum, et al., 2009), SherLoc2 (Briesemeister, et al., 2009), CELLO (Yu, et al., 2006), iLocEuk (Chou, et al., 2011), WoLF PSORT (Horton, et al., 2007) and YLoc (Briesemeister, et al., 2010). This data set pools proteins with experimental annotation (code: ECO:0000269) from UniProtKB/Swiss-Prot  (release:  2016\\_04,  (Consortium,  2018)).  To  facilitate  training  and evaluation, the authors of DeepLoc mapped the plain localization annotations to ten classes, removing  all  proteins  with  multiple  annotations.  Additionally,  all  proteins  were  labelled  as water-soluble or membrane-bound (some  with  ambiguous  annotations  as unknown ).  The resulting  13,858  proteins  clustered  into  8,464  representatives  with  PSI-CD-HIT  (Fu,  et  al., 2012; Li and Godzik, 2006) (v4.0; at 30% PIDE or E-val&lt;10-6; for alignments covering&gt;80% of the shorter protein). The remaining proteins were split into training and testing by using the same proteins for testing as DeepLoc. Similar to DeepLoc, proteins longer than the maximum processed by the method (1000 for DeepLoc, 1024 for the method presented here) remained in the data set and were simply cut (keeping the first and the last 512 residues).\n\nEvaluation  measures. For  simplicity  of  comparison,  the  evaluation  measures  followed previous publications (Almagro Armenteros, et al., 2017; Klausen, et al., 2019), namely threestate  per-residue  accuracy  (Q3  (Rost  and  Sander,  1993))  as  the  percentage  of  residues correctly predicted in three secondary structure states (helix, strand, other), the corresponding eight-state per-residue accuracy (Q8), the two-state per-protein accuracy (Q2) to describe the percentage of proteins correctly predicted as membrane-bound/water-soluble, and the tenstate  per-protein  accuracy  (Q10)  for  the  ten  classes  of  localization.  All  numbers  reported constituted averages over all proteins in the final test sets.\n\n[input_representation: End-to-end multitask learning, from protein language to protein features without alignments > Deep biology multi-task learning (DBMTL)]\nConcept. Thus far, successful applications of NLP techniques in computational biology (Alley, et al., 2019; Heinzinger, et al., 2019; Howard and Ruder, 2018; Rives, et al., 2019) used a twostep approach: Step 1: train a self-supervised model on protein sequences without annotations to learn vector representations (embeddings). Step 2: input embeddings to train supervised models on annotated data (e.g. secondary structure or localization). DBMTL merged the two steps into one single end-to-end model. This was achieved by applying a joint loss consisting of the four supervised tasks ((I) 3- and (II) 8-state secondary structure prediction, (III) 10-state per-protein  localization  and  (IV)  2-state  per-protein  membrane/globular)  and  (V)  the  semisupervised  language  modeling  task.  Thereby,  the  model  could  learn  biochemical  and biophysical  properties  of  amino  acids  together  (I,  II  &amp;  V)  with  the  global  properties  of  the macromolecules they constitute (III &amp; IV). The idea was borrowed from the NLP transformer model (Vaswani, et al., 2017). These models consist of two building blocks, namely an encoder and a decoder. Here, we tested only the first approach (decoder only (Radford, et al., 2019)).\n\nArchitecture and training. The model used for DBMTL consists only of the decoder part of the  transformer  model  (Fig.  1a:  training,  Fig.  1b:  prediction/testing).  We  used  12  attention layers with maximum length of 1024 for inputs and outputs. The number of hidden layers was set to 1024, while the number of heads was set to 16. A dropout rate of 0.2 reduced the risk of over-fitting. For this model, the input differed between training and prediction (Fig. 1). During training, both the input and the output of each task were concatenated inserting a control token between them. During prediction, the model saw only the input followed by the control token.\n\nEach  task  had  its  own  control  token  allowing  the  model  to  learn  what  to  predict  next:\n\n1\n\n2\n\n3\n\n4\n\n5\n\n6\n\n7\n\n8\n\n9\n\n10\n\n11\n\nA Elnaggar, M Heinzinger, C Dallago &amp; B Rost End-to-end multi-task learning for protein prediction\n\nFig. 1: Sketch of DBTML architecture. (a) shows the model during training time and (b) shows the model during prediction  time.  The  yellow  block  shows  that  the  model  supports  the  input  from  5 different tasks. The green block is the only different block between training and prediction, during training  it  concatenate  both  input  and  output  separated  by  a  special  control  token,  while  during prediction it only append to the input the special control token. The red block shows the transformer model which contains 12 layers using only the decoder. The blue block shows that the output could be a mixed of different tasks output.\n\n<!-- image -->\n\n&lt;UNIREF50&gt; (Language Modelling), &lt;SSP3&gt; and &lt;SSP8&gt; (secondary structure prediction in 3 and 8 states), &lt;LOC&gt; (localization), &lt;MS&gt; (membrane-bound vs. water-soluble proteins). The model was trained on 6 Titan GPUs (local batch size: 512; global batch: 3072) using the Adam optimizer with 0.0002 learning rate, warm-up rate of 16k steps, and learning\n\nrate decay for 250k steps. The model was trained for a total number of 500K steps."}]
+
+2026-07-10T09:51:20.474798Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:20.478619Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.505122Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.534940Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.557839Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.557854Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.558416Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.558422Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.558962Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.558969Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.559318Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.559841Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.559850Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.560657Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.560668Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.562704Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.562716Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:20.582367Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.606695Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.630792Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.655053Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.679297Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.703695Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.728807Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.752765Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.777061Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.799012Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.823168Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.847445Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.871473Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.895633Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at "/Users/bogdan.didenko/.codex/shell_snapshots/019f4b70-3686-7c21-a9ea-8c2d46d92976.1783677073066125000.sh": Os { code: 2, kind: NotFound, message: "No such file or directory" }
+2026-07-10T09:51:20.925783Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:20.971079Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:21.868425Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:21.895789Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:21.895836Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:23.669799Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:23.687122Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.687135Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.687649Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.687661Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.688210Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.688219Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.688950Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.688958Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.689362Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.689368Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.690212Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:23.690219Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:24.199002Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:24.209932Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:24.209973Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001881","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper on protein sequence prediction, but the “language” component is protein-sequence modeling, not natural-language text. The provided sections do not support a substantive text-bio bridge beyond sequence-as-sentence framing.","evidence_snippet":"“each protein was treated as a sentence” and “language modeling task was trained on UniRef50” in the protein language / DBMTL sections."}]}
+2026-07-10T09:51:38.731902Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b70-5307-7780-b646-0042fb385916.1783677080406238000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+4,697

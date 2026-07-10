@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002162","candidate_id":"full_2026-07-06__rec_002162","source_record_id":"rec_002162","source_corpus":"include","title":"Enhancing DNA Foundation Models to Address Masking Inefficiencies","abstract":"Masked language modelling (MLM) as a pretraining objective has been widely adopted in genomic sequence modelling. While pretrained models can successfully serve as encoders for various downstream tasks, the distribution shift between pretraining and inference detrimentally impacts performance, as the pretraining task is to map [MASK] tokens to predictions, yet the [MASK] is absent during downstream applications. This means the encoder does not prioritize its encodings of non[MASK] tokens, and expends parameters and compute on work only relevant to the MLM task, despite this being irrelevant at deployment time. In this work, we propose a modified encoder-decoder architecture based on the masked autoencoder framework, designed to address this inefficiency within a BERT-based transformer. We empirically show that the resulting mismatch is particularly detrimental in genomic pipelines where models are often used for feature extraction without fine-tuning. We evaluate our approach on the BIOSCAN-5M dataset, comprising over 2 million unique DNA barcodes. We achieve substantial performance gains in both closed-world and open-world classification tasks when compared against causal models and bidirectional architectures pretrained with MLM tasks.","doi":"10.48550/arXiv.2502.18405","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: A Comparison with causal models]\nTo compare our model with recently developed causal models for DNA sequence analysis, we conducted additional experiments comparing BarcodeMAE with several state-of-the-art models, such as HyenaDNA-tiny and Caduceus-PS-1k which are trained on non-barcode data and BarcodeMamba which is trained on DNA barcode data. For a fair comparison, since BarcodeMamba was trained on the CANADA-1.5M dataset (Hebert et al., 2016), we trained BarcodeMAE on the same dataset and evaluated all models on BIOSCAN-5M.\n\nAs shown in Table 3, While causal models show strong performance in BIN clustering, with HyenaDNA-tiny achieving 85.0% AMI, they underperform in the genus-level classification of unseen species. BarcodeMamba, specifically trained on DNA barcodes, achieves the highest balanced performance among state space models with 36.3% genus-level accuracy and 82.7% BIN clustering AMI, resulting in a harmonic mean of 50.5%.\n\nThe encoder-only architecture, BarcodeBERT, demonstrates enhanced genus-level classification through 1-NN probing compared to causal models, achieving 40.9% accuracy. BarcodeMAE surpasses all competing models with 51.2% genus-level classification accuracy and a harmonic mean of 63.2%, indicating superior balanced performance across metrics. One interesting finding of these results is that BarcodeMAE surpasses models pre-trained on BIOSCAN-5M by 3% in the ZSC bin reconstruction task, despite being trained on the smaller CANADA-1.5M dataset.\n\nTable 3: Performance comparison of DNA foundation models on BIOSCAN-5M. We evaluate on two key tasks: genus-level accuracy for 1-NN probing of unseen species and BIN reconstruction AMI using ZSC. The harmonic mean between these metrics provides a balanced assessment of each model's performance across both tasks. The models are divided into three groups: transformer-based DNA foundation models, state space models, and our proposed model, BarcodeMAE. The best results are indicated in bold, and second best are underlined.\n\n| Architecture    | SSL Pretraining   | Model             |   Genus-level acc (%) of unseen species 1-NN probe | BIN clustering AMI (%) ZSC probe   | Harmonic Mean   |\n|-----------------|-------------------|-------------------|----------------------------------------------------|------------------------------------|-----------------|\n| State space     | Human genome      | HyenaDNA-tiny     |                                               19.3 | 85.0 65.4                          | 31.4 15.9       |\n|                 | Human genome      | Caduceus-PS-1k    |                                                9.1 |                                    |                 |\n|                 | CANADA-1.5M       | BarcodeMamba      |                                               36.3 | 82.7                               | 50.5            |\n| Encoder-only    | CANADA-1.5M       | BarcodeBERT       |                                               40.9 | 73.4                               | 52.5            |\n| Encoder-decoder | CANADA-1.5M       | BarcodeMAE w/MASK |                                               49.4 | 83.8                               | 62.2            |\n| Encoder-decoder | CANADA-1.5M       | BarcodeMAE        |                                               51.2 | 82.4                               | 63.2            |\n\n[input_representation: 2 Method > 2.2 BarcodeMAE: A masked auto-encoding model for DNA barcode sequences > 2.2.2 Model implementation]\nBarcodeMAE uses a transformer architecture to implement the MAE-LM framework for DNA barcodes. It is trained using masked language modelling objectives. The architecture consists of a symmetrical design: an encoder and decoder, each comprising 6 transformer layers with 6 attention heads. Both components maintain a consistent hidden dimension of 768 units to ensure uniform representation capacity throughout the network. To obtain an embedding of the entire DNA barcode, the model employs global average pooling across the sequence of 768-dimensional output vectors, excluding padding and special tokens. Figure 1 illustrates the architectural differences between BarcodeBERT, an encoder-only foundation model, and BarcodeMAE, an encoder-decoder model.\n\nFigure 1: Comparison of pretraining processes for BarcodeBERT (left) and BarcodeMAE (right) . BarcodeBERT uses an encoder-only transformer architecture with direct masking. BarcodeMAE processes DNA barcode sequences through a transformer encoder-decoder architecture. The masking strategy differs from other foundation models by excluding the [MASK] token from the encoder input, requiring the decoder to predict masked sequences. After pretraining, the decoder is discarded and only the encoder is used for downstream tasks.\n\n<!-- image -->\n\nFor DNA sequence processing, we use non-overlapping 𝑘 -mer tokenization with a vocabulary size of 4 𝑘 + 2, including the [UNK] and [MASK] special tokens. To handle frame-shift sensitivity, we incorporate the data augmentation strategy proposed in BarcodeBERT (Millan Arias et al., 2023), where sequences are randomly offset before tokenization. Based on previous studies (Millan Arias et al., 2023; Dalla-Torre et al., 2024) showing optimal performance with 𝑘 values of 4 or 6, we evaluate our model using both of these 𝑘 -mer lengths.\n\nIn this model, the encoder processes DNA sequences without [MASK] tokens, requiring a modified positional encoding scheme. Our implementation preserves sequence order by skipping masked position indices during encoding. This design maintains the relative positions of unmasked tokens from the original sequence, enabling spatial relationship modelling in DNA sequences.\n\nWe implement our model using PyTorch and the Hugging Face Transformers library. Our model is trained using masked token prediction with a 50% token masking strategy. To optimize the cross-entropy loss of masked tokens, we use AdamW (Loshchilov &amp; Hutter, 2017) with a weight decay coefficient of 1 × 10 -5 and a OneCycle scheduler with a maximum learning rate of 1 × 10 -4 ."}]

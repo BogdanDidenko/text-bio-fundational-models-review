@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001497","candidate_id":"full_2026-07-06__rec_001497","source_record_id":"rec_001497","source_corpus":"include","title":"SARITA: a large language model for generating the S1 subunit of the SARS-CoV-2 spike protein","abstract":"Background : The COVID-19 pandemic has caused over 776 million infections and 7 million deaths globally between December 2019 and November 2024. Since the emergence of the original Wuhan strain, SARS-CoV-2 has evolved into multiple variants-including Alpha, Delta, and Omicron-primarily through mutations in the Spike glycoprotein. The S1 subunit, which binds the human angiotensinconverting enzyme 2 (ACE2) receptor, mutates frequently and plays a key role in infectivity and immune escape, while the more conserved S2 subunit mediates membrane fusion. Anticipating future mutations is essential for guiding vaccine design and therapeutic strategies. Generative Large Language Models (LLMs) have shown promise in protein sequence modeling due to their capacity to produce realistic and functional synthetic sequences. Here, we introduce SARITA, a GPT-3-based LLM with up to 1.2 billion parameters, finetuned via continual learning on the protein model RITA trained on 107 017 high-quality SARS-CoV-2 Spike sequences (up to March 1st 2021) to generate high-quality synthetic SARS-CoV-2 Spike S1 subunits. Results: SARITA is able to generate realistic, full-length synthetic S1 subunits starting from a 14-amino-acid prompt. When evaluated on unseen sequences collected between March 2021 and November 2023-including major Variants of Concern (VOCs) such as Delta and Omicron, and Variants of Interest such as Iota-SARITA outperforms baseline and state-of-the-art LLMs in terms of sequence quality, biological plausibility, and similarity to real-world viral evolution. [truncated]","doi":"10.1101/2024.12.10.627777","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: SARITA: a large language model for generating the S1 subunit of the SARS-CoV-2 spike protein > Methods > Test set]\nThe unique GISAID sequences with a collection date spanning from March 2021 to November 2023 (145 059 in total) are used as a test set. Importantly, by design only the Alpha, Beta and Gamma variants are included in the training set, while other known variants, such as, Delta, Omicron and Kappa, are only present in the test set. We can ther efore validate the ability of SARITA in predicting Variants of Concern (VOCs) like Delta and Omicron, as well as their sub-lineages or Variants of Interest (VOIs), including Kappa, Iota, and Zeta that emerged after March 1st, 2021 (Fig. S1). This test set is used to measure the performance of SARITA (see Evaluation str ategy, below).\n\n[input_representation: SARITA: a large language model for generating the S1 subunit of the SARS-CoV-2 spike protein > Methods > Sequence similarity with the test set]\nTo evaluate whether the proposed approaches are capable of modeling viral evolution-specifically, their ability to generate plausible future variants-we assess the similarity between the generated sequences and those in the test set. The test set includes sequences submitted to GISAID between March 1st, 2021 and November 8th, 2023, corresponding to Variants of Concern (VOCs) such as Delta and Omicron, as well as their sub-lineages and several Variants of Interest (VOIs), including Kappa, Iota, and Zeta.\n\nSequence similarity is quantified using the Le venshtein distance (LD) [29], a string metric that computes the minimal number of single-character edits (insertions, deletions, or substitutions) required to transform one sequence into another. For each generated sequence, LD is computed against all sequences in the test set. Both the minimum and median LD values are recorded to ca pture best-match similarity and overall distribution. In the case of SpikeGPT2, LD is computed using the full length of the generated spike protein sequence.\n\nWe further assess viral evolution prediction via PAM30 and BLOSUM62 scoring as described above: We compare each generated sequence with the test set, and retain the best score. Similarity if further investigated by calculating the False Mutation Rate (FMR), i.e. the presence of mutations in the synthetic sequences that are not matched by the best alignment in the test set. Given a synthetic sequence S and its best matching test\n\n|\n\nFigure 3. Evaluation strategy: Schematic of the validation strategy. The 14-amino-acid prompt is used to generate S1 subunit sequences of 686 amino acids. The 113 unique prompts available in the training set are used to generate 11 300 sequences per model. The evaluation covers three key aspects: Quality, checking for presence of non-unique or non-standard amino acid; and similarity with the Wuhan strain (PAM30 score); similarity, assessed comparing the generated sequences to the test set with Levenshtein distance, PAM30 score, and false mutation rate; and single mutation prediction, evaluated through single mutation analysis, Gibb's delta, mutation density analysis, and correlation mutation analysis on the test set (image realized with draw.io [2]).\n\n<!-- image -->\n\nset sequence M , we calculate the FMR as\n\n###### Number of mutations in S -Mutations shared between S and M Total number of mutation in M\n\nFMR is the ratio between the number of mutations found in S , but not present in M , divided by the total number o f mutations in M (with S and M mutations assessed via alignment with the original Wuhan S1)."}]

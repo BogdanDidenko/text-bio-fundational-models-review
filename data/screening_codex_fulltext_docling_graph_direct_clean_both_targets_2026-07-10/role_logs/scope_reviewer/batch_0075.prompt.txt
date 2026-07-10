@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000822","candidate_id":"full_2026-07-06__rec_000822","source_record_id":"rec_000822","source_corpus":"include","title":"HydraRNA: a hybrid architecture based full-length RNA language model","abstract":"Background RNA, an essential component of the central dogma of molecular biology, plays versatile roles in all cellular processes. RNA large language models (LLMs) are emerging as powerful methods in RNA research to decipher its intricate network of function and regulation. However, previous RNA LLMs were based on the Transformer model and pre-trained on short segment of non-coding RNAs, which limits their general usability. Here we present the first full-length RNA foundation model, HydraRNA, which is based on a hybrid architecture of bidirectional state space model and multi-head attention mechanism.\n\nResults HydraRNA is pre-trained on a large amount of both protein-coding mRNAs and non-coding RNAs. Despite being pre-trained with the fewest parameters and the least GPU resources, HydraRNA learns better RNA representations and outperforms the existing foundation models on a variety of mRNA-related tasks, including coding/ non-coding RNA classification, prediction of RNA secondary structure, RBP binding sites, splicing and polyadenylation sites, mRNA stability and translation efficiency. Furthermore, HydraRNA can accurately predict the effect of mutations and estimate the relative contributions of different mRNA regions to the RNA stability and translation.\n\nConclusions Our results demonstrate that the hybrid architecture outperforms the pure Transformer architectures in RNA language modeling. [truncated]","doi":"10.1186/s13059-025-03853-7","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: HydraRNA: a hybrid architecture based fulllength RNA language model > Results > Development of HydraRNA]\nHydraRNA is based on a hybrid architecture consisting of both Hydra [18] and multihead attention (MHA) [13] layers (Fig. 1a). It has 12 layers in total. Each layer contains a Hydra module except the 6th and 12th layer, which contains an MHA module. Hydra is  a  natural  bidirectional  extension  of  the  structured  state  space  model  [18]  (Fig.  1b). HydraRNA takes advantages of Hydra's linear scalability of sequence length and high efficiency in in-context learning. The MHA layer was inserted into the stack of Hydra layers  to  further  improve  the  model  quality  as  well  as  to  enhance  the  explainability.\n\nFig. 1 Overview of HydraRNA. a HydraRNA employs a hybrid architecture with 12 layers. Each layer contains a Hydra module except the 6th and 12th layer, which contains a MHA module, i.e. C = 2,N = 5,M = 1 in this case. b Illustration of Hydra module. c HydraRNA was pretrained on 28.1 million RNAs including both non-coding and protein-coding RNAs using masked language modeling. d Task-specific prediction head was added to the HydraRNA encoder. e Radar plot for overview of prediction performance comparison\n\n<!-- image -->\n\nEach layer has a hidden state dimension of 1024. HydraRNA was pre-trained on 28 million sequences of non-coding RNAs and protein-coding mRNAs from RNAcentral and NCBI databases (Fig. 1c). Each nucleotide is processed as a single token. A BERT-like random masking strategy was used in the pre-training step. To speed up training, RNA sequences longer than 4096 nt were split into segments of length at most 4096 nt. About 90% of RNAs were pre-trained as full-length  sequences  without  segmentation  (Additional file 1: Figure S1). It took only about 92 h to pre-train HydraRNA on a server with 8  consumer-grade 4090D GPU cards. The time and cost of training were significantly reduced compared to previous RNA LLMs (Additional file 1: Table S1). We conducted several ablation studies to determine the optimal choice of architecture and pre-training  strategy.  More  technical  details  were  provided  in  the  Methods  section.  For  each downstream task, a task-specific prediction head was added to the HydraRNA encoder (Fig. 1d). Unless otherwise specified, a simple MLP predictor with a single 128-dimensional hidden layer was employed for each task. We fully or partially fine-tuned other RNA LLM models using the same approach as we employed for HydrRNA. A radar plot (Fig. 1e) was shown for overview of the prediction performance comparison.\n\n[input_representation: HydraRNA: a hybrid architecture based fulllength RNA language model > Methods > Random span masked language model]\nThe  masking  strategy  used  in  RNA-FM,  RNABERT  [10],  RNA-MSM  [11],  LAMAR [49],  3UTRBERT and UTR-LM was originally from BERT [50], which is essentially at base-level.  Specifically,  15%  of  the  nucleobases  are  randomly  selected  within  an  RNA sequence.  Among  the  selected  tokens,  80%  are  masked,  10%  are  preserved  without any alterations, and the remaining 10% are replaced with other nucleobases. Based on ERNIE,  RNAErnie  introduced  a  motif-aware  multilevel  masking  strategy  to  pre-train the model. It maintained a proportion of 1:1:1 across the three different masking levels (base-level, subsequence-level and motif-level), with the training algorithm randomly selecting  one  strategy  for  each  training  session.  Although  this  motif-aware  masking strategy  could  incorporate  biological  priors  into  the  training  process,  it  may  complicate the training process and biased to the known motif databases. We also noticed that another RNA foundation model, ERNIE-RNA [51] also used ERNIE masking strategy during pre-training.\n\nWe  proposed  a  novel  unified  masking  strategy  for  masked  language  modelling, which is called random span masking. In this strategy, multiple span regions (contiguous nucleobase sequences) that covering 15% of the nucleobases are randomly selected. Among  the  selected  nucleobases,  80%  are  masked  with &lt; mask &gt; token,  10%  are  preserved without any alterations, and the remaining 10% are replaced with other nucleobases. This unified masking strategy generalize the classical BERT-like masking strategy to implicitly capture the deeper biological information underling the consecutive region in the whole RNA transcript context, while it also avoid explicitly using biased motif priors. If the mean length of the span masks is set to be 1, it degenerates to the conventional BERT-like masking strategy."}]

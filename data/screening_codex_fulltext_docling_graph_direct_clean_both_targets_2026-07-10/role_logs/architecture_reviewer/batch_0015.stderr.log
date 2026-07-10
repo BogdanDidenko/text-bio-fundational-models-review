@@ -1,0 +1,146 @@
+2026-07-10T10:04:41.452383Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.486928Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b7c-8c1b-7d23-b64b-299eb0aeb2ab
+--------
+user
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000092","candidate_id":"june_update_2026-06-10__rec_000092","source_record_id":"rec_000092","source_corpus":"include","title":"PlantGFM: A Genomic Foundation Model for Discovery and Creation of Plant Genes","abstract":"The artificial intelligence (AI)-driven generation of genetic sequences holds transformative potential for addressing global challenges in agriculture, medicine, and bioenergy. Traditional approaches including hybridization, mutagenesis, and CRISPRbased editing enable targeted modification of endogenous DNA, yet remain constrained by natural sequence diversity. We here introduce PlantGFM, an application of the Hyena operator within a plant-oriented genomic foundation model, which was pretrained on 10.84 billion nucleotides from 12 plant species and supports long-context (64 kb) prediction and sequence generation within a unified architecture. After fine-tuning on 10 annotated plant genomes, PlantGFM matched or exceeded the performance of specialized gene prediction tools. Beyond reproducing natural genes, it enables de novo design of novel candidates through the emergence capability of AI. Seven candidates selected through an AI-Human Knowledge fusion screening pipeline all showed transcriptional activity in Nicotiana benthamiana, two with stable protein expression-representing the first demonstration of DNA-RNA-protein expression of Large Language Model-generated sequences in plants. As a proof of concept, PlantGFM also exhibits emergent abilities in generating plant NLR genes. Our findings establish the feasibility of LLM technology for de novo plant gene design, providing a foundation for plant synthetic biology and AI-assisted breeding.","doi":"10.1002/advs.75772","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: PlantGFM: A Genomic Foundation Model for Discovery and Creation of Plant Genes > ABSTRACT]\nThe artificial intelligence (AI)-driven generation of genetic sequences holds transformative potential for addressing global challenges in agriculture, medicine, and bioenergy. Traditional approaches including hybridization, mutagenesis, and CRISPRbased editing enable targeted modification of endogenous DNA, yet remain constrained by natural sequence diversity. We here introduce PlantGFM, an application of the Hyena operator within a plant-oriented genomic foundation model, which was pretrained on 10.84 billion nucleotides from 12 plant species and supports long-context (64 kb) prediction and sequence generation within a unified architecture. After fine-tuning on 10 annotated plant genomes, PlantGFM matched or exceeded the performance of specialized gene prediction tools. Beyond reproducing natural genes, it enables de novo design of novel candidates through the emergence capability of AI. Seven candidates selected through an AI-Human Knowledge fusion screening pipeline all showed transcriptional activity in Nicotiana benthamiana, two with stable protein expression-representing the first demonstration of DNA-RNA-protein expression of Large Language Model-generated sequences in plants. As a proof of concept, PlantGFM also exhibits emergent abilities in generating plant NLR genes. Our findings establish the feasibility of LLM technology for de novo plant gene design, providing a foundation for plant synthetic biology and AI-assisted breeding.\n\n[input_representation: PlantGFM: A Genomic Foundation Model for Discovery and Creation of Plant Genes > 2 Results > 2.4 De Novo Gene Generation]\nOne of the most striking breakthroughs in AI in recent years is generative AI, which essentially creates new knowledge by fully leveraging its powerful emergent capabilities on top of a deep mastery of existing knowledge [ 21, 44, 45 ]. In view of this, our ultimate goal is definitely to investigate whether genome language models can generate novel plant genes with specified functions and enhanced functional performance. Although the latest Evo 1.5 [ 26 ] partially achieves this by leveraging the clustering of functional genes in prokaryotic genomes, it remains unknown whether this strategy will be effective for plant genomes, which contain a large number of transposon insertions. Here, our goal was to first test whether completely AI-generated DNA sequences-without any natur al homologs-can be recognized, transcribed, processed, and in some cases translated by plant cellular machinery.\n\nOur main idea is to re-train PlantGFM with prompt-based fine-tuning using the natural genes from 12 plant species that participated in pre-training, hoping that the model will learn the patterns and structures of natural genes, and thereby could generate entirely new plant candidate genes (Figure 3A ). Specifically, we first extracted the DNA sequences of all 467,891 natural genes from the 12 reference genomes. By observing the length distribution of them, we found that the majority (75%) of them are less than 4 kb in length (Figure 3A , middle left). To ensure that the generated sequences will be more consistent with the lengths of natural genes, we selected those 355,190 natural genes with length less than or equal to 4 kb and added the prompt of 'gene' to each. These gene sequences along with their prompts were then fed into PlantGFM and performed two epochs of re-training, resulting in a Sequence Generation Model (SGM).\n\nBased on SGM, we will begin the work of de novo design of new sequences. Specifically, we first used SGM to create a total of 3,000 generated sequences in three batches, with 1,000 sequences per batch, and then apply existing tools [ 31, 32, 46 ] to perform screening of the PlantGFM-generated sequences. To assess the biological plausibility of them, we designed a comparative experiment in which PlantGFM-generated sequences, Evo 2 -generated sequences (another well-known DNA sequence generation model as an AI positive control), a set of 1,000 natural genes (natural positive control with similar length distribution) (Figure 3A , middle right) and a set of 1,000 purely random sequences (negative control) into two commonly used gene prediction software tools of Helixer [ 46 ] and AUGUSTUS [ 32 ], and compared their predicted gene proportions. The prediction results showed that the proportion of genes in the PlantGFM-generated sequences (0.75 using Helixer and 0.70 using AUGUSTUS) was relatively close to that of natural genes (0.9 using Helixer and 0.85 using AUGUSTUS), and substantially higher than that observed for Evo 2-generated sequences (0.40 by Helixer and 0.65 by AUGUSTUS) as well as the negative control, which yielded near-zero predictions (Figure 3B ). This suggests that the sequences generated by AI have a 75%-80% probability of aligning with existing tools.\n\nTo further validate the novelty of these PlantGFM-generated sequences, we performed sequence similarity comparisons with BLAST between natural genes from 12 plant species and them. Among the PlantGFM-generated sequences certified by Helixer (767 in total), only 0.13% (1 new sequence) showed more than 10% nucleotide sequence similarity to existing natural genes, and among those certified by AUGUSTUS (703 in total), no new sequences exceeded 10% similarity. These results strongly suggest that these sequences represent de novo designs rather than recombinations of known genes.\n\nTo validate the biological plausibility of PlantGFM-generated sequences, we analyzed multiple gene-like properties based on Helixer annotations. Across all metrics, PlantGFM sequences match closer natural genes than Evo 2, including GC content and codon usage, intron counts and total intron lengths (Figure S3 ), and conserved 5 ′ donor and 3 ′ acceptor splice site motifs (Figure S4 ). This suggests that the generative model not only replicates the base composition characteristics of natural genes but also demonstrates a high degree of plausibility in functionally important coding properties.\n\nFIGURE 3 De novo Generation and Evaluation of New Genes. (A) The Workflow of Generating New Genes. A total of 467,891 natural genes from 12 plant reference genomes are used. Genes shorter than 4 kb are selected (355,190 genes) and used to retrain the PlantGFM model with the prompt 'gene'. The model generates 1,000 new genes, which are compared to two control sets: one consisting of 1,000 randomly generated sequences (negative control) and the other of 1,000 natural genes (positive control). These sequences are annotated using Helixer and AUGUSTUS gene prediction software. (B) Evaluation of Gene Generation Efficiency. The proportion of genes predicted correctly for positive control (natural genes), sequences generated by PlantGFM and Evo 2, and negative control (random sequences), as evaluated by Helixer and AUGUSTUS. (C) Screening of candidate PlantGFMgenerated genes via the AI-HK pipeline. A multi-step screening was performed to identify promising PlantGFM-generated gene candidates. From 1,000 initial sequences, those with Helixer prediction scores ≥ 0.8 were retained (n = 454). Sequences predicted as full-length genes were further selected (n\n\n<!-- image -->"}]
+
+2026-07-10T10:04:41.500047Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:41.510423Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.536199Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.558881Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.574729Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.574745Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.575689Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.575705Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.576592Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.576601Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.577599Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.577605Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.578519Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.578531Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.580168Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.580175Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:41.582983Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.606289Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.654659Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.678620Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.704010Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.730700Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.755632Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.779662Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.804348Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.829530Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.852339Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.875567Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.899779Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.924170Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.969022Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:41.992715Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:04:42.533799Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:42.704140Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:42.726940Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:42.726987Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:44.259750Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:44.310219Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.310234Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.311112Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.311121Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.311826Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.311834Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.312673Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.312688Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.313418Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.313424Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.315291Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:44.315298Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:04:45.051199Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:45.063818Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:04:45.063855Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"june_update_2026-06-10__rec_000092","paper_type":"primary_model_paper","generative_model_present":"yes","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record describes a plant-oriented genomic foundation model pretrained on 10.84 billion nucleotides from 12 plant species and explicitly used for sequence generation. It also reports de novo design of novel plant genes, supporting both generative and foundation-model characteristics.","evidence_snippet":"\"supports long-context (64 kb) prediction and sequence generation within a unified architecture\"; \"pretrained on 10.84 billion nucleotides from 12 plant species\"; \"de novo design of novel candidates\""},{"record_id":"june_update_2026-06-10__rec_000092","paper_type":"primary_model_paper","generative_model_present":"yes","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record describes a plant-oriented genomic foundation model pretrained on 10.84 billion nucleotides from 12 plant species and explicitly used for sequence generation. It also reports de novo design of novel plant genes, supporting both generative and foundation-model characteristics.","evidence_snippet":"\"supports long-context (64 kb) prediction and sequence generation within a unified architecture\"; \"pretrained on 10.84 billion nucleotides from 12 plant species\"; \"de novo design of novel candidates\""}]}
+2026-07-10T10:04:59.928507Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b7c-8c1b-7d23-b64b-299eb0aeb2ab.1783677881427059000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+6,701

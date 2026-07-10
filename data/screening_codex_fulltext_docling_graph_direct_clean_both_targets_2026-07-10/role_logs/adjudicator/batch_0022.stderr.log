@@ -1,0 +1,166 @@
+2026-07-10T10:34:11.137208Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.160720Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b97-8cb6-78b1-be62-151a9d2b73ce
+--------
+user
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000106","candidate_id":"full_2026-07-06__rec_000106","source_record_id":"rec_000106","source_corpus":"uncertain","title":"CELLama: Foundation Model for Single Cell and Spatial Transcriptomics by Cell Embedding Leveraging Language Model Abilities.","abstract":"","doi":"10.1002/advs.202513210","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: CELLama: Foundation Model for Single Cell and Spatial Transcriptomics by Cell Embedding Leveraging Language Model Abilities > 2. Results > 2.4. Finetuning of CELLama Results for Better Performance]\nThough previous results utilized a general-purpose sentence transformer directly after generating sentences from cell data, sentences can also be generated specifically from single-cell data for model fine-tuning. This two-step process involves generating sentence pairs from single-cell or spatial data, followed by training the transformer with these pairs. We tested this finetuning process with the COVID-19 dataset ( Figure 4 a). First, sentences were constructed to represent each cell by ranking gene expressions and formatting them into descriptive sentences. These sentences were then paired, with pairs assigned a label based on their cosine similarity from gene expression data. This similarity is calculated using PCA components derived from highvariable gene expressions to ascertain the cosine distances between cells. We aimed for a balanced dataset by selecting pairs that are either closely related (cells with top cosine similarity for a given cell) or randomly assorted. Additionally, if the features of metadata differ (e.g., cells from different conditions or tissues), the cosine similarity was adjusted to zero to facilitate clustering of similar samples and to ensure separation based on distinct metadata (Figure 4b). The transformer was then fine-tuned using these generated pairs. The reference COVID-19 dataset was free of predefined labels, allowing for the generation of ≈ 160,000 sentence pairs, which were then used for fine-tuning the model. After applying finetuning to the sentence transformer-based embedding model, both reference and test data were embedded (Figure 4c). Cell types for the test set were then annotated using the nearest neighbor approach, and accuracy was subsequently measured. As a result, compared to Figure S2 (Supporting Information), the fine-tuned model demonstrated enhanced cell typing performance, significantly surpassing both the original CELLama and scGPT. The results showed accuracies of 86.7%, 85.9%, and 86.7% for finetuned CELLama, original CELLama, and scGPT respectively. Precision scores were 61.0%, 54.3%, and 54.5%, while recall scores were 59.5%, 52.4%, and 49.7%, respectively (Figure 4d).\n\n[input_representation: CELLama: Foundation Model for Single Cell and Spatial Transcriptomics by Cell Embedding Leveraging Language Model Abilities > 2. Results > 2.5. Analyzing Cells with Spatial Context by Niche Cell Information on ST with CELLama]\nWefurther explored the capability of CELLama to perform spatial mapping of cell types on ST data. Cell type mapping for image-\n\n<!-- image -->","first_pass_outputs":{"scope_reviewer":{"record_id":"full_2026-07-06__rec_000106","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"Primary model paper on single-cell and spatial transcriptomics. The model explicitly converts cell data into descriptive sentences and fine-tunes a transformer on sentence pairs derived from biological data.","evidence_snippet":"“Foundation Model for Single Cell and Spatial Transcriptomics”; “sentences can also be generated specifically from single-cell data for model fine-tuning”; “ranking gene expressions and formatting them into descriptive sentences” | “sentence transformer” | “fine-tuned” as sentence pairs from single-cell or spatial data | “Cell types for the test set were then annotated”"},"architecture_reviewer":{"record_id":"full_2026-07-06__rec_000106","paper_type":"primary_model_paper","generative_model_present":"no","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record describes a sentence-transformer embedding model for single-cell and spatial transcriptomics and downstream cell annotation, not a generative architecture. The title and text frame CELLama as a foundation model with broad use across single-cell and spatial tasks.","evidence_snippet":"\"sentence transformer\"; \"finetuning of CELLama\"; \"cell types for the test set were then annotated using the nearest neighbor approach\"; title says \"Foundation Model for Single Cell and Spatial Transcriptomics\""},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"none","adjudication_reason":"fallback_unresolved","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","generative_model_present":"no","foundation_model_evidence":"yes"}}}]
+
+2026-07-10T10:34:11.180264Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:11.186314Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.216238Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.246317Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.272393Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.297525Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.299033Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.299059Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.302592Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.302606Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.303981Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.303991Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.304878Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.304885Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.306073Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.306101Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.308355Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.308366Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:11.321709Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.346148Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.370711Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.395204Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.417997Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.442564Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.467806Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.492603Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.518070Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.535083Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.562899Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.587580Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.604162Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.631400Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.655110Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.677878Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.727421Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:34:11.759696Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:13.979596Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:14.015992Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:14.016056Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:14.930915Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:14.958045Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.958060Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.958888Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.958902Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.959640Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.959651Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.960308Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.960318Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.961220Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.961231Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.962465Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:14.962474Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:34:16.313183Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:16.346357Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:34:16.346412Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_000106","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","generative_model_present":"no","foundation_model_evidence":"yes","primary_exclusion_code":"EC3_not_generative","uncertainty_reason":"none","decision_rationale":"This is a primary model paper for single-cell/spatial transcriptomics with explicit textification of cell data, but the candidate model is a sentence-transformer embedding pipeline and nearest-neighbor annotation, not a generative architecture. It is therefore outside a generative-model-only scope.","evidence_snippet":"“sentences were constructed to represent each cell by ranking gene expressions and formatting them into descriptive sentences”; “The transformer was then fine-tuned using these generated pairs”; “cell types ... annotated using the nearest neighbor approach”\",\"evidence_for_text_component\":\"\"ranking gene expressions and formatting them into descriptive sentences\"; \"sentence transformer\"\",\"evidence_for_text_bio_bridge\":\"\"sentences were constructed to represent each cell\"; \"generated sentence pairs from single-cell or spatial data\"\",\"evidence_for_generative_model\":\"\"sentence transformer\"; \"cell types ... annotated using the nearest neighbor approach\"\",\"boundary_case\":\"generative_boundary\"}]}]}0}}]}]}]}]}]‌‌‍‍‍ ‍‍‍‍‍‍‍}}]}]}]}}]}]"}]}
+2026-07-10T10:34:28.902150Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b97-8cb6-78b1-be62-151a9d2b73ce.1783679651107507000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+2,940

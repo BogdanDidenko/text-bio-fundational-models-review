@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000021","candidate_id":"june_update_2026-06-10__rec_000021","source_record_id":"rec_000021","source_corpus":"include","title":"A fine-tuned genomic language model adds complementary nucleotide-context information to missense variant interpretation.","abstract":"Missense variant interpretation remains a central challenge in clinical genomics. Missense pathogenicity predictors achieve strong performance, but many emphasize protein-level consequences or overlapping annotation priors. Whether genomic language models add non-redundant nucleotide-context signal to missense interpretation remains unclear. Here, we systematically adapted genomic language models to ClinVar missense pathogenicity prediction across backbone architectures, representation strategies, classifier heads, and adaptation regimes. In our analysis, variant-position embeddings consistently outperformed pooled sequence representations, multi-species pretraining provided the strongest backbone-level advantage, and low-rank adaptation generalized better than full fine-tuning. The resulting fine-tuned model, GLM-Missense, substantially outperformed zero-shot scoring from the same pretrained model. To test whether GLM-Missense contributes information beyond existing methods, we built MetaMissense, an XGBoost ensemble combining GLM-Missense with AlphaMissense, ESM1b, REVEL, CADD, SIFT, and PolyPhen-2. GLMMissense showed the lowest concordance with other predictors, retained the strongest partial association with pathogenicity after controlling for the other predictors, and ranked as the most informative non-ensemble input to MetaMissense. MetaMissense achieved the best performance in both cross-validation and held-out testing. [truncated]","doi":"10.64898/2026.05.06.723362","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 5 Methods > 5.6 GLM-Missense training and NT-2 zero-shot scoring]\nThe GLM-Missense model used the NT-2 backbone, LoRA fine-tuning with rank r = 32, learning rate 5 × 10 -5 , a 2-layer MLP classifier head, and the variant-position refalt-diff input representation. Training used the earlier-release expanded training set, and model selection used the earlier-release expanded validation set.\n\nFor zero-shot scoring, we used the pretrained NT-2 backbone without task-specific fine-tuning. For each variant, we encoded matched reference and alternate sequences with the same 11,999-bp centered input window and 6-mer tokenization used for supervised NT-2 experiments. We then masked the k-mer token containing the centered variant position in the alternate sequence and computed a masked marginal log-likelihood ratio,\n\n```\nlog P (alt | context) -log P (ref | context) .\n```\n\nWe transformed this quantity into a pathogenicity score by applying 801\n\n```\nsigmoid ( -[log P (alt | context) -log P (ref | context)]) ,\n```\n\n802\n\n803\n\n804\n\n805\n\nso that variants for which the alternate allele was less compatible with the pretrained model received higher pathogenicity scores. Zero-shot NT-2 scoring was evaluated on the later-release full set and compared directly with GLM-Missense.\n\n[input_representation: 5 Methods > 5.2 Backbone-specific input sequence construction]\nAll sequence inputs were centered on the candidate missense variant so that the altered position occupied a fixed location after tokenization. Depending on the experiment, the model received either the alternate sequence alone or paired reference and alternate sequences processed separately and combined only at the classifier input. This design enabled consistent extraction of variant-position and local-context embeddings across backbones while allowing each model to operate at its native tokenization scheme and context length.\n\nNucleotide Transformer v2 (NT-2). For each variant, we extracted an 11,999bp sequence centered on the variant position and tokenized it using 6-mer encoding with stride 6. This yielded 2,000 tokens, with the variant located at token index 1,000. We used the pretrained Nucleotide Transformer v2 (NT-2, 500M parameters), a BERT-style model trained by masked language modeling on 850 genomes from diverse species Dalla-Torre et al. (2025). NT-2 produces a 1,024-dimensional embedding per token. For the matched NT-2 versus NT-1 comparison, we also evaluated NT-2 on a 5,999-bp input window.\n\nNucleotide Transformer v1 (NT-1). NT-1 is a 500M-parameter model with a similar architecture to NT-2 but pretrained on human genomes only. For NT-1, we extracted a 5,999-bp sequence centered on the variant and applied the same 6-mer tokenization strategy as NT-2, yielding 1,000 tokens with the variant at token index 500. NT-1 produces a 1,280-dimensional embedding per token.\n\nCaduceus-PS. For Caduceus-PS, we extracted a 29,999-bp sequence centered on the variant. Caduceus-PS is a bi-directional Mamba-based DNA language model with reverse-complement equivariance achieved by parameter sharing Schiff et al. (2024). Unlike NT-1 and NT-2, it operates at single-nucleotide resolution. The resulting sequence therefore contains 29,999 tokens, with the variant at nucleotide index 15,000. 687 Caduceus-PS produces a 512-dimensional embedding per token. Although Caduceus 688 models were pretrained with substantially longer contexts (up to 131 kb) Schiff et al. 689 (2024), we limited inputs to ∼ 30 kb to fit our available GPU memory while still 690 capturing distal sequence context. 691\n\n692\n\n693"}]

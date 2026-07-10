@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001200","candidate_id":"full_2026-07-06__rec_001200","source_record_id":"rec_001200","source_corpus":"uncertain","title":"Systematic discovery of single-cell protein networks in cancer with Shusi","abstract":"Context-specific protein-protein interaction (PPI) drive heterogeneity of primary tumor, forming a formidable challenge to effective cancer therapy. However, systematically mapping and modeling these interactions at single-cell resolution across diverse cancer types remains an unmet need. Here, we present Shusi, a large language model-enhanced variational graph auto-encoder model trained on over 75,010 single-cell PPI networks across 23 cancer types, to predict contextspecific PPIs. Shusi outperforms existing state-of-the-art methods, as validated through orthogonal experimental evidence. Cancer-specific mutations are significantly enriched in Shusi-predicted networks, offering complementary insights to conventional marker gene-based approaches. Through systematic evaluations, we demonstrate strong associations between Shusi-predicted network topologies, genetic vulnerabilities, and therapeutic sensitivity. Finally, in acute myeloid leukemia (AML), a blood cancer where cell-state heterogeneity drives clinical resistance, Shusi pinpointed JAK2 and SHP1 as actionable vulnerabilities of resistant leukemia subpopulations, as validated experimentally in primary AML.\n\nShusi offers a deep-learning tool for implementing precision medicine based on single-cell protein network architecture.","doi":"10.1101/2025.04.27.649905","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Data collection and preprocessing > Single-cell RNA sequencing of cancer cell lines]\nWe utilized two comprehensive single-cell transcriptomic datasets for model training: the pan-cancer atlas from Kinker et al. (GSE157220) 29 , and the multi-omics profiling data from Zhu et al. (https://db.cngb.org/cdcp/scatlashcl/download/) 30 . The Kinker dataset comprises single-cell RNA sequencing (scRNA-seq) profiles of 198 cancer cell lines spanning 22 distinct cancer types, and the Zhu dataset provides the transcriptomic characterization of 40 cancer cell lines. We obtained a combined dataset of 71,575 single-cell profiles corresponding to 232 unique cancer cell lines. We collected differentially expressed genes detected in these two studies for further analysis.\n\n[input_representation: Model Framework > Feature Extraction Module]\nThe feature extraction module operated on amino acid sequences and functional annotations collected from the STRING database. To simultaneously model both the sequence and text information, we utilized two distinct encoders: Sentence-BERT 32 and Galactica 33 . Sentence-BERT (SBERT) is a transformer-based model trained on masked token prediction tasks, designed to generate semantic sentence representations. On the other hand, Galactica is a large language model specifically trained on scientific texts, optimized for next-token prediction tasks. Let the gene annotation be denoted by a and s , where a i represents the textual annotation for gene i , and s i represents the gene sequence.\n\nThe embeddings for each cell were obtained by concatenating the embeddings generated by both encoders. Specifically, for gene i , the combined embedding X i ∈ R d 0 was given by:\n\n<!-- formula-not-decoded -->\n\nHere, X i denoted the concatenated embedding for gene i , with a total dimension of 4864."}]

@@ -1,0 +1,158 @@
+2026-07-10T09:51:37.972375Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:37.996418Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.028082Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.037690Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b70-97b0-7562-a561-83a0df57c875
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000118","candidate_id":"june_update_2026-06-10__rec_000118","source_record_id":"rec_000118","source_corpus":"include","title":"CodonMoE: DNA language models for codon-dependent mRNA prediction","abstract":"Genomic language models (gLMs) face a fundamental efficiency challenge: either maintain separate specialized models for each biological modality (DNA and RNA) or develop large multi-modal architectures. Both approaches impose significant computational burdens-modality-specific models require redundant infrastructure despite inherent biological connections, while multi-modal architectures demand massive parameter counts and extensive cross-modality pretraining. To address this limitation, we introduce CodonMoE (Adaptive Mixture of Codon Reformative Experts), a lightweight adapter that transforms DNA language models into effective RNA analyzers without RNA-specific pretraining. Our theoretical analysis establishes CodonMoE as a universal approximator at the codon level, capable of mapping arbitrary functions from codon sequences to RNA properties given sufficient expert capacity. Across four RNA prediction tasks spanning stability, expression, and regulation, DNA models augmented with CodonMoE significantly outperform their unmodified counterparts, with HyenaDNA+CodonMoE series achieving stateof-the-art results using 80% fewer parameters than specialized RNA models. By maintaining sub-quadratic complexity while achieving superior performance, our approach provides a principled path toward unifying genomic language modeling, leveraging more abundant DNA data and reducing computational overhead while preserving modality-specific performance advantages.\n\n∗ Corresponding author.","doi":"10.1093/bioinformatics/btag285","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: A Technical appendices and supplementary material > A.7 Additional introduction of DNA backbones > A.7.5 HyenaDNA]\nHyenaDNA is a genomic foundation model that addresses the challenges of long-range dependencies and single-nucleotide resolution in DNA sequence analysis. Unlike traditional Transformer-based approaches constrained by the quadratic scaling of attention mechanisms, HyenaDNA employs the Hyena operator, which enables ultralong context lengths of up to 1 million tokens. This represents a 500x improvement in context length over previous dense-attention genomic models. Pretrained on the human reference genome using next-nucleotide prediction, HyenaDNA excels in capturing both the intricate longrange interactions within genomic sequences and the subtle single-nucleotide variations that drive biological functions. Its architecture is highly efficient, scaling sub-quadratically in sequence length and training up to 160x faster than Transformers for similar tasks. Despite using significantly fewer parameters and less pretraining data, HyenaDNA achieves state-of-the-art performance across 20+ genomic benchmarks, including enhancer identification and chromatin profile prediction. Moreover, its innovative use of soft prompting and in-context learning allows for rapid adaptation to new genomic tasks without fine-tuning model weights, showcasing its flexibility and broad utility in genomic research.\n\n[input_representation: 3 Methodology]\nWe introduce a novel module, CodonMoE, that can be integrated into state-of-the-art pretrained SSMs and attention-based models designed for DNA sequence analysis to adapt them for RNA analyses (Figure 2). The CodonMoE processes these hidden states from those DNA backbones by restructuring the input into codons (three-nucleotide sequences) and applying an Adaptive Mixture of Codon Reformative Experts. Each expert within the CodonMoE is designed to identify and emphasize various biological signals, enabling the model to capture both codon-level and broader sequence patterns. Furthermore, we demonstrate that the CodonMoE is a universal approximator at the codon level. Given sufficient expert capacity, the CodonMoE can approximate any function that maps codon sequences to specific target properties with arbitrary precision when combined with the pretrained backbone model. In general, this architecture effectively translates DNA models to RNA contexts, allowing for robust analysis of RNA sequences.\n\nFigure 2: Overview of CodonMoE and proposed framework. The architecture combines pretrained DNA-focused state space models with a novel CodonMoE module. This CodonMoE adapts DNA-derived patterns for RNA analysis by grouping inputs into codons and using a Mixture of Experts (MoE) approach. This design enables effective translation of DNA models for RNA sequence analysis, leveraging the strengths of both domains.\n\n<!-- image -->\n\n### 3.1 CodonMoE: adaptive mixture of codon reformative experts\n\nSample-wise dynamic codon-level representation CodonMoE processes representations of codons, which are groups of three nucleotides in genetic sequences encoding amino acids. The input to CodonMoE consists of nucleotide representations with dynamic dimensionality, allowing it to accommodate input samples of varying sequence lengths. These inputs are reshaped into codon groups, preserving the structure of the genetic code. The CodonMoE slices this sequence to extract codon-related segments and reshapes them to facilitate further processing.\n\nAdaptive mixture of reformative codon experts CodonMoE uses Adaptive Mixture of Codon Experts layers, where k experts, each specializing in different aspects of the codon data, process these representations. The transformation is given by:\n\n<!-- formula-not-decoded -->\n\nwhere g k ( x ) is the gating mechanism that determines the contribution of each expert E k . This dynamic expert selection allows the MoE to process the codon data in multiple ways, with the gating system controlling which perspective should dominate.\n\nDynamic reshaping and contextualization After processing by the experts, the codon-level representations are reshaped to match the original sequence length and structure. The CodonMoE contextualizes this information, enriching it with surrounding data before recombining it with the rest of the input sequence:\n\n<!-- formula-not-decoded -->\n\nThis process ensures that codon-level information is properly embedded and aligned within the original sequence, helping the model recognize both local codon-specific patterns and broader genetic patterns. For more detailed specification of the algorithm, refer to the appendix A.1.\n\nBuilding on CodonMoE, CodonMoE-pro replaces the final layers with a codon neighborhood convolution. The convolutional mechanism in CodonMoE-pro processes these distilled features generated from CodonMoE gates. By applying codon neighborhood convolutional operations to these specialized representations, the higher-order relationships between the already-refined codon features can be detected. This hierarchical processing pipeline enhances the model's ability to capture biologically relevant patterns that influence translation dynamics. The architecture leverages the biological insight that codon context, rather than isolated codons, often determines translation efficiency and mRNA half-life, thereby providing a more nuanced approach to sequence analysis that aligns with current understanding of translation biology.\n\n### 3.2 CodonMoE is a universal approximator at the codon level\n\nWe show that given sufficient capacity, our proposed CodonMoE can approximate any function that maps codon sequences to target properties with arbitrary precision when integrated with the pretrained backbone model.\n\nDNA sequence space ( X ) is defined as the set of all possible DNA sequences composed of nucleotides from the alphabet { A, C, G, T } . In our framework, the RNA nucleotide ' U ' is replaced with the DNA nucleotide ' T ', aligning RNA codons with their corresponding DNA representations. Codon Space ( C ) consists of all possible codons, where each codon is a sequence of three nucleotides from { A, C, G, T } . Formally, C = { A, C, G, T } 3 . Function Class ( F ) comprises all continuous functions f : C n → R that map sequences of n codons to specific target properties.\n\nOur modeling approach is structured around a two-stage paradigm. Initially, a Backbone Model h : X → R L × D is pretrained on DNA sequences, where L represents the sequence length and D the embedding dimension. This pretraining phase equips the backbone with foundational knowledge of genetic sequences and their inherent patterns. We directly use the pretrained models on DNA sequences. Subsequently, the CodonMoE serves as an adapter to this pretrained backbone model. Formally, the CodonMoE is a function g : R L × D → R that is fine-tuned on mRNA sequences to specialize the model for mRNA-specific tasks. This fine-tuning process involves training the adapter using mRNA sequences.\n\nTheorem 3.1. Let C = { A, C, G, T } 3 be the codon space, and let F = { f : C n → R } be the class of target functions. Consider a pretrained backbone model h : X → R L × D , where X = { A, C, G, T } ∗ , and an adapter CodonMoE g : R L × D → R structured as a dense MoE with K experts. Assume the following conditions hold:\n\n1. Expert capacity : Each expert E k : R D → R D ′ within the MoE is a neural network capable of uniformly approximating any continuous function on compact subsets of R D .\n2. Gating mechanism : The gating network G : R D → ∆ K (where ∆ K is the K -simplex) assigns non-negative weights g k ( z i ) to each expert based on the input z i ∈ R D , satisfying ∑ K k =1 g k ( z i ) = 1 .\n3. Embedding representation : Each DNA sequence x ∈ X is partitioned into codons ( c 1 , c 2 , . . . , c n ) , and the backbone model generates embeddings h ( x ) ∈ R L × D , where L = 3 n (assuming each codon is represented by three consecutive embeddings).\n\nThen, for any function f ∈ F and for any ϵ &gt; 0 , there exists a number of experts K and corresponding parameters for the CodonMoE such that, for all x ∈ C n , the approximation error satisfies\n\n<!-- formula-not-decoded -->\n\nwhere z i = [ h ( c i )] ∈ R D is codon c i represented by averaging three nucleotide embeddings.\n\nFor proof of Theorem 3.1, refer to the appendix A.2."}]
+
+2026-07-10T09:51:38.065317Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.090078Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.110512Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.126093Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.126106Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.126742Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.126754Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.127428Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.127441Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.128090Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.128099Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.128604Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.128612Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.130384Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.130392Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:38.160953Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.184973Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.206714Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.230589Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.254794Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.279071Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.303295Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.327653Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.351932Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.374150Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.398584Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.421866Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.444764Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.469037Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:38.658743Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:38.716337Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:38.730260Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:38.730305Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:42.124472Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:42.164979Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.164993Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.165691Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.165704Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.166545Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.166557Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.167275Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.167287Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.168178Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.168188Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.169916Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:42.169927Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:44.387850Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:44.414743Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:44.414819Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"june_update_2026-06-10__rec_000118","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary method paper for CodonMoE on DNA/mRNA sequence modeling, not a review or wrapper. The provided evidence describes biological sequence processing only; it does not include a natural-language text component or a substantive text-bio bridge.","evidence_snippet":"\"DNA language models for codon-dependent mRNA prediction\"; \"adapts DNA models for RNA analysis\"; \"codon sequences\"; \"mRNA sequences\""},{"record_id":"june_update_2026-06-10__rec_000118","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary method paper for CodonMoE on DNA/mRNA sequence modeling, not a review or wrapper. The provided evidence describes biological sequence processing only; it does not include a natural-language text component or a substantive text-bio bridge.","evidence_snippet":"\"DNA language models for codon-dependent mRNA prediction\"; \"adapts DNA models for RNA analysis\"; \"codon sequences\"; \"mRNA sequences\""}]}
+2026-07-10T09:51:52.867138Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b70-97b0-7562-a561-83a0df57c875.1783677097943497000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,665

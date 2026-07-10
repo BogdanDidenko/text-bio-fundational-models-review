@@ -1,0 +1,158 @@
+2026-07-10T09:53:11.541316Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b72-051e-7861-9e66-1d723510afe6
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001343","candidate_id":"full_2026-07-06__rec_001343","source_record_id":"rec_001343","source_corpus":"uncertain","title":"A General Single-Cell Analysis Framework via Conditional Diffusion Generative Models","abstract":"The fast-growing single-cell analysis community extends the horizon of quantitative analysis to numerous computational tasks. While the tasks hold vastly different targets from each other, existing works typically design specific model frameworks according to the downstream objectives. In this work, we propose a general single-cell analysis framework by unifying common computational tasks as posterior estimation problems. In light of conditional diffusion generative models, we introduce scDiff through the proposed framework and study different conditioning strategies. With data-specific conditions, scDiff achieves competitive performance against state-of-the-art in various benchmarking tasks. In addition, we illustrate the flexibility of scDiff by incorporating prior information through large language models and graph neural networks. Additional few-shot and zeroshot experiments prove the effectiveness of the prior conditioner on scDiff . Our implementation is publicly available at https://github.com/OmicsML/scDiff.","doi":"10.1101/2023.10.13.562243","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: 2 A GENERAL POSTERIOR ESTIMATION FRAMEWORK > 2.2 CONDITIONAL DIFFUSION MODEL FOR POSTERIOR ESTIMATION]\nTo estimate the posterior distribution, we delve into Diffusion generative models (DGMs). Follow the notations in denoising diffusion probabilistic models (DDPM) (Ho et al., 2020), we denote x 1: T as the latent variables that have the same dimension as x 0 . Utilizing the Bayesian theorem, we model the posterior by a Markov chain:\n\n<!-- formula-not-decoded -->\n\nFigure 1: An Overview of scDiff .\n\n<!-- image -->\n\nThe above process (i.e., reverse process in DDPM) learns to recover the original data from Gaussian white noise. Conversely, the forward process gradually corrupts data by adding Gaussian noise:\n\n<!-- formula-not-decoded -->\n\nwhere { β t } T t =1 is the variance schedule. Next we detail the parameterization of the reverse process . We empirically find that the widely-used predictϵ objective fails to recover the expression. Since single-cell data often shows extreme sparsity with more than 95% of the entries as zeros, the corrupted input at time-step t , i.e., x t , will mostly be pure noise. Under predictϵ parameterization, the model would likely learn to reverse the noise schedule instead of estimating the data posterior. Therefore, we turn to predictx 0 parameterization. Denote α t = 1 -β t and ¯ α t = ∏ t s =1 α s , we write the reverse process as:\n\n<!-- formula-not-decoded -->\n\nDue to the integral in equation 5, the data posterior is intractable. Alternatively, the parameters are optimized by minimizing the variational lower bound (ELBO):\n\n<!-- formula-not-decoded -->\n\nAs detailed in Appendix A, we start from the ELBO and arrive at the simplified training objective:\n\n<!-- formula-not-decoded -->\n\nNext we introduce our scDiff model architecture, which is depicted in Fig 1. From a high level, scDiff aims to recover the clean single cell gene expression x 0 given the corrupted signal x t with added Gaussian noise to time step t . The associated conditions of the cell are also fed into the model to provide conditional information. Specifically, scDiff follows a general encoder-decoder design and consists of four main components: (1) input expression embedder ϕ ; (2) various conditioners , ψ ∗ , where each converts a specific condition of the input cell into a sequence of dense numerical vectors; (3) a cross-attention encoder , E , which combines the input embeddings with the corresponding conditioners and transforms them into the hidden representation of the input cell; and (4) a linear decoder , D , that projects the hidden representation back to the gene expression space to recover the input cell's noise free expression. We detail each component in the followings.\n\nEmbedder. We use a linear mapping W ∈ R m × d to project the noised gene expression x t ∈ R m into R d and further mix it with the sinusoidal time embedding (Appendix B.1) to inject diffusion time step information, following previous work (Ho et al., 2020).\n\n<!-- formula-not-decoded -->\n\nConditioner. The goal of each conditioner is to extract a set of L numerical representations of an input condition c . Among these representations, each is used as the basis for the key and value embeddings in the cross-attention encoding step, as described in the next section. Formally, each conditioner ψ f is a multilayer perceptron (MLP) that converts the raw representation extracted by f into the final condition representation set 1 .\n\n<!-- formula-not-decoded -->\n\nwhere f ∈ F is a function that maps an input condition into a d dimensional vector and F is the set of mappings. The mapping here can be designed to suit the specific needs of different input types.\n\nContext. A cell context is a randomly masked expression ˜ x = m ⊙ x , where m ∈ { 0 , 1 } m is the element-wise mask indicator. We process the context condition similarly as the input embedding using a linear projection, but without the time embedding: f ctxt (˜ x ) = ˜ xW ctxt .\n\nClass. We use learnable d dimensional embeddings to represent each class, f cls ( c ) = h c . The class attribute is an important information of the input sample, and can be used to guide the diffusion generation process (Ho &amp; Salimans, 2021). In our case, class attributes can describe the cell type or the perturbation state of a given cell.\n\nThe two conditioners above utilize internal information obtained from the given training data. However, effectively incoporating prior information into the model is the key to more generalizable and transferable knowledge. We next describe two distinct approaches to incorporate prior knowledge as examples to illustrate the extendability of the conditioners.\n\nLLM. Besides encoding the cell type attribute using class embeddings, we can alternatively leverage LLM to extract rich representations of different cell types using their textual descriptions. Specifically, the cell type definitions are first obtained from the cell ontology (Bard et al., 2005). We then feed these descriptions into the pre-trained BioLinkBERT (Yasunaga et al., 2022) model, and use the resulting class token embeddings as f LLM ( c ) .\n\nGEARS. Roohani et al. (2023) proposed a novel approach to encode gene perturbation information using a graph neural network (GNN) on a gene similarity graph G . This graph is constructed such that each edge represents the number of shared gene ontology terms (Ashburner et al., 2000) between each pair of genes, which reflects their functional similarities. The gene perturbation embeddings are then computed using simple graph convolution (SGC) (Wu et al., 2019), f GEARS ( c ) = SGC ( c , G ) .\n\nEncoder. Once the input embedding ϕ ( x t , t ) and the condition representations { ψ f ( c ) } f ∈F are calculated, we combine them through multiple layers of cross-attention (Appendix B.3).\n\n<!-- formula-not-decoded -->\n\nDecoder. Finally, the cell latent embedding is linearly projected back to the gene expression space to recover the clean expression signals x 0 . We follow Lopez et al. (2018) and mix in an additional learnable batch embedding with the latent embedding according to the batch label of the input cell. This approach can better disentangle the non-biological variations in the data.\n\n<!-- formula-not-decoded -->\n\nCombining the above components, we summarize the full scDiff model in equation 14.\n\n<!-- formula-not-decoded -->"}]
+
+2026-07-10T09:53:11.559844Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:11.565133Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.580265Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.604106Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.620434Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.620446Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.620854Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.620860Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.621222Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.621227Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.621685Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.621692Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.622122Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.622127Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.623074Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.623081Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:11.651578Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.675647Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.699749Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.723715Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.747746Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.772939Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.795024Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.818381Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.842579Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.864151Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.885777Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.908042Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.932118Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.955838Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:11.979362Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:12.003661Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:12.134269Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:12.152141Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:12.152199Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:12.197750Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:13.441196Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:13.465805Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.465817Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.466376Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.466382Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.466884Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.466890Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.467413Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.467419Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.468032Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.468039Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.469568Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:13.469578Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:14.118499Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:14.128243Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:14.128280Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001343","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"A new model, scDiff, is proposed for single-cell gene expression analysis with diffusion generation. Text is used as a conditioning source via textual cell-type descriptions encoded by BioLinkBERT and fed into the model.","evidence_snippet":"\"single-cell gene expression\"; \"feed these descriptions into the pre-trained BioLinkBERT\"; \"combine them through multiple layers of cross-attention\"; \"scDiff\" model architecture"},{"record_id":"full_2026-07-06__rec_001343","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"A new model, scDiff, is proposed for single-cell gene expression analysis with diffusion generation. Text is used as a conditioning source via textual cell-type descriptions encoded by BioLinkBERT and fed into the model.","evidence_snippet":"\"single-cell gene expression\"; \"feed these descriptions into the pre-trained BioLinkBERT\"; \"combine them through multiple layers of cross-attention\"; \"scDiff\" model architecture"}]}
+2026-07-10T09:53:21.128829Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b72-051e-7861-9e66-1d723510afe6.1783677191490836000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,166

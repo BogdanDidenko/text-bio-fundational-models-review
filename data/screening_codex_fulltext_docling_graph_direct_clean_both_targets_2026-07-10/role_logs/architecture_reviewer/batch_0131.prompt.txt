@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000405","candidate_id":"full_2026-07-06__rec_000405","source_record_id":"rec_000405","source_corpus":"uncertain","title":"Multimodal Learning for Mapping the Genotype-Phenotype Dynamics.","abstract":"How complex phenotypes emerge from intricate gene expression patterns is a fundamental question in biology. Quantitative characterization of this relationship, however, is challenging due to the vast combinatorial possibilities and dynamic interplay between genotype and phenotype landscapes. Integrating high-content genotyping approaches such as single-cell RNA sequencing and advanced learning methods such as language models offers an opportunity for dissecting this complex relationship. Here, we present a computational integrated genetics framework designed to analyze and interpret the high-dimensional landscape of genotypes and their associated phenotypes simultaneously. We applied this approach to develop a multimodal foundation model to explore the genotype-phenotype relationship manifold for human transcriptomics at the cellular level. Analyzing this joint manifold showed a refined resolution of cellular heterogeneity, enhanced precision in phenotype annotating, and uncovered potential cross-tissue biomarkers that are undetectable through conventional gene expression analysis alone. Moreover, our results revealed that the gene networks are characterized by scale-free patterns and show context-dependent gene-gene interactions, both of which result in significant variations in the topology of the gene network, particularly evident during aging. [truncated]","doi":"10.21203/rs.3.rs-4355413/v1","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 5 Date availability]\nWe incorporated scRNA-seq data from the Tabula Sapiens study [ the2022tabula ] which provides 496 manually annotated cell and tissue type, and also includes metadata about each cell. The data 497 includes nearly 500,000 cells from 24 different tissues and organs, many from the same donor. Anno498 tation of cell types shows more than 400 cell types of the human body in 14 different donors. The 499 dataset includes transcriptomics from the bladder, blood, bone marrow, eye, fat, heart, kidney, large 500 intestine, liver, lung, lymph node, mammary, muscle, pancreas, prostate, salivary gland, skin, small 501 intestine, spleen, thymus, tongue, trachea, uterus, and vasculature. 502\n\n503\n\n[input_representation: 4 Methods > 4.3 Multi-Task Learning: Integrating Genotype and Phenotype]\nOne of the biggest challenges faced by traditional approaches of modeling genomics data is the problem of relating the Genotype and Phenotype. These relationships are not often very straightforward, linear, or intuitive to understand. In this paper, we use Multi-task learning to understand this problem better. Multi-task learning is an approach in machine learning that focuses on improving generalization in transfer learning using different signals in the training data. Some of the seemingly unrelated signals in the data can be used as inductive biases to learn a shared representation that helps wildly different tasks.\n\nEach cell has other phenotypic features such as sex, tissue type, cell type, developmental stage, and diseases. The formula 1 is expanded and the input to the model can be represented as follows:\n\n<!-- formula-not-decoded -->\n\nin which p i 's are the phenotypes and C represents a cell as the input to the model. The model is designed to perform a multi-task learning approach, where the objective is to not only predict the gene expressions but also the phenotypic values at the same time. The masking probability for phenotypes and genotypes are different: phenotypes are masked with higher probability because the number of phenotypes is lower than the genotypes and this helps the model to be more robust. In our experiments, we used %50 for phenotypes masking probability versus %15 for genotypes.\n\nThis approach has been very successful in other domains of machine learning such as computer vision and NLP [ raffel2020exploring ], but their power has not been used extensively in the domain of genomics data. There are several advantages to this technique, for example, it helps to generalize better in phenotypic domains where there is data scarcity. Also, it gives much more flexibility in exploring a joint model that incorporates both phenotypic and genotypic features where we can control and observe the effects of each phenotype on gene expressions and vice versa."}]

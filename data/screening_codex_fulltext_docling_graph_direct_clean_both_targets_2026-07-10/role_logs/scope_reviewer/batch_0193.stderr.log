@@ -1,0 +1,158 @@
+2026-07-10T09:57:01.955614Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b75-8910-7ca3-836f-1cfca4e97f73
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003351","candidate_id":"full_2026-07-06__rec_003351","source_record_id":"rec_003351","source_corpus":"include","title":"scgpt-spatial: Continual pretraining of single-cell foundation model for spatial transcriptomics. bioRxiv","abstract":"Spatial transcriptomics has emerged as a pivotal technology for profiling gene expression of cells within their spatial context. The rapid growth of publicly available spatial data presents an opportunity to further our understanding of microenvironments that drive cell fate decisions and disease progression. However, existing foundation models, largely pretrained on single-cell RNA sequencing (scRNA-seq) data, fail to resolve the spatial relationships among samples or capture the unique distributions from various sequencing protocols. We introduce scGPT-spatial , a specialized foundation model for spatial transcriptomics continually pretrained on our previously published scGPT scRNA-seq foundation model. We also curate SpatialHuman30M, a comprehensive spatial transcriptomics dataset comprising of 30 million spatial transcriptomic profiles, encompassing both imaging- and sequencingbased protocols. To facilitate integration, scGPT-spatial introduces a novel MoE (Mixture of Experts) decoder that adaptively routes samples for protocol-aware decoding of gene expression profiles. Moreover, scGPT-spatial employs a spatially-aware sampling strategy and a novel neighborhood-based training objective to better capture spatial co-localization patterns among cell states within tissue. Empirical evaluations demonstrate that scGPT-spatial robustly integrates spatial data in mulit-slide and multi-modal settings, and effectively supports cell-type deconvolution and contextualized missing gene expression imputation, outperforming many existing methods. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: scGPT-spatial: Continual Pretraining of Single-Cell Foundation Model for Spatial Transcriptomics > Abstract]\nSpatial transcriptomics has emerged as a pivotal technology for profiling gene expression of cells within their spatial context. The rapid growth of publicly available spatial data presents an opportunity to further our understanding of microenvironments that drive cell fate decisions and disease progression. However, existing foundation models, largely pretrained on single-cell RNA sequencing (scRNA-seq) data, fail to resolve the spatial relationships among samples or capture the unique distributions from various sequencing protocols. We introduce scGPT-spatial , a specialized foundation model for spatial transcriptomics continually pretrained on our previously published scGPT scRNA-seq foundation model. We also curate SpatialHuman30M, a comprehensive spatial transcriptomics dataset comprising of 30 million spatial transcriptomic profiles, encompassing both imaging- and sequencingbased protocols. To facilitate integration, scGPT-spatial introduces a novel MoE (Mixture of Experts) decoder that adaptively routes samples for protocol-aware decoding of gene expression profiles. Moreover, scGPT-spatial employs a spatially-aware sampling strategy and a novel neighborhood-based training objective to better capture spatial co-localization patterns among cell states within tissue. Empirical evaluations demonstrate that scGPT-spatial robustly integrates spatial data in mulit-slide and multi-modal settings, and effectively supports cell-type deconvolution and contextualized missing gene expression imputation, outperforming many existing methods. The scGPT-spatial codebase is publicly available at https://github.com/bowang-lab/scGPT-spatial .\n\n∗ These authors contributed equally.\n\n† Corresponding author. Email: bowang@vectorinstitute.ai\n\n[input_representation: 2 Main > 2.1 scGPT-spatial overview]\nscGPT-spatial extends the pretrained scRNA-seq foundation model, scGPT [13], to spatial omics via continual pretraining (Figure 1a). Pretraining large-scale transformers on scRNA-seq data has demonstrated their effectiveness in capturing intricate cell states and gene network dynamics through attention mechanisms [18]. Spatial transcriptomics introduces unique complexities that are fundamentally different from scRNA-seq data, primarily due to the inclusion of spatial context and protocol-specific biases. Building on the extensive prior knowledge gained from single-cell pretraining, scGPT-spatial is first initialized with the transformer weights of scGPT and then incrementally updated to progressively learn spatial features from a diverse data corpus.\n\nWe curated a large-scale continual pretraining dataset, SpatialHuman30M, that comprises over 30 million cells or spots enriched in their spatial context. To promote generalizability across sequencing protocols, SpatialHuman30M incorporates four spatial assay types: Visium, Visium HD, MERFISH, and Xenium (Figure 1a). SpatialHuman30M captures more than 20 organs and tissues from 821 unique spatial slides, among diverse biological contexts including healthy, cancer, and other diseased conditions (Methods 4.1). By continually pretraining on this heterogeneous corpus, scGPT-spatial is prompted to learn a unified embedding space across diverse sequencing protocols, effectively bridging the gap between sequencing- and imaging-based modalities.\n\nscGPT-spatial features two novel designs tailored for pretraining on spatial-omic data. Firstly, the model is equipped with a MoE decoder that includes multiple experts to capture modalityspecific features. Specifically, data from each sequencing protocol can be routed to specific decoder experts, as illustrated in Figure 1b, for specialized expression value decoding. This architectural innovation enhances the decoder's capacity to model multi-modal data while supporting unified embeddings from the shared transformer layers (Methods 4.2.2, Figure 1b). Secondly, to promote spatially-aware learning, the model is trained using spatial 'patches' of data sampled from local regions of individual slides. This coordinate-based sampling strategy also enables spatially-masked training, where the model is optimized to reconstruct the expression profile of the central spot based on the embeddings of neighboring spots within each patch (Figure 1b, Methods 4.2.3). This spatially-aware sampling and training strategy enables the model to recognize microenvironments and cell type colocalization patterns in spatial neighborhoods. Moreover, scGPT-spatial avoids explicit encoding of spatial coordinates, thus ensuring generalizability across slides. These spatiallyinspired adaptations for continual pretraining effectively facilitate the harmonization of diverse spatial modalities and encoding of spatial biases in the model's learned embeddings.\n\nAfter continual pretraining on the large-scale spatial corpus, scGPT-spatial generates robust spatial spot embeddings that enhance diverse downstream applications (Figure 1a). These spot embeddings can be readily extracted in a zero-shot manner for integrating multi-slide or multimodal spatial data (Methods 4.3). This model can be further finetuned to support tasks such as spatial domain clustering, cell-type deconvolution, and gene expression imputation (Methods 4.4). Notably, the continual pretraining strategy equips scGPT-spatial with the ability to generalize across modalities, facilitating the integration of data from both sequencing-based and imagingbased spatial transcriptomics technologies. This flexibility established during pretraining ensures that fine-tuning for specific tasks is both effective and efficient, requiring minimal additional data or computational resources, while enhancing overall performance. scGPT-spatial thus provides a comprehensive framework that combines spatially-inspired pretraining and finetuning to unlock the full potential of spatial transcriptomics data for a wide range of biological inquiries.\n\na  Overview of scGPT-spatial\n\nContinual Pretraining Data\n\nSource Uterus Prostate Lung Other Colon Breast Tonsil Cancer Healthy Visium HD\n\nVisium Other Disease\n\nSpatialHuman30M\n\ndata distribution\n\nInitialized by\n\n###### b  Masked-attention transformer\n\nFigure 1: (A) Overview of the continual pretraining and finetuning framework of scGPT-spatial. In continual pretraining, scGPT-spatial is initialized with the model weights from scGPT and futher trained on the curated SpatialHuman30M dataset. This model can be further finetuned to support multiple downstream tasks including cell type clustering, cell type deconvolution, and gene imputation. (B) The spatially-aware sampling strategy and MoE decoders used during scGPTspatial continual pretraining.\n\n<!-- image -->\n\nscGPT\n\nMultiple tissues\n\nTechnologies Merfish Xenium Continual Pretraining Training by gene reconstruction\n\n(intra- and inter-spot)\n\nMoE decoders\n\nStacked transformer blocks\n\nwith masked attention\n\nSpatially sampled input tokens Finetuning tasks Integration of multiple slides Cell-type deconvolution Cell type A 42%\n\nCell type B 30%\n\n...\n\nGene imputation\n\nMissing gene"}]
+
+2026-07-10T09:57:01.975968Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:01.978234Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.004299Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.026027Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.050100Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.050113Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.050810Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.050822Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.050918Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.051650Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.051661Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.052438Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.052446Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.053215Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.053222Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.055130Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.055142Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:02.075123Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.099322Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.123615Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.145993Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.171480Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.195752Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.217913Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.241897Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.266042Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.290109Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.314308Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.336425Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.360087Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.383649Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.407999Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:57:02.491113Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:02.652121Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:02.660480Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:02.660512Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:04.016110Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:04.031533Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.031542Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.032074Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.032085Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.032658Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.032667Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.033246Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.033253Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.033756Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.033763Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.034625Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.034631Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:57:04.523706Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:04.531773Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:57:04.531804Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_003351","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper on spatial transcriptomics with gene expression and spatial profiles, but the provided evidence does not show a natural-language text component or text-bio bridge. The model is a spatial omics foundation model pretrained on spatial transcriptomic data and gene reconstruction.","evidence_snippet":"\"scGPT-spatial, a specialized foundation model for spatial transcriptomics\"; \"spatial transcriptomic profiles\"; \"training by gene reconstruction\"; \"MoE decoder ... for protocol-aware decoding of gene expression profiles\"; none; none"}]}
+2026-07-10T09:57:11.987941Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b75-8910-7ca3-836f-1cfca4e97f73.1783677421907931000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,105

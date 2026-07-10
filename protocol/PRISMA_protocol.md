@@ -1,7 +1,7 @@
 # PRISMA-S Protocol: Generative Foundation Models Bridging Text and Biological Data
 
-**Version**: 4.0
-**Date**: 2026-04-25
+**Version**: 4.3
+**Date**: 2026-07-10
 **Type**: Scoping review (PRISMA-ScR) with PRISMA-S compliant search methodology and PRISMA-trAIce-style LLM screening
 
 ---
@@ -107,8 +107,8 @@ All searches to be executed on the same date. Date will be recorded in the PRISM
 2. **Deduplication**: Conservative exact matching only — DOI → PMID → arXiv ID → normalized title (no fuzzy matching). See [scripts/deduplicate.py](../scripts/deduplicate.py).
 3. **Abstract enrichment + exclusion**: Records without abstracts are enriched via S2/CrossRef/PubMed APIs; records still lacking an abstract are excluded.
 4. **Title/Abstract screening**: Apply eligibility criteria decision tree (see [eligibility_criteria.md](eligibility_criteria.md)) using a criterion-by-criterion LatteReview workflow (see [llm_screening_system_guideline.md](llm_screening_system_guideline.md), [lattereview_screening_architecture.md](lattereview_screening_architecture.md)).
-5. **Full-text screening**: For records passing title/abstract screen, verify all inclusion criteria on full text.
-6. **Conflict resolution**: Disagreements between scope and architecture reviewers escalate to an adjudicator round; unresolved cases go to manual review queue.
+5. **Targeted full-text evidence screening**: For records with converted full text, use Docling Graph provenance to reconstruct complete `data_source` and `input_representation` sections. Screen the title, abstract, and those selected sections; do not render the whole document into the reviewer prompt. The executed 2026-07-10 method and audit trail are in [full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md).
+6. **Conflict resolution**: Conflicts and unresolved criterion outputs between the role-separated scope and architecture passes escalate to an adjudicator round; unresolved cases remain in the manual review queue. These are different prompt roles executed by the same model, not independent human reviewers.
 
 ### 7.2 Exclusion Codes
 
@@ -212,3 +212,4 @@ See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.
 | 2026-04-25 | 4.0 | Adopted criterion-by-criterion LatteReview screening workflow (BMC + PRISMA-trAIce + Cochrane). Three reviewer roles: scope, architecture, adjudicator. Final decision derived in Python gate logic, not emitted by the LLM. Deprecated v0.1 one-shot screening script. Aligned exclusion codebook (EC1–EC8 high-level → runtime codebook with refined codes). |
 | 2026-06-10 | 4.1 | Top-up search 2026-04-15 → 2026-06-10 across all 7 DBs using the v3.1 query strategy with only date filters changed. Results: 933 raw records → 785 internally deduplicated → 447 new after cross-dedup against the 4,027-record master. CrossRef audit removed 2 hidden duplicates and enriched 126 screening-ready records with DOIs, leaving 431 records for Codex screening. |
 | 2026-07-06 | 4.2 | Top-up search 2026-06-11 → 2026-07-06 across the same 7 DBs using `scripts/search_config_update_2026-07-06.json`. Results: 197 raw records → 155 internally deduplicated → 134 new after cross-dedup against the 4,027-record master. CrossRef audit found no hidden duplicates or DOI enrichments. Final screening-ready set contains 119 records; Google Scholar returned 0 because the automated `scholarly` run was fully rate-limited. |
+| 2026-07-10 | 4.3 | Added the executed targeted full-text section screening method. Docling Graph processed 235 full-text records; 221 had valid dual-section evidence and entered the corrected second-stage screening payload. Final automated decisions: 50 INCLUDE, 165 EXCLUDE, 6 UNCERTAIN; 67 records were adjudicated. Full provenance, prompt, output, and decision audit is in `protocol/full_text_section_screening_2026-07-10.md`. |

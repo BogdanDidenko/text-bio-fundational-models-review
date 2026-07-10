@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000709","candidate_id":"full_2026-07-06__rec_000709","source_record_id":"rec_000709","source_corpus":"include","title":"Protein-nucleic acid language model-assisted design of precise and compact adenine base editor","abstract":"","doi":"10.1038/s41467-025-65311-z","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: ARTICLE IN PRESS > Fig.  1:  The  construction  of  the  Protein-Nucleic  Acid  constrained Language Model]\na . Transfer learning. Pre-trained protein language models leverage largescale datasets of protein sequences to learn the relationships and patterns within the amino acid sequences, capturing the underlying grammar and structure of proteins. Generate embeddings on the collected tRNA-specific adenosine  deaminase  protein  sequences  by  ESM-2  and  align  PNLM embeddings with them. b . Pre-trained language models with expertise were fine-tuned on the collected TadA-8e-like protein sequences and their target ssDNA  sequences. c .  During  the  autoregressive  process,  masks  can  be retained in the output to generate sequences with masks, allowing for the creation of truncated, mutated and inserted sequences. ARTICLE IN PRESS\n\n679\n\n680\n\n681\n\n682\n\n683\n\n684\n\n685\n\n686\n\n687\n\n688\n\n689\n\n690\n\n691\n\n692\n\n693\n\n694\n\n695\n\n696\n\n697\n\n698\n\n699\n\n700\n\n701\n\n- 702\n\n[input_representation: ARTICLE IN PRESS]\n403\n\n404\n\n405\n\n406\n\n407\n\n408\n\n409\n\n410\n\n411\n\n412\n\n413\n\n414\n\n415\n\n416\n\n417\n\n418\n\n419\n\n420\n\n421\n\n422\n\n423\n\n424\n\n425\n\n426\n\n427\n\n428\n\n429\n\n430\n\n431\n\n432\n\n433\n\n<!-- formula-not-decoded -->\n\nwhere 𝑥𝑖 denotes the 𝑖 -th animo acid of sequence. The model was allowed to produce mask tokens in place of amino acids and to continue predictions based on the masked context. Consecutive masks shorter  than  five  tokens  were  treated  as  true  labels,  thereby  encouraging  truncated  sequence generation during inference.\n\n####### Sequence generation and screening\n\nA  total  of  150  TadA-8e-like  protein  sequences  were  generated,  with  a  sampling  initiation temperature of T = 1 and top\\_p=0.9. In this context, top\\_p refers to the cumulative probability used during the generation process when dynamically selecting the next token. After removing sequences containing  insertions  and  mutations,  38  truncated  proteins  were  retained  to  prioritize  smaller candidates.  These  proteins  were  screened  through  a  sequential  sequence-  and  structure-based filtering  pipeline. AlphaFold2  (ColabFold  v1.5.5 39 )  was  used  to  predict  protein  structures,  and sequences  with  pLDDT  &lt;  84  were  excluded.  ESM-IF  was  then  applied  to  score  the  predicted structures according to log-likelihood. Rosetta energy evaluation was subsequently performed to assess structural stability and charge, retaining sequences with total scores within 100 units of the wild  type  and  charge  differences  within  50  units.  Finally,  20  candidates  were  selected  for experimental validation. Evaluation Script ARTICLE IN PRESS\n\nThe scores derived from the ESM-1v 26 models represent the mean of the logarithmic probabilities assigned to each amino acid at various positions within a sequence. MIF-ST scores are the average log-likelihood of query residues in predicted structures using alphafold2. Rosetta-based analyses were conducted using the Rosetta software suite, which is available through Rosetta Commons under a specific academic license (https://www.rosettacommons.org).\n\n####### Plasmid construction\n\nThe plasmid DNA sequences employed in this research are listed in the Supplementary Data 5. The\n\nABE8e (#138489) and lentiCRISPR v2 (#52961) plasmids were obtained from Addgene. To amplify\n\n- the target fragment, Polymerase chain reaction (PCR) was conducted using KOD-Plus-Neo DNA\n- Polymerase (TOYOBO, Code: KOD-401). The plasmids in this study were generated using the\n- ClonExpress MultiS One Step Cloning Kit (Vazyme), with ABE8e or lentiCRISPR v2 serving as\n- the backbone vectors for molecular cloning. The construction of sgRNA expression plasmids was\n- performed in accordance with the methodology previously described 9 . In brief, the oligonucleotides\n- from  Supplementary  Data  2  were  annealed  at  95 ℃ for  five  minutes,  then  cooled  to  room 434\n- temperature and ligated into BbsI-linearized vectors for sgRNA (Thermo Fisher Scientific). 435\n\n####### Human cell culture 436\n\n437\n\n- The HEK293T (ATCC; CRL-3216) cell lines were maintained in Dulbecco's Modified Eagle's\n\n438\n\n439\n\n440\n\n- Medium (DMEM, Gibco) supplemented with 10% (v/v) fetal bovine serum (FBS, Gibco) and 1%\n- penicillin-streptomycin (Gibco) antibiotic. All cell lines were maintained under standard conditions\n\nat 37℃ with 5% CO2 in the incubator.\n\n####### Stable cell line generation 441\n\n442\n\n443\n\n444\n\n445\n\n446\n\n447\n\n448\n\n449\n\n450\n\n451\n\n452\n\n453\n\n454\n\n455\n\n456\n\n457\n\n458\n\nTo  construct  the  HEK293T  stable  cell  line,  a  220-bp  fragment  containing  disease-associated mutation flanked by ~100 bp was cloned into the lentiviral vector with puromycin-resistant gene expression  maker.  For  lentiviral  production,  a  total  of  12  μg  of  the  lentiviral  specified  transfer plasmid (LentiGALT -sg1 and LentiOTC -sg1), alongside 6 μg of pMD2.G (#12259) and 9 μg of psPAX2 (#12260) were co-transfected into HEK293T cells in a 10 cm dish at approximately 85% confluence.  The  virus-containing  supernatant  was  harvested  at  72  hours  post-transfection.  The supernatant was subjected to centrifugation at 1,699 × g for 10 minutes at 4 ℃, with the objective of  precipitating  cell  debris.  Following  this,  the  supernatant  was  filtered  through  a  0.45  µm  low protein binding membrane (Millipore). And then serially diluted to add into a 24-well plate cultured with 5 × 10 4 HEK293T cells per well. After 24 hours, transduced cells were replated in 2 μg/mL puromycin-containing medium for selection. Following 7 days of the puromycin selection, the pools cells  were  spread  into  96-well  plate  and  single  clone  cells  were  harvested  and  expand  for  cell transfection. Cell transfection ARTICLE IN PRESS\n\n459\n\n460\n\n461\n\n462\n\n463\n\n464\n\n465\n\n466\n\nFor both the on-target and off-target base editing experiments utilizing DNA, HEK293T cells were seeded into 24-well plates and transfected at approximately 80% confluency. Subsequently, 100 μl serum-free medium, comprising 3 μl of polyethyleneimine (PEI, Polysciences), 750 ng of the ABEs expression plasmid and 250 ng of the sgRNA expression plasmid (1 μg of plasmid DNA in total), was added to the cells. Three days following transfection, genomic DNA was extracted using the QuickExtract™ DNA  Extraction Solution (QE09050,  Epicenter), in accordance with the manufacturer's instructions.\n\n####### High-throughput DNA sequencing (HTS) and data analysis\n\n- On- and off-target genomic regions were amplified by PCR using primers detailed in Supplementary\n- Data 2. HTS amplification libraries were prepared by PCR using KOD-Plus-Neo DNA Polymerase\n- and,  site-specific  primers  containing  an  adaptor  sequence  (Forward  5′-ggagtgagtacggtgtgc-3′;\n- Backward 5′-gagttggatgctggatgg-3′) at their 5′ ends. The resulting products underwent a second 467\n- PCR  using  primers  containing  different  barcode  sequences.  Subsequently,  PCR  products  with 468\n- different tags were pooled together for deep sequencing on Illumina HiSeq platform. The reference 469\n- sequence between the positive direction primers was selected for sequencing analysis. The base 470"}]

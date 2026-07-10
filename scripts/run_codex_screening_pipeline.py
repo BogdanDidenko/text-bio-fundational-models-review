@@ -20,6 +20,7 @@ import csv
 import json
 import os
 import re
+import signal
 import subprocess
 import tempfile
 import time
@@ -70,8 +71,8 @@ EVIDENCE_MODE_CONFIG: dict[EvidenceMode, dict[str, str]] = {
         "adjudicator_source": "provided evidence and reviewer outputs",
         "full_text_mode_block": (
             "\n\nFull-text evidence mode:\n"
-            "- Each record may include `full_text_context` and `section_evidence` extracted from Docling markdown.\n"
-            "- Treat these fields as part of the provided record, not as outside knowledge.\n"
+            "- Each record includes complete `selected_full_text_sections` extracted from Docling markdown.\n"
+            "- Treat the title, abstract, and selected full-text sections as the provided record; do not use outside knowledge.\n"
             "- Use the selected full-text sections when they clarify criteria.\n"
             "- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.\n"
             "- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.\n"
@@ -213,7 +214,12 @@ def safe_record(record: dict[str, Any], idx: int) -> dict[str, Any]:
         "venue": record.get("venue", ""),
         "sources": record.get("sources", []),
     }
-    for key in ["full_text_context", "section_evidence", "docling_markdown", "docling_chunks", "docling_status"]:
+    if "selected_full_text_sections" in record:
+        safe["selected_full_text_sections"] = record.get("selected_full_text_sections")
+    elif "full_text_context" in record:
+        # Backward compatibility for historical inputs created before the rename.
+        safe["selected_full_text_sections"] = record.get("full_text_context")
+    for key in ["section_evidence", "docling_markdown", "docling_chunks", "docling_status"]:
         if key in record:
             safe[key] = record.get(key)
     return safe
@@ -314,12 +320,8 @@ def build_role_prompt(
             "venue": rec.get("venue", ""),
             "sources": rec.get("sources", []),
         }
-        if evidence_mode == "full_text_sections" and rec.get("full_text_context"):
-            item["full_text_context"] = rec.get("full_text_context", "")
-        if evidence_mode == "full_text_sections" and rec.get("section_evidence"):
-            item["section_evidence"] = rec.get("section_evidence", [])
-        if evidence_mode == "full_text_sections" and rec.get("docling_markdown"):
-            item["docling_markdown"] = rec.get("docling_markdown", "")
+        if evidence_mode == "full_text_sections" and rec.get("selected_full_text_sections"):
+            item["selected_full_text_sections"] = rec.get("selected_full_text_sections", "")
         if reviewer_context:
             item["first_pass_outputs"] = reviewer_context.get(rec["record_id"], {})
         records.append(item)
@@ -390,6 +392,7 @@ def codex_batch(
     reviewer_context: dict[str, dict[str, Any]] | None = None,
     model: str = MODEL,
     evidence_mode: EvidenceMode = "title_abstract",
+    timeout_s: int | None = None,
 ) -> dict[str, Any]:
     role_dir = outdir / "role_logs" / role
     role_dir.mkdir(parents=True, exist_ok=True)
@@ -430,10 +433,59 @@ def codex_batch(
         "-",
     ]
     started = time.time()
-    proc = subprocess.run(cmd, input=prompt, text=True, capture_output=True)
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = proc.communicate(input=prompt, timeout=timeout_s)
+    except subprocess.TimeoutExpired as exc:
+        # `codex` launches a native child; terminate the whole session so a
+        # timed-out batch cannot leave an orphaned model process behind.
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            stdout, stderr = proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            # A native child can keep the inherited pipes open even after the
+            # wrapper is killed. Do not wait on those pipes indefinitely.
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                if stream is not None:
+                    try:
+                        stream.close()
+                    except OSError:
+                        pass
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+            stdout, stderr = "", ""
+        meta = {
+            "created": now(),
+            "role": role,
+            "batch_index": batch_index,
+            "record_ids": [r["record_id"] for r in batch],
+            "model": model,
+            "evidence_mode": evidence_mode,
+            "timeout_seconds": timeout_s,
+            "status": "timeout",
+            "prompt_path": str(prompt_path),
+        }
+        write_json(meta_path, meta)
+        raise RuntimeError(f"{role} {batch_name} timed out after {timeout_s}s") from exc
     elapsed = round(time.time() - started, 2)
-    raw_stdout_path.write_text(proc.stdout, encoding="utf-8")
-    raw_stderr_path.write_text(proc.stderr, encoding="utf-8")
+    raw_stdout_path.write_text(stdout, encoding="utf-8")
+    raw_stderr_path.write_text(stderr, encoding="utf-8")
     response_text = out_msg_path.read_text(encoding="utf-8") if out_msg_path.exists() else ""
     raw_response_path.write_text(response_text, encoding="utf-8")
     try:
@@ -563,6 +615,7 @@ def run_role(
     reviewer_context: dict[str, dict[str, Any]] | None = None,
     model: str = MODEL,
     evidence_mode: EvidenceMode = "title_abstract",
+    timeout_s: int | None = None,
 ) -> None:
     schema = schema_for_role(role, outdir)
     batches = chunks(records, batch_size)
@@ -579,6 +632,7 @@ def run_role(
                 reviewer_context=reviewer_context,
                 model=model,
                 evidence_mode=evidence_mode,
+                timeout_s=timeout_s,
             )
             for i, batch in enumerate(batches, 1)
         ]
@@ -603,6 +657,12 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--adjudicator-batch-size", type=int, default=6)
     parser.add_argument("--max-workers", type=int, default=2)
+    parser.add_argument(
+        "--codex-timeout",
+        type=int,
+        default=600,
+        help="Per-batch timeout in seconds; 0 disables the timeout.",
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument(
         "--evidence-mode",
@@ -612,6 +672,7 @@ def main() -> None:
     )
     parser.add_argument("--start-at", choices=["scope", "architecture", "gate", "adjudicator", "final"], default="scope")
     args = parser.parse_args()
+    timeout_s = args.codex_timeout or None
 
     input_path = Path(args.input)
     outdir = Path(args.output_dir)
@@ -623,9 +684,9 @@ def main() -> None:
     records = [safe_record(r, i) for i, r in enumerate(source_records, 1)]
     if args.limit:
         records = records[: args.limit]
-    full_text_record_count = sum(1 for r in records if r.get("full_text_context") or r.get("section_evidence"))
+    full_text_record_count = sum(1 for r in records if r.get("selected_full_text_sections") or r.get("section_evidence"))
     if args.evidence_mode == "full_text_sections" and full_text_record_count == 0:
-        raise ValueError("--evidence-mode full_text_sections requires records with full_text_context or section_evidence")
+        raise ValueError("--evidence-mode full_text_sections requires records with selected_full_text_sections or section_evidence")
 
     run_meta = {
         "created": now(),
@@ -636,6 +697,7 @@ def main() -> None:
         "batch_size": args.batch_size,
         "adjudicator_batch_size": args.adjudicator_batch_size,
         "max_workers": args.max_workers,
+        "codex_timeout": timeout_s,
         "limit": args.limit,
         "full_text_record_count": full_text_record_count,
         "evidence_mode_config": EVIDENCE_MODE_CONFIG[args.evidence_mode],
@@ -660,6 +722,7 @@ def main() -> None:
             args.max_workers,
             model=args.model,
             evidence_mode=args.evidence_mode,
+            timeout_s=timeout_s,
         )
 
     if args.start_at in {"scope", "architecture"}:
@@ -671,6 +734,7 @@ def main() -> None:
             args.max_workers,
             model=args.model,
             evidence_mode=args.evidence_mode,
+            timeout_s=timeout_s,
         )
 
     scope_outputs = collect_role_outputs(outdir, "scope_reviewer")
@@ -715,6 +779,7 @@ def main() -> None:
             reviewer_context=reviewer_context,
             model=args.model,
             evidence_mode=args.evidence_mode,
+            timeout_s=timeout_s,
         )
 
     adjudicator_outputs = collect_role_outputs(outdir, "adjudicator")

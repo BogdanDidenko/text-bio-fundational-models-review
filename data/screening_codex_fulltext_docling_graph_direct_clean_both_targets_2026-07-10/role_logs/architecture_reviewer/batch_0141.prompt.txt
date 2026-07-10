@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003954","candidate_id":"full_2026-07-06__rec_003954","source_record_id":"rec_003954","source_corpus":"uncertain","title":"Advancing Cancer Prognosis with Hierarchical Fusion of Genomic, Proteomic and Pathology Imaging Data from a Systems Biology Perspective","abstract":"To enhance the precision of cancer prognosis, recent research has increasingly focused on multimodal survival methods by integrating genomic data and histology images. However, current approaches overlook the fact that the proteome serves as an intermediate layer bridging genomic alterations and histopathological features while providing complementary biological information essential for survival prediction. This biological reality exposes another architectural limitation: existing integrative analysis studies fuse these heterogeneous data sources in a flat manner that fails to capture their inherent biological hierarchy. To address these limitations, we propose HFGPI, a hierarchical fusion framework that models the biological progression from genes to proteins to histology images from a systems biology perspective. Specifically, we introduce Molecular Tokenizer, a molecular encoding strategy that integrates identity embeddings with expression profiles to construct biologically informed representations for genes and proteins. We then develop Gene-Regulated Protein Fusion (GRPF), which employs graph-aware cross-attention with structurepreserving alignment to explicitly model gene-protein regulatory relationships and generate gene-regulated protein representations. Additionally, we propose Protein-Guided Hypergraph Learning (PGHL), which establishes associations between proteins and image patches, leveraging hypergraph convolution to capture higher-order proteinmorphology relationships. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4. Experiments > 4.1. Datasets and Evaluation Metrics]\nWe use five cancer datasets from The Cancer Genome Atlas (TCGA) to evaluate HFGPI: Bladder Urothelial Carcinoma (BLCA) ( n = 340 ), Breast Invasive Carcinoma (BRCA) ( n = 833 ), Glioblastoma and Lower Grade Glioma (GBMLGG) ( n = 878 ), Lung Adenocarcinoma (LUAD) ( n = 368 ), and Uterine Corpus Endometrial Carcinoma (UCEC) ( n = 122 ). These cohorts are selected based on the availability of matched genomic, proteomic and pathology imaging data, enabling multimodal analysis. Genomic Data. Gene expression profiles are obtained from the UCSC Xena database [16], originally generated using the Illumina HiSeq 2000 RNA-Seq platform. Expression values are RSEM normalized and log 2 (x+1) transformed to stabilize variance and reduce the impact of outliers. We retain genes with sufficient expression variability across samples for downstream analysis.\n\nProteomic Data. Protein expression data are acquired from Reverse Phase Protein Array (RPPA) measurements curated by UCSC Xena [16]. These datasets provide unit-normalized expression values for cancer-related proteins and phosphoproteins, quantifying functional proteomic states that serve as intermediate phenotypes between genomic alterations and histopathological manifestations.\n\nPathology Images. The diagnostic WSIs are collected from the National Cancer Institute (NCI) Genomic Data Commons (GDC) [56].\n\nEvaluation Metric. We employ 5-fold cross-validation with the 4:1 ratio of training and validation sets. The model performance is measured by the mean concordance index (C-index) [17] with its standard deviation (std).\n\n[input_representation: 3. Method > 3.3. Feature Extraction > 3.3.2. Genomic Embeddings]\nIn previous survival prediction tasks [9, 23], gene expression profiles are typically treated as the sole genomic factor, as they directly quantify gene activity within biological systems. However, genes themselves possess intrinsic biological properties, including functional annotations and co-expression relationships, which are essential for understanding their contributions to disease progression. To capture both aspects, we propose Molecular Tokenizer , a molecular encoding strategy that integrates quantitative expression profiles with qualitative identity embeddings.\n\nFollowing [61, 64], we employ Gene2Vec [13] to generate 200-dimensional identity embeddings G = [ g 1 , g 2 , . . . , g N g ] T ∈ R N g × d g that encode functional relationships and co-expression patterns, ensuring that functionally related genes are positioned proximally in the embedding space. For the k -th patient, given gene expression measurements e ( k ) = [ e ( k ) 1 , e ( k ) 2 , . . . , e ( k ) N g ] T ∈ R N g , we integrate identity embeddings with expression profiles as:\n\n<!-- formula-not-decoded -->\n\nwhere ⊙ denotes element-wise multiplication with broadcasting. This operation allows expression levels to modulate identity embeddings at the individual gene level, creating representations that encode both gene identity (what each gene is) and expression level (how much it is expressed)."}]

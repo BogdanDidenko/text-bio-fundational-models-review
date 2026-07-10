@@ -24,8 +24,9 @@ runner renders them with `--evidence-mode`:
 - `title_abstract` (default): renders to the original title/abstract wording
   and sends only title, abstract, and metadata fields to reviewers.
 - `full_text_sections`: renders to selected-full-text-section wording and sends
-  title, abstract, `full_text_context`, `section_evidence`, and traceability
-  paths for Docling-derived evidence.
+  title, abstract, and the complete `selected_full_text_sections` text. The
+  structured `section_evidence` and `docling_markdown` fields remain in the
+  input records for auditability but are not sent to reviewers.
 
 The reviewer topology, criterion fields, allowed values, Python gate, and
 adjudicator logic are shared across both modes. Only the evidence input profile

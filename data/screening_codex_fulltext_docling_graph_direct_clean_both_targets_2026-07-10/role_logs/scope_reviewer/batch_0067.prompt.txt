@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002517","candidate_id":"full_2026-07-06__rec_002517","source_record_id":"rec_002517","source_corpus":"include","title":"ChatCell: Facilitating Single-Cell Analysis with Natural Language","abstract":"As Large Language Models (LLMs) rapidly evolve, their influence in science is becoming increasingly prominent. The emerging capabilities of LLMs in task generalization and freeform dialogue can significantly advance fields like chemistry and biology. However, the field of single-cell biology, which forms the foundational building blocks of living organisms, still faces several challenges. High knowledge barriers and limited scalability in current methods restrict the full exploitation of LLMs in mastering single-cell data, impeding direct accessibility and rapid iteration. To this end, we introduce CHATCELL, which signifies a paradigm shift by facilitating single-cell analysis with natural language. Leveraging vocabulary adaptation and unified sequence generation, CHATCELL has acquired profound expertise in single-cell biology and the capability to accommodate a diverse range of analysis tasks. Extensive experiments further demonstrate CHATCELL's robust performance and potential to deepen single-cell insights, paving the way for more accessible and intuitive exploration in this pivotal field. 1","doi":"10.48550/arXiv.2402.08303","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: C Datasets]\nFor tasks such as random cell sentence generation, pseudo-cell generation, and cell type annotation, we utilize 34,500 cells from the SHARE-seq mouse skin dataset (Ma et al., 2020), including their corresponding cell types, for subsequent processing. For the drug sensitivity prediction task, we select two datasets: GSE149383 (Aissa et al., 2021) records the response of 2,739 human lung cancer cells to the drug Erlotinib, and GSE117872 (Sharma et al., 2018; Ravasio et al., 2020; Suphavilai et al., 2021) records the response of 1,302 human oral squamous cancer cells to the drug Cisplatin. The collected single-cell data are normalized and converted into cell sentences as outlined in § 3.2. To meet the specific requirements of each task, we enrich each single-cell data entry with diverse task descriptions as prompts, transforming them into instructions as described in § 3.4. All these instructions are split into train/validation/test datasets in an 8:1:1 ratio.\n\n[input_representation: 1 Introduction]\nArtificial Intelligence for Science (AI4Science) has emerged as a pivotal force in advancing scientific research (Wang et al., 2023; Tinn et al., 2023), particularly in complex domains like nuclear fusion (Degrave et al., 2022), protein structure prediction (Jumper et al., 2021), and autonomous chemical discovery (Daniil et al., 2023). Among the various AI tools, Large Language Models (LLMs) are at the forefront, demonstrating significant advancements in fields such as biology and chemistry (Zheng et al., 2023; Zhao et al., 2023a; Fang et al., 2024b; Zhang et al., 2024). These models excel in interpreting biological sequential data and following human instructions (Tong and Zhang, 2023; Fang et al., 2024a), making human language an essential medium for acquiring biological insights. As a result, LLMs are breaking down barriers to biological knowledge, revolutionizing research paradigms, and deepening our understanding of life sciences.\n\n* Equal contribution.\n\n† Corresponding Author.\n\n[1 https://github.com/zjunlp/ChatCell](https://github.com/zjunlp/ChatCell)\n\nFigure 1: CHATCELL facilitates single-cell analysis through conversational interactions. Black and red texts denote human and single-cell language, respectively.\n\n<!-- image -->\n\nThis paradigm shift opens new avenues for single-cell biology research, a field pivotal to understanding the basic units of life. Single-cell biology examines the intricate functions of these cells, ranging from energy production to genetic information transfer (Bechtel, 2006), playing a critical role in unraveling the fundamental principles of life and mechanisms influencing health and disease (Pollard et al., 2022). The field has witnessed a surge in single-cell RNA sequencing (scRNA-seq) data, driven by advancements in high-throughput sequencing and reduced costs. Repositories like the Gene Expression Omnibus (GEO) (Barrett et al., 2012) and the Human Cell Atlas (HCA) (Regev et al., 2017) have been instrumental in accumulating and disseminating this data. The emerging field of single-cell foundation models, such as scBERT and scGPT (Yang et al., 2022; Theodoris et al., 2023; Cui et al., 2023; Mo et al., 2021), is changing traditional task-specific approaches (Lieberman et al., 2018; Shao et al., 2021; Liao et al., 2022). These models leverage extensive scRNAseq datasets, applying NLP techniques to analyze gene expression matrices-structured formats that simplify scRNA-seq data into computationally tractable representations-during pre-training. They are subsequently fine-tuned for distinct singlecell analysis tasks, as shown in Figure 2(a). Despite their potential, the technical intricacies and knowledge prerequisites of these models pose challenges to their accessibility and practical application, especially in fast-paced iteration scenarios.\n\nRecent efforts have begun to adapt LLMs for key single-cell analysis tasks, such as employing ChatGPT for cell type annotation (Hou and Ji, 2023), transforming cells into gene name sequences for cell generation (Levine et al., 2023), and developing single-cell language models for drug sensitivity analysis (Zhao et al., 2023b). However, these applications demonstrate limited scalability and remain task-specific, not yet reaching the full potential of LLMs in comprehending single-cell data for more extensive single-cell analysis.\n\nIn this study, we introduce CHATCELL, a novel approach that leverages natural language to enhance single-cell analysis. Initially, we convert scRNA-seq data into a single-cell language that LLMs can readily interpret. Subsequently, we employ templates to integrate this single-cell language with task descriptions and target outcomes, creating comprehensive single-cell instructions. To improve the LLM's expertise in the single-cell domain, we conduct vocabulary adaptation, enriching the model with a specialized single-cell lexicon. Following this, we utilize unified sequence generation to empower the model to adeptly execute a range of single-cell tasks. As illustrated in Figure 1, CHATCELL allows researchers to input instructions in either natural or single-cell language, thereby facilitating the execution of necessary tasks in single-cell analysis.\n\nThe main contributions are as follows:\n\n- We present CHATCELL, a new paradigm that leverages natural language to make single-cell analysis more accessible and intuitive.\n- Weenhance CHATCELL's proficiency through vocabulary adaptation, instilling it with a spe-\n- cialized lexicon to refine its precision in interpreting and processing single-cell data.\n- We employ unified sequence generation techniques to broaden CHATCELL's capability in understanding single-cell concepts and in performing diverse tasks, thereby expanding its field applicability.\n- We conduct a comprehensive evaluation of CHATCELL on essential single-cell analysis tasks, including random cell generation, pseudo-cell generation, cell type annotation, and drug sensitivity prediction. Further analysis highlights CHATCELL's potential to offer valuable biological insights."}]

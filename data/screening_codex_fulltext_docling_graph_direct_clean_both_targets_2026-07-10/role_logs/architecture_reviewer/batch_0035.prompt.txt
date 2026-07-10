@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001773","candidate_id":"full_2026-07-06__rec_001773","source_record_id":"rec_001773","source_corpus":"include","title":"Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning","abstract":"Large Language Models (LLMs) demonstrate remarkable generalizability across diverse tasks, yet genomic foundation models (GFMs) still require separate finetuning for each downstream application, creating significant overhead as model sizes grow. Moreover, existing GFMs are constrained by rigid output formats, limiting their applicability to various genomic tasks. In this work, we revisit the transformer-based auto-regressive models and introduce Omni-DNA , a family of crossmodal multi-task models ranging from 20 million to 1 billion parameters. Our approach consists of two stages: (i) pretraining on DNA sequences with next token prediction objective, and (ii) expanding the multi-modal task-specific tokens and finetuning for multiple downstream tasks simultaneously. When evaluated on the Nucleotide Transformer and GB benchmarks, Omni-DNA achieves state-of-the-art performance on 18 out of 26 tasks. Through multi-task finetuning, Omni-DNA addresses 10 acetylation and methylation tasks at once, surpassing models trained on each task individually. Finally, we design two complex genomic tasks, DNA2Function and Needle-in-DNA , which map DNA sequences to textual functional descriptions and images, respectively, indicating OmniDNA's cross-modal capabilities to broaden the scope of genomic applications. All the models are available through https://huggingface. co/collections/zehui127 .","doi":"10.48550/arXiv.2502.03499","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 7. Conclusion > References > F. Functional Annotation Generation]\nFigure 10. Seq2Func Dataset Construction and Evaluation Pipeline. Genomic sequences from 20 species are annotated with functional descriptions using an LLM, generating 300,000 DNA-function pairs. The evaluation pipeline compares model predictions against ground truth, with an LLM determining transcription type accuracy.\n\n<!-- image -->\n\nDataset Construction Process The Seq2Func dataset is constructed using genomic sequences sourced from the NCBI Reference Sequence (RefSeq) database, incorporating sequences from 20 different species . The selected species and their genome assemblies include:\n\n- GCF-000001405.40, human\n- GCF-000001635.27, mouse\n- GCF-036323735.1, rat\n- GCF-028858775.2, Chimpanzee\n\n- GCF-018350175.1, cat\n- GCF-011100685.1, dog\n- GCF-000696695.1, burgud\n- GCF-000003025.6, pig\n- GCF-016772045.2, sheep\n- GCF-016699485.2, chicken\n- GCF-025200985.1, fly\n- GCF-000002035.6, Zebrafish\n- GCF-029289425.2, Pygmy Chimpanzee\n- GCF-029281585.2, Western gorilla\n- GCF-028885655.2, Pongo abelii\n- GCF-028885625.2, Bornean orangutan\n- GCF-003339765.1, Rhesus monkey\n- GCF-037993035.1, Macaca fascicularis\n- GCF-003668045.3, Chinese hamster\n- GCF-041296265.1, horse\n\nThe construction process follows these key steps:\n\n[input_representation: 3. Approach > 3.2. Cross-modal Multi-task Finetuning > Algorithm 1 Cross-modal Multi-task Finetuning]\nRequire: K datasets {D k } K k =1 , pretrained model f θ , vocabulary V pretrained, repeating factor α , Noise Level β 1: D uni ← ⋃ K k =1 D k ▷ Task Unification 2: Extract task-specific multi-modal tokens V k from D k 3: V expand ← V pretrained ∪ ⋃ K k =1 V k ▷ Vocab. expansion 4: repeat 5: { ( x ( i ) , y ( i ) ) } B i =1 ∼ D uni ▷ Batch size B 6: for i from 1 to B do 7: y ( i ) ← ReplicateKeyToken ( y ( i ) , α ) ▷ Replicate Class Labels in target for Classification Tasks 8: loss ( i ) ←-∑ | y ( i ) | t =1 log p θ ( y ( i ) t ∣ ∣ ∣ y ( i ) 1: t -1 , x ( i ) , β ) ▷ Add noise using NEFTune with β during loss computing 9: end for 10: Lossbatch ← 1 B ∑ B i =1 loss ( i ) 11: θ ← optimizer ( θ, Lossbatch ) 12: until stopping criterion or max iterations\n\nencourages the model improves the average performance across diverse genomic tasks.\n\nMulti-task Dataset Unification We integrate K genomic tasks with labeled datasets {D k } K k =1 of various formats into a unified dataset D uni = { ˜ x ( i ) , ˜ y ( i ) } . Specifically, each sample from task k is modified by appending a task-specific prompt Prompt k to its input x ( i ) : ˜ x ( i ) = ( x ( i ) , Prompt k ) . The corresponding response ˜ y ( i ) is treated as tokens and the typical transformation is shown in Table 1.\n\nVocabulary Expansion As the multi-task dataset unification introduces new tokens (i.e., prompt and response tokens), it is necessary to expand the vocabulary during SFT stage. This is a key difference between genomic language model and normal language models. A direct result of vocabulary expansion is distribution shift. Based on (Hewitt, 2021), the distribution shift after adding a new set of vocabulary V z to pretrained model θ results in a new model θ ′ , let Z = ∑ m ∈ Vo exp( h ⊤ t -1 e m ) . Then the distribution shift are:\n\n<!-- formula-not-decoded -->\n\nIn other words, all the words probability are reduced. To alleviate it, we should minimize the size of added tokens.\n\nNEFTune &amp; Key Token Replication To mitigate catastrophic forgetting (Zheng et al., 2024) caused by distribution shifts from vocabulary expansion, we employ two simple yet effective techniques: NEFTune (Press et al., 2021) and Key Token Replication . NEFTune introduces random noise to embedding vectors during finetuning, reducing overfitting. Key Token Replication, applied to classification tasks, replicates label tokens in y ( i ) by a factor of α . This ensures stronger signal propagation, facilitating the model's tran- sition from DNA sequence generation to classification by reinforcing the association between input sequences and their corresponding labels.\n\nResponse Discretization In many genomic tasks such as genomic assay prediction (Avsec et al., 2021a) and structure prediction (Abramson et al., 2024), the response is a highdimensional continuous variable y ∈ R d 1 × d 2 ···× d k . To adopt Omni-DNA, we need to discretize the response first.\n\nHere we consider a three-dimensional continuous variable y ∈ R d 1 × d 2 × d 3 . Response discretization is achieved by training a VQ-VAE (Van Den Oord et al., 2017), which learns a latent embedding space of dimension [ K,D ] , where K represents the number of quantized embeddings, and D denotes the dimensionality of each latent embedding vector e i ∈ R D . The VQ-VAE compresses the input y ( i ) to a sequence of discrete latent variables ˜ y ( i ) = { e 0 , e 1 , ..., e L } ∈ N L K . Here, L = d ′ 1 × d ′ 2 corresponds to the spatial dimensions of the encoded variable ˜ y ( i ) , where d ′ 1 = d 1 /r and d ′ 2 = d 2 /r . The compression ratio r quantifies the reduction in dimensionality achieved during encoding. The decoder then reconstructs the input y from discrete latent sequences ˜ y . By employing response discretization, any DNA-to-continuous-variable task can be converted into a DNA-to-discrete-token task."}]

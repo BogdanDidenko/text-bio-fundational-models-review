@@ -42,3 +42,23 @@ Full-text articles excluded (with reasons): ____
 
 Studies included in qualitative synthesis: ____
 Studies noted in supplementary (single-modality FMs): ____
+
+## Full-Text Evidence Screening Checkpoint (2026-07-10)
+
+This checkpoint supplements the final PRISMA diagram. It distinguishes a
+technical failure to construct the prespecified full-text evidence input from a
+semantic eligibility exclusion.
+
+| Checkpoint | Count |
+|---|---:|
+| Full-text records supplied to Docling Graph | 235 |
+| Without valid `data_source` + `input_representation` evidence pair | 14 |
+| Entering targeted full-text-section screening | 221 |
+| Automated EXCLUDE | 165 |
+| Automated INCLUDE candidates | 50 |
+| Automated UNCERTAIN/manual-review candidates | 6 |
+| Routed to adjudication | 67 |
+
+The 14 records without a valid evidence pair are not semantic PRISMA
+exclusions. They remain in the audit as full-text evidence-preprocessing
+limitations. See [full_text_section_screening_2026-07-10.md](full_text_section_screening_2026-07-10.md) for the complete method and logs.

@@ -49,13 +49,15 @@ def prompt_counts(run_dir: Path) -> dict[str, dict[str, int]]:
         prompts = sorted(role_dir.glob("batch_*.prompt.txt"))
         counts[role] = {
             "prompt_files": len(prompts),
-            "with_full_text_context": 0,
+            "with_selected_full_text_sections": 0,
             "with_section_evidence": 0,
             "with_first_pass_outputs": 0,
         }
         for path in prompts:
             text = path.read_text(encoding="utf-8", errors="replace")
-            counts[role]["with_full_text_context"] += int('"full_text_context"' in text)
+            counts[role]["with_selected_full_text_sections"] += int(
+                '"selected_full_text_sections"' in text or '"full_text_context"' in text
+            )
             counts[role]["with_section_evidence"] += int('"section_evidence"' in text)
             counts[role]["with_first_pass_outputs"] += int('"first_pass_outputs"' in text)
     return counts
@@ -136,7 +138,9 @@ def main() -> int:
                 "source_corpus": audit["source_corpus"],
                 "context_status": audit["context_status"],
                 "selected_section_count": len(selected),
-                "full_text_context_chars": len(rec.get("full_text_context", "")),
+                "selected_full_text_sections_chars": len(
+                    rec.get("selected_full_text_sections", rec.get("full_text_context", ""))
+                ),
                 "abstract_chars": len(rec.get("abstract", "")),
                 "selected_original_chars_total": original_chars,
                 "abstract_headings": " | ".join(headings_by_type.get("abstract", [])),
@@ -185,7 +189,7 @@ def main() -> int:
             "source_corpus",
             "context_status",
             "selected_section_count",
-            "full_text_context_chars",
+            "selected_full_text_sections_chars",
             "abstract_chars",
             "selected_original_chars_total",
             "abstract_headings",
@@ -255,7 +259,7 @@ def main() -> int:
                 "year",
                 "venue",
                 "sources",
-                "full_text_context",
+                "selected_full_text_sections",
                 "section_evidence",
                 "docling_markdown",
             ],
@@ -270,7 +274,7 @@ def main() -> int:
                 "year",
                 "venue",
                 "sources",
-                "full_text_context",
+                "selected_full_text_sections",
                 "section_evidence",
                 "docling_markdown",
             ],
@@ -285,7 +289,7 @@ def main() -> int:
                 "year",
                 "venue",
                 "sources",
-                "full_text_context",
+                "selected_full_text_sections",
                 "section_evidence",
                 "docling_markdown",
                 "first_pass_outputs",
@@ -332,18 +336,18 @@ def main() -> int:
             "",
             "All roles used the same full-text evidence fields. The adjudicator additionally received the first-pass reviewer outputs and Python gate result.",
             "",
-            "| Role | Prompt files | Prompts with `full_text_context` | Prompts with `section_evidence` | Prompts with `first_pass_outputs` |",
+            "| Role | Prompt files | Prompts with `selected_full_text_sections` | Prompts with `section_evidence` | Prompts with `first_pass_outputs` |",
             "|---|---:|---:|---:|---:|",
         ]
     )
     for role, counts in prompt_summary.items():
         md_lines.append(
-            f"| `{role}` | {counts['prompt_files']} | {counts['with_full_text_context']} | {counts['with_section_evidence']} | {counts['with_first_pass_outputs']} |"
+            f"| `{role}` | {counts['prompt_files']} | {counts['with_selected_full_text_sections']} | {counts['with_section_evidence']} | {counts['with_first_pass_outputs']} |"
         )
     md_lines.extend(
         [
             "",
-            "Agent prompts did not include raw PDFs. The evidence supplied for analysis was the selected text in `full_text_context` and the structured list in `section_evidence`, plus title/abstract metadata. `docling_markdown` was included as a traceability path, not as separately loaded context.",
+            "Agent prompts did not include raw PDFs, `section_evidence`, or `docling_markdown`. The evidence supplied for analysis was title/abstract metadata plus the complete selected text in `selected_full_text_sections`; structured evidence and Docling markdown remain in input records for auditability only.",
             "",
             "## Output Tables",
             "",

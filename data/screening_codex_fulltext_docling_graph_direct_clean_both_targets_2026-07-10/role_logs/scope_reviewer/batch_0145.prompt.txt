@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000939","candidate_id":"full_2026-07-06__rec_000939","source_record_id":"rec_000939","source_corpus":"include","title":"GexMolGen: cross-modal generation of hit-like molecules via large language model encoding of gene expression signatures","abstract":"Designing de novo molecules with specific biological activity is an essential task since it holds the potential to bypass the exploration of target genes, which is an initial step in the modern drug discovery paradigm. However, traditional methods mainly screen molecules by comparing the desired molecular effects within the documented experimental results. The data set limits this process, and it is hard to conduct direct cross-modal comparisons. Therefore, we propose a solution based on cross-modal generation called GexMolGen ( Ge ne Ex pression-based Mol ecule Gen erator), which generates hit-like molecules using gene expression signatures alone. These signatures are calculated by inputting control and desired gene expression states. Our model GexMolGen adopts a 'first-align-then-generate' strategy, aligning the gene expression signatures and molecules within a mapping space, ensuring a smooth cross-modal transition. The transformed molecular embeddings are then decoded into molecular graphs. In addition, we employ an advanced single-cell large language model for input flexibility and pre-train a scaffold-based molecular model to ensure that all generated molecules are 100% valid. Empirical results show that our model can produce molecules highly similar to known references, whether feeding in- or out-ofdomain transcriptome data. Furthermore, it can also serve as a reliable tool for cross-modal screening.\n\nKeywords : de novo molecule design; large language model; cross-modal generation; gene expression signatures","doi":"10.1093/bib/bbae525","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: GexMolGen: cross-modal generation of hit-like molecules via large language model encoding of gene expression signatures > Materials and methods > Dataset pre-processing > Dataset used for training]\nThe datasets used in GexMolGen are derived from the L1000 public dataset (GEO ID: GSE70138) [27]. The L1000 technology uses microarray measurements to record the gene expression signatures caused by over 25 000 perturbations, including around 19 800 small molecules, in cell lines. Each perturbation is performed on multiple cell lines. This dataset is processed hierarchically and divided into five levels: levels 1-3 record the absolute expression values of each gene in each bead, while levels 4 and 5 report the differential expression of each gene obtained by comparing samples within each bead.\n\nSpecifically, we first collect the perturbed and control data from level 3, ensuring they originate from the same bead. These data belong to six major cell lines-VCAP, PC3, A549, A375, HT29, and MCF7. We average each molecule's perturbed gene expressions,ignoring the cell line information,resulting in a final dataset size of 2 × N × M . Here, 2 signifies the experimental and control groups, N represents the number of molecules, and M indicates the count of gene symbols. Subsequently, we classify the structures based on the main layer of the InChI key, resulting in a total of 6360 classes. We randomly select 300 structures from this set, which include N 2 types of small molecules, to form the holdout set. Additionally, we choose another 300 structures, including N 3 types of small molecules, to create the validation set. The remaining data are used for training the model with N 1 types of small molecules.\n\nWe randomly sample Np molecules from ChEMBL [26] as datasets for the molecular pre-training stage.\n\n[input_representation: GexMolGen: cross-modal generation of hit-like molecules via large language model encoding of gene expression signatures > Materials and methods > Overview of GexMolGen]\nGexMolGen is a general framework capable of generating hit-like molecules from two specific gene expression inputs: initial and desired or post-perturbed states. The underlying principle is that molecular structure correlates with its resulting differential gene expression, also called gene expression signatures. GexMolGen adopts a strategy of 'first-align-then-generate' for cross-modal generation. As shown in Fig. 1A, the pipeline generally consists of four steps.\n\nThe first step involves the encoding of each modality. For the molecular encoder (illustrated in Fig. 1B), we pre-train a scaffoldbased molecular generator [12] on the ChEMBL [26] dataset and then use its encoder to produce molecular embeddings, thereby capturing structural information more efficiently than SMILES-based encoders [3, 4]. For the genetic encoder (visualized in Fig. 1C), we apply an advanced single-cell foundation model, scGPT [17], to encode pre- and post-perturbation gene expressions. We then calculate the difference within the gene embedding space to represent expression signatures.\n\nThe second step, as presented in Fig. 1C, is to fine-tune each encoder through aligning. As complex negative examples are crucial to final alignment effects, we employ a hierarchical genemolecule matching approach to enhance contrastive learning with iteratively refined granularity. The alignment projects gene expression signatures and molecules into a unified space, preparing for the transition from genetic embeddings to molecular ones.\n\nThe third step, as depicted in Fig. 1E, is implemented by a module entitled 'Facilitator', which is trained using a teacher-forcing technique and applied in an auto-regressive manner. Molecular embeddings are discretized into molecular tokens through principal component analysis (PCA) and binning. Beam search is adopted in this module to optimize the diversity of the generation.\n\nFinally, the inferred tokens are reordered and made continuous through retrieving and inverse PCA to molecular embeddings. They are then fed into the molecular decoder (as shown in Fig. 1D) to generate molecular graphs. During the training phase, this module needs to compute the reconstruction loss to form a closed training loop within the framework.\n\nThe necessity for the molecular encoder and alignment phase is limited to the training phase only. For generation, the initial and the desired gene expressions and the number of molecular candidates are needed. For the retrieval function, additional molecules are required as a screening list. To our knowledge, GexMolGen is the first work that applies large language models to generate molecules cross-modally."}]

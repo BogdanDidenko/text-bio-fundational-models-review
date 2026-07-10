@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"june_update_2026-06-10__rec_000148","candidate_id":"june_update_2026-06-10__rec_000148","source_record_id":"rec_000148","source_corpus":"include","title":"SciCore-Omics: a tri-modal foundation model unifying histology, spatial transcriptomics and language for spatial biology","abstract":"Histomorphology and spatial transcriptomics capture complementary aspects of tissue biology, but their relationships remain difficult to extract, align, and interpret at scale. Existing foundation models typically connect histology, omics, or language only pairwise, which limits their capacity to jointly infer molecular states, decode spatial tissue organization, and generate biologically grounded explanations. Here, we show SciCore-Omics , the first tri-modal foundation model linking histology images, spatial transcriptomics, and biological language. We constructed a spatially paired image-gene-text dataset comprising 151,182 spots across multiple tissues and performed a three-stage progressive training of SciCore-Omics on this dataset. Across gene expression prediction and spatial domain recognition, SciCore-Omics achieved 23.6-80.9% relative gains in task-specific metrics over the strongest external baselines. It further showed robust zero-shot generalization in histopathology classification, outperforming GPT-5 by 6.16 percentage points in mean accuracy across four benchmarks. Expert evaluation in 10 breast cancer cases confirmed its H&amp;E-only case-level molecular reasoning capability. Together, our method demonstrates that a tri-modal framework can effectively bridge histomorphology and molecular state, providing a more general and interpretable foundation model for computational pathology and omics analysis. [truncated]","doi":"10.64898/2026.05.30.728937","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 3 Online Methods > 3.4 Training corpus construction and progressive multimodal alignment]\nWeconstructed a multimodal training corpus that integrated text-only, image-text, gene-text and imagegene-text data. These datasets were organized into a progressive three-stage curriculum designed to align histology, transcriptomics and biological language in a stable manner. To reduce catastrophic forgetting during training, the mixed data in the third stage also retained general text-only and general visionlanguage data, such as UltraChat and Flickr30k [49, 50]. In total, the corpus contained approximately 1.05 million images, 39.85 million text sentences and 151,182 tri-modal data pairs. Dataset composition and statistics are provided in Supplementary Table 1 and Extended Data Fig. 2. The module-level implementation and trainable components of this progressive curriculum are illustrated in Extended Data Fig. 1.\n\nStage I: histology-text alignment. The first stage adapted the visual branch and language backbone to pathology image-text semantics. We used pathology textbooks and pathology image-text pairs collected from publicly available biomedical literature, including PubMed Central and pathologyoriented image-text corpora, yielding approximately 503,016 images and 28.52 million text sentences [13, 16]. This stage was implemented as pretraining to establish correspondence between tissue morphology, cellular appearance and pathology terminology [13-17].\n\nStage II: gene-text alignment. The second stage initialized the omics-to-language pathway. Approximately 51,602 gene-text pairs were constructed from public transcriptomic resources, including GEO and 10x Genomics datasets [4, 37, 51]. Gene expression profiles were converted into structured biological evidence, including highly expressed genes, pathway-enrichment labels and tissue metadata, and were further transformed into biological descriptions using the evidence-constrained procedure. This stage updated the gene encoder and projection modules so that transcriptomic representations could be mapped into the semantic space used by the language model.\n\nStage III: tri-modal joint alignment. The third stage performed spot-level image-gene-language alignment using spatial transcriptomics data with paired H&amp;E images and gene expression profiles. After quality control, 151,182 spatial spots were used as tri-modal image-gene-text triplets. Each local image patch and matched gene expression vector were paired with a transcriptome-grounded description derived from the same spot. During this stage, the model was trained on image-only, gene-only and joint imagegene input formats to support flexible downstream use. General-domain image-text and instructionfollowing samples were mixed at a low proportion to preserve general multimodal and language-following competence.\n\n[input_representation: 3 Online Methods > 3.2 Model architecture]\nSciCore-Omics is a language-centred multimodal foundation model built on MiniCPM-V as the generative multimodal language backbone and Nicheformer as the gene encoder [12, 45-47]. Histology images and gene expression profiles are processed by modality-specific encoders and then projected into the hidden dimension of the language model. The resulting visual and molecular token spans replace reserved modality placeholders in the input sequence, allowing image, gene and text tokens to be jointly processed by the same decoder-based generative backbone.\n\nThe complete SciCore-Omics model used in this study contains approximately 8.5 billion parameters , including the language-centred multimodal backbone, the histology visual branch, the Nicheformerbased gene encoder, the Q-Former module and modality projection layers. This parameter scale provides sufficient capacity for tri-modal generative reasoning over histomorphology, spatial transcriptomics and biological language, while remaining compatible with controlled local deployment on institutional GPU servers.\n\nIn the implementation used in this study, the gene branch follows\n\n<!-- formula-not-decoded -->\n\nwhere the gene encoder first maps the gene expression profile into molecular embeddings, the Q-Former compresses the molecular representation into 32 query virtual tokens, and the projector maps these virtual tokens into the language-model hidden space. The visual branch follows\n\n<!-- formula-not-decoded -->\n\nwhere histology-derived visual features are compressed into 64 visual virtual tokens and projected into the same token space as the molecular virtual tokens. The final multimodal sequence consists of text tokens, optional visual virtual tokens and optional gene virtual tokens, followed by answer tokens for autoregressive decoding.\n\nThis design allows SciCore-Omics to operate under image-only, gene-only or joint image-gene input settings without requiring task-specific architectural changes. For generative tasks, the language model decodes free-form or structured biological text conditioned on the available modalities. For discriminative tasks, the same model can be prompted in a closed-set manner or used as a feature extractor for lightweight downstream heads."}]

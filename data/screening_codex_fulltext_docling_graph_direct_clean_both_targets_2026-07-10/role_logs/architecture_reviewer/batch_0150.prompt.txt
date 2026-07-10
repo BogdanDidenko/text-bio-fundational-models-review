@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002327","candidate_id":"full_2026-07-06__rec_002327","source_record_id":"rec_002327","source_corpus":"include","title":"OmniNA: A foundation model for nucleotide sequences","abstract":"Foundation models have demonstrated exceptional efficacy across diverse downstream tasks. However, within the realms of genomics and transcriptomics, a notable gap persists in the availability of models that afford a comprehensive understanding of nucleotide sequence principles across various species. Here, we present OmniNA, a foundation generative model designed for comprehensive nucleotide sequence learning. The model was pre-trained on 91.7 million nucleotide sequences and the corresponding annotations encompassing 1076.2 billion bases and 197 million words spanning a multitude of species. We demonstrated OmniNA gains the capacity to understand the semantics of the nucleotide sequence and textual annotations by analyzing the learned representation of the pre-trained model. OmniNA can be fine-tuned to align multiple nucleotide learning tasks with natural language paradigms. We demonstrate OmniNA-1.7B surpasses or rivals state-of-the art methods in 17 nucleotide tasks, encompassing nucleotide sequences detection and species classification. The model's understanding of nucleotide grammars enhances its capability to reveal the mutation effect of nucleotide sequence on DNA and RNA processing. We hereby release the OmniNA-1.7B model as an open-source contribution to the research community. This foundation model signifies a step toward advancing our comprehension of nucleotide sequences across diverse species and holds substantial promise to facilitating genomics and transcriptomics research.","doi":"10.1101/2024.01.14.575543","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: Methods Data processing for OmniNA pre-training]\nWe curate sequence data along with corresponding textual annotations from the Nucleotide (nt) Database of the National Center for Biotechnology Information (NCBI) up to April, 2023. These data encompass genomic DNA and RNA sequences derived across diverse species. Employing a sliding window approach, we truncate sequences longer than 3000 bp to 3000 bp. Sequences with length less than 200 bp are excluded. We filter out sequences containing equal to or more than two consecutive N nucleotides. Subsequently, we obtain a total of 91, 732, 311 sequences, collectively comprising 1, 076, 183, 408, 570 bases. The textual annotations have a total of 197, 089, 040 words. We design the prompts to organize the sequence data with the text annotations as feature-ordered input for model pre-training ( Supplementary Table 1 ). The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation."}]

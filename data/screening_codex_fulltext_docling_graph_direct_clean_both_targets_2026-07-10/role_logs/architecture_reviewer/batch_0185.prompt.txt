@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000401","candidate_id":"full_2026-07-06__rec_000401","source_record_id":"rec_000401","source_corpus":"include","title":"A 5' UTR Language Model for Decoding Untranslated Regions of mRNA and Function Predictions.","abstract":"The 5' UTR, a regulatory region at the beginning of an mRNA molecule, plays a crucial role in regulating the translation process and impacts the protein expression level. Language models have showcased their effectiveness in decoding the functions of protein and genome sequences. Here, we introduced a language model for 5' UTR, which we refer to as the UTR-LM. The UTR-LM is pre-trained on endogenous 5' UTRs from multiple species and is further augmented with supervised information including secondary structure and minimum free energy. We fine-tuned the UTR-LM in a variety of downstream tasks. The model outperformed the best known benchmark by up to 5% for predicting the Mean Ribosome Loading, and by up to 8% for predicting the Translation Efficiency and the mRNA Expression Level. The model also applies to identifying unannotated Internal Ribosome Entry Sites within the untranslated region and improves the AUPR from 0.37 to 0.52 compared to the best baseline. Further, we designed a library of 211 novel 5' UTRs with high predicted values of translation efficiency and evaluated them via a wet-lab assay. Experiment results confirmed that our top designs achieved a 32.5% increase in protein production level relative to well-established 5' UTR optimized for therapeutics.\n\n† Correspondence: mengdiw@princeton.edu.\n\n* These authors contributed equally\n\nAuthor Contributions Statement\n\nY.C. developed the UTR-LM model, D.Y. performed experimental validation, and Y.L. produced in-house data. K.H. reviewed both the code and manuscript, while Y.S. [truncated]","doi":"10.1038/s42256-024-00823-9","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Methods > Overview of UTR-LM]\nWe developed a unified foundation language model to provide meaningful and rich representations for 5' UTRs. The model adopts a transformer architecture and it is trained using multi-modal data, including raw sequences, secondary structure, and minimum free energy. The model is pre-trained in a self-supervised learning manner via mask reconstruction, secondary structure prediction and MFE prediction. It is later fine-tuned for a variety of downstream function prediction tasks, where it is shown to improve the state-of-the-art performances in each task.\n\nWe trained UTR-LM on two computing clusters. The first cluster, hosted on the Amazon Web Services cloud platform, was equipped with four Tesla V100-SXM2 GPUs, each boasting 16 GB of high-bandwidth memory. The second cluster, the Stanford University's Sherlock high-performance computing system, employed four TESLA\\_P100\\_PCIE GPUs, each with 32 GB of memory. We configured the training to a maximum of 200 epochs and two days.\n\nFor pre-training the language model, we collected unlabeled 5' UTR sequences from three sources: the Ensembl database 33 , synthetic libraries from Sample et al. 6 , and endogenous human 5' UTR data analyzed by Cao et al. 7  We pre-processed the raw data to keep only high-quality and well-defined 5' UTRs, details are shown in Supplementary Materials A.1. After the pre-processing steps, the final large-scale dataset from several sources is obtained:\n\nWe obtained 214,349 unlabeled 5' UTR sequences from the Ensembl database 33 , spanning five species: human, rat, mouse, chicken, and zebrafish.\n\nWe obtained eight synthetic libraries of random 5' UTRs truncated to 50 nucleotides long from Sample et al. 6  These libraries are sorted into two groups based on their coding sequence (CDS): six libraries are linked to the enhanced green fluorescent protein (eGFP), and two are linked to mCherry. The eGFP-linked libraries consist of two unmodified uridine (U) libraries (U 1  and U 2 ), two pseudouridine ( Ψ ) libraries ( Ψ 1  and Ψ 2 ), and two 1-methyl pseudouridine (m 1 Ψ ) libraries (m 1 Ψ 1  and m 1 Ψ 2 ). Each eGFP library contains approximately 280,000 distinct 5' UTRs. The mCherry-linked libraries, named mC-U 1  and mC-U2, each contain around 200,000 unique 5' UTRs.\n\nWe obtained three endogenous human 5' UTR datasets analyzed by Cao et al. 7 , each originating from a distinct cell line or tissue type: human embryonic kidney 293T (HEK), human prostate cancer cell (PC3), and human muscle tissue (Muscle). The HEK, PC3, and Muscle datasets comprised 14,410, 12,579, and 1,257 sequences, respectively.\n\nIn addition, we also included unlabeled raw sequences from datasets of downstream tasks in the pre-training. For more in-depth description of each dataset, please see Supplementary Materials A.\n\n[input_representation: Methods > Architecture and pre-training of UTR-LM]\nWe developed a specialized language model for studying 5' UTRs, called UTR-LM (as illustrated in Fig. 1). The main architecture comprises an encoder block and a predictor block. The encoder block consists of a six-layer transformer 34  with 16 multi-heads selfattention. The layer normalization and residual connections are applied before and after each encoder block. The predictor block is a two-layer feed-forward neural network.\n\nIn our UTR-LM model, a 5' UTR sequence of length L is input as a series of nucleotide tokens (such as 'A', 'G', 'C', 'T'), along with a special [CLS] token. These tokens are first converted into 128-dimensional vectors via an embedding layer, forming an (L+1) × 128 matrix. This matrix then goes through the encoder block, generating a representation for each nucleotide token in the sequence.\n\nIn the pre-training stage, we used a mix of self-supervised learning and supervised learning. For the self-supervised training part, we followed the masked language modeling (MLM) 35 , where we randomly masked 15% of the nucleotide tokens in the 5' UTR sequence. The model is then trained to predict these masked tokens by minimizing the cross-entropy loss to encourage accurate reconstruction. We refer to this part as the masked nucleotide (MN) training task. This training objective function is\n\n<!-- formula-not-decoded -->\n\nIn Eq.1, we randomly select a set of indices, denoted as /u1D440 , from each input sequence /u1D465 (making up 15% of the entire sequence). The token at each index /u1D456 is replaced with the mask token [MASK]. The objective is to minimize the negative log-likelihood of the correct reconstruction of each /u1D465 /u1D456 , when the unmasked part /u1D465 //u1D440 is given as context.\n\nFor the supervised training part, we used two labels to provide auxiliary supervision. First, we included the secondary structure (SS) of 5' UTR for training, which is calculated using the software ViennaRNA 36 . We represented the SS using the 'dot-bracket' notation 36  , where paired nucleotides are given by '(' and ')' characters and unpaired nucleotides are given by a '.'. For instance, the SS of the sequence AUGCAUGCGAUCAGC is given by '(((..)))..((.))'. To utilize the SS, we introduced an MLM-inspired task (which we call the SS task) to predict the SS symbols associated with masked nucleotides. The training objective function is\n\n<!-- formula-not-decoded -->\n\nEq.2 differs from Eq.1 in that it uses the secondary structure /u1D460 as input. It attempts to reconstruct the masked secondary structure, when the unmasked part /u1D465 //u1D440 is given as context. The set of mask indices /u1D440 is the same as for the MN task. Second, we used the minimum free energy (MFE) of the 5' UTR as an additional target of prediction, because there exists proven correlation between the MFE and the translation efficiency 6 . We refer to this step as the MFE training task, where the predictor block uses the [CLS] token's representation to estimate the MFE value. We used the ViennaRNA software 36  to calculate the actual MFE. The training objective is to minimize the mean squared error:\n\n<!-- formula-not-decoded -->\n\nwhere /u1D440 /u1D439 /u1D438 /u1D465 and /u1D440 /u1D439 /u1D438 /u1D465 are the actual and predicted MFE of the input sequence /u1D465 ."}]

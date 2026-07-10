@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000129","candidate_id":"full_2026-07-06__rec_000129","source_record_id":"rec_000129","source_corpus":"uncertain","title":"Genos: a human-centric genomic foundation model.","abstract":"Background : The rapid expansion of human genomic data demands foundation models that manage ultra-long sequences and capture population diversity, limitations common in existing models that lack human-specific representation, and clinical inference efficiency.\n\nResults : Here, we introduce Genos (Genos-1.2B/Genos-10B), a human-centric genomic foundation model engineered for millionbasepair sequence modeling. Genos utilizes a large-scale mixture of experts structure, optimized for a 1-Mb context, trained on highquality human de novo assemblies from datasets such as the Human Pangenome Reference Consortium and the Human Genome Structural Variation Consortium, representing diverse global populations. A suite of optimization strategies was implemented to ensure training stability and enhance computational efficiency, which collectively reduces costs and facilitates million-basepair context modeling. Functionally, Genos performs single-nucleotide resolution analysis and dynamically simulates the cascade effects of noncoding variations on RNA expression profiles. In comprehensive evaluations, Genos uniformly surpasses state-of-the-art models on critical human genomics benchmarks and demonstrates robust omics-text cross-modal diagnostic capabilities. We present a systematic technical evaluation and validation of Genos's architecture, training convergence, and performance across standard benchmarks. [truncated]","doi":"10.1093/gigascience/giaf132","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: Method > Data collection and preprocessing]\nThe training data for Genos were curated from multiple highquality genomic sources, including 231 haplotype-resolved assemblies from the HPRC (release 2), 65 assemblies from the HGSVC, and 21 genomes from the Centre d'Etude du Polymorphisme Humain (CEPH) cohort, along with 2 reference genomes, GRCh38 and CHM13. In total, the dataset comprises 636 highquality genomes, representing diverse global populations. Each genome sequence was processed using a one-hot tokenizer, with a vocabulary consisting of the 4 canonical nucleotides (A, T, C, G), the undetermined base N, and special tokens, such as &lt; EOD &gt; marking sequence boundaries. No cell type-specific labels, epigenetic features (e.g., histone modifications), or other functional annotations were incorporated during this stage. This ensures that the model learns a general-purpose representation of the human genome, unbiased toward any particular biological context or experimental condition.\n\nTraining was performed in 2 major stages. In the pretraining stage, samples from HPRC release 2 were divided into 4 groups at an approximate 3:3:3:1 ratio, corresponding to sequence lengths of 8,192 bp, 32,768 bp, 131,072 bp, and 1,024,000 bp. Within each stage, about one-fourth of the samples had both haplotypes reverse-complemented, while the remaining samples retained the forward strand orientation. Samples from HGSVC and CEPH pedigrees were all processed into 8,192-bp fragments, with one-fourth of them reverse-complemented in the same manner. Both reference genomes (GRCh38 and CHM13) were prepared with both forward and reverse strands at every length scale. To reduce noninformative intergenic content, 8,192-bp fragments excluded regions located more than 5,120 bp away from any gene boundary, while 32,768-bp fragments excluded regions beyond 10,240 bp from gene boundaries. The 4 pretraining datasets were then sequentially introduced to the model by increasing sequence length, resulting in a total of approximately 1.4 trillion (1,400B) tokens.\n\nFigure 1: The model architecture of Genos and the design diagram of downstream tasks.\n\n<!-- image -->\n\nIn the subsequent continued pretraining (CPT) stage, the same samples were reshuffled across lengths and strand orientations to generate an additional 2.6 trillion (2,600B) tokens, which were further randomized before being fed into the model.\n\nCrucially, it is important to emphasize that all filtering was discontinued in the subsequent CPT stage. The additional 2.6 trillion tokens used in CPT were generated from the original samples without any intergenic distance-based exclusion. This ensured that the model was extensively exposed to and trained on distal intergenic regions, segmental duplications, transposable elements, and other complex genomic architectures, thereby cultivating a comprehensive understanding of the entire genomic landscape, including essential 'negative' background sequences."}]

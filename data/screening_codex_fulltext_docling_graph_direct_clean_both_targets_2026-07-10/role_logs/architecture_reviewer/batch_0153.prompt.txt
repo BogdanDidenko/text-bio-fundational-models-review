@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003274","candidate_id":"full_2026-07-06__rec_003274","source_record_id":"rec_003274","source_corpus":"include","title":"Clinically aligned multi-modal image-text model for pan-cancer prognosis prediction","abstract":"Cancer prognosis prediction increasingly leverages multi-modal learning, yet existing approaches often rely on omics data that are costly and difficult to collect in routine practice. Pathology reports, by contrast, are routinely generated and widely available, providing a practical textual modality complementary to histology. We present\n\nCALM ( C linical A nchor text guided L earning for M ulti-modal prognosis prediction), a general framework that integrates pathology images and reports through riskspecific anchor texts. CALM systematically incorporates prior clinical knowledge by guiding image and text alignment with large language model-derived anchors, further refined via few-shot tuning. Across 14 TCGA cancer types, CALM improved prognostic accuracy compared to image and text baselines (up to +11.5% mean C-index), with enhanced training stability. CALM achieved performance comparable to image-omics integration in PORPOISE (0.652 vs. 0.644), highlighting the prognostic value of text. External validation in an independent head and neck cancer cohort demonstrated that CALM improved generalization in zero-shot settings. Attentionbased interpretation further confirmed that CALM aligns diagnostic text with tumor regions. Together, CALM offers a simple, interpretable, and clinically viable strategy for prognosis prediction, expanding the role of routine pathology reports as scalable priors in multi-modal oncology AI.\n\nKeywords Computational pathology, Multi-modality integration, Vision language modeling, Clinically aligned, Text anchoring","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Clinically aligned multi-modal image-text model for pan-cancer prognosis prediction > Methods > Dataset and processing]\nCALM was trained and validated using two datasets: (1) 14 cancer types from the public TCGA cohort (details provided in Appendix A) and (2) an in-house head and neck cancer (HNSC) dataset from Kyung Hee University Medical Center (KHMC).\n\nTCGA dataset For TCGA, we followed the setup of PORPOISE [18], using the same cancer types, patients, and publicly released split sets to ensure comparability. The data- set  was  divided  into  80%  training  and  20%  testing  with  5-fold  cross-validation  at  the patient level, using one slide per patient. Overall survival (OS) times were discretized within each cancer type into four quantile-based bins (25% each) and encoded as labels from 0 to 3, with higher labels corresponding to lower relative risk. Unlike PORPOISE, which did not employ a validation set, CALM reserved 20% of the training set for validation to enable early stopping and model checkpoint selection. OS was used as the primary outcome variable.\n\nFig. 1 Overview of CALM. CALM consists of three main components: an image encoding block, a text encoding block, and a cross-attention fusion block. Risk-specific anchor texts (high-, intermediate-, and low-risk) are employed to establish clearer decision boundaries between risk strata, thereby improving training stability and predictive performance\n\n<!-- image -->\n\nKHMC-HNSC dataset The KHMC-HNSC dataset comprises a South Korean patient cohort and was used as an external validation set to assess model generalizability under domain shifts in ethnicity (predominantly East Asian), imaging devices, and acquisition protocols.  Of  160  enrolled  participants,  139  were  retained  after  excluding  cases  with missing data or incomplete labels (Institutional Review Board approval: Kyung Hee University Medical Center, KHNMC 2024-06-005-002).\n\nData preprocessing, splitting, and label generation followed the same pipeline as TCGA. The mean age of the cohort was 67.41 years, and 81.29% were male. The mean follow-up time was 30.30 months (±24.99). Among 139 patients, 15 deaths (10.79%) were observed. The mean follow-up was 15.15 months (±17.01) for censored patients and 32.13 months (±25.23) for deceased patients.\n\nWe employed KHMC-HNSC solely for zero-shot inference rather than training-validation. This design choice was motivated by (1) the limited sample size, (2) the small number of events leading to unstable model training, and (3) concerns regarding imbalance in follow-up durations between deceased and censored groups, which could bias model learning.\n\n##### WSI preprocessing\n\nTo  ensure  consistency  and  reproducibility,  we  employed  the  TRIDENT  pipeline  [29] for  WSI  preprocessing  and  feature  extraction.  TRIDENT  provides  standardized  functions for patch extraction and feature generation. Tissue segmentation was performed using GrandQC, and all patch analyses were conducted at 20× magnification (0.5 mpp). Default TRIDENT parameters were used unless otherwise specified. Patch size and preprocessing  settings  followed  encoder-specific  recommendations:  384 × 384  for  MUSK [3] and 256 × 256 for UNI v1 [11].\n\n[input_representation: Clinically aligned multi-modal image-text model for pan-cancer prognosis prediction > Methods > Overview of CALM]\nCALM extends patch-level vision-only or vision-language encoders to the slide level, enabling prognosis prediction based on slide-level image features and pathology reportderived  text  features.  In  addition,  risk-stage-specific  anchor  texts  are  introduced  to incorporate prior knowledge. A conceptual diagram of the CALM framework is shown in Fig. 1."}]

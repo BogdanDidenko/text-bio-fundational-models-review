@@ -1,0 +1,158 @@
+2026-07-10T09:53:38.574831Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.598918Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b72-6eca-7ac3-bb44-656fcedc23ca
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002105","candidate_id":"full_2026-07-06__rec_002105","source_record_id":"rec_002105","source_corpus":"include","title":"Multimodal learning of transcriptomes and text enables interactive single-cell RNA-seq data exploration with natural-language chats","abstract":"Single-cell RNA-seq characterizes biological samples at unprecedented scale and detail, but data interpretation remains challenging. Here we introduce CellWhisperer, a multimodal machine learning model and software that connects transcriptomes and text for interactive single-cell RNA-seq data analysis. CellWhisperer enables the chat-based interrogation of transcriptome data in English language. To train our model, we created an AIcurated dataset with over a million pairs of RNA-seq profiles and matched textual annotations across a broad range of human biology, and we established a multimodal embedding of matched transcriptomes and text using contrastive learning. Our model enables free-text search and annotation of transcriptome datasets by cell types, states, and other properties in a zero-shot manner and without the need for reference datasets. Moreover, CellWhisperer answers questions about cells and genes in natural-language chats, using a biologically fluent large language model that we fine-tuned to analyze bulk and single-cell transcriptome data across various biological applications. We integrated CellWhisperer with the widely used CELLxGENE browser, allowing users to interactively explore RNA-seq data through an integrated graphical and chat interface. Our method demonstrates a new way of working with transcriptome data, leveraging the power of natural language for single-cell data analysis and establishing an important building block for future AI-based bioinformatics research assistants.","doi":"10.1101/2024.10.15.618501","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Discussion > Creation of a multimodal training dataset with pairs of transcriptomes and text]\nTo establish a large training dataset of transcriptomes and matched textual annotations, we processed two community-wide repositories: Gene Expression Omnibus (GEO) (Clough et al. 2024; Edgar et al. 2002) and CELLxGENE Census (version 2023-12-15) (CZI Single-Cell Biology Program et al. 2023).\n\n- For GEO, we obtained RNA-seq count matrices of 722,425 human transcriptomes that have been uniformly 335 processed as part of the ARCHS 4 project (v2.2, Date: 5-30-2023) (Lachmann et al. 2018). We removed 7,049 samples with fewer than 250 expressed genes and 9,946 samples that overlapped with our independent disease validation dataset (described in detail below), resulting in 705,430 transcriptomes. For each transcriptome, we obtained the associated metadata using the Entrez API with either the sample's experiment accession , Bio-\n- Sample accession , or GEO accession (in this order of priority), and we removed binary data as well as special 340 characters using the unidecode package. We included metadata fields describing study-level descriptions such as series design , growth protocol , and series\\_summary , as well as sample-level fields including sample title , treatment , and multiple other metadata fields that varied across studies.\n\nFrom CELLxGENE Census we obtained scRNA-seq count matrices of 257 studies that were conducted on\n\n- human samples using one of four assays with comparable data types (10x Genomics, Seq-Well, Drop-seq, 345 CEL-seq2). We excluded cells with fewer than 100 expressed genes, resulting in a total of 19,663,838 scRNAseq profiles. Within each sample, we grouped cells based on cell-level metadata, using only metadata fields with fewer than 500 distinct values across all cells in the corresponding study, and we calculated pseudo-bulk (meta-cell) transcriptomes by taking the mean of the scRNA-seq count values across all cells in each metadata-\n- defined group of cells. Each of these 376,983 pseudo-bulk transcriptomes was linked to its cell-level metadata 350 such as the cell type and to study-level metadata such as a study title and study abstract .\n\nFor each sample (GEO) or pseudo-bulk transcriptome (CELLxGENE Census), we generated a concise naturallanguage summary from the metadata using Mixtral 8x7b (Jiang et al. 2024) (Q5\\_K\\_M quantized version), via the llama.cpp python bindings with a sampling temperature of 0.2, nucleus sampling (top\\_p) of 0.9, and top\n\n- probability sampling (top\\_k) of 50. This LLM-based generation of concise textual annotations was guided by 355 a prompt that we engineered based on recent best practices such as pre-action reasoning (Yao et al. 2022), roleplaying (Kong et al. 2024), and few-shot learning (Brown et al. 2020) with a manually curated set of examples. The prompt and illustrative examples of generated textual annotations are shown in Supplementary Note 1 .\n\nData processing was performed on compute nodes with eight A100 80 GB GPUs. We estimate a total of 5000\n\n- GPU hours for the LLM-assisted generation of textual annotations. The training dataset is available for down360 load via the project website (https://cellwhisperer.bocklab.org).\n\n365\n\n370\n\n[input_representation: Results > CellWhisperer links transcriptomes and text through a multimodal embedding model and LLM]\nTo enable scRNA-seq data analysis using natural language, we created CellWhisperer, a multimodal AI model of transcriptomes and text that supports data-centric conversations about cells and genes. CellWhisperer was built in three steps ( Fig. 1a ): (i) LLM-assisted curation of training data, resulting in over a million pairs of human RNA-seq profiles and matched textual annotations; (ii) learning of a multimodal embedding model that connects text to transcriptomes (e.g., cell search using free-text queries) and transcriptomes to text (e.g., cell annotation with textual descriptions); (iii) transcriptome-aware fine-tuning of an LLM for data-centric question answering and natural-language chats. This section describes each of these three steps, while further technical details are provided in the Methods section, in Supplementary Note 1 and 2 , and in Extended Data Fig. 1 . First, we created a training dataset that connects transcriptomes (i.e., RNA profiles for bulk samples or singlecell clusters) with concise textual annotations (e.g., 'Renal cell carcinoma tissue sample taken from a male\n\n90\n\n95\n\n100\n\npatient at stage 2, with no metastasis, preserved in FFPE blocks' ),  across a broad range of cell types and conditions. To that end, we performed LLM-assisted curation of the Gene Expression Omnibus (GEO) and CELLxGENE Census data repositories. GEO comprises RNA-seq data from ~20,000 individual studies based on researcher submissions. Its inherent diversity is a great advantage, as it covers essentially all fields of human biology that have been studied with RNA-seq; but it also creates the need for data harmonization. To obtain coherent transcriptome profiles, we built upon the ARCHS 4 project, which carried out uniform processing of RNA-seq data from GEO (Lachmann et al. 2018); and to retrieve concise and biologically descriptive textual annotations for each sample, we developed an LLM-assisted curation procedure based on sample-associated metadata (which comprise semi-structured information such as cell types, organs, tissues, and diseases, description of experimental methods, scientific project abstracts, etc.). This way, we derived from GEO a coherent training dataset of 705,430 human transcriptomes with matched textual annotations.\n\nOur second data source, CELLxGENE Census, comprises several hundred scRNA-seq datasets including reference maps from the Human Cell Atlas. We grouped the cells in each dataset based on the provided metadata and generated pseudo-bulk transcriptomes by averaging across the scRNA-seq profiles within each group. We then applied our LLM-assisted curation procedure to condense the metadata for each group into concise biological descriptions, resulting in 376,983 human transcriptomes with matched textual annotations.\n\n- Second, we used the combined dataset with 1,082,413 pairs of transcriptomes and their textual annotations to train a deep learning model that integrates the two modalities into a joint multimodal embedding space. We 105 adapted the contrastive language-image pretraining (CLIP) architecture (Radford et al. 2021) and processed the transcriptome profiles with the Geneformer model for gene expression (Theodoris et al. 2023), while the textual annotations were processed with the BioBERT model for biomedical text (Lee et al. 2020). Each of the two resulting vectors was mapped into a 2048-dimensional multimodal embedding space using conventional\n- feed-forward neural network layers. These adapter layers and the BioBERT model were trained to place the 110 two modality-specific embeddings within close proximity in the joint embedding space. We validated that the resulting CellWhisperer multimodal embedding was capable of retrieving the transcriptome corresponding to a given textual annotation and vice versa -a standard metric of CLIP model performance (Radford et al. 2021) -and we obtained a mean ROC-AUC value of 0.927 ( Extended Data Fig. 1a ).\n- The trained CellWhisperer model can be prompted with free-text queries to search for transcriptomes that 115 match the search query. For example, the 'immune cells' query is processed with the BioBERT-based language model, the resulting embedding is compared to the embeddings of all relevant cells or samples from the Geneformer-based transcriptome model, resulting in a quantitative measure (the 'CellWhisperer score' )  that assesses the match between the query and a given transcriptome. High CellWhisperer scores thus indicate that the model will rank this transcriptome highly in response to this free-text query and report it with high priority. 120\n- 125\n\n130"}]
+
+2026-07-10T09:53:38.620081Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:38.623078Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.651960Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.676513Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.690398Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.690410Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.690884Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.690889Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.691266Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.691272Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.691653Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.691658Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.692121Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.692126Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.693120Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.693125Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:38.700505Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.722225Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.746565Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.767306Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.791467Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.815683Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.839855Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.861171Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.885455Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.909594Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.933928Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.957994Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:38.980483Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:39.028953Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:39.050570Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:39.251327Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:39.679408Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:39.700779Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:39.700826Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:40.545489Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:40.559418Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.559428Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.559758Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.559764Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560079Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560084Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560393Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560397Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560718Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.560723Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.561424Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:40.561428Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:41.216530Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:41.230337Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:41.230384Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_002105","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"The record presents a new multimodal model, CellWhisperer, rather than a review or wrapper. It explicitly links transcriptomes and text, and supports free-text search and natural-language chats over RNA-seq data.","evidence_snippet":"\"multimodal machine learning model ... connects transcriptomes and text\"; \"chat-based interrogation of transcriptome data in English language\"; \"questions about cells and genes in natural-language chats\"; \"textual annotations\"; \"free-text queries\"; \"transcriptomes and text\"; \"multimodal embedding model and LLM\"; \"natural language for single-cell data analysis\""}]}
+2026-07-10T09:53:49.135974Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b72-6eca-7ac3-bb44-656fcedc23ca.1783677218548534000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,633

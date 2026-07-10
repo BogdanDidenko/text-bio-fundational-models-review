@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003208","candidate_id":"full_2026-07-06__rec_003208","source_record_id":"rec_003208","source_corpus":"uncertain","title":"Multi-Scale AI-Assisted Gene Expression Decoding","abstract":"Genes can be treated as a graph that can be mapped. Tremendous information is coded in genes to form a complex organism. Decoding this information is critical to understanding our biology and developing treatments for various diseases including cancer. Deep learning, a new branch of computer science, has gained traction over the past decade. Our study has shown that deep-learning models can be an effective tool in decoding genetic data such as gene tissue-deconvolution, gene graph mapping and genomic imputation. In tasks such as tissue deconvolution, our research has demonstrated the superior capability of deep learning-based approaches in capturing sample variations compared to traditional numerical analytical methods. While our approach requires large relevant datasets for effective deep learning training, this challenge can be addressed with increasing data availability. In gene graphing and mapping, our Graph Neural Network based approach consistently outperforms traditional regression techniques by a significant margin. The primary challenge here lies in the demand for substantial computing resources; however, the ongoing growth in average computing power and the enhanced accessibility of computational resources are expected to alleviate this constraint over time. Moreover, in the realm of generating and imputing missing biological data, cutting-edge generative AI models have proven to be invaluable. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: MOTIVATION]\nAdvancements in biomedical research have continually pushed the boundaries of our understanding of complex biological systems, particularly in the realms of tissue deconvolution, gene mapping, and methylation imputation. Leveraging deep neural networks (DNN) for tissue deconvolution offers a promising avenue to unravel the intricate composition of heterogeneous tissue samples, providing insights into cellular dynamics and disease mechanisms. Specifically, the deconvolution of circulating tumor cell RNA (ctcRNA) can unveil the potential tissue origins of tumor significantly enhancing our understanding of tumor heterogeneity and potentially leading to more precise diagnoses and targeted therapies. Similarly, graph convolutional networks (GCN) have emerged as a potent tool for gene mapping, enabling the integration of multi-omics data and deciphering the intricate interplay between genes and their regulatory networks. Moreover, the flexible edge integration capabilities of the Graph Neural Network (GNN) model have the potential to empower us to explore various combinations of biological edges, thereby elucidating how different edge types can impact gene mapping performance. This capability enables us to delve deeper into the intricate networks governing gene interactions, fostering a more comprehensive understanding of molecular\n\n[input_representation: RESEARCH STATUS IN AI ASSISTED TISSUE DECONVOLUTION]\nIn cancer biology, gene expression analysis serves as a cornerstone in understanding biological processes and disease mechanisms. Co-expression analysis has provided invaluable insights into gene networks and functional interactions. Despite advancements in this field, conventional approaches often overlook non-linear gene interactions and fail to capture comprehensive associations among genes. To address these limitations, we introduce an innovative method for gene expression prediction using graph neural networks (GNNs). By integrating multiple graph features representing regulatory and structural elements, our approach enhances predictive modeling accuracy and provides a more holistic view of gene expression connectivity. We hypothesize that this new approach will yield superior results compared to traditional methods, thereby advancing our understanding of gene networks and disease mechanisms such as cancer. By doing so, we aim to pave the way for the development of more effective gene therapies tailored to the specific needs of cancer patients. Through our research, we aim to provide valuable insights that can directly inform the design and implementation of new treatment strategies, ultimately leading to improved outcomes and quality of life for individuals battling cancer.\n\nCancer-related deaths can be attributed to metastasis, which denotes the dissemination of cancer cells from the primary tumor site to distant locations within the body. Steps of metastasis consist of detachment of the cells from the primary tumor into blood, their transport through the blood stream, and dissemination to organ sites distant from the primary lesions and establishment of tumors in these sites. Once metastasis has occurred, the treatment of the disease becomes increasingly challenging. The early detection of metastasis bears significant clinical implications, as it allows for timely adjustments in treatment strategies[7]. The utilization of machine-learning techniques in cancer research has experienced a remarkable surge in recent years[8]. One notable application of such techniques involves the detection of tissue origin through the analysis of circulating genomic information gleaned from blood samples. For instance, Moss et al. established a model capable of predicting tissue origin based on methylation patterns of circulating cell-free DNA (cfDNA)[1]. They employed a methodology known as nonnegative least squares linear regression (NNLS), which is commonly employed to predict continuous values by constraining all model parameters to be greater than or equal to zero. Subsequently, Larson et al. developed a distinct model using quadratic linear regression to predict the tissue origin of circulating cell-free RNAs (cfRNA)[9]. Although the regression methods utilized in these studies differed, they shared a common requirement: the utilization of a reference panel containing the average or median of the feature levels. The reference-based approach has been extensively employed in the realm of biological research, notably exemplified by the widely recognized PAM50 method that employs a 50-gene panel to effectively classify breast cancer intrinsic subtypes[10]. Although the reference panel approach yields sufficiently accurate results, there exists a notable opportunity for substantial improvement. One of the key limitations associated with the reference panel approach pertains to the loss of information incurred during panel construction, necessitating the computation of average or median values across all samples and for all features. Consequently, this procedure results in the exclusion of feature-specific information pertaining to individual samples. In contrast, we propose the adoption of a neural network-based approach, wherein the model training process encompasses the consideration of feature information from all individuals within the training dataset. This alternative approach effectively captures the inherent variation present within the data, thus enhancing accuracy and providing a more comprehensive analysis framework."}]

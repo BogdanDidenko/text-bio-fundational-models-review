@@ -1,0 +1,158 @@
+2026-07-10T09:53:58.341045Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.365304Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b72-bc08-7240-8067-20256a787ab8
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000149","candidate_id":"full_2026-07-06__rec_000149","source_record_id":"rec_000149","source_corpus":"uncertain","title":"Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models.","abstract":"Genomic language models (gLMs) have emerged as a powerful approach for learning genomewide functional constraints directly from DNA sequences. However, standard gLMs adapted from natural language processing often require extremely large model sizes and computational resources, yet still fall short of classical evolutionary models in predictive tasks. Here, we introduce GPN-Star (Genomic Pretrained Network with Species Tree and Alignment Representation), a biologically grounded gLM featuring a phylogeny-aware architecture that leverages whole-genome alignments and species trees to model evolutionary relationships explicitly. Trained on alignments spanning vertebrate, mammalian, and primate evolutionary timescales, GPN-Star achieves state-of-the-art performance across a wide range of variant effect prediction tasks in both coding and non-coding regions of the human genome. Analyses across timescales reveal task-dependent advantages of modeling more recent versus deeper evolution. To demonstrate its potential to advance human genetics, we show that GPN-Star substantially outperforms prior methods in prioritizing pathogenic and fine-mapped GWAS variants; yields unprecedented enrichments of complex trait heritability; and improves power in rare variant association testing. Extending beyond humans, we train GPN-Star for five model organisms Mus musculus, Gallus gallus, Drosophila melanogaster, Caenorhabditis elegans , and Arabidopsis thaliana -demonstrating the robustness and generalizability of the framework. [truncated]","doi":"10.1101/2025.09.21.677619","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models > Methods > Training Data]\nGeneral workflow. The current training workflow requires:\n\n- A multispecies whole-genome alignment (e.g., obtained with MULTIZ [21] or Cactus [22]).\n- A phylogenetic tree.\n- PhastCons [24] and PhyloP [25] conservation scores.\n\nMULTIZ alignments (MAF format) were first transformed into FASTA format using maf2fasta [21]. As in GPN-MSA [29], we remove columns with gaps in the target sequence. Finally, we transform the alignment into Zarr format [83], which allows fast multi-threaded random access to genomic windows.\n\nSimilar to Benegas et al. [29], we further select training regions from the target genomes based on conservation. For every model, a sliding window equal to the model's context length is moved across unmasked genomic regions with a stride of half the window size. We define the conservation of a window as the 75th percentile of PhastCons scores in the window. We retain the top 5% most conserved windows and a random 0.1% of the remaining windows as the training data for the model. The windows are split by chromosome into training and validation sets as detailed in Supplementary Table 1. For the selected windows, sequences on both the forward and reverse strands are included in the training data.\n\nData sources. MULTIZ alignments and associated data are readily available at the UCSC Genome Browser [84] for many of the species covered in this paper (Supplementary Table 8). The human alignments with primates and mammals [56, 85] were done with Cactus [22] and processed by Albors et al. [86]. The MULTIZ alignment for A. thaliana ( TAIR10 reference) and 17 other Brassicales, as well as conservation scores, was downloaded from PlantRegMap [87].\n\nAdditional phylogenetic tree construction step for Brassicales alignment. Since no phylogenetic tree was publicly available for the species in the Brassicales alignment, we generated one with the PHAST package [88] based on fourfold degenerate sites, as described in the original publication [87]. We used the Ensembl [58] release 60 annotation. Since msa\\_view , part of the pipeline, only works with one chromosome at a time, we picked chromosome 1 arbitrarily.\n\n```\nmsa_view ../maf/tair10_multiz18way/1.maf --4d --features chr1.gff > 4d-codons.ss msa_view 4d-codons.ss --in-format SS --out-format SS --tuple-size 1 > 4d-sites.ss phyloFit --tree \"(Carica_papaya,(Tarenaya_hassleriana,(Aethionema_arabicum, ((Arabis_alpina,(Eutrema_salsugineum,(Thellungiella_parvula,(Sisymbrium_irio, (((Brassica_oleracea,Brassica_napus),Brassica_rapa),Raphanus_sativus))))), ((Boechera_stricta,(Camelina_sativa,(Capsella_grandiflora,Capsella_rubella))), (Arabidopsis_thaliana,(Arabidopsis_halleri,Arabidopsis_lyrata)))))))\" --msa-format SS --out-root nonconserved-4d --EM --precision MED 4d-sites.ss\n```\n\n[input_representation: Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models > Results > Alignment- and phylogeny-informed genomic language models]\nGPN-Star learns the functional constraints of genetic variants in a target genome by leveraging evolutionary signals embedded in multispecies phylogeny and whole-genome alignment data. Inspired by classical evolutionary models, it aims to characterize how each genomic position evolves across species. We introduce a specialized transformer architecture designed to capture highly expressive functions that describe the evolutionary information, while effectively incorporating the genomic context of each site (Figure 1A).\n\nThe model uses an encoder-only architecture trained with a masked language modeling (MLM) objective. Each input consists of a WGA window across multiple species and a corresponding species tree. From this alignment, we construct two sets of sequences: target sequences and source sequences , with each sequence corresponding to a species. The model learns to predict masked nucleotides in the target sequences, conditioned on their own sequence context and the evolutionary context from the source sequences. This is accomplished through a stack of encoder blocks, each comprising a sequence-wise self-attention module to encode intra-sequence context, a phylogenyinformed cross-attention module to encode evolutionary context from the source sequences, and a feed-forward network to integrate the information. At the core of the model, the cross-attention module adaptively weights source sequence contributions using evolutionary distances derived from the species tree via an attention mechanism. The resulting encoder embeddings for the target sequences integrate rich information from both intra-sequence context and evolutionary information, and are passed through an MLM head to produce the final per-nucleotide probability predictions used for training and downstream variant scoring. Full architectural and training details are provided in Methods.\n\nThe GPN-Star framework advances beyond GPN-MSA in three key aspects: First, whereas GPN-MSA masks only the human genome during training, GPN-Star leverages all genomes in the alignment by predicting masked nucleotides across multiple species, thereby substantially increasing both the amount and diversity of training data. Second, GPN-Star explicitly incorporates phylogenetic relationships among species through specialized attention modules, enabling more ac- curate and biologically grounded modeling. Third, it flexibly accommodates alignments of arbitrary composition and size, eliminating the need for manual curation, such as excluding closely related species, as was required in GPN-MSA [29]. Empirically, we observe consistent and substantial performance gains across extensive evaluations (Supplementary Figure 1).\n\nAn additional methodological innovation of this work is accounting for mutation rate variation for the first time in gLMs. We developed an effective calibration procedure that removes mutation rate effects from the raw model outputs, yielding more accurate quantification of genome-wide functional constraints (detailed below and in Methods).\n\nThe GPN-Star framework is general and flexible, designed to work with any alignment data from any species, requiring minimal hyperparameter tuning to achieve robust performance (Methods). We first applied our framework to the human genome, training three separate GPN-Star models using the largest available vertebrate, mammalian, and primate WGAs (Figure 1B, Methods). Throughout this study, we denote these models as GPN-Star (V), GPN-Star (M), and GPN-Star (P), respectively. We have experimented with different model sizes, but we focus here on the largest models, which have 200 million parameters and were trained for several days on 8 NVIDIA A100 GPUs (Supplementary Table 1), representing a significantly more efficient resource footprint than previous gLMs - such as Nucleotide Transformer (trained on 128 A100 GPUs for a month) [8] and Evo-2 (trained on over 2,000 H200 GPUs for several months) [9].\n\nIn contrast to previous gLMs trained on data from extremely broad evolutionary timescales (e.g., spanning prokaryotes to humans), GPN-Star focuses on narrower, more recent phylogenetic distances closely related to humans (Figure 1B). As we demonstrate below, modeling longer evolutionary histories is not always optimal, depending on the downstream application. Instead, capturing recent evolutionary constraints proves especially advantageous for interpreting certain classes of genetic variants (Figure 1C)."}]
+
+2026-07-10T09:53:58.385363Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:58.418964Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.444564Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.444576Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.445012Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.445022Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.445478Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.445485Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.445503Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.446131Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.446138Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.446810Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.446817Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.448204Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.448214Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:58.468302Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.492608Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.516614Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.541022Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.565204Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.587133Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.610869Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.635078Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.659180Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.683072Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.707002Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.730471Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.754695Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.778865Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.803005Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.827312Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:53:58.945668Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:58.954755Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:58.954801Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:59.555785Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:59.789136Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:53:59.804850Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.804864Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805196Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805205Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805542Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805548Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805873Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.805878Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.806211Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.806216Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.806905Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:53:59.806910Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:54:00.270613Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:00.279525Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:54:00.279561Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_000149","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary model paper about a phylogeny-informed genomic language model trained on multispecies whole-genome alignments and species trees. The evidence shows biological sequence modeling only, with no substantive natural-language text component or text-bio bridge.","evidence_snippet":"\"trained with a masked language modeling (MLM) objective\"; \"Each input consists of a WGA window across multiple species and a corresponding species tree\"; \"predict masked nucleotides\"; none; none; not_assessed; \"biological-token_only_boundary\""}]}
+2026-07-10T09:54:06.823939Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b72-bc08-7240-8067-20256a787ab8.1783677238315105000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,435

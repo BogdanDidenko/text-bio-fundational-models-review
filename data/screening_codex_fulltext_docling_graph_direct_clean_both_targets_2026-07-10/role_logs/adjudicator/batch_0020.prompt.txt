@@ -1,0 +1,91 @@
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001313","candidate_id":"full_2026-07-06__rec_001313","source_record_id":"rec_001313","source_corpus":"uncertain","title":"PlantBiMoE: A Bidirectional Foundation Model with Sparsemoe for Plant Genomes","abstract":"","doi":"10.1109/BIBM66473.2025.11356776","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source, input_representation: II. MATERIALS AND METHODS > 1) A pre-training dataset comprising genomic sequences from 42 plant species]\nTo train PlantBiMoE, we constructed a high-quality pretraining dataset of plant genomes, which covers a total of 42 plant species in six broad categories: model plants, vegetables, fruits, cereals, algae and other important plants, as shown in Fig. 2. For each species, we obtained its reference genome FNA file from NCBI and performed the following data preprocessing sequentially:\n\n- The reference genomes of all plants were cut into segments with a fixed length of 32,768 bp. An overlap strategy was introduced during the cut into segments to do implicit data enhancement, i.e., an overlap interval of 64 to 128 bp was retained between two neighboring segments, and the sliding step size was randomly sampled within this range.\n- Replace all non-standard bases in the fragments, other than A, T, C, G, and N, with N uniformly.\n- Filter out all sequences with more than 2% of base N to form the initial dataset.\n- Randomly select 30% of the sequences in the initial dataset for reverse complementation (RC) and add them to the initial dataset to form the final dataset.\n\nFinally, we obtained a dataset containing 25.40B nucleic acid pairs. We divided the dataset into a training set and a test set according to chromosomes, with 5% of the test set, which ensures the relative independence of the training and validation sets in terms of species and chromosomes. This strategy helps to improve the generalization assessment validity of the model in the validation stage.","first_pass_outputs":{"scope_reviewer":{"record_id":"full_2026-07-06__rec_001313","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"A new foundation model is presented for plant genomes, with pretraining on reference genome sequences from 42 plant species. The provided evidence contains only nucleic acid sequences and no natural-language text component or text-bio bridge.","evidence_snippet":"\"pretraining dataset of plant genomes\"; \"reference genomes of all plants were cut into segments\"; \"25.40B nucleic acid pairs\""},"architecture_reviewer":{"record_id":"full_2026-07-06__rec_001313","paper_type":"primary_model_paper","generative_model_present":"unclear","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"generative_status_unclear","decision_rationale":"The record describes a pretraining foundation model on genomes from 42 plant species and emphasizes generalization across species/chromosomes. It does not clearly state a generative mechanism such as decoder, autoregressive, sequence-to-sequence, or diffusion.","evidence_snippet":"“A pre-training dataset comprising genomic sequences from 42 plant species” and “This strategy helps to improve the generalization assessment validity of the model”"},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"EC2_no_text_component","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"unclear","foundation_model_evidence":"yes"}}}]

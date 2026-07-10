@@ -1,0 +1,91 @@
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000534","candidate_id":"full_2026-07-06__rec_000534","source_record_id":"rec_000534","source_corpus":"include","title":"Deciphering microbial gene function using natural language processing.","abstract":"","doi":"10.1038/s41467-022-33397-4","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Deciphering microbial gene function using natural language processing > Methods > Functional categories sampling]\nKEGG database includes multiple levels of functional annotation of each KO identi fi er. We used the third-level functional category of the hierarchy of each KO. For KOs associated with multiple functional categories, a single category was chosen based on abundance, relevance to microbial function, and level of detail (table of the KOs and their category assignment is given in Supplementary Dataset 8). The set of all categories C = c 1 , c 2 , . . . c n \b wasreduced into a smaller set for a multiclass prediction, C * = f c * 1 , . . . , c * m g , such that c * i 2 C , c * i had more than 80 appearances in the corpus (the 90th percentile), most of its KOs belonged to one or two functional categories, and its genes have some contextual organization.\n\nThe categories that were chosen are amino sugar and nucleotide sugar metabolism (312 genes), benzoate degradation (168 genes), energy metabolism (209 genes), oxidative phosphorylation (409 genes), porphyrin and chlorophyll metabolism (274 genes), prokaryotic defense (871 genes), ribosome (489 genes), secretion systems (1617 genes), and two-component systems (1174 genes); the functional category of each KO is speci fi ed in Supplementary Dataset 8. To account for any c i 2 C n C * , we created a category labeled ' Other ' by randomly sampling 20 KOs from each category not included in C* that had more than 50 appearances.\n\n[input_representation: Deciphering microbial gene function using natural language processing > Results > Embedding-based functional classi fi cation]\nNext, we wished to use the embeddings of annotated genes to train a model for gene function prediction. We used KEGG ' s functional hierarchy to label each annotated gene with one of ten functional categories (speci fi ed in Fig. 3). With the gene embeddings as input, we trained four classi fi ers: support vector machine 32 (SVM), random forest 33 , XGBoost 34 , and deep neural network 35 (DNN) to assign genes to one of the functional categories. We assessed the performance of the classi fi ers using a taxonomy-based cross-validation. The genomic data set was divided into fi ve major taxonomic groups, and we iteratively tested the ability to accurately predict the functional category of the genes in one major taxonomic group based on an embedding and a classi fi er trained on the remaining four groups (see Methods). This procedure assesses the model ' s performance on unseen, evolutionarydistant genomes, and we refer to it as leave-one-taxonomic-group-out cross-validation. The best-performing algorithm overall in terms of classi fi cation performance and speed was a DNN model (Fig. 3a and Supplementary Fig. 4). The classi fi er ' s performance per functional category was high for most categories with area under the precision -recall curve (AUPR) values of 0.56 -0.97 (Fig. 3b and Supplementary Fig. 2). These results demonstrate the effectiveness of contextual-based functional inference even across large evolutionary distances, as the classi fi cation was based solely on genomic context, without considering gene sequence or any other external information.\n\nThe prediction results demonstrate that functional information captured by the embeddings is not uniform throughout all clusters marked in circles: cas genes are in light red, and light blue dots represent known prokaryotic defense genes. The red circle focuses on the upper CRISPR cluster, enriched with type I CRISPR-Cas system genes. c The region encompassing most annotated secretion system clusters color-coded by system type. Source data are provided as a Source Data fi le.\n\ncategories (Fig. 3 and Supplementary Table 4). For example, the embeddings are highly informative for the classi fi cation of secretion systems, prokaryotic defense systems, and oxidative phosphorylation genes. These functions typically have strong contextual constraints, are composed of multiple genes, and their genes seldom belong to other functional pathways. In contrast, gene embedding was less informative for functional categories such as amino sugar metabolism. Generally, systems lacking a contextual signature and genes associated with multiple different pathways hinder the classi fi er ' s objective.\n\nGiven the high prediction performances of our approach, we wished to compare them with sequence-based remote-homology search algorithms. To that end, we benchmarked our approach on the KEGG orthology dataset against three well-established search approaches: PSI-BLAST 36 , HMMer 37 , and HHblits 38 . For the comparison, we performed cross-validation on the level of KEGG ' s orthologous families (KOs) for the genes belonging to the ten major functional categories: 2915 separate models were trained, each leaving a single orthologous family out. The predictions were compared to the sequence-based search results after omitting ' self hits ' (hits to the query ' s KO). Overall across the different functional categories, our NLP approach was most often better or comparable to the most sensitive homology-based tool, HHblits, despite relying solely on the gene coordinates in the embedding space (Fig. 3c and Supplementary Dataset 4). The embedding-based classi fi cation was, on average, 1.4 times more sensitive than the best-performing homology-based approach, as 27 -44% of the tested genes did not have a signi fi cant hit in the sequence search algorithms. We note that the precision of HHblits for some functional categories was higher by 4 -6% as compared to our approach, with slightly fewer false positives, as can be expected when relying on sequence homology.","first_pass_outputs":{"scope_reviewer":{"record_id":"full_2026-07-06__rec_000534","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"Primary modeling paper on microbial gene function prediction using gene embeddings and KEGG functional labels. The provided full text does not show a substantive natural-language/text component or a text-bio bridge; it describes classification from genomic context only.","evidence_snippet":"“with the gene embeddings as input, we trained four classifiers” and “based solely on genomic context, without considering gene sequence or any other external information”"},"architecture_reviewer":{"record_id":"full_2026-07-06__rec_000534","paper_type":"primary_model_paper","generative_model_present":"no","foundation_model_evidence":"unclear","primary_exclusion_code":"EC3_not_generative","uncertainty_reason":"none","decision_rationale":"The selected text describes embedding-based functional classification with SVM/random forest/XGBoost/DNN classifiers, not a genuinely generative architecture. It does show transfer to unseen taxonomic groups, but not enough evidence of foundation-model-like pretraining at this stage.","evidence_snippet":"“We trained four classifiers ... to assign genes to one of the functional categories” and “leave-one-taxonomic-group-out cross-validation” to test unseen, evolutionary-distant genomes."},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"EC2_no_text_component","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","generative_model_present":"no","foundation_model_evidence":"unclear"}}}]

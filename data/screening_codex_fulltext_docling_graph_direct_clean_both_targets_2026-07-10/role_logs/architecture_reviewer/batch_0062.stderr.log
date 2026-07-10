@@ -1,0 +1,146 @@
+2026-07-10T10:06:36.639072Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.663254Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b7e-4df2-78c1-b364-55afbb79531f
+--------
+user
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001302","candidate_id":"full_2026-07-06__rec_001302","source_record_id":"rec_001302","source_corpus":"include","title":"How to improve polygenic prediction from whole-genome sequencing data by leveraging predicted epigenomic features?","abstract":"Polygenic risk scores (PRS) are crucial in genetics for predicting individual susceptibility to complex diseases by aggregating the effects of numerous genetic variants. Whole-genome sequencing (WGS) has revolutionized our ability to detect rare and even de novo variants, creating an exciting opportunity for developing new PRS methods that can effectively leverage rare variants and capture the complex relationships among different variants. Furthermore, regulatory mechanisms play a crucial role in gene expression and disease manifestation, offering avenues to further enhance the performance and interpretation of PRS predictions. Through simulation studies, we highlighted aspects where current PRS methods face challenges when applied to WGS data, aiming to shed light on potential opportunities for further improvement. To address these challenges, we developed Epi-PRS, an approach that leverages the power of genomic large language models (LLM) to impute epigenomic signals across diverse cellular contexts, for use as intermediate variables between genotype and phenotype. A pretrained LLM is employed to transform genotypes into epigenomic signals using personal diploid sequences as inputs, and the genetic risk is then estimated based on the imputed personal epigenomic signals. Epi-PRS enhances the assessment of personal variant impacts, enabling a comprehensive and holistic consideration of genotypic and regulatory information within large genomic regions. [truncated]","doi":"10.1101/2024.10.04.24314860","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Main Manuscript for > Significance Statement]\nEpi-PRS improves polygenic risk scoring by integrating genomic large language models (LLMs) to impute epigenomic signals as intermediaries between genotype and phenotype. This approach enables a more comprehensive assessment of personal variant impacts by incorporating non-linear models,  rare  variants,  and  regulatory  mechanisms.  By  leveraging  the  power  of  genomic  LLM trained on massive amount of reference epigenomics data, Epi-PRS has demonstrated superior performance over existing PRS methods in predicting genetic risk for breast cancer and diabetes in  UK  Biobank  data.  These  results  highlight  the  potential  of  Epi-PRS  to  improve  disease  risk modeling and advance the field of precision medicine.\n\n[input_representation: Main Manuscript for > Workflow of the Epi-PRS]\nThis workflow is comprised of three major steps: 1) personal genome construction, 2) epigenomic feature extraction, and 3) risk prediction, which are detailed as follows.\n\nPersonal Genome Construction. The first step in the Epi-PRS workflow involves constructing the maternal and paternal genomes from personal WGS data, which serve as the input for Epi-PRS. This process is detailed in the following steps: A) Variant Filtering: The current version of Epi-PRS focuses exclusively on SNVs. We start by processing the variant call format (VCF) file containing the genetic profiles of all individuals. Using vcftools (43), we filter out all insertions and deletions (INDELs), retaining only the SNPs. B) Genotype Phasing: Next, we phase the genotypes using the reference-free Beagle (44) software. Phasing is essential for distinguishing between the maternal It is made available under a CC-BY-NC-ND 4.0 International license . is the author/funder, who has granted medRxiv a license to display the preprint in perpetuity. (which was not certified by peer review) medRxiv preprint doi: https://doi.org/10.1101/2024.10.04.24314860; this version posted October 6, 2024. The copyright holder for this preprint and paternal alleles, which is critical for subsequent steps. C) Personal Genome Construction: Finally,  we  employ  the  vcf2diploid  (45)  tool  to  reconstruct  the  maternal  and  paternal  personal genomes for each individual. This step produces two separate haploid genome sequences for each person, representing the maternal and paternal contributions.\n\nEpigenomic Feature Extraction. In  the  second  step,  we  extract  epigenomic  features  using  a pretrained genomic LLM, such as Enformer. This process involves several sub-steps: A) Feature Extraction:  The  genomic  LLM  (e.g.,  Enformer)  is  applied  to  each  haploid  genome  to  predict genomic and epigenomic features, including gene expression, chromatin accessibility, ChIP-seq signals,  and  histone  modification  signals  across  a  diverse  set  of  cell  lines  and  tissues.  Taking Enformer as the feature extractor, for each input DNA sequence of 196,608 bp, the Enformer model generates an 𝑑 = 5,313 -dimensional feature vector for each of the central non-overlapping 𝑘 = 896 bins, each with a bin size of 128 bp. B) Sliding Window Approach: Given that a single linkage disequilibrium (LD) block is typically larger than the input length for Enformer, we utilize a sliding window approach within each LD block to capture features from multiple input regions. If an LD block contains 𝑙 input regions, the extracted features for this block will have dimensions of (𝑙, 𝑘, 𝑑) . We denote these features as {𝑥 ! \" , 𝑥 ! # , 𝑖 = 1, … 896} , where the superscript indicates the parent of origin  ( 𝑚 for  maternal  and 𝑝 for  paternal).  C)  Dimension  Reduction:  To  manage  the  high dimensionality of the extracted features, we apply local Principal Component Analysis (PCA) to each  bin  across  individuals.  This  dimension  reduction  step  reduces  the  features  to  a  more manageable size, denoted as 𝑑 $ where 𝑑 $ ≪𝑑 .\n\nRisk Prediction. The final step involves building predictive models for disease risk based on the reduced-dimension  features  and  the  phenotypic  data:  A)  Model  Construction:  For  binary classification tasks, such as disease presence or absence, we construct a GBRT classification model. For continuous traits, we use GBRT regression model. These models are trained on the individual features obtained from the feature extraction step. B) Training and Testing: We randomly select 80% of both case and control subjects as the training set, leaving the remaining 20% as the testing set. The performance of the models is evaluated using prediction results on the testing set.\n\nC) Performance Evaluation: The predictive accuracy of the models is assessed using metrics such\n\nas the AUC for classification tasks and the coefficient of determination (R²) for regression tasks.\n\nThese metrics provide insight into the effectiveness of Epi-PRS in predicting disease risk based on integrated genomic and epigenomic data."}]
+
+2026-07-10T10:06:36.685694Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:36.687788Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.713510Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.780802Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.796234Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.796250Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.797722Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.797733Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.799361Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.799373Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.801163Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.801175Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.802191Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.802202Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.802469Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.806005Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.806017Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:36.827906Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.851593Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.874458Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.897825Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.921902Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.964832Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:36.994459Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.020021Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.033372Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.057354Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.081847Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.106548Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.130473Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.154232Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.178547Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T10:06:37.281394Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:38.051928Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:38.072065Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:38.072114Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:39.580437Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:39.595778Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.595789Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596122Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596129Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596482Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596487Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596838Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.596845Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.597316Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.597328Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.598353Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:39.598361Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T10:06:40.082916Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:40.092165Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T10:06:40.092202Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001302","paper_type":"application_wrapper","generative_model_present":"yes","foundation_model_evidence":"yes","primary_exclusion_code":"application_wrapper","uncertainty_reason":"none","decision_rationale":"This is an application pipeline that uses a pretrained genomic LLM to impute epigenomic signals, then a GBRT risk model for prediction. The evidence supports foundation-model-like pretraining and transfer across contexts, but the paper’s main contribution is the Epi-PRS wrapper rather than a new primary generative model.","evidence_snippet":"\"a pretrained genomic LLM... trained on massive amount of reference epigenomics data\" and \"impute epigenomic signals\" for risk prediction; \"GBRT classification model\" / \"GBRT regression model\"; \"improves polygenic risk scoring\" through a workflow of feature extraction and prediction; boundary between wrapper and model is clear in the workflow"}]}
+2026-07-10T10:06:50.636278Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b7e-4df2-78c1-b364-55afbb79531f.1783677996612297000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+2,540

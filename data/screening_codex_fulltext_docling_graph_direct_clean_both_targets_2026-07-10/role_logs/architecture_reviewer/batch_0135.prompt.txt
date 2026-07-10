@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_002254","candidate_id":"full_2026-07-06__rec_002254","source_record_id":"rec_002254","source_corpus":"uncertain","title":"Ctrl-DNA: Controllable Cell-Type-Specific Regulatory DNA Design via Constrained RL","abstract":"Designing regulatory DNA sequences that achieve precise cell-type-specific gene expression is crucial for advancements in synthetic biology, gene therapy and precision medicine. Although transformer-based language models (LMs) can effectively capture patterns in regulatory DNA, their generative approaches often struggle to produce novel sequences with reliable cell-specific activity. Here, we introduce Ctrl-DNA , a novel constrained reinforcement learning (RL) framework tailored for designing regulatory DNA sequences with controllable cell-type specificity. By formulating regulatory sequence design as a biologically informed constrained optimization problem, we apply RL to autoregressive genomic LMs, enabling the models to iteratively refine sequences that maximize regulatory activity in targeted cell types while constraining off-target effects. Our evaluation on human promoters and enhancers demonstrates that Ctrl-DNA consistently outperforms existing generative and RL-based approaches, generating high-fitness regulatory sequences and achieving state-of-the-art cell-type specificity. Moreover, Ctrl-DNA -generated sequences capture key cell-type-specific transcription factor binding sites (TFBS), short DNA motifs recognized by regulatory proteins that control gene expression, demonstrating the biological plausibility of the generated sequences.\n\n[Code available at: github.com/bowang-lab/Ctrl-DNA](https://github.com/bowang-lab/Ctrl-DNA)","doi":"10.48550/arXiv.2505.20578","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 Experiments > 4.1 Experimental Setup]\nDatasets. We evaluate our method on human promoter and enhancer datasets [33, 34]. The enhancer dataset includes 200 bp sequences from three cell lines: HepG2, K562, and SK-N-SH. The promoter dataset consists of 250 bp sequences from Jurkat, K562, and THP1. Each dataset contains sequencefitness pairs across the three respective cell types, with fitness measured via massively parallel reporter assays (MPRAs) [35]. We adopt the preprocessing pipeline described in [8] to preprocess all datasets. Please refer to Appendix B for details.\n\nMotif Processing and Real Sequence Statistics. We obtain human-specific position probability matrices (PPMs) and pairwise motif correlation data from the JASPAR 2024 database [36]. Following the preprocessing procedure described in [8], we retain a curated set of 464 human transcription factor motifs. For each task, we identify real sequences by selecting those in the top 50th percentile for fitness in the target cell type and the bottom 50th percentile in off-target cell types. We then apply FIMO [37] to scan for motif occurrences and compute motif frequency distributions, which serve as the reference motif distribution for optimization and evaluation.\n\nModels and Baselines. We adopt the Enformer architecture [38] to train cell-type-specific reward models, following protocols from previous CRE design studies [8, 9, 4, 32, 33]. For sequence generation, we fine-tune HyenaDNA [39], an autoregressive genomic LM pre-trained on the human genome, as our policy model. We compare our proposed method, Ctrl-DNA , against a diverse set of baselines, including evolutionary algorithms (AdaLead [40], BO [41], CMAES [42], PEX [43]), generative models (regLM [8]), and reinforcement learning approaches (TACO [9], PPO [29], PPOLagrangian [12]). Full baseline details are provided in Appendix C.\n\nEvaluation Metrics. To assess the performance of each method, we report median rewards ( Median ) over the generated sequences in the final round. Additionaly, we report Reward Difference ( ∆ R ) to quantify the average difference between the target cell's fitness and the fitness across off-target cell types, indicating the cell-type fitness specificity. Motif Correlation is defined as the Pearson correlation between TFBS frequencies in generated sequences and real sequences. A higher correlation indicates greater alignment with biologically plausible motif distributions. Lastly, Diversity is calculated as the Shannon entropy of the generated sequences in the final round, reflecting the model's ability to explore diverse solutions. We report the mean and standard deviation of each metric over 5 runs initialized with different random seeds.\n\n[input_representation: 3 Methods > 3.1 Problem Formulation]\nWe formulate DNA sequence design as a constrained Markov decision process (CMDP). A DNA sequence is defined as X = ( x 1 , x 2 , . . . , x L ) ∈ V L , where V = { A , C , G , T } is the nucleotide vocabulary and L is the sequence length. The CMDP is defined as M = ( S , A , p, R 0 , { R i } i m =1 , { δ i } i m =1 ) , where S is the state space, A = V is the action space. p ( s t +1 | s t , a t ) is a transition function that appends nucleotide a t to the current sequence prefix s t . The sequence is evaluated by m black-box reward functions { R i : V L → R } i m =0 , where we denote reward R 0 as the CRE fitness in target cell, and reward R i for i ≥ 1 as CRE fitness in off-target cell types. The values δ i ∈ R is the constraint threshold for off-target cell i . At each time step t , the agent observes state s t = ( x 1 , . . . , x t -1 ) ∈ S , selects an action a t ∈ A according to a policy π θ ( a t | s t ) , and transitions to the next state s t +1 . Rewards { R i ( X ) } are only calculated at the terminal step t = L .\n\nOur objective is to learn a policy π θ that maximizes the expected CRE fitness in the target cell type while ensuring off-target fitness remains within the specified constraints. Formally, we aim to solve:\n\n<!-- formula-not-decoded -->\n\nFor clarity, we define J i ( θ ) = E X ∼ π θ [ R i ( X )] as the expected reward for cell type i , where J 0 ( θ ) is referred to as task rewards and J i ( θ ) for i ≥ 1 is referred to as constraints(also called off-target rewards throughout this paper)."}]

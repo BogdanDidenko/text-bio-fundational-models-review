@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001683","candidate_id":"full_2026-07-06__rec_001683","source_record_id":"rec_001683","source_corpus":"include","title":"AntigenLM: Structure-Aware DNA Language Modeling for Influenza","abstract":"Language models have advanced sequence analysis, yet DNA foundation models often lag behind task-specific methods for unclear reasons. We present AntigenLM, a generative DNA language model pretrained on influenza genomes with intact, aligned functional units. This structure-aware pretraining enables AntigenLM to capture evolutionary constraints and generalize across tasks. Finetuned on time-series hemagglutinin (HA) and neuraminidase (NA) sequences, AntigenLM accurately forecasts future antigenic variants across regions and subtypes, including those unseen during training, outperforming phylogenetic and evolution-based models. It also achieves near-perfect subtype classification. Ablation studies show that disrupting genomic structure through fragmentation or shuffling severely degrades performance, revealing the importance of preserving functional-unit integrity in DNA language modeling. AntigenLM thus provides both a powerful framework for antigen evolution prediction and a general principle for building biologically grounded DNA foundation models.","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 EXPERIMENTS > 4.1 DATASETS]\nWe assembled a comprehensive corpus of influenza A virus genomes from GISAID (Shu &amp; McCauley, 2017), including the two major subtypes A/H3N2 and A/H1N1 as well as 10 minor subtypes (e.g., H5N1, H7N9). For both pretraining and fine-tuning, we used sequences collected before February 2022 and applied stringent quality control by removing duplicates, excluding incomplete genomes (fewer than eight segments), and filtering out sequences with &lt; 90% mean segment coverage relative to the corresponding subtype reference. After filtering, the dataset comprised 32,758 H3N2, 20,680 H1N1, and 1,074 minor-subtype genomes, totaling ∼ 600 million nucleotides across\n\nFigure 1: Data Distribution and AntigenLM Architecture. (A) Global distribution of influenza A virus sequences used for pretraining, fine-tuning, and testing. Circle size reflects sample count; pie sectors show subtype composition. Dark circles represent pretraining data, light circles fine-tuning data, and red ticks mark test regions. (B) AntigenLM architecture. Schematic illustration of the pretraining and finetuning phases. The model utilizes a GPT-style Transformer as a shared backbone (6 layers, hidden dimension of 384, and 6 attention heads). Top (Pretraining): The backbone is pretrained on nucleotide sequences spanning all eight influenza gene segments (PB2 to NS). Bottom (Finetuning): The model is fine-tuned for two distinct tasks: viral evolution prediction (left), which uses an LM head to predict sequences for month t +1 based on historical strains (months t -2 to t ) from the same region; and subtype classification (right), which employs a classification head to identify the virus subtype based on HA and NA segments.\n\n<!-- image -->\n\n54,512 genomes ( Figure 1A ). For each virus, the eight segments were simply concatenated in a fixed order (from largest to smallest segment) to form a full-genome sequence without Multiple Sequence Alignment or gaps, and then tokenized (Appendix A.2).\n\nPost-2022 sequences underwent the same quality control procedures and were reserved as retrospective test sets, stratified by subtype and collection month, to enable leakage-free evaluation that mimics real-world forecasting. For geographic generalization, we fine-tuned models on pre-2022 sequences from Europe and Asia and assessed performance on post-2022 genomes from Japan (indistribution) and the United States (out-of-distribution).\n\n[input_representation: 3 METHOD > 3.4 FINE-TUNING FOR FORECASTING AND CLASSIFICATION]\nWe fine-tune AntigenLM on two downstream tasks using the same GPT-2 style backbone and different heads. For generative forecasting, we train the language modeling head on prompts that concatenate three historical HA/NA blocks followed by one future block. Each example has the structure\n\n<!-- image -->\n\nwhere\n\n<!-- formula-not-decoded -->\n\nfor i = 1 , 2 , 3 . Here HA ( i ) and NA ( i ) are HA/NA nucleotide sequences from three past time points within the same season. The future block block ( ∗ ) follows the same pattern but uses HA , NA from the future time point to be forecast and simply omits the leading &lt;subtype&gt; token. We optimize the standard causal language modeling loss over the full token sequence (excluding padding), and at inference time we feed only the three historical blocks and autoregressively generate the future block starting from the target &lt;HA&gt; token until &lt;sep&gt; is produced or a maximum length is reached.\n\nFor subtype classification, we use the same backbone with the classification head and a simpler input that contains a single HA/NA pair and a separator,\n\n<!-- formula-not-decoded -->\n\nThe sequence is encoded by the Transformer, and we take the hidden state at the final token position as a compact representation of the HA/NA pair. This representation is passed through a linear layer to produce subtype logits and trained with a cross-entropy loss. In practice we fine-tune two task-specific models-one generative and one discriminative-both initialized from the same pretrained AntigenLM backbone, and we also support joint optimization of both objectives via a simple weighted sum of the language modeling and classification losses."}]

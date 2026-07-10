@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003131","candidate_id":"full_2026-07-06__rec_003131","source_record_id":"rec_003131","source_corpus":"include","title":"Gp-gpt: Large language model for gene-phenotype mapping","abstract":"Pre-trained large language models(LLMs) have attracted increasing attention in biomedical domains due to their success in natural language processing. However, the complex traits and heterogeneity of multi-sources genomics data pose significant challenges when adapting these models to the bioinformatics and biomedical field. To address these challenges, we present GPGPT, the first specialized large language model for genetic-phenotype knowledge representation and genomics relation analysis. Our model is fine-tuned in two stages on a comprehensive corpus composed of over 3,000,000 terms in genomics, proteomics, and medical genetics, derived from multiple large-scale validated datasets and scientific publications. GP-GPT demonstrates proficiency in accurately retrieving medical genetics information and performing common genomics analysis tasks, such as genomics information retrieval and relationship determination. Comparative experiments across domain-specific tasks reveal that GP-GPT outperforms state-of-the-art LLMs, including Llama2, Llama3 and GPT-4. These results highlight GP-GPT's potential to enhance genetic disease relation research and facilitate accurate and efficient analysis in the fields of genomics and medical genetics. Our investigation demonstrated the subtle changes of bio-factor entities' representations in the GP-GPT, which suggested the opportunities for the application of LLMs to advancing gene-phenotype research.","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: GP-GPT: Large Language Model for Gene-Phenotype Mapping > Abstract]\nPre-trained large language models(LLMs) have attracted increasing attention in biomedical domains due to their success in natural language processing. However, the complex traits and heterogeneity of multi-sources genomics data pose significant challenges when adapting these models to the bioinformatics and biomedical field. To address these challenges, we present GPGPT, the first specialized large language model for genetic-phenotype knowledge representation and genomics relation analysis. Our model is fine-tuned in two stages on a comprehensive corpus composed of over 3,000,000 terms in genomics, proteomics, and medical genetics, derived from multiple large-scale validated datasets and scientific publications. GP-GPT demonstrates proficiency in accurately retrieving medical genetics information and performing common genomics analysis tasks, such as genomics information retrieval and relationship determination. Comparative experiments across domain-specific tasks reveal that GP-GPT outperforms state-of-the-art LLMs, including Llama2, Llama3 and GPT-4. These results highlight GP-GPT's potential to enhance genetic disease relation research and facilitate accurate and efficient analysis in the fields of genomics and medical genetics. Our investigation demonstrated the subtle changes of bio-factor entities' representations in the GP-GPT, which suggested the opportunities for the application of LLMs to advancing gene-phenotype research.\n\n[input_representation: 3 Method > 3.2 Model > Training on Genomics Data]\nWith the multi-task muti-modality genomics training corpus at hand, we follow the workflow of parameter-efficient fine-tuning to train GP-GPT. As shown in (Fig. 6), the multi-level genomics training data have been formatted into training contexts and fed into an instruction-fine-tuning process based on Llama2. The whole instruction fine-tuning process can be viewed as two-stage training. During the first stage, the training text data is from the first part of the training set, which is prepared in the form of instruction mask prediction fine-tuning. In the second fine-tuning stage, the training text data are drawn from the second part of the training set, which is designed for supervised fine-tuning in a question-answer format.\n\nTokenization and Embedding: Models such as Llama, Llama2 and Llama3 utilize a characterbased approach to numerical tokenization, where each digit and special character is treated as a separate token. This technique has been proven to be more effective in a variety of arithmetic tasks.\n\nSimilarly, GP-GPT adopts this character-based tokenization method for bio-factor entities, including gene IDs, protein names, and disease abbreviations. The original dictionary remains unaltered. We assigned the &lt;mask&gt; token back to pre-trained Llama models during the first stage of fine-tuning, in order to implement instruction mask fine-tuning. Specifically, the re-added &lt;mask&gt; token has been assigned to the vocabulary dictionary at ID 35073.\n\nModel architecture: GP-GPT employs the same architecture as Llama family models, with a specific LoRA adaptor merged with the original model. We follow the configuration used in Llama2(7B), Llama3.1(8B), and Llama3.1(70B). The vocabulary size of GP-GPT is 35, 073, the same as the default configuration. GP-GPT model inherits M parameters from the original Llma2(7B) and comprises an additional LoRA adaptor of M.\n\nFine-tuning: The entire instruction fine-tuning process can be considered as a two-stage training approach. In the first stage, the training content is drawn from the initial segment of the training set, which is prepared for fine-tuning through instruction mask prediction. In the second stage, the training content is taken from the latter part of the training set, which is structured for supervised fine-tuning using a question-answer format. GP-GPT can be fine-tuned on various downstream tasks involving molecules, proteins, and text. In both stages, to bridge the gap between pre-training and fine-tuning stages and unify different genomic downstream tasks, we employ a prompt-based fine-tuning approach that converts various task formats into a sequence generation format [82, 83].\n\nFigure 6: Overview of GP-GPT's training framework.\n\n<!-- image -->"}]

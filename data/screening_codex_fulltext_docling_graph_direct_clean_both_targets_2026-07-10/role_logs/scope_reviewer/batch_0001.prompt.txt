@@ -1,0 +1,87 @@
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_000003","candidate_id":"full_2026-07-06__rec_000003","source_record_id":"rec_000003","source_corpus":"include","title":"Short-Context Regulatory DNA Language Models with Motif-Discovery Regularization.","abstract":"Self-supervised DNA language models (DNALMs) are typically trained at massive scale on whole genomes and long contexts. However, regulatory sequence features are sparse, heterogeneous, and dominated by poorly conserved flexible syntax of short motifs, which can be difficult to learn from genome-wide self-supervision. As a result, annotation agnostic, long-context DNALMs struggle to learn regulatory syntax and can underperform simpler baseline models on key regulatory tasks. We therefore introduce ARSENAL , a short-context masked DNA language model trained on a functionally enriched regulatory corpus and augmented with a novel regularizer than that encourages motif discovery. ARSENAL improves recovery of diverse transcription factor motifs de novo and prediction of regulatory variant effects in the zero-shot setting compared to other DNALMs. Incorporating ARSENAL embeddings also improves supervised chromatin accessibility prediction over strong ab-initio baselines across multiple cell types and yields improved regulatory variant scoring. Finally, ARSENAL serves as a practical generative prior, enabling targeted regulatory sequence design under downstream functional constraints.\n\nAll code can be found at https://github.com/kundajelab/regulatory\\_lm , and models and data can be found at https://sageb.io/4ZpEnk","doi":"10.64898/2026.02.05.703637","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 Methods > 4.1 Pretraining Data]\nARSENAL was pretrained on the ENCODE consortium's official list of candidate cis -regulatory elements (cCREs) [9, 20]. This list comprises approximately 2.3 million high-confidence regulatory elements, spanning enhancers, promoters, and more ambiguous regions with regulatory signal. cCREs are identified and categorized according to sequencing experiments measuring chromatin accessibility (DNase-seq and ATAC-seq), histone mark occupancy (H3K27ac and H3K4me3 ChIP-seq), and transcription factor binding (CTCF and other TF CHIP-seq). Overall, the ENCODE cCREs represent the most extensive set of high-confidence regulatory elements curated for the human genome.\n\nData was split by chromosome. The validation set consisted of chromosomes 6 and 21, the test set consisted of chromosomes 5, 10, 14, 18, 20, and 22, and the rest of the genome comprised the training set.\n\n[input_representation: 1 Introduction]\nDNA language models (DNALMs) promise a unified foundation for genomic sequence understanding, variant interpretation, and functional sequence design. Motivated by the success of protein language models [29, 18, 16], recent work has scaled masked and autoregressive architectures to long contexts and trained them on one or more whole genomes. Representative examples include Nucleotide Transformer, HyenaDNA, DNABERT-2, Caduceus, GENA-LM, Evo, and Evo2 [25, 34, 12, 22, 2, 10, 7]. These models aim to learn general-purpose sequence representations by increasing model capacity and training corpus size, often with explicit support for long input contexts.\n\nLearning useful representations of regulatory DNA is particularly challenging for genome-wide selfsupervision. In contrast to the dense and regular constraints in coding sequences, regulatory syntax is sparse, combinatorial, diverse, and strongly context dependent [24]. As a result, functional motif-scale patterns are rare relative to background composition and repetitive structure, and model learning can be dominated by non-functional sequence statistics. Consistent with this claim, multiple benchmarking studies report that whole-genome DNALMs often show limited performance on regulatory tasks such as variant effect prediction and regulatory activity inference, and may fail to capture nucleotide co-dependencies characteristic of functional motifs [24, 28, 19, 6, 30]. These gaps can persist even as models scale to very long contexts and large parameter counts, suggesting that scale alone does not guarantee learning of motif-scale regulatory grammar.\n\nFor DNALMs to be useful in practice, they must learn the sequence syntax of functional genomic elements rather than primarily capturing genome-wide background composition. The human genome spans ∼ 3 × 10 9 base pairs and contains diverse functional sequence classes embedded within a large fraction of neutrally evolving DNA. Broadly, functional sequence can be grouped into two major categories. First, protein-coding regions from ∼ 20 , 000 genes (about 1 . 5% of the genome) encode transcripts and proteins. Second, non-coding cis -regulatory elements-estimated to cover roughly 5 -20% of the genome-control when and where genes are expressed and thus shape cell-type-specific transcriptional programs [8]. Regulatory elements such as promoters and enhancers often act through short (6-20 bp) binding sites for transcription factors and other DNA-binding proteins, where motif affinity, spacing, and combinatorial arrangement collectively determine regulatory output.\n\nSeveral approaches have been proposed to inject additional biological structure into DNALMs. In particular, the GPN family of models (e.g., GPN-MSA and GPN-Star) leverages evolutionary information by incorporating multiple sequence alignments and/or upsampling conserved regions during training, improving variant effect prediction in many settings [6, 33]. However, MSA-based formulations may be less flexible when alignments are unavailable and can complicate sequence generation and synthetic design workflows. This motivates complementary strategies that bias learning toward regulatory function while preserving standard singlesequence modeling and generation.\n\nWe evaluate ARSENAL across several biologically meaningful settings. We show that ARSENAL's zero-shot likelihood landscape recovers diverse transcription factor motifs de novo and captures interpretable motif-scale dependencies; that it substantially improves zero-shot regulatory variant effect prediction relative to prior single-sequence DNALMs; that its embeddings improve supervised chromatin accessibility prediction and supervised variant scoring when used in sequence-to-function models; and that it serves as a generative prior for both realistic sampling and targeted regulatory sequence design under downstream constraints. Together, these results highlight that short-context, functionally targeted DNALMs with biologically informed priors can yield more useful representations of regulatory DNA than long-context genome-wide pretraining alone.\n\nHere we introduce ARSENAL ( A R egulatory SE quence N ucleic A cid L earner), a short-context (350 bp) masked DNALM designed to learn regulatory motif syntax through two key principles: targeted pretraining on ENCODE candidate cis -regulatory elements (cCREs) [9, 20], and a frequency-domain auxiliary objective that encourages predicted likelihood profiles to emphasize motif-scale structure. Conceptually, this regularizer is inspired by Fourier-transform attribution priors that we previously introduced for supervised regulatory models, which penalize high-frequency components in sequence attributions during training to improve motif recovery and stability [31]; here we adapt the same motif-scale frequency bias to self-supervised masked reconstruction in a DNALM."}]

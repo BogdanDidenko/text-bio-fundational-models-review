@@ -44,6 +44,16 @@ MAX_BY_TYPE = {
     "data_source": 1,
     "input_representation": 1,
 }
+RESULTS_LIKE_HEADINGS = re.compile(
+    r"\b(results?|performance|evaluation|case stud(?:y|ies)|demonstrat(?:e|ion)|"
+    r"generat(?:e|es|ion)|predict(?:s|ion)|perturbation)\b",
+    re.I,
+)
+DATA_LIKE_HEADINGS = re.compile(
+    r"\b(data|dataset[s]?|corpus|cohort|sample[s]?|benchmark data|training data|"
+    r"pretraining data|data collection|data curation|pre[- ]?processing|materials?|methods?)\b",
+    re.I,
+)
 
 
 def now() -> str:
@@ -133,22 +143,66 @@ def load_records(include_manifest: Path, uncertain_manifest: Path, limit: int) -
     return records
 
 
+def section_heading_paths(sections: list[Any]) -> list[list[str]]:
+    paths: list[list[str]] = []
+    stack: list[tuple[int, str]] = []
+    for section in sections:
+        while stack and stack[-1][0] >= section.level:
+            stack.pop()
+        stack.append((section.level, section.heading))
+        paths.append([heading for _, heading in stack])
+    return paths
+
+
+def heading_flags(heading_path: list[str]) -> list[str]:
+    flags: list[str] = []
+    current = heading_path[-1] if heading_path else ""
+    ancestors = " > ".join(heading_path[:-1])
+    joined = " > ".join(heading_path)
+    if RESULTS_LIKE_HEADINGS.search(joined):
+        flags.append("results_or_evaluation_context")
+    if DATA_LIKE_HEADINGS.search(current):
+        flags.append("data_or_methods_heading")
+    if DATA_LIKE_HEADINGS.search(ancestors):
+        flags.append("data_or_methods_parent")
+    return flags
+
+
+def child_headings(sections: list[Any], parent_index: int, limit: int = 12) -> list[str]:
+    parent = sections[parent_index]
+    children = [
+        section.heading
+        for section in sections[parent_index + 1 :]
+        if section.level > parent.level and section.start_line <= parent.end_line
+    ]
+    return children[:limit]
+
+
 def candidate_sections(row: dict[str, str], snippet_chars: int) -> tuple[list[dict[str, Any]], list[Any], Path | None]:
     markdown = ROOT / row["markdown"] if row.get("markdown") else None
     if not markdown or not markdown.exists():
         return [], [], markdown
     sections = parse_markdown_sections(markdown)
     candidates: list[dict[str, Any]] = []
+    heading_paths = section_heading_paths(sections)
     for idx, section in enumerate(sections, 1):
+        heading_path = heading_paths[idx - 1]
+        parent_heading = heading_path[-2] if len(heading_path) > 1 else ""
+        children = child_headings(sections, idx - 1)
         candidates.append(
             {
                 "section_id": idx,
                 "heading": section.heading,
+                "heading_path": " > ".join(heading_path),
+                "parent_heading": parent_heading,
+                "contains_subsections": bool(children),
+                "child_headings": children,
                 "heading_level": section.level,
                 "line_start": section.start_line,
                 "line_end": section.end_line,
                 "original_chars": len(section.body),
                 "snippet": trim(section.body, snippet_chars),
+                "heading_flags": heading_flags(heading_path),
             }
         )
     return candidates, sections, markdown
@@ -170,12 +224,12 @@ def build_prompt(row: dict[str, str], candidates: list[dict[str, Any]]) -> str:
         "Do not decide whether the paper is included or excluded. Only choose source sections for a later screening pipeline.\n\n"
         "Select exact section_id values from the provided candidate list. Do not invent headings or line numbers.\n\n"
         "Target section types:\n"
-        "- data_source: the best section describing the actual source data used by the paper: datasets, corpus, cohort, benchmark data, training/pretraining data, biological modalities, data collection, data curation, or data preprocessing. Prefer specific dataset/data sections over generic Methods. Exclude Data availability, Code availability, references, acknowledgements, author contributions, and supplementary-file availability unless they contain the substantive dataset description.\n"
+        "- data_source: the best section describing the actual source data used by the paper: datasets, corpus, cohort, benchmark data, training/pretraining data, evaluation data, biological modalities, data collection, data curation, or data preprocessing. Prefer sections under Methods, Materials, Data, Dataset, Corpus, Real data applications, or similarly data/method-oriented heading paths. Avoid selecting Results, performance, demonstration, or case-study sections as data_source when a Methods/Data/Application section gives the dataset or data-processing evidence. A Results-like section is acceptable only if it is the only substantive source-data evidence; then use low or medium confidence unless the section itself clearly describes dataset provenance and splits.\n"
         "- input_representation: the best section describing how the model represents or consumes the data: model inputs, tokenization, prompts, feature construction, sequence/cell/gene representation, embeddings, text-bio pairing, image/omics representation, or input-output formulation. Do not select architecture, objective, supervised training, or generic methods sections unless the snippet directly states the input representation. If an architecture section is selected, the reason must identify the exact input-representation evidence.\n\n"
         "Selection limits:\n"
         "- data_source: at most 1 section.\n"
         "- input_representation: at most 1 section.\n\n"
-        "Use the heading and snippet together. A nonstandard heading can still be selected if the snippet clearly contains the target evidence.\n"
+        "Use heading_path, parent_heading, heading_flags, contains_subsections, child_headings, and snippet together. A nonstandard heading can still be selected if the snippet clearly contains the target evidence, but its heading path should not hide that the evidence came from Results or evaluation. Docling parent sections may include child subsection text; prefer the most specific child section containing the target evidence over a broad parent wrapper such as Results, Methods, or Base.\n"
         "Be precision-heavy: for this screening round we only need data_source and input_representation, not abstract, introduction, discussion, general architecture, objective, or training evidence.\n"
         "If a target is absent, list it in missing_targets. Keep reasons brief and evidence-grounded.\n\n"
         "Return only JSON matching the provided schema.\n\n"
@@ -349,6 +403,11 @@ def build_screening_payload(
             {
                 "section_type": item["section_type"],
                 "heading": section.heading,
+                "heading_path": cand.get("heading_path", section.heading),
+                "parent_heading": cand.get("parent_heading", ""),
+                "heading_flags": cand.get("heading_flags", []),
+                "contains_subsections": cand.get("contains_subsections", False),
+                "child_headings": cand.get("child_headings", []),
                 "heading_level": section.level,
                 "line_start": section.start_line,
                 "line_end": section.end_line,
@@ -359,7 +418,10 @@ def build_screening_payload(
             }
         )
 
-    context = "\n\n".join(f"[{item['section_type']}: {item['heading']}]\n{item['text']}" for item in selected)
+    context = "\n\n".join(
+        f"[{item['section_type']}: {item.get('heading_path') or item['heading']}]\n{item['text']}"
+        for item in selected
+    )
     abstract_text = ""
     for section in sections:
         if section.heading.strip().lower() in {"abstract", "summary"}:
@@ -377,7 +439,7 @@ def build_screening_payload(
         "year": row.get("year", ""),
         "venue": row.get("venue", ""),
         "sources": [],
-        "full_text_context": context,
+        "selected_full_text_sections": context,
         "section_evidence": selected,
         "docling_markdown": rel(markdown) if markdown else "",
         "docling_chunks": row.get("chunks", ""),
@@ -412,6 +474,7 @@ def write_audit_markdown(outdir: Path, rows: list[dict[str, Any]], summary: dict
         f"- Model: `{model}`",
         "- Selector output schema: `schemas/section_selector.schema.json`",
         "- Per-record logs: `llm_section_selector_logs/*.prompt.txt`, `*.response.txt`, `*.parsed.json`, `*.meta.json`",
+        "- Candidate context: every candidate includes `heading_path`, `parent_heading`, `heading_flags`, `contains_subsections`, and `child_headings` so the selector can distinguish Methods/Data evidence from Results-like headings and broad parent wrappers.",
         "- Downstream input: `fulltext_screening_input.json`",
         "- Section audit: `fulltext_section_audit.jsonl` and `fulltext_section_audit.csv`",
         "",
@@ -587,6 +650,11 @@ def main() -> None:
             "source_corpus",
             "section_type",
             "heading",
+            "heading_path",
+            "parent_heading",
+            "heading_flags",
+            "contains_subsections",
+            "child_headings",
             "heading_level",
             "line_start",
             "line_end",

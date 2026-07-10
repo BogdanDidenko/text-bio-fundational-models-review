@@ -242,7 +242,7 @@ def build_context(row: dict[str, str], max_section_chars: int) -> tuple[dict[str
     }
     payload = {
         "abstract": abstract_text,
-        "full_text_context": context,
+        "selected_full_text_sections": context,
         "section_evidence": deduped,
         "docling_markdown": rel(markdown),
         "docling_chunks": row.get("chunks", ""),
@@ -330,7 +330,7 @@ def main() -> int:
             "uncertain_manifest": rel(args.uncertain_manifest),
             "max_section_chars": args.max_section_chars,
             "record_count": len(records),
-            "note": "Records contain title, extracted abstract, and selected Docling-derived full_text_context sections for full-text screening. Full articles are not embedded unless a selected section itself spans the article.",
+            "note": "Records contain title, extracted abstract, and selected Docling-derived full sections for full-text screening. Full articles are not embedded unless a selected section itself spans the article.",
         },
         "records": records,
     }

@@ -1,0 +1,158 @@
+2026-07-10T09:51:13.089680Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.113883Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+OpenAI Codex v0.136.0
+--------
+workdir: /Users/bogdan.didenko/lpnu/review
+model: gpt-5.4-mini
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: none
+reasoning summaries: none
+session id: 019f4b70-3686-7c21-a9ea-8c2d46d92976
+--------
+user
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_001534","candidate_id":"full_2026-07-06__rec_001534","source_record_id":"rec_001534","source_corpus":"include","title":"GENERator: A Long-Context Generative Genomic Foundation Model","abstract":"The rapid advancement of DNA sequencing has produced vast genomic datasets, yet the interpretation and rational engineering of sequence function remain fundamental challenges. Recent large language models (LLMs) have opened new avenues for genomic analysis; however, existing approaches are frequently constrained by limited training scope, restricted generative flexibility, or prohibitive computational cost. In this study, we introduce GENERator, a generative genomic foundation model designed for long-context DNA modeling, with a context length of 98k nucleotides, pre-trained on 386 billion nucleotides of eukaryotic DNA. GENERator demonstrates strong intrinsic capabilities arising directly from pre-training. Unsupervised embedding analyses reveal latent organization consistent with phylogenetic relationships. Sequence recovery benchmarks show that GENERator achieves generative accuracy matching or exceeding state-of-the-art baselines with substantially improved computational efficiency. In a zero-shot setting, GENERator further provides competitive variant effect prediction performance relative to alignment-based methods, while remaining fully alignmentfree and broadly applicable across species. Beyond training-free evaluation, GENERator consistently delivers strong performance through task-specific fine-tuning on established genomic benchmarks. We further demonstrate practical generative applications enabled by the model. [truncated]","doi":"10.48550/arXiv.2502.07272","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: 4 Methods > 4.1 Data Preparation]\nFor training GENERator, we sourced genomic DNA sequences from all eukaryotic organisms available in the RefSeq database. To investigate how training data composition influences representation learning and downstream generalization, we considered two alternative data preparation strategies that differ in whether pre-training is performed on gene-centric functional loci or on complete genomic sequence.\n\nFunctional sequence training. In this setting, we construct a gene-centric pre-training corpus based on RefSeq annotations. Functional sequences are defined conservatively at the level of annotated gene entries in GenBank-format records [53]. For each annotated gene locus, we extract the genomic interval spanning the gene boundaries, which may include multiple coding regions (e.g., multiple CDS features across exons), intervening introns, untranslated regions (UTRs), and other transcribed regulatory segments associated with the gene. Where available in the annotation, promoter- and terminator-proximal regulatory regions are also included. This definition applies to both protein-coding genes and RNA genes, yielding gene-centric functional regions that are substantially longer than individual CDS, exon, or intron units. As a result, each training example naturally spans long genomic contexts, aligning with the long-context modeling objective of GENERator. The resulting functional corpus contains a total of 386 billion nucleotides.\n\nAll-sequence training. As a baseline reflecting common practice in genomic language modeling, we also perform pre-training using all available eukaryotic genomic sequences from RefSeq without filtering by functional annotation. This all-sequence corpus comprises approximately 2 trillion nucleotides and includes both functional and non-functional genomic regions.\n\nEmpirically, all-sequence training achieves a lower pre-training loss (Figure S6), whereas functional sequence training consistently yields superior performance across downstream tasks (Section 2), including tasks in which non-functional genomic context is present at inference time. One plausible explanation for this counterintuitive behavior lies in the uneven distribution of semantic information across eukaryotic genomes. Unlike human language, where most tokens contribute meaningfully to semantic structure, genomic sequences contain large fractions of background noise that is weakly constrained or functionally redundant. Over evolutionary time, biologically functional sequence elements have emerged and been preserved by selection, resulting in localized regions with high information density, while much of the surrounding genomic sequence remains comparatively unconstrained [39, 40]. These evolutionarily constrained, gene-associated loci constitute the primary carriers of biological 'semantics' in DNA.\n\nIn contrast, such functionally redundant regions are often dominated by low-complexity or repetitive patterns, including simple homopolymers (e.g., AAAAAA ) and short tandem repeats (e.g., GCGCGC ) [10]. Such sequences are easy to model under next-token prediction objectives and can disproportionately reduce the training loss, despite contributing limited information relevant to biological function. Consequently, indiscriminate inclusion of large amounts of non-functional genomic background may bias the pre-training objective toward trivial statistical regularities, reducing the effectiveness of learned representations for downstream biological tasks.\n\nThis interpretation is further supported by population-genetic observations that mutation rates and tolerated variation are typically lower in gene-associated regions than in intergenic background [76], reflecting stronger purifying selection on functional sequence. Taken together, these considerations suggest that concentrating pre-training on gene-centric functional loci emphasizes evolutionarily meaningful patterns, leading to representations that generalize more effectively, even when evaluated on tasks involving broader genomic context.\n\n[input_representation: 4 Methods > 4.5 Variant Effect Prediction > 4.5.3 Cis-Regulatory Element Design]\nThis section describes the methodological framework used for cis-regulatory element (CRE) design with GENERator. CREs broadly encompass non-coding regulatory sequences such as enhancers, promoters, and silencers.\n\nIn this study, we focus on CRE design with an emphasis on enhancer activity, while allowing the model to explore both activating and repressive regulatory regimes. This focus is motivated by the central role of enhancers in transcriptional regulation and by the availability of large-scale, quantitative activity measurements in the DeepSTARR dataset [25], which spans a broad spectrum of regulatory activity.\n\nOur CRE design framework consists of two complementary components derived from the same underlying model: an activity-conditioned CRE generator that enables prompt-guided sequence design, and a CRE activity predictor that provides fine-grained quantitative scoring for candidate ranking and interpretation. The generator provides coarsegrained control over regulatory activity at generation time, while the predictor refines this control by enabling continuous scoring and selection of candidate sequences.\n\nActivity-conditioned CRE generation. To enable conditional generation, we discretize DeepSTARR activity labels into three regimes based on activity-score quantiles: the top quartile (high activity), the middle 50% (medium activity), and the bottom quartile (low activity). Each regime is associated with a dedicated prefix token ( &lt;high&gt; , &lt;mid&gt; , &lt;low&gt; ). GENERator is fine-tuned on the resulting token-labeled sequences so that, during inference, prompting the model with a prefix token conditions generation toward the corresponding activity regime. This activity-conditioned generator provides coarse-grained, prompt-guided control over CRE activity.\n\nCRE activity prediction. In parallel, we fine-tune GENERator as a supervised CRE activity predictor that maps input sequences to continuous activity scores. This predictor is trained on the same DeepSTARR dataset and evaluated on the held-out test set to assess sequence-to-activity modeling performance (Table S7). The predictor serves two roles: (i) computational evaluation of model understanding of regulatory sequence grammar, and (ii) fine-grained ranking of generated sequences within each activity regime.\n\nPredictor-guided candidate selection and experimental validation. CRE sequences generated under each prefix condition are scored by the CRE activity predictor to enable within-group ranking. For experimental validation, candidate sequences are selected from the top of the &lt;high&gt; group, the bottom of the &lt;low&gt; group, and randomly sampled from the &lt;mid&gt; group to provide a matched control. Selected sequences are synthesized and evaluated using UMI-STARR-seq assays in D. melanogaster S2 cells; experimental procedures and results are described in Section 2.6.\n\nBase-level contribution scores. Beyond sequence-level activity prediction, we further analyze the CRE activity predictor at single-nucleotide resolution to identify positions that contribute most strongly to predicted regulatory activity. To this end, we compute base-level contribution scores using an in silico mutagenesis strategy. Given a CRE sequence S = ( s 1 , s 2 , . . . , s i , . . . , s L ) and a trained predictor f ( · ) , the contribution of position i is evaluated by substituting the nucleotide at that position with each of the four possible bases while keeping all other positions fixed. Let S i → x denote the sequence obtained by replacing the nucleotide at position i with base x ∈ { A , T , C , G } . The contribution score at position i is defined as\n\n̸\n\n<!-- formula-not-decoded -->\n\nwhere s i denotes the original nucleotide at position i . This score measures the difference between the predicted activity of the original sequence and the mean predicted activity under the three alternative single-nucleotide substitutions, which provides a position-specific local baseline. The resulting position-wise contribution profiles are used for downstream analyses, including motif overlap and identification of high-contribution regulatory regions.\n\nTogether, this framework couples activity-conditioned CRE generation, predictor-guided candidate ranking, highthroughput experimental validation, and single-nucleotide interpretation. The corresponding computational benchmarks and experimental results are reported in Section 2.6."}]
+
+2026-07-10T09:51:13.137101Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:13.138680Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.164368Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.215240Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.215254Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.215673Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.215680Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.215798Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.216698Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.216706Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.217216Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.217223Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.217896Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.217903Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.219660Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.219672Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:13.239826Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.263846Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.311536Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.335571Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.357408Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.381734Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.406253Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.429671Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.450334Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.474481Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.498644Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.522695Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.546097Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.593400Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.614781Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-07-10T09:51:13.681599Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:14.616935Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:14.639970Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:14.640019Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:16.005773Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:16.024913Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.024926Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.025314Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.025320Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.025676Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.025681Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.026014Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.026019Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.026384Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.026390Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.027170Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.027178Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-07-10T09:51:16.504933Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:16.513969Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-07-10T09:51:16.514008Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/Users/bogdan.didenko/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+codex
+{"results":[{"record_id":"full_2026-07-06__rec_001534","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"no","text_bio_bridge_present":"no","primary_exclusion_code":"EC2_no_text_component","uncertainty_reason":"none","decision_rationale":"This is a primary generative genomic model trained on eukaryotic DNA. The provided evidence shows biological sequence generation and activity-conditioned prefixes, but no substantive natural-language text component.","evidence_snippet":"\"generative genomic foundation model\"; \"prompting the model with a prefix token conditions generation\"; \"prefix token (<high>, <mid>, <low>)\""}]}
+2026-07-10T09:51:25.752285Z  WARN codex_core::shell_snapshot: Failed to delete shell snapshot at AbsolutePathBuf("/Users/bogdan.didenko/.codex/shell_snapshots/019f4b70-3686-7c21-a9ea-8c2d46d92976.1783677073066125000.sh"): Os { code: 2, kind: NotFound, message: "No such file or directory" }
+tokens used
+3,475

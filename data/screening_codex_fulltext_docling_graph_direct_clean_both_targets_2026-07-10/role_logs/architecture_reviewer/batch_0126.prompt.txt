@@ -1,0 +1,74 @@
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"full_2026-07-06__rec_003328","candidate_id":"full_2026-07-06__rec_003328","source_record_id":"rec_003328","source_corpus":"uncertain","title":"MAMMAL--Molecular Aligned Multi-Modal Architecture and Language","abstract":"Large language models applied to vast biological datasets have the potential to transform biology by uncovering disease mechanisms and accelerating drug development. However, current models are often siloed, trained separately on small-molecules, proteins, or transcriptomic data, limiting their ability to capture complex, multi-modal interactions. Effective drug discovery requires computational tools that integrate multiple biological entities while supporting prediction and generation, a challenge existing models struggle to address. For this purpose, we present MAMMAL -M olecular A ligned M ultiM odal A rchitecture and L anguage - a versatile method applied to create a multi-task foundation model that learns from large-scale biological datasets across diverse modalities, including proteins, small-molecules, and omics. MAMMAL's structured prompt syntax supports classification, regression, and generation tasks while handling token and scalar inputs/outputs. Evaluated on eleven diverse downstream tasks, it reaches a new state of the art (SOTA) in nine tasks and is comparable to SOTA in two tasks, all within a unified architecture, unlike prior task-specific models. Additionally, we explored Alphafold 3 binding prediction capabilities on antibody-antigen and nanobody-antigen complexes showing significantly better classification performance of MAMMAL in 3 out of 4 targets.\n\nFig. 1 (A) We introduce a multi-align model pretrained on six datasets, each containing tens to hundreds of millions of data points. [truncated]","doi":"","year":"","venue":"","sources":[],"selected_full_text_sections":"[data_source: Appendix C Pretraining Details > C.2 Hyperparameters > C.3 Datasets]\nibm/biomed.omics.bl.sm.ma-ted-458m was pre-trained using six diverse datasets spanning multiple domains.\n\nUniRef90 [93], one of the clustered databases in UniProt [69] (UniProt Reference Clusters), groups protein sequences that share at least 90% identity and 80% sequence overlap with the longest sequence in each cluster (the seed sequence). This clustering approach reduces redundancy while preserving the diversity of functional sequences, providing a rich protein dataset.\n\nOAS [86] (Observed Antibody Space) offers unpaired antibody sequences, specifically focusing on the variable regions of light or heavy chains. After filtering for sequences with complete variable domains and retaining only the sequences with standard amino acids, we finalized a dataset of approximately 650 million sequences. Each sequence is annotated with its chain type (heavy or light) and species information.\n\nSTRING [90] is a database that integrates data from experimental findings, computational predictions, and text mining to describe protein-protein interactions. We curated a dataset of 390 million positive protein interaction pairs, considering only pairs that had a STRING confidence score above 500. Additionally, we curated 390 million pseudo-negative pairs by randomly matching proteins from the same species, resulting in a second dataset of 780 million samples.\n\nCELLxGENE [89], a platform for single-cell transcriptomics data, was used to assemble a dataset of gene expression sequences from individual cells. After filtering for human samples labeled as 'cell' in the 'suspension type' field, we curated a dataset of\n\n30 million samples. The sequences for model training were created as ranked lists of gene names, similar to Geneformer [38], but with several differences. Instead of normalizing by median expression and ranking the now unique values of expression count, we log-normalized and binned the samples, followed by alphabetic sorting to make the task well-defined. The binning removes the ability of noisy reads to significantly affect the pretraining and alphabetic sorting ensures that for every masked token there is a unique correct answer.\n\nFor small-molecule data, we utilized two main sources: (1) PubChem [88], a comprehensive chemical database maintained by NCBI, and (2) ZINC22 [87], a large library of drug-like molecules. From PubChem, we curated a subset of 80 million 'drug-like' molecules, removing duplicates and following Lipinski's rule of five to ensure druglikeness. Additionally, we sampled 120 million molecules from the ZINC22 database, focusing on small molecules with fewer than 30 heavy atoms to ensure dense coverage of 'drug-like' chemical space. This led to a final dataset of 200 million small-molecule examples.\n\n[input_representation: 3 Methods > 3.1 MAMMAL Architecture > Flexible Multi-Domain Structured Prompts]\nDrug discovery tasks often require prompts that describe molecular complexes composed of multiple entities. These prompts may also include attributes related to the entire complex or specific internal entities to improve prediction accuracy. To address this, MAMMAL employs a modular tokenizer that enables multi-domain structured prompts by assigning distinct sub-tokenizers to each entity type. Compared to freetext prompts, structured prompts provide a consistent and explicit representation of input data, capturing relationships and attributes between entities, and facilitating the training. While MAMMAL primarily focuses on structured input, incorporating free text as an additional data source is a promising future direction. Recent advancements in biomedical large language models [27, 78, 79], demonstrate the potential of free-text prompts to enhance versatility and expand training datasets. Future iterations of MAMMAL could integrate free text directly, mix it with structured prompts, or leverage embeddings derived from extensively pre-trained text models [80, 81]. These embeddings could harness the latent knowledge encoded within external models to enrich the system's performance."}]
