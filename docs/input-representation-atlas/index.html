@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Evidence-grounded atlas of input representation routes across 52 generative multimodal biological foundation-model papers.">
-  <title>Atlas of Input Representation Methods</title>
+  <meta name="description" content="Interactive evidence-grounded taxonomic graph of input representations across generative multimodal biological foundation models.">
+  <title>Input Representation Taxonomy Atlas</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script defer src="assets/app.js"></script>
 </head>
@@ -16,37 +17,35 @@
   <header class="app-header">
     <div class="brand-block">
       <div class="eyebrow">Evidence atlas · taxonomy v1</div>
-      <h1>Input representation methods</h1>
-      <p>Generative multimodal biological foundation models with text as a modality</p>
+      <h1>Input representation taxonomy</h1>
+      <p>How biological and textual objects become model-visible inputs</p>
     </div>
     <div class="header-stats" id="header-stats" aria-label="Atlas totals"></div>
     <div class="header-actions">
       <a class="icon-command" href="data/atlas.json" download title="Download complete atlas JSON">
-        <i data-lucide="download" aria-hidden="true"></i>
-        <span>Data</span>
+        <i data-lucide="download"></i><span>Data</span>
       </a>
       <a class="icon-command" href="https://github.com/BogdanDidenko/text-bio-fundational-models-review" target="_blank" rel="noreferrer" title="Open repository">
-        <i data-lucide="github" aria-hidden="true"></i>
-        <span>Repository</span>
+        <i data-lucide="github"></i><span>Repository</span>
       </a>
     </div>
   </header>
 
   <nav class="view-tabs" aria-label="Atlas views">
-    <button class="view-tab is-active" data-view="overview" aria-selected="true">
-      <i data-lucide="network" aria-hidden="true"></i><span>Taxonomy map</span>
+    <button class="view-tab is-active" data-view="graph" aria-selected="true">
+      <i data-lucide="git-fork"></i><span>Taxonomic graph</span>
     </button>
     <button class="view-tab" data-view="architectures" aria-selected="false">
-      <i data-lucide="panels-top-left" aria-hidden="true"></i><span>Architectures</span>
+      <i data-lucide="layout-grid"></i><span>Model index</span>
     </button>
     <button class="view-tab" data-view="evidence" aria-selected="false">
-      <i data-lucide="scan-search" aria-hidden="true"></i><span>Route evidence</span>
+      <i data-lucide="scan-search"></i><span>Route evidence</span>
     </button>
   </nav>
 
   <section class="filter-bar" aria-label="Atlas filters">
     <label class="search-field">
-      <i data-lucide="search" aria-hidden="true"></i>
+      <i data-lucide="search"></i>
       <span class="sr-only">Search atlas</span>
       <input id="search-input" type="search" placeholder="Search model, paper, modality, route…" autocomplete="off">
     </label>
@@ -64,73 +63,66 @@
       <select id="modality-filter"><option value="">All modalities</option></select>
     </label>
     <button class="icon-button" id="clear-filters" type="button" title="Clear all filters" aria-label="Clear all filters">
-      <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+      <i data-lucide="rotate-ccw"></i>
     </button>
   </section>
 
   <main id="main-content">
-    <section class="view-panel is-active" id="view-overview" aria-labelledby="overview-title">
-      <div class="section-heading intro-heading">
+    <section class="view-panel is-active graph-view" id="view-graph" aria-labelledby="graph-title">
+      <div class="graph-heading">
         <div>
           <p class="section-kicker">Primary hierarchy</p>
-          <h2 id="overview-title">The carrier visible to the generative model</h2>
+          <h2 id="graph-title">Carrier family → subtype → model</h2>
         </div>
-        <p id="organizing-principle" class="section-note"></p>
+        <p class="graph-summary" id="graph-summary" aria-live="polite"></p>
+        <div class="graph-toolbar" aria-label="Graph controls">
+          <button class="icon-button" id="zoom-out" type="button" title="Zoom out" aria-label="Zoom out"><i data-lucide="zoom-out"></i></button>
+          <button class="icon-button" id="zoom-in" type="button" title="Zoom in" aria-label="Zoom in"><i data-lucide="zoom-in"></i></button>
+          <button class="icon-button" id="fit-graph" type="button" title="Fit graph" aria-label="Fit graph"><i data-lucide="maximize"></i></button>
+          <button class="text-command" id="show-all" type="button"><i data-lucide="network"></i><span>Show all</span></button>
+        </div>
       </div>
-      <div class="family-grid" id="family-grid"></div>
 
-      <div class="section-heading compact-heading">
-        <div>
-          <p class="section-kicker">Architecture placement</p>
-          <h2>All models on the carrier map</h2>
+      <div class="graph-workspace">
+        <div class="graph-canvas" id="graph-canvas">
+          <svg id="taxonomy-graph" role="img" aria-label="Interactive taxonomic graph of input representation families, subtypes, and models">
+            <defs>
+              <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M0,-5L10,0L0,5" class="arrowhead-path"></path>
+              </marker>
+            </defs>
+            <g id="graph-stage">
+              <g id="graph-edges"></g>
+              <g id="graph-nodes"></g>
+            </g>
+          </svg>
+          <div class="graph-key">
+            <span><b class="key-evidence"></b>Original-paper crop</span>
+            <span><b class="key-example"></b>Illustrative input</span>
+            <span><b class="key-multi"></b>Multiple parent links</span>
+          </div>
         </div>
-        <p class="section-note">Models with multiple input routes appear in every applicable family; family placement is route-based rather than a single “hybrid” label.</p>
+        <aside class="graph-inspector" id="graph-inspector" aria-label="Selected graph node"></aside>
       </div>
-      <div class="architecture-map" id="architecture-map"></div>
-
-      <div class="section-heading compact-heading">
-        <div>
-          <p class="section-kicker">Operational examples</p>
-          <h2>What each representation looks like</h2>
-        </div>
-        <p class="section-note">Examples are deliberately small and illustrative; paper-specific claims remain in the grounded architecture records.</p>
-      </div>
-      <div class="example-list" id="example-list"></div>
     </section>
 
     <section class="view-panel" id="view-architectures" aria-labelledby="architectures-title">
       <div class="section-heading">
-        <div>
-          <p class="section-kicker">Model index</p>
-          <h2 id="architectures-title">Architecture catalog</h2>
-        </div>
+        <div><p class="section-kicker">Secondary index</p><h2 id="architectures-title">Models and their input routes</h2></div>
         <p class="result-count" id="architecture-result-count" aria-live="polite"></p>
       </div>
       <div class="architecture-grid" id="architecture-grid"></div>
-      <div class="empty-state" id="architecture-empty" hidden>
-        <i data-lucide="search-x" aria-hidden="true"></i>
-        <p>No architecture matches these filters.</p>
-      </div>
+      <div class="empty-state" id="architecture-empty" hidden><i data-lucide="search-x"></i><p>No model matches these filters.</p></div>
     </section>
 
     <section class="view-panel" id="view-evidence" aria-labelledby="evidence-title">
       <div class="section-heading">
-        <div>
-          <p class="section-kicker">Grounded annotations</p>
-          <h2 id="evidence-title">Input route evidence</h2>
-        </div>
+        <div><p class="section-kicker">Audit trail</p><h2 id="evidence-title">Grounded input-route evidence</h2></div>
         <p class="result-count" id="evidence-result-count" aria-live="polite"></p>
       </div>
       <div class="table-shell">
         <table class="evidence-table">
-          <thead>
-            <tr>
-              <th>Architecture</th>
-              <th>Source → model-visible carrier</th>
-              <th>Family / subtype</th>
-              <th>Grounded evidence</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Model</th><th>Source → carrier</th><th>Taxonomy</th><th>Evidence</th></tr></thead>
           <tbody id="evidence-rows"></tbody>
         </table>
       </div>
@@ -140,25 +132,9 @@
 
   <footer class="site-footer">
     <p>Repeated computational annotation with LLM adjudication; not human-validated ground truth.</p>
-    <p>Original paper figures are shown for scholarly illustration with source title, figure caption, page, DOI, and artifact hash.</p>
+    <p>Paper crops preserve source pixels and are linked to figure, page, caption, crop coordinates, and artifact hash. Illustrative examples are explicitly marked as non-evidence.</p>
   </footer>
 
-  <dialog id="architecture-dialog" class="architecture-dialog" aria-labelledby="dialog-title">
-    <div class="dialog-header">
-      <div>
-        <p class="section-kicker" id="dialog-kicker">Architecture</p>
-        <h2 id="dialog-title"></h2>
-      </div>
-      <button class="icon-button dialog-close" type="button" title="Close architecture details" aria-label="Close architecture details">
-        <i data-lucide="x" aria-hidden="true"></i>
-      </button>
-    </div>
-    <div class="dialog-body" id="dialog-body"></div>
-  </dialog>
-
-  <div class="loading-screen" id="loading-screen" role="status">
-    <div class="loading-mark"></div>
-    <p>Loading taxonomy atlas…</p>
-  </div>
+  <div class="loading-screen" id="loading-screen" role="status"><div class="loading-mark"></div><p>Building taxonomic graph…</p></div>
 </body>
 </html>

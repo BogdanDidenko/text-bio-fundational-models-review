@@ -1,0 +1,344 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_4df2c8d8a5ea",
+    "model_name": "GPT-3.5turbo",
+    "paper_title": "ChatCell: Facilitating Single-Cell Analysis with Natural Language",
+    "record_id": "full_2026-07-06__rec_002517",
+    "image_attachment_index": 1,
+    "figure_index": 3,
+    "figure_caption": "Figure 1: CHATCELL facilitates single-cell analysis through conversational interactions. Black and red texts denote human and single-cell language, respectively.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nSchematic workflow/diagram illustrating a biomedical AI interaction about single-cell gene expression. The panel shows chat bubbles asking for the top 100 primary genes in a randomly selected cell sorted by expression, then inferring cell type, then requesting another endothelial cell. Red gene-name lists include examples such as `GM42418`, `IL1RAPL1`, `GPHN`, `CDK8`, `LARS2`, `JARID2`, `ZC3H7A`, `FGFR2`, and others. \n\nThere are no axes, plots, numerical scales, or legend. A stylized red blood/endothelial-like cell illustration is connected by lines to the gene-list outputs. The main point shown is that gene-expression profiles are used to identify a likely cell type, here labeled “Endothelial,” and retrieve another cell with a similar endothelial gene-expression signature.",
+    "routes": [
+      {
+        "route_label": "human-description paraphrasing",
+        "source_object": "a clear and concise human-written description",
+        "transformation_chain": [],
+        "model_visible_form": "a clear and concise human-written description",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "fed into GPT-3.5turbo",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_1fb19463c978",
+    "model_name": "GPT-4",
+    "paper_title": "Multimodal learning of transcriptomes and text enables interactive single-cell RNA-seq data exploration with natural-language chats",
+    "record_id": "full_2026-07-06__rec_002105",
+    "image_attachment_index": 2,
+    "figure_index": 7,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow and result panel for evaluating a language model on transcriptome embeddings. Left: question-answer pairs from a test set (`n=200`) combine a “transcriptome embedding” with a prompt question (“Describe this sample”) and ground-truth answer (“These are bronchial epithelial…”), passed into an LLM layer. The model outputs a prediction scored by perplexity.\n\nMiddle: scatter/strip plot of perplexity values, with x-axis “Perplexity lower is better” ranging roughly from 1.51 to 14.25 and y-axis categories 1–5. Legend distinguishes gray “Mismatched embeddings (n=30)” and purple “Matched embedding.” \n\nRight: horizontal quantile plot labeled “Perplexity quantiles for all 200 test cases,” showing inverted perplexity quantiles from 0 to 1.0. The visible result emphasizes that matched embeddings tend to have better/lower perplexity quantiles than mismatched embeddings.",
+    "routes": [
+      {
+        "route_label": "Transcriptome features to GPT-4 detailed chats",
+        "source_object": "transcriptomes",
+        "transformation_chain": [
+          "use the transcriptome's generated textual annotation",
+          "ask the same questions as in the simple chats",
+          "produce more extensive answers"
+        ],
+        "model_visible_form": "question-answer prompts built from transcriptome annotations",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "GPT-4 via the OpenAI API",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Transcriptome features to GPT-4 complex chats",
+        "source_object": "transcriptomes",
+        "transformation_chain": [
+          "use a few-shot prompt with pre-action reasoning",
+          "produce a single profound question-answer pair"
+        ],
+        "model_visible_form": "question-answer prompt built from transcriptome features",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "GPT-4 via the OpenAI API",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_8530576f8c25",
+    "model_name": "GPT-5.1",
+    "paper_title": "Aligning LLMs with Biomedical Knowledge using Balanced Fine-Tuning",
+    "record_id": "full_2026-07-06__rec_003008",
+    "image_attachment_index": 3,
+    "figure_index": 6,
+    "figure_caption": "Figure 6: Workflow for extracting biological embeddings from LLM-BFT. a : LLM-BFT generates profile texts for entities of interest (e.g., a specific gene). The gene profile text is encoded by OpenAI TEXT-EMBEDDING-ADA-002 (the same text encoder GenePT uses) to obtain gene embeddings, so that GenePT (GPT-4o + ada-002) and LLM-BFT (BFT-70B + ada-002) differ only in the LLM that produces the profile text. b : For a single-cell dataset, gene embeddings are weighted by gene expression values to generate cell embeddings.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture schematic with two labeled panels, **a** and **b**. Panel **a** shows an LLM-based gene text embedding pipeline: a user prompt (“Tell me about gene.”) is processed by **LLM-BFT**, producing an LLM response with gene name/function/interaction text; texts for gene x through gene y are converted via **Text to embedding** into a **gene embedding (N, 2048)** matrix. Panel **b** shows a cell-by-gene expression matrix for **M cells** and **N genes** multiplied by the **gene embedding (N, 2048)** matrix to produce a **cell embedding (M, 2048)** matrix. Main visible message: gene-level text embeddings are derived from LLM responses and combined with gene expression data to generate cell embeddings.",
+    "routes": [
+      {
+        "route_label": "medical trajectory synthesis",
+        "source_object": "clinical instruction and rubrics",
+        "transformation_chain": [
+          "provide the instruction and rubrics to GPT-5.1",
+          "synthesize a response trajectory"
+        ],
+        "model_visible_form": "text prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "providing GPT-5.1 with both the instruction and the full set of rubrics",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_8553f59d67fa",
+    "model_name": "GPT-OSS-120B",
+    "paper_title": "Aligning LLMs with Biomedical Knowledge using Balanced Fine-Tuning",
+    "record_id": "full_2026-07-06__rec_003008",
+    "image_attachment_index": 3,
+    "figure_index": 6,
+    "figure_caption": "Figure 6: Workflow for extracting biological embeddings from LLM-BFT. a : LLM-BFT generates profile texts for entities of interest (e.g., a specific gene). The gene profile text is encoded by OpenAI TEXT-EMBEDDING-ADA-002 (the same text encoder GenePT uses) to obtain gene embeddings, so that GenePT (GPT-4o + ada-002) and LLM-BFT (BFT-70B + ada-002) differ only in the LLM that produces the profile text. b : For a single-cell dataset, gene embeddings are weighted by gene expression values to generate cell embeddings.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture schematic with two labeled panels, **a** and **b**. Panel **a** shows an LLM-based gene text embedding pipeline: a user prompt (“Tell me about gene.”) is processed by **LLM-BFT**, producing an LLM response with gene name/function/interaction text; texts for gene x through gene y are converted via **Text to embedding** into a **gene embedding (N, 2048)** matrix. Panel **b** shows a cell-by-gene expression matrix for **M cells** and **N genes** multiplied by the **gene embedding (N, 2048)** matrix to produce a **cell embedding (M, 2048)** matrix. Main visible message: gene-level text embeddings are derived from LLM responses and combined with gene expression data to generate cell embeddings.",
+    "routes": [
+      {
+        "route_label": "biological knowledge synthesis",
+        "source_object": "NCBI-derived biological corpus",
+        "transformation_chain": [
+          "use the biomedical corpus from NCBI as the knowledge source in EasyDataset",
+          "synthesize instruction-response pairs"
+        ],
+        "model_visible_form": "EasyDataset-formatted biological text",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "synthesis prompting",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_d2833fcd27aa",
+    "model_name": "gpt2-gene-eng",
+    "paper_title": "Human Genome Book:Words,Sentences and Paragraphs",
+    "record_id": "full_2026-07-06__rec_002243",
+    "image_attachment_index": 4,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram. It shows DNA sequence, protein sequence, and natural language inputs passed through a unified BPE tokenization/encoder, then pre-training of a GPT-2 model labeled `GPT2-gene-eng`. The model is fine-tuned using PAWS English datasets and a sequence similarity classification dataset, producing `GPT2-gene-eng-ft`. Further fine-tuning branches use English summary datasets and English paragraph segmentation datasets, yielding models labeled `gene_eng_gpt2_para_seg` and `gene_eng_gpt2_summary`.\n\nNo axes or quantitative plots are present. The diagram depicts language capability transfer from English to DNA, with one branch marked “Verifiable” and a later genome-book application marked as “Unverified?” / “Indirect Verification?”. The visible main idea is a proposed pipeline for transferring natural-language modeling capabilities to genomic sequence tasks through unified tokenization and GPT-2 pretraining/fine-tuning.",
+    "routes": [
+      {
+        "route_label": "english_pretraining",
+        "source_object": "English data",
+        "transformation_chain": [
+          "unified BPE tokenizer",
+          "GPT-2 pretraining"
+        ],
+        "model_visible_form": "BPE token IDs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "unified BPE tokenizer",
+        "supporting_figure_or_table": "Table 1. Training data"
+      },
+      {
+        "route_label": "dna_pretraining",
+        "source_object": "DNA sequences",
+        "transformation_chain": [
+          "unified BPE tokenizer",
+          "GPT-2 pretraining"
+        ],
+        "model_visible_form": "BPE token IDs",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "unified BPE tokenizer",
+        "supporting_figure_or_table": "Table 1. Training data"
+      },
+      {
+        "route_label": "protein_pretraining",
+        "source_object": "protein sequence data",
+        "transformation_chain": [
+          "unified BPE tokenizer",
+          "GPT-2 pretraining"
+        ],
+        "model_visible_form": "BPE token IDs",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "unified BPE tokenizer",
+        "supporting_figure_or_table": "Table 1. Training data"
+      }
+    ]
+  },
+  {
+    "model_id": "model_5e9bb9e443dc",
+    "model_name": "gpt2-gene-eng-ft",
+    "paper_title": "Human Genome Book:Words,Sentences and Paragraphs",
+    "record_id": "full_2026-07-06__rec_002243",
+    "image_attachment_index": 4,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram. It shows DNA sequence, protein sequence, and natural language inputs passed through a unified BPE tokenization/encoder, then pre-training of a GPT-2 model labeled `GPT2-gene-eng`. The model is fine-tuned using PAWS English datasets and a sequence similarity classification dataset, producing `GPT2-gene-eng-ft`. Further fine-tuning branches use English summary datasets and English paragraph segmentation datasets, yielding models labeled `gene_eng_gpt2_para_seg` and `gene_eng_gpt2_summary`.\n\nNo axes or quantitative plots are present. The diagram depicts language capability transfer from English to DNA, with one branch marked “Verifiable” and a later genome-book application marked as “Unverified?” / “Indirect Verification?”. The visible main idea is a proposed pipeline for transferring natural-language modeling capabilities to genomic sequence tasks through unified tokenization and GPT-2 pretraining/fine-tuning.",
+    "routes": [
+      {
+        "route_label": "pawsx_finetune",
+        "source_object": "PAWSX English semantic similarity dataset",
+        "transformation_chain": [
+          "classification head",
+          "sequence similarity judgment"
+        ],
+        "model_visible_form": "tokenized English sentence pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "classification head",
+        "supporting_figure_or_table": "Table 2. Accuracy of different datasets"
+      },
+      {
+        "route_label": "dna_similarity_evaluation",
+        "source_object": "DNA150s, DNA150, and DNA50 DNA sequence similarity judgment datasets",
+        "transformation_chain": [
+          "classification head",
+          "sequence similarity judgment"
+        ],
+        "model_visible_form": "tokenized DNA sequence pairs",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "classification head",
+        "supporting_figure_or_table": "Table 2. Accuracy of different datasets"
+      },
+      {
+        "route_label": "dna_paragraph_sentence_splitting_inference",
+        "source_object": "DNA paragraphs",
+        "transformation_chain": [
+          "sentence segmentation model",
+          "predict period boundary"
+        ],
+        "model_visible_form": "tokenized DNA paragraphs",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "sentence segmentation model",
+        "supporting_figure_or_table": "Figure 4. Structure of the Genome Catalog."
+      }
+    ]
+  },
+  {
+    "model_id": "model_3827a28edefc",
+    "model_name": "H2O",
+    "paper_title": "H2O: A Foundation Model Bridging Histopathology to Spatial Multi-Omics Profiling",
+    "record_id": "june_update_2026-06-10__rec_000152",
+    "image_attachment_index": 5,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel schematic/data overview figure from a biomedical paper. Panel `a` summarizes datasets used for an `H2O` foundation model workflow.\n\nFigure type: dataset/workflow overview with a bar plot, anatomical silhouette, and downstream task dataset icons.\n\nVisible labels and panels:\n- Left: `H2O image FM data` with cylinder icons for `TCGA`, `GTEx`, and `In-house`, showing sample and patch counts.\n- Center: `H2O ST FM and biomodal alignment data`, including a horizontal stacked bar chart by tissue/organ categories and a dataset label `HEST1K`; legend lists cancer/project abbreviations.\n- Right: `Downstream analysis data` with task labels `Temporal`, `3D-Spatial`, and `Multi-omics`, linked to datasets `HTSA`, `OpenST`, and `HTAPP`.\n\nMeasured/shown quantities: numbers of samples, spots, and image patches across biomedical datasets; sample distribution across tissue/cancer types.\n\nMain visible finding: the model is trained/aligned using large-scale histology/image and spatial transcriptomics-related datasets, then evaluated or applied to temporal, 3D-spatial, and multi-omics downstream analyses.",
+    "routes": [
+      {
+        "route_label": "H&E patch pretraining",
+        "source_object": "H&E images from TCGA, GTEx, and additional in-house breast cancer collections",
+        "transformation_chain": [
+          "patch extraction",
+          "checkerboard sampling",
+          "DINOv2-based ViT encoding",
+          "projection to 512-dimension"
+        ],
+        "model_visible_form": "raw 224x224 H&E image patches",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "image encoder",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "HEST-1k paired H&E-ST contrastive training",
+        "source_object": "matched H&E and ST samples from the HEST-1k dataset",
+        "transformation_chain": [
+          "paired patch extraction",
+          "neighborhood context aggregation",
+          "FiLM conditioning",
+          "contrastive alignment with a parameter-frozen ST foundation model",
+          "decoder prediction"
+        ],
+        "model_visible_form": "raw 224x224 H&E image patches",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "contrastive learning aligns a trainable histopathology foundation model and a parameter-frozen ST foundation model using paired image and gene expression data",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "HEST-1k benchmark ST prediction",
+        "source_object": "H&E images from the HEST-1k dataset",
+        "transformation_chain": [
+          "patch extraction",
+          "neighborhood context aggregation",
+          "diameter-conditioned FiLM",
+          "cross-modal decoder prediction"
+        ],
+        "model_visible_form": "a fixed 224x224 patch plus eight immediate neighbors",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "patch_context_or_case_level_visual_reasoning",
+        "fusion": "the H2O decoder predicts the omics expression for each spot using the spatial context information",
+        "supporting_figure_or_table": "Fig. 2"
+      },
+      {
+        "route_label": "IDCLymphNode external validation",
+        "source_object": "H&E images from the independent IDCLymphNode dataset",
+        "transformation_chain": [
+          "patch extraction",
+          "neighborhood context aggregation",
+          "diameter-conditioned FiLM",
+          "cross-modal decoder prediction"
+        ],
+        "model_visible_form": "H&E image patches with spatial context",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "patch_context_or_case_level_visual_reasoning",
+        "fusion": "the H2O decoder predicts the omics expression for each spot using the spatial context information",
+        "supporting_figure_or_table": "Fig. 2"
+      },
+      {
+        "route_label": "Thymus developmental ST prediction",
+        "source_object": "histopathology images of developmental stages from fetal to paediatric thymus",
+        "transformation_chain": [
+          "developmental-stage stratification",
+          "spatial context-aware prediction",
+          "ST reconstruction across time"
+        ],
+        "model_visible_form": "histopathology images from fetal to paediatric thymus",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "processed by H2O to predict ST across time",
+        "supporting_figure_or_table": "Fig. 4"
+      },
+      {
+        "route_label": "OpenST serial-section ST reconstruction",
+        "source_object": "serial H&E slides from a metastatic lymph node",
+        "transformation_chain": [
+          "image registration",
+          "sequential section prediction",
+          "stacking into a 3D tissue block"
+        ],
+        "model_visible_form": "registered serial H&E slides",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "patch_context_or_case_level_visual_reasoning",
+        "fusion": "aligned and processed with H2O to predict spatial gene expression across sections",
+        "supporting_figure_or_table": "Fig. 5"
+      },
+      {
+        "route_label": "HTAPP dual-decoder ST/SP prediction",
+        "source_object": "H&E images from consecutive sections of the HTAPP breast cancer samples",
+        "transformation_chain": [
+          "paired MERFISH/CODEX evaluation",
+          "parallel ST decoding",
+          "parallel SP decoding"
+        ],
+        "model_visible_form": "H&E images from consecutive sections",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "patch_context_or_case_level_visual_reasoning",
+        "fusion": "parallel SP decoder sharing an identical architecture with the original ST decoder",
+        "supporting_figure_or_table": "Fig. 6"
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.

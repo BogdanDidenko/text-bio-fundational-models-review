@@ -1,0 +1,623 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_3841ec0733e7",
+    "model_name": "gene_eng_gpt2_para_seg",
+    "paper_title": "Human Genome Book:Words,Sentences and Paragraphs",
+    "record_id": "full_2026-07-06__rec_002243",
+    "image_attachment_index": 1,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram. It shows DNA sequence, protein sequence, and natural language inputs passed through a unified BPE tokenization/encoder, then pre-training of a GPT-2 model labeled `GPT2-gene-eng`. The model is fine-tuned using PAWS English datasets and a sequence similarity classification dataset, producing `GPT2-gene-eng-ft`. Further fine-tuning branches use English summary datasets and English paragraph segmentation datasets, yielding models labeled `gene_eng_gpt2_para_seg` and `gene_eng_gpt2_summary`.\n\nNo axes or quantitative plots are present. The diagram depicts language capability transfer from English to DNA, with one branch marked “Verifiable” and a later genome-book application marked as “Unverified?” / “Indirect Verification?”. The visible main idea is a proposed pipeline for transferring natural-language modeling capabilities to genomic sequence tasks through unified tokenization and GPT-2 pretraining/fine-tuning.",
+    "routes": [
+      {
+        "route_label": "wikipedia_paragraph_segmentation_training",
+        "source_object": "Wikipedia text",
+        "transformation_chain": [
+          "replace newline characters between paragraphs with <p_end>",
+          "continuous pre-training",
+          "predict next token"
+        ],
+        "model_visible_form": "tokenized Wikipedia text with <p_end> markers",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "GPT2LMHeadModel with a causal language modeling head",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "chromosome1_paragraph_segmentation_inference",
+        "source_object": "Chromosome 1",
+        "transformation_chain": [
+          "divide Chromosome 1 into 25 segments",
+          "apply segmentation model"
+        ],
+        "model_visible_form": "DNA sequence segments",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "segmentation model",
+        "supporting_figure_or_table": "Figure 4. Structure of the Genome Catalog."
+      }
+    ]
+  },
+  {
+    "model_id": "model_58435d2084b0",
+    "model_name": "gene_eng_gpt2_summary",
+    "paper_title": "Human Genome Book:Words,Sentences and Paragraphs",
+    "record_id": "full_2026-07-06__rec_002243",
+    "image_attachment_index": 1,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram. It shows DNA sequence, protein sequence, and natural language inputs passed through a unified BPE tokenization/encoder, then pre-training of a GPT-2 model labeled `GPT2-gene-eng`. The model is fine-tuned using PAWS English datasets and a sequence similarity classification dataset, producing `GPT2-gene-eng-ft`. Further fine-tuning branches use English summary datasets and English paragraph segmentation datasets, yielding models labeled `gene_eng_gpt2_para_seg` and `gene_eng_gpt2_summary`.\n\nNo axes or quantitative plots are present. The diagram depicts language capability transfer from English to DNA, with one branch marked “Verifiable” and a later genome-book application marked as “Unverified?” / “Indirect Verification?”. The visible main idea is a proposed pipeline for transferring natural-language modeling capabilities to genomic sequence tasks through unified tokenization and GPT-2 pretraining/fine-tuning.",
+    "routes": [
+      {
+        "route_label": "amazon_review_summarization_training",
+        "source_object": "Amazon English Review Dataset review content",
+        "transformation_chain": [
+          "format training sample as '[Original Text] TL;DR: [Summary]'",
+          "causal language modeling"
+        ],
+        "model_visible_form": "formatted text prompt '[Original Text] TL;DR:'",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "GPT2LMHeadModel causal language modeling head",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "dna_summary_inference",
+        "source_object": "DNA sequences",
+        "transformation_chain": [
+          "format as '[Original Text] TL;DR:'",
+          "dynamic masking mechanism"
+        ],
+        "model_visible_form": "formatted DNA prompt with masked logits",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "dynamic masking mechanism",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_69a439438d24",
+    "model_name": "GenNA",
+    "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "image_attachment_index": 2,
+    "figure_index": 2,
+    "figure_caption": "Fig. 2: GenNA internalizes sequence-function mappings and evolutionary constraints",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure with experimental genomics/biomedical data. Panels are labeled a-j and include heatmaps, boxplots, contact-map-like triangular matrix, sequence-position effect maps, t-SNE embeddings, bar charts, and phylogenetic/tree diagrams.\n\nVisible content:\n- Panel a: Heatmap comparing protein levels across in-frame stop codons and paired codon substitutions, with a color scale.\n- Panel b: Boxplot comparing RNA half-life change for “Watson” versus “Wobble” categories.\n- Panel c: Triangular mRNA folding probability/contact-style matrix over transcript regions, labeled with 5′ UTR, CDS, and 3′ UTR.\n- Panel d: Boxplots of attention ratio across gene regions, including promoter, tag, 5′ UTR, CDS, and 3′ UTR.\n- Panel e: Horizontal boxplots showing change in protein levels for sequence/region perturbations such as CDS deletion, CDS ribosome-related features, and UTR mutations/deletions.\n- Panel f: Heatmaps showing positional nucleotide effects across transcript sequence regions, including 5′ UTR, CDS, and 3′ UTR; one subpanel marks the start codon.\n- Panel g: t-SNE plots colored by medication type and taxonomy group.\n- Panel h: Horizontal bar chart of feature/category frequencies, with one highlighted red bar.\n- Panel i: Heatmap relating therapeutic area and hosted species labels, with a percentage color scale.\n- Panel j: Tree diagrams comparing transcript/protein length or taxonomic relationships.\n\nMain visible finding: the figure summarizes learned or measured sequence-region effects on RNA/protein outcomes, showing that CDS and UTR features, codon changes, and organism/therapeutic categories are associated with measurable differences in protein level, RNA stability, attention allocation, and sequence-derived structure/features.",
+    "routes": [
+      {
+        "route_label": "RefSeq GenBank corpus to multimodal pretraining samples",
+        "source_object": "GenBank-formatted genomic DNA and RNA annotation files for eukaryotic species from the NCBI RefSeq database",
+        "transformation_chain": [
+          "parsed GenBank records automatically with Biopython",
+          "extracted molecule type, source species, gene name, and natural-language functional descriptions from the product and note fields",
+          "organized hierarchical structures such as mRNA, CDS, ncRNA, and regulatory elements using custom XML-style tags",
+          "restricted the corpus to gene-associated regions with explicit annotations",
+          "randomly extended the target annotated segment by 0-100 bp upstream and downstream",
+          "concatenated multiple samples into long input sequences during sequence packing"
+        ],
+        "model_visible_form": "unified training samples in a shared cross-modal token space",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "custom cross-modal BPE tokenizer feeding a decoder-only Transformer",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "Real gene sample to sequence-function consistency evaluation",
+        "source_object": "a nucleotide sequence and its corresponding native functional annotation",
+        "transformation_chain": [
+          "held the underlying nucleotide sequence fixed",
+          "systematically replaced the functional-annotation component of the prompt",
+          "formed matched and mismatched sequence-function pairings",
+          "computed conditional perplexity for each pairing"
+        ],
+        "model_visible_form": "a prompt combining the nucleotide sequence and a functional annotation",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "functional annotation is inserted as a prompt prefix alongside the fixed sequence",
+        "supporting_figure_or_table": "Fig. 2a-b"
+      },
+      {
+        "route_label": "Genomic DNA species-labeled prompt to embedding analysis",
+        "source_object": "Genomic DNA, [Species Name]<seq>",
+        "transformation_chain": [
+          "used standardized prompts of the form 'Genomic DNA, [Species Name]<seq>'",
+          "captured hidden states from layer 18 of the 36-layer Transformer decoder",
+          "applied mean pooling across the sequence dimension",
+          "visualized embeddings with t-SNE"
+        ],
+        "model_visible_form": "Genomic DNA, [Species Name]<seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "species label is placed in the decoder-only prefix prompt",
+        "supporting_figure_or_table": "Fig. 2g"
+      },
+      {
+        "route_label": "RNA species-labeled prompt to embedding analysis",
+        "source_object": "RNA, [Species Name]<seq>",
+        "transformation_chain": [
+          "used standardized prompts of the form 'RNA, [Species Name]<seq>'",
+          "captured hidden states from layer 18 of the 36-layer Transformer decoder",
+          "applied mean pooling across the sequence dimension",
+          "visualized embeddings with t-SNE"
+        ],
+        "model_visible_form": "RNA, [Species Name]<seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "species label is placed in the decoder-only prefix prompt",
+        "supporting_figure_or_table": "Fig. 2g"
+      },
+      {
+        "route_label": "Species-swap sequence prompt to phylogenetic PPL perturbation",
+        "source_object": "target sequence from one species",
+        "transformation_chain": [
+          "replaced the species label in the prompt with that of another species",
+          "kept the rest of the input unchanged",
+          "evaluated the target sequence under the substituted species prompt",
+          "constructed a 10 by 10 PPL matrix",
+          "applied hierarchical clustering using Ward's minimum-variance method"
+        ],
+        "model_visible_form": "species-substituted conditioning prompt paired with the unchanged target sequence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "species label is swapped inside the prompt prefix before perplexity evaluation",
+        "supporting_figure_or_table": "Fig. 2h-j"
+      },
+      {
+        "route_label": "Wild-type and mutant coding-sequence perturbation input",
+        "source_object": "protein-coding genes from an independent validation set",
+        "transformation_chain": [
+          "randomly selected 100 protein-coding genes with lengths between 200 and 3,000 bp",
+          "introduced single-nucleotide substitutions and single-base deletions at each position in the untranslated regions and coding sequence",
+          "classified CDS mutations as synonymous, missense, nonsense, stop-loss, and frameshift",
+          "quantified the perturbation by perplexity difference between mutant and wild-type sequences"
+        ],
+        "model_visible_form": "wild-type and mutant token sequences",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "conditional perplexity is computed over the full input sequence",
+        "supporting_figure_or_table": "Fig. 2e-f"
+      },
+      {
+        "route_label": "Species-name prefix for species-specific generation",
+        "source_object": "conditioning species from six representative model organisms",
+        "transformation_chain": [
+          "prompted the model with one of six representative model organisms",
+          "generated nucleotide sequences without an explicit gene-function constraint",
+          "evaluated GC-content, GC3, codon usage bias, and amino acid frequency against species-specific references"
+        ],
+        "model_visible_form": "species-conditioned prompt prefix",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "species name is included in the decoder-only prompt prefix",
+        "supporting_figure_or_table": "Fig. 3c-g"
+      },
+      {
+        "route_label": "tRNA prompt-prefix generation",
+        "source_object": "61 tRNA prompt categories with different anti-codon",
+        "transformation_chain": [
+          "constructed inputs using the format Genomic DNA, [tRNA Name]<seq>",
+          "generated 500 samples under each prompt condition",
+          "evaluated the generated sequences using tRNAscan-SE v2.0 with the default eukaryotic setting"
+        ],
+        "model_visible_form": "Genomic DNA, [tRNA Name]<seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt prefix before <seq>",
+        "supporting_figure_or_table": "Fig. 4a-c"
+      },
+      {
+        "route_label": "rRNA prompt-prefix generation",
+        "source_object": "rRNA classes (5S, 5.8S, 18S, 28S)",
+        "transformation_chain": [
+          "constructed inputs using the template RNA, [rRNA Name]<seq>",
+          "generated 1,000 candidate sequences for each rRNA class",
+          "aligned generated sequences to Rfam covariance models using cmsearch from Infernal"
+        ],
+        "model_visible_form": "RNA, [rRNA Name]<seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt prefix before sequence generation",
+        "supporting_figure_or_table": "Fig. 4d"
+      },
+      {
+        "route_label": "Histone prompt-prefix generation",
+        "source_object": "histone class prompts specifying H1, H2A, H2B, H3, or H4",
+        "transformation_chain": [
+          "constructed inputs using the template RNA, [histone]<seq>",
+          "generated 1,000 candidate RNA sequences for each histone class and sampling setting",
+          "translated RNA sequences into amino acid sequences",
+          "compared length, molecular weight, pI, and amino acid composition"
+        ],
+        "model_visible_form": "RNA, [histone]<seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt prefix before sequence generation",
+        "supporting_figure_or_table": "Fig. 4e-h"
+      },
+      {
+        "route_label": "Dynamic prompt-masked pretraining inputs",
+        "source_object": "multimodal training inputs with species or gene identifiers in the prompt",
+        "transformation_chain": [
+          "randomly removed the species identifier or gene identifier in the prompt with probability 0.5"
+        ],
+        "model_visible_form": "partially masked prompt prefix before <seq>",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt prefix with stochastic identifier dropout",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_0e34c1fd11f6",
+    "model_name": "Genolator",
+    "paper_title": "Genolator: A Multimodal Large Language Model Fusing Natural Language, Genomic, and Structural Tokens for Protein Function Interpretation",
+    "record_id": "full_2026-07-06__rec_002304",
+    "image_attachment_index": 3,
+    "figure_index": 10,
+    "figure_caption": "Figure 9: QA Dataset creation workflow",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow flowchart for generating biomedical QA datasets from MANE Select Release 1.4. It shows inputs for protein structures from AlphaFold, amino acid sequences, and DNA sequences, followed by gene annotation with GO terms for biological process, molecular function, and cellular component.\n\nThe pipeline includes system prompt engineering, few-shot example creation, generation of 56 QA pairs per gene/GO aspect using GPT-4.1, LLMOps tracing/analytics in Azure Phoenix, and blinded review by two researchers in Azure Phoenix. A decision diamond labeled “Quality accepted” branches to refactoring prompts if rejected or to final QA generation if accepted.\n\nOutputs are three QA categories: Generic, Denial, and Confirmation, each with 3 QA pairs per gene and GO aspect, totaling about 378,000 samples, leading to final high-quality datasets for model training/evaluation. No quantitative axes or plotted experimental measurements are shown.",
+    "routes": [
+      {
+        "route_label": "Genolator DNA embedding route",
+        "source_object": "DNA sequence",
+        "transformation_chain": [
+          "Evo2 genomic foundation model",
+          "per-token embeddings from the 'blocks.28.mlp.l3' layer",
+          "mean pooling",
+          "token projector",
+          "virtual tokens"
+        ],
+        "model_visible_form": "projected DNA virtual tokens in Llama's embedding space",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "virtual_token_prefix",
+        "fusion": "token concatenation and prepending to the textual input tokens",
+        "supporting_figure_or_table": "Figure 10"
+      },
+      {
+        "route_label": "Genolator amino-acid embedding route",
+        "source_object": "amino acid sequence",
+        "transformation_chain": [
+          "ESMFold (3B) / ESM-2 protein language model",
+          "last hidden layer embeddings",
+          "concatenation of per-token embeddings",
+          "mean pooling",
+          "token projector",
+          "virtual tokens"
+        ],
+        "model_visible_form": "projected amino-acid virtual tokens in Llama's embedding space",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "virtual_token_prefix",
+        "fusion": "token concatenation and prepending to the textual input tokens",
+        "supporting_figure_or_table": "Figure 10"
+      },
+      {
+        "route_label": "Genolator protein-structure embedding route",
+        "source_object": "protein structure / AlphaFold PDB file",
+        "transformation_chain": [
+          "AlphaFold Protein Structure Database",
+          "PDB-file",
+          "Graphein graph representation",
+          "Graph Convolutional Autoencoder",
+          "mean pooling",
+          "token projector",
+          "virtual tokens"
+        ],
+        "model_visible_form": "projected protein-structure virtual tokens in Llama's embedding space",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "virtual_token_prefix",
+        "fusion": "token concatenation and prepending to the textual input tokens",
+        "supporting_figure_or_table": "Figure 10"
+      },
+      {
+        "route_label": "Genolator natural-language question route",
+        "source_object": "question formulated in natural language (English)",
+        "transformation_chain": [
+          "tokenization"
+        ],
+        "model_visible_form": "textual input tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "concatenated with the multimodal virtual tokens",
+        "supporting_figure_or_table": "Figure 10"
+      }
+    ]
+  },
+  {
+    "model_id": "model_6b93a9600bf1",
+    "model_name": "GP-GPT",
+    "paper_title": "GP-GPT: Large Language Model for Gene-Phenotype Mapping",
+    "record_id": "full_2026-07-06__rec_003131",
+    "image_attachment_index": 4,
+    "figure_index": 5,
+    "figure_caption": "Figure 5: Formatted genomics contexts of gene-protein-disease/phenotype. The red words indicate the replaceable gene entities and phenotype entities. The examples in the 'Instances' column show the available text which can be used to fit into the position of red words in the Gene-ProteinPhenotype/Disease contexts.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: schematic workflow/prompt-design panel for biomedical relation extraction.\n\nVisible panels/labels: The left side is titled “Gene–Protein–Phenotype/Disease Contexts” and contains three dashed prompt templates: “Protein molecular features,” “Protein pathogenesis features,” and “Gene inheritance features.” The right side is titled “Instances” and shows one example instance with labeled fields: Gene-entity, Pro-entity, Phenotype, Molecular Summary, Pathogenesis Summary, Disease, and Inheritance Summary.\n\nBiological/model quantity shown: The figure defines text-based inputs used to infer positive or negative associations between gene/protein entities and phenotypes or diseases from molecular, pathogenesis, and inheritance summaries.\n\nMain visible finding/content: The example centers on SERPINA1 / alpha-1 protease inhibitor and A1ATD, with summaries linking protease inhibitor deficiency to emphysema, cirrhosis, and inheritance context.",
+    "routes": [
+      {
+        "route_label": "Stage 1 masked genes",
+        "source_object": "gene entities data from the dbGaP",
+        "transformation_chain": [
+          "organized into masked text data",
+          "instruction mask fine-tuning"
+        ],
+        "model_visible_form": "masked text data",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "organized into masked text data",
+        "supporting_figure_or_table": "Figure 3"
+      },
+      {
+        "route_label": "Stage 1 masked phenotypes/diseases",
+        "source_object": "phenotype/disease entities data from the dbGaP",
+        "transformation_chain": [
+          "organized into masked text data",
+          "instruction mask fine-tuning"
+        ],
+        "model_visible_form": "masked text data",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "organized into masked text data",
+        "supporting_figure_or_table": "Figure 3"
+      },
+      {
+        "route_label": "Protein-function inferring",
+        "source_object": "protein entities and their functions",
+        "transformation_chain": [
+          "excavated gene-protein relationships",
+          "grouped into gene-protein contexts",
+          "Task Prompt / Input / Output"
+        ],
+        "model_visible_form": "Task Prompt, Input, and Output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt-based fine-tuning",
+        "supporting_figure_or_table": "Figure 4"
+      },
+      {
+        "route_label": "Gene-function inferring",
+        "source_object": "gene entity and its functions",
+        "transformation_chain": [
+          "excavated gene-protein relationships",
+          "grouped into gene-protein contexts",
+          "Task Prompt / Input / Output"
+        ],
+        "model_visible_form": "Task Prompt, Input, and Output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt-based fine-tuning",
+        "supporting_figure_or_table": "Figure 4"
+      },
+      {
+        "route_label": "Protein molecular features",
+        "source_object": "protein entity, the phenotype, and the molecular relations",
+        "transformation_chain": [
+          "gene-protein-phenotype/disease contexts",
+          "protein molecular features",
+          "Task Prompt / Input / Output"
+        ],
+        "model_visible_form": "Task Prompt, Input, and Output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Following the aforementioned format, each context follows a formula of 'Task Prompt', 'Input', and 'Output'.",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "Protein pathogenesis features",
+        "source_object": "protein entity, the phenotype, and the pathogenesis relations",
+        "transformation_chain": [
+          "gene-protein-phenotype/disease contexts",
+          "protein pathogenesis features",
+          "Task Prompt / Input / Output"
+        ],
+        "model_visible_form": "Task Prompt, Input, and Output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Following the aforementioned format, each context follows a formula of 'Task Prompt', 'Input', and 'Output'.",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "Gene inheritance features",
+        "source_object": "gene entity and inheritance facts",
+        "transformation_chain": [
+          "gene-protein-phenotype/disease contexts",
+          "gene inheritance features",
+          "Task Prompt / Input / Output"
+        ],
+        "model_visible_form": "Task Prompt, Input, and Output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Following the aforementioned format, each context follows a formula of 'Task Prompt', 'Input', and 'Output'.",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "QA gene-disease association",
+        "source_object": "disease name",
+        "transformation_chain": [
+          "pasting 'What are genes related to ' before the disease name",
+          "question-answer instruction"
+        ],
+        "model_visible_form": "question prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "a question was created by pasting 'What are genes related to ' before the disease name and a question mark after the disease name.",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "QA sentence completion",
+        "source_object": "disease name",
+        "transformation_chain": [
+          "pasting 'The name of the gene related to ' before the disease name and ' is' after the disease name",
+          "sentence completion"
+        ],
+        "model_visible_form": "sentence completion prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "To create sentence completion tasks, a question was created by pasting 'The name of the gene related to ' before the disease name and ' is' after the disease name.",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Relation determination",
+        "source_object": "gene-disease pairs from TBGA",
+        "transformation_chain": [
+          "screened by checking the gene-disease pairs with their corresponding pairs in DisGeNet data",
+          "relation determination prompt",
+          "yes/no answer generation"
+        ],
+        "model_visible_form": "instruction and text",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "question-answer prompt",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "QA disease-gene association",
+        "source_object": "gene name",
+        "transformation_chain": [
+          "reversing a question and answer from the above case",
+          "question-answer instruction"
+        ],
+        "model_visible_form": "question prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "The testing of disease-gene association was designed in the same style by reversing a question and answer from the above case.",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_72e70c356b7a",
+    "model_name": "GPT-2 Medium",
+    "paper_title": "Cell2Sentence: teaching large language models the language of biology",
+    "record_id": "full_2026-07-06__rec_003206",
+    "image_attachment_index": 5,
+    "figure_index": 6,
+    "figure_caption": "Figure 6: Depiction of three types of prompts used during training and generation. From left to right: unconditional cell generation, conditional cell generation (e.g.: with cell type), and autoregressive cell type prediction. For our setup, we generate and prompt with 100 genes.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: conceptual/model output panel with three labeled examples in rounded boxes.\n\nPanels/labels: Three side-by-side panels labeled “Unconditional cell generation,” “Conditional cell generation,” and “Cell type prediction.” Each panel contains “Model input” and “Model output” text with gene lists.\n\nQuantity/model behavior shown: Examples of a language/model-style biomedical task using ranked gene-expression inputs and generated gene outputs or predicted cell type.\n\nMain visible finding: The figure illustrates that the model can generate plausible highly expressed gene lists unconditionally, generate gene rankings conditioned on a specified cell type/PMBC CD4 T-cell context, and infer a cell type from marker genes, with the shown prediction output being “macrophage.”",
+    "routes": [
+      {
+        "route_label": "GPT-2 Medium unconditional cell generation",
+        "source_object": "prompt template",
+        "transformation_chain": [
+          "sample a succinct directive prompt"
+        ],
+        "model_visible_form": "prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the unconditional cell generation prompt primarily consists of a succinct directive",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Medium conditional cell generation",
+        "source_object": "specific cell type label",
+        "transformation_chain": [
+          "merge the prompt with the specified cell type"
+        ],
+        "model_visible_form": "prompt plus cell type label",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "For conditional cell generation, it merges the prompt with the specified cell type.",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Medium cell type prediction",
+        "source_object": "real cell sentence",
+        "transformation_chain": [
+          "randomly sample a prompt template"
+        ],
+        "model_visible_form": "prompt plus cell sentence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "we simply prompt the model with a cell sentence and ask it to identify its cell type in natural language",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Medium cell type prediction on generated cell sentences",
+        "source_object": "generated cell sentence",
+        "transformation_chain": [
+          "randomly sample a prompt template"
+        ],
+        "model_visible_form": "prompt plus generated cell sentence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "For autoregressive cell type prediction, we randomly sample templates as in training but use either real cell sentences from our test dataset or generated cell sentences.",
+        "supporting_figure_or_table": "Figure 6"
+      }
+    ]
+  },
+  {
+    "model_id": "model_6694aa9f2590",
+    "model_name": "GPT-2 Small",
+    "paper_title": "Cell2Sentence: teaching large language models the language of biology",
+    "record_id": "full_2026-07-06__rec_003206",
+    "image_attachment_index": 5,
+    "figure_index": 6,
+    "figure_caption": "Figure 6: Depiction of three types of prompts used during training and generation. From left to right: unconditional cell generation, conditional cell generation (e.g.: with cell type), and autoregressive cell type prediction. For our setup, we generate and prompt with 100 genes.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: conceptual/model output panel with three labeled examples in rounded boxes.\n\nPanels/labels: Three side-by-side panels labeled “Unconditional cell generation,” “Conditional cell generation,” and “Cell type prediction.” Each panel contains “Model input” and “Model output” text with gene lists.\n\nQuantity/model behavior shown: Examples of a language/model-style biomedical task using ranked gene-expression inputs and generated gene outputs or predicted cell type.\n\nMain visible finding: The figure illustrates that the model can generate plausible highly expressed gene lists unconditionally, generate gene rankings conditioned on a specified cell type/PMBC CD4 T-cell context, and infer a cell type from marker genes, with the shown prediction output being “macrophage.”",
+    "routes": [
+      {
+        "route_label": "GPT-2 Small unconditional cell generation",
+        "source_object": "prompt template",
+        "transformation_chain": [
+          "sample a succinct directive prompt"
+        ],
+        "model_visible_form": "prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the unconditional cell generation prompt primarily consists of a succinct directive",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Small conditional cell generation",
+        "source_object": "specific cell type label",
+        "transformation_chain": [
+          "merge the prompt with the specified cell type"
+        ],
+        "model_visible_form": "prompt plus cell type label",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "For conditional cell generation, it merges the prompt with the specified cell type.",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Small cell type prediction",
+        "source_object": "real cell sentence",
+        "transformation_chain": [
+          "randomly sample a prompt template"
+        ],
+        "model_visible_form": "prompt plus cell sentence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "we simply prompt the model with a cell sentence and ask it to identify its cell type in natural language",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "GPT-2 Small cell type prediction on generated cell sentences",
+        "source_object": "generated cell sentence",
+        "transformation_chain": [
+          "randomly sample a prompt template"
+        ],
+        "model_visible_form": "prompt plus generated cell sentence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "For autoregressive cell type prediction, we randomly sample templates as in training but use either real cell sentences from our test dataset or generated cell sentences.",
+        "supporting_figure_or_table": "Figure 6"
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.

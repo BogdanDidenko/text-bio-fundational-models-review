@@ -1,0 +1,762 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_8918f9ac4507",
+    "model_name": "OpenAI TEXT-EMBEDDING-ADA-002",
+    "paper_title": "Aligning LLMs with Biomedical Knowledge using Balanced Fine-Tuning",
+    "record_id": "full_2026-07-06__rec_003008",
+    "image_attachment_index": 1,
+    "figure_index": 6,
+    "figure_caption": "Figure 6: Workflow for extracting biological embeddings from LLM-BFT. a : LLM-BFT generates profile texts for entities of interest (e.g., a specific gene). The gene profile text is encoded by OpenAI TEXT-EMBEDDING-ADA-002 (the same text encoder GenePT uses) to obtain gene embeddings, so that GenePT (GPT-4o + ada-002) and LLM-BFT (BFT-70B + ada-002) differ only in the LLM that produces the profile text. b : For a single-cell dataset, gene embeddings are weighted by gene expression values to generate cell embeddings.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture schematic with two labeled panels, **a** and **b**. Panel **a** shows an LLM-based gene text embedding pipeline: a user prompt (“Tell me about gene.”) is processed by **LLM-BFT**, producing an LLM response with gene name/function/interaction text; texts for gene x through gene y are converted via **Text to embedding** into a **gene embedding (N, 2048)** matrix. Panel **b** shows a cell-by-gene expression matrix for **M cells** and **N genes** multiplied by the **gene embedding (N, 2048)** matrix to produce a **cell embedding (M, 2048)** matrix. Main visible message: gene-level text embeddings are derived from LLM responses and combined with gene expression data to generate cell embeddings.",
+    "routes": [
+      {
+        "route_label": "TEXT-EMBEDDING-ADA-002",
+        "source_object": "entity profile text",
+        "transformation_chain": [
+          "generate an entity profile text",
+          "encode this text with OpenAI TEXT-EMBEDDING-ADA-002 [27]"
+        ],
+        "model_visible_form": "entity profile text",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "encoding this text with OpenAI TEXT-EMBEDDING-ADA-002 [27]",
+        "supporting_figure_or_table": "Figure 6"
+      }
+    ]
+  },
+  {
+    "model_id": "model_b47a3fca0d58",
+    "model_name": "OpenAI's o1",
+    "paper_title": "Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+    "record_id": "full_2026-07-06__rec_001617",
+    "image_attachment_index": 2,
+    "figure_index": 2,
+    "figure_caption": "Figure 2: CellPuzzles formulates cell type annotation as a batch-level reasoning task that integrates gene expression and contextual metadata, inspired by how experts annotate cells in practice.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/comparison schematic with two horizontal panels. The top panel shows a conventional human expert task: input cell clusters with representative marker genes, an expert assigns cell type labels, and output labels include Pulmonary Alveolar Type 2 cells, CD8+ Cytotoxic T Cells, Lung Pericyte, Alveolar Macrophages, and Plasma Cells. The bottom panel shows a “CellPuzzles Task”: given a batch of N cells with contextual metadata and candidate cell types, a model reasons jointly from top expressed genes and cluster/cell relations to determine optimal label assignment, producing labels such as CD4-positive alpha-beta T Cell, CD8-positive alpha-beta T Cell, Smooth Muscle Cell, Lung Macrophage, Non-classical Monocyte, Capillary Endothelial Cell, Plasma Cell, and Respiratory Basal Cell. No axes or quantitative plots are present; the main point is illustrating cell type annotation as a reasoning/assignment workflow.",
+    "routes": [
+      {
+        "route_label": "batch-level constrained reasoning prompt",
+        "source_object": "a batch of N cells from the same donor, each represented by a ranked list of top-expressed genes, together with donor-level contextual metadata and a candidate set of N cell types",
+        "transformation_chain": [
+          "collect and curate Cell x Gene scRNA-seq datasets",
+          "convert structured donor metadata into natural language context",
+          "rank the top-expressed genes for each cell",
+          "shuffle the candidate cell types",
+          "apply the standardized prompt template"
+        ],
+        "model_visible_form": "a standardized text prompt with contextual metadata, gene lists, candidate labels, and <think> and <answer> tags",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "standardized prompt template",
+        "supporting_figure_or_table": "Table 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_1bf0ccb8259f",
+    "model_name": "OpticalDNA",
+    "paper_title": "Rethinking Genomic Modeling Through Optical Character Recognition",
+    "record_id": "full_2026-07-06__rec_001830",
+    "image_attachment_index": 3,
+    "figure_index": 2,
+    "figure_caption": "Figure 2. Overview of OpticalDNA. (a) Render a 1D genomic sequence into a multi-page DNA document with bounding-box annotations. (b) Construct six OCR-style prompted genomic tasks. (c) Pretrain a visual encoder-document decoder under prompt supervision.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel model architecture and task schematic for DNA document understanding. Panels are labeled `(a) DNA document generation and visual encoding`, `(b) OCR-style prompt pretraining tasks`, and `(c) Trainable projection, fusion, and decoding`.\n\nPanel `(a)` shows a 1D DNA sequence converted into a multi-page “DNA document” with spatial annotations, then patchified into `p x n x 16 x 16` patches and passed through a frozen visual encoder labeled SAM-Conv, CLIP, producing visual tokens. Panel `(b)` lists pretraining tasks T1-T6: Reading, Grounding, ROI, Completion, Retrieval, and Recognition, with prompts such as “Read the sequence,” “Locate each line in the sequence,” and “Classify document.” Panel `(c)` shows trainable components: projector, multi-page fusion, and document decoder, with prompt/response task instruction flow and loss `L_pt`.\n\nNo experimental plot or numeric biological result is shown; the figure mainly presents a workflow/model architecture for genomic reasoning primitives using visual document encoding of DNA sequences.",
+    "routes": [
+      {
+        "route_label": "HG38 T1 free-form DNA transcription",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "decode with the DeepSeek-3B document decoder G_psi under a free-form OCR prompt"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a free-form transcription prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "HG38 T2 grounding plus recognition",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a grounding prompt that asks the model to read DNA text and locate each line",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a grounding prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "HG38 T3 ROI-based DNA transcription",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach explicit ordered ROI bounding boxes in the prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus an ROI box prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "HG38 T4 masked DNA completion",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "mask the target boxes at the image level with a uniform white background",
+          "encode the masked page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a masked-region completion prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a masked-box completion prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "HG38 T5 DNA subsequence localization",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a query subsequence prompt for localization",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a subsequence query prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "HG38 T6 chromosome classification",
+        "source_object": "2048-bp HG38 DNA sequence windows loaded from FASTA",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a chromosome classification prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a chromosome classification prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T1 free-form DNA transcription",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "decode with the DeepSeek-3B document decoder G_psi under a free-form OCR prompt"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a free-form transcription prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T2 grounding plus recognition",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a grounding prompt that asks the model to read DNA text and locate each line",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a grounding prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T3 ROI-based DNA transcription",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach explicit ordered ROI bounding boxes in the prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus an ROI box prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T4 masked DNA completion",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "mask the target boxes at the image level with a uniform white background",
+          "encode the masked page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a masked-region completion prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a masked-box completion prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T5 DNA subsequence localization",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a query subsequence prompt for localization",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a subsequence query prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      },
+      {
+        "route_label": "Rice T6 chromosome classification",
+        "source_object": "2048-bp Nipponbare (O. sativa japonica) T2T-NIP genome windows from RiceSuperPIRdb",
+        "transformation_chain": [
+          "render the DNA sequence into a structured multi-page DNA document",
+          "rasterize nucleotides as monospace-like text on 640x640 RGB pages",
+          "encode the page images with the SAM-Conv-CLIP-L visual front-end",
+          "project features with Pi_theta and fuse pages with F_theta",
+          "attach a chromosome classification prompt",
+          "decode with the DeepSeek-3B document decoder G_psi"
+        ],
+        "model_visible_form": "fused visual tokens Z plus a chromosome classification prompt q",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "single <image> placeholder carrying ordered page images, SAM-Conv-CLIP-L visual front-end, learned projector Pi_theta, multi-page fusion F_theta, and DeepSeek-3B document decoder G_psi",
+        "supporting_figure_or_table": "Table 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_183d156148fd",
+    "model_name": "Precious3GPT",
+    "paper_title": "Precious3GPT: Multimodal Multi-Species Multi-Omics Multi-Tissue Transformer for Aging Research and Drug Discovery",
+    "record_id": "full_2026-07-06__rec_001187",
+    "image_attachment_index": 4,
+    "figure_index": 5,
+    "figure_caption": "Figure 5. P3GPT uses a rigid prompt structure to formalize research settings and communicate with the user.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nTwo-panel workflow/model figure. Panel A shows a text-prompt style biomedical query with tagged fields such as `<drug> UNKNOWN`, species `m. musculus`, tissue `muscle`, datatype `expression`, up-regulated genes `ORM2 DEFB4B`, down-regulated genes `MUC5AC TBC1D3E MSMB`, and instruction `diff2cpd`; the output lists candidate drugs `metformin`, `semaglutide`, and `acarbose`.\n\nPanel B diagrams a Precious3GPT workflow. The left box shows an input comparison between control age group `20-30 years` and case age group `70-80 years` using an `age2diff` instruction, producing up- and down-regulated gene lists. These gene lists are then passed into another Precious3GPT prompt with a `diff2compound` instruction to output a list of potential geroprotectors.\n\nMain visible finding: the figure illustrates a model pipeline that converts age-associated gene expression differences into candidate anti-aging/geroprotective compounds.",
+    "routes": [
+      {
+        "route_label": "RNAseq prompt training",
+        "source_object": "RNAseq experiments",
+        "transformation_chain": [
+          "reduced to lists of differentially expressed genes",
+          "formatted as sentences with a strictly defined structure",
+          "supplemented with an instruction such as <cpd2diff>, <age2diff>, or <disease2diff>"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "Expression-array prompt training",
+        "source_object": "expression profiling through array experiments",
+        "transformation_chain": [
+          "reduced to lists of differentially expressed genes",
+          "formatted as sentences with a strictly defined structure",
+          "supplemented with an instruction such as <cpd2diff>, <age2diff>, or <disease2diff>"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "RRBS prompt training",
+        "source_object": "RRBS experiments",
+        "transformation_chain": [
+          "reduced to differentially methylated TSS1500 regions",
+          "calculated average ß-value among all CpG sites observed in an experiment",
+          "formatted as sentences with a strictly defined structure"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "Methylation-array prompt training",
+        "source_object": "methylation profiling through array experiments",
+        "transformation_chain": [
+          "reduced to differentially methylated TSS1500 regions",
+          "calculated average ß-value among all CpG sites observed in an experiment",
+          "formatted as sentences with a strictly defined structure"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "Proteomics prompt training",
+        "source_object": "proteome experiments",
+        "transformation_chain": [
+          "reduced to differentially abundant proteins",
+          "formatted as sentences with a strictly defined structure",
+          "supplemented with an instruction token"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "Clinical blood test prompt training",
+        "source_object": "Human clinical blood tests",
+        "transformation_chain": [
+          "represented as 30 blood biomarkers",
+          "numeric values min-max scaled from original SI units",
+          "formatted into structured sentences with metadata fields"
+        ],
+        "model_visible_form": "numeric biomarker values within structured prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "GO / pathway gene-set prompt training",
+        "source_object": "gene lists organized in ontologies, such as Gene Ontology (GO)",
+        "transformation_chain": [
+          "expanded the training set with gene lists organized in ontologies",
+          "represented as pathway name and gene list tokens"
+        ],
+        "model_visible_form": "pathway name and gene list tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "submitted to training the transformer block (TB)",
+        "supporting_figure_or_table": "Table 2"
+      },
+      {
+        "route_label": "Biomedical text embedding extension",
+        "source_object": "biomedical texts",
+        "transformation_chain": [
+          "embedded using Open AI's text-embedding-ada-002 accessed via GenePT",
+          "mapped onto the language model's latent space by modality mappers"
+        ],
+        "model_visible_form": "GenePT-derived embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "fusion": "modality mapper (MM) units",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Knowledge graph embedding extension",
+        "source_object": "KG data",
+        "transformation_chain": [
+          "embedded using a heterogeneous graph transformer trained on data assembled using the Indra tool",
+          "mapped onto the language model's latent space by modality mappers"
+        ],
+        "model_visible_form": "heterogeneous graph transformer embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "fusion": "modality mapper (MM) units",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "LINCS chemical perturbation DEG generation",
+        "source_object": "805 observations of chemically induced expression perturbations across 582 compounds and 102 cell lines",
+        "transformation_chain": [
+          "holdout subset excluded from LINCS training data",
+          "prompted to return DEG lists of the same length as the original data",
+          "generated up- and down-regulated gene lists"
+        ],
+        "model_visible_form": "DEG lists of the same length as in the original data",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompted directly into P3GPT",
+        "supporting_figure_or_table": "Figure 3D"
+      },
+      {
+        "route_label": "Disease target-enrichment prompting",
+        "source_object": "24 diseases that affect different tissues",
+        "transformation_chain": [
+          "P3GPT launched with disease-specific prompts once for each omics domain",
+          "output token probabilities collected for the 300 most likely genes",
+          "enrichment tested against CHEMBL-derived clinical targets"
+        ],
+        "model_visible_form": "structured input prompts with contextual tags",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompted directly into P3GPT",
+        "supporting_figure_or_table": "Figure 4 / Table S1"
+      },
+      {
+        "route_label": "Age-group expression-signature prompting",
+        "source_object": "human lung tissue expression profiles from younger and older adults",
+        "transformation_chain": [
+          "applied the <age2diff> instruction to obtain expression signatures differentiating younger and older adults",
+          "used the output to prepare a reverse-signature query"
+        ],
+        "model_visible_form": "instruction-bearing structured prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompted directly into P3GPT",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "Geroprotector compound prompt generation",
+        "source_object": "gene lists produced in Phase-1",
+        "transformation_chain": [
+          "supplied the gene lists to <diff2compound>",
+          "generated compounds expected to reverse the age-related signature in IMR90 cells"
+        ],
+        "model_visible_form": "second-stage structured prompt carrying gene lists",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompted directly into P3GPT",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "GEO structured-sentence training corpus",
+        "source_object": "Omics tabular observations",
+        "transformation_chain": [
+          "Omics tabular observations are transformed into structured input prompts",
+          "the collected data were eventually formatted as sentences with a strictly defined structure"
+        ],
+        "model_visible_form": "structured input prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Additional modalities (text and knowledge graph) are embedded through modality mapper units as extensions to the frozen transformer block.",
+        "supporting_figure_or_table": "Figure 1 / Table 2"
+      }
+    ]
+  },
+  {
+    "model_id": "model_f8e766fddf66",
+    "model_name": "PROCYON",
+    "paper_title": "PROCYON: A multimodal foundation model for protein phenotypes.",
+    "record_id": "full_2026-07-06__rec_000086",
+    "image_attachment_index": 5,
+    "figure_index": 4,
+    "figure_caption": "Figure 3: PROCYON generates accurate responses and phenotype descriptions from multimodal prompts. a) In QA, PROCYON receives a multimodal prompt (protein + phenotype description) and outputs a yes/no answer. b) Benchmarking QA accuracy across models and knowledge domains. Error bars show bootstrapped 95% CIs. c) PROCYON's QA accuracy across different PROCYON-INSTRUCT splits. d) PROCYON tokenizes protein sequences and 3D structures using a multimodal encoder; LLMs must use text surrogates, many of which are not generalizable (gene symbol, UniProt ID). e) QA performance comparison between PROCYON and LLMs using HGNC gene symbols. f) In phenotype generation, PROCYON processes multimodal inputs (proteins, natural language, small molecules) to output open-ended phenotype descriptions. g) Phenotype generation benchmark using reference text similarity (mean BERTScore F 1 ). Hatching indicates ability to generalize to unseen proteins. h) Phenotype generation benchmark using LLM-based judging. Win rate refers to preference over PROCYON; models grouped by parameter count.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure showing a protein-focused AI model evaluation and workflow. Panels include task schematics, bar plots, and model comparison diagrams.\n\nFigure type: workflow/model architecture plus benchmark results.\n\nVisible panels and labels:\n- **a**: Question-answering task schematic for ProCyon. Input includes a protein sequence/structure and a disease description; output is yes/no association.\n- **b**: Six horizontal bar charts comparing methods across tasks: protein function, cellular component, biological pathway, disease association, drug target, and drug-protein interaction. X-axis is **Accuracy**. Methods include BLAST-kNN, ESM2-kNN/MLP, ESM3-kNN/MLP, GearNet-kNN/MLP, ProtLLM, and ProCyon.\n- **c**: Bar chart comparing ProCyon-Instruct split performance across many-shot, few-shot, and zero-shot settings for the same task categories. X-axis is **Accuracy**.\n- **d**: Architecture/input comparison showing ProCyon uses sequence and structure tokens, while conventional LLM inputs rely on text identifiers such as HGNC gene symbol, UniProt ID, or full sequence. Indicates generalization to new proteins.\n- **e**: Accuracy bar charts comparing Llama-HG, Mistral-HG, GPT4-HG, and ProCyon for Function, Pathway, and Disease.\n- **f**: Phenotype generation task schematic, where the model generates a mechanism-of-action style textual phenotype description from a protein and drug indication.\n- **g**: Bar charts comparing **BERTScore** for out-of-vocabulary generalization across Function, Pathway, and Disease.\n- **h**: Bar charts showing win rate versus ProCyon for small, medium, and frontier models across Function, Pathway, and Disease.\n\nMain visible finding: ProCyon generally performs competitively or best across protein-related QA, annotation, association, and phenotype-generation benchmarks, with especially strong results in tasks involving drug targets, drug-protein interaction, and out-of-vocabulary/generalization settings.",
+    "routes": [
+      {
+        "route_label": "drug mechanism text to drug-binding domain retrieval",
+        "source_object": "mechanism of action description",
+        "transformation_chain": [
+          "processed as part of a multimodal prompt",
+          "used to rank protein domains"
+        ],
+        "model_visible_form": "text prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "a multimodal prompt of miglitol and its mechanism of action",
+        "supporting_figure_or_table": "Figure 4a"
+      },
+      {
+        "route_label": "miglitol structure to drug-binding domain retrieval",
+        "source_object": "miglitol structure",
+        "transformation_chain": [
+          "processed as part of a multimodal prompt",
+          "used to rank protein domains"
+        ],
+        "model_visible_form": "drug molecular structure",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "the input is the description and molecular structure of a drug",
+        "supporting_figure_or_table": "Figure 4a"
+      },
+      {
+        "route_label": "indication description text to indication-specific drug target retrieval",
+        "source_object": "description of indications (nicotine addiction or major depressive disorder)",
+        "transformation_chain": [
+          "included in a novel task definition",
+          "used to rank bupropion targets"
+        ],
+        "model_visible_form": "text prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the input consists of a novel task definition, the description of indications (nicotine addiction or major depressive disorder), and the name and structure of bupropion",
+        "supporting_figure_or_table": "Figure 4d"
+      },
+      {
+        "route_label": "bupropion structure to indication-specific drug target retrieval",
+        "source_object": "structure of bupropion",
+        "transformation_chain": [
+          "included in a novel task definition",
+          "used to rank drug targets"
+        ],
+        "model_visible_form": "drug-structure representation",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "the input consists of a novel task definition, the description of indications (nicotine addiction or major depressive disorder), and the name and structure of bupropion",
+        "supporting_figure_or_table": "Figure 4d"
+      },
+      {
+        "route_label": "GO Process",
+        "source_object": "GO Process",
+        "transformation_chain": [],
+        "model_visible_form": "GO Process",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "direct text label",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "GO Function",
+        "source_object": "GO Function",
+        "transformation_chain": [],
+        "model_visible_form": "GO Function",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "direct text label",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "GtoP",
+        "source_object": "GtoP",
+        "transformation_chain": [],
+        "model_visible_form": "GtoP",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "direct text label",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Drugbank Transporter",
+        "source_object": "Drugbank Transporter",
+        "transformation_chain": [],
+        "model_visible_form": "Drugbank Transporter",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "direct text label",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Drugbank Target",
+        "source_object": "Drugbank Target",
+        "transformation_chain": [],
+        "model_visible_form": "Drugbank Target",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt text tokenized by the standard text tokenizer",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Drugbank Enzyme",
+        "source_object": "Drugbank Enzyme",
+        "transformation_chain": [],
+        "model_visible_form": "Drugbank Enzyme",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt text tokenized by the standard text tokenizer",
+        "supporting_figure_or_table": "Figure 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_cde54244f9bc",
+    "model_name": "PROCYON-BIND",
+    "paper_title": "PROCYON: A multimodal foundation model for protein phenotypes.",
+    "record_id": "full_2026-07-06__rec_000086",
+    "image_attachment_index": 6,
+    "figure_index": 5,
+    "figure_caption": "Figure 4: PROCYON models domains, peptides, and small molecules beyond proteins. a) PROCYON predicts the small molecule binding domain on proteins, where the input is the description and molecular structure of a drug, and the output is a ranked list of domains on a target protein. In this example, PROCYON retrieves domains of MGAM given the drug miglitol and correctly prioritizes the binding domain for miglitol as the first among the MGAM's nine domains. Each domain is identified by the Pfam ID and the index of the first amino acid in the domain. b) PROCYON ranks the correct drug-binding domain (highlighted in orange) on respective target proteins highly. In Q06187, the green domain ( PF00017 281 ) denotes the PROCYON-predicted binding domain, but the orange domain ( PF07714 402 ) is the correct binding domain. PROCYON predicts the binding domain as top-ranked in 24 examples, second-ranked in 5 examples, and so on. c) PROCYON can be finetuned to predict protein-peptide binding. Left, PROCYON is first finetuned on naturally occurring protein-peptide complexes from the Protein Data Bank (PDB), then tested on an experimental dataset of synthetic peptides screened for binding to the ACE2 protein. Right, the predicted binding scores for binders versus non-binders. Two-sided Mann-Whitney U test. d) Leveraging PROCYON to perform indication-specific drug target retrieval. In this example, the input consists of a novel task definition, the description of indications (nicotine addiction or major depressive disorder), and the name and structure of bupropion. PROCYON ranks known targets (norepinephrine transporter (NET), dopamine transporter (DAT), and nicotinic acetylcholinergic receptor (AChR)) of bupropion among the top 40/18,174 human proteins. Shown are 95% confidence intervals derived by perturbing words in the input prompt. ** p -value < 0 . 001 ; two-sided Wilcoxon signed rank test.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure showing a protein-domain language/model workflow and biomedical prediction results.\n\nPanel a: Workflow schematic for protein O43451 (MGAM), with a 3D protein structure, orange-labeled binding domain, input prompt text about Miglitol, domain decomposition, and a ProCyon output table ranking protein domains with scores.\n\nPanel b: Three example protein structures for target drugs Apixaban, Sirolimus, and Ibrutinib, each with predicted domain-score tables. A bar chart below shows the number of binding-drug examples by predicted domain rank, with most examples at Rank 1.\n\nPanel c: ProCyon-Bind training/testing schematic. Training uses natural protein-peptide complexes; testing uses synthetic ACE2 peptide binders and experimental binding data. A violin plot compares predicted binding scores for “Peptide ACE2 binder” vs “Peptide ACE2 non-binder,” with binders visibly higher and a reported p value of 1.04e-4.\n\nPanel d: Disease-drug information retrieval examples for “Smoking cessation” and “Major depressive disorder,” with prompt/input/output boxes for Bupropion and structure images. Bottom plots compare rank/attention-style information contributions labeled disease and drug information, suggesting model emphasis differs across disease/drug text.",
+    "routes": [
+      {
+        "route_label": "protein-peptide complexes to PROCYON-BIND fine-tuning",
+        "source_object": "physical protein-peptide binding data from PDBBind",
+        "transformation_chain": [
+          "finetuned on physical protein-peptide binding data"
+        ],
+        "model_visible_form": "protein-peptide binding examples",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "finetune PROCYON on physical protein-peptide binding data from PDBBind",
+        "supporting_figure_or_table": "Figure 4c"
+      }
+    ]
+  },
+  {
+    "model_id": "model_b1f724b128da",
+    "model_name": "PROCYON-SPLIT",
+    "paper_title": "PROCYON: A multimodal foundation model for protein phenotypes.",
+    "record_id": "full_2026-07-06__rec_000086",
+    "image_attachment_index": 7,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "NON_SCIENTIFIC_IMAGE\n\nThis appears to be a decorative publisher/platform-style icon: a purple stylized planet/orbit symbol with dots. It contains no data, axes, labels, panels, biological diagram, workflow, model architecture, microscopy, plot, or experimental result.",
+    "routes": [
+      {
+        "route_label": "phenotype prompt to protein retrieval",
+        "source_object": "a natural language prompt describing phenotypes",
+        "transformation_chain": [
+          "processed by the LLM",
+          "projected into the unified latent space by a query connector"
+        ],
+        "model_visible_form": "natural language prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the natural language prompt is then processed by the LLM and projected into the unified latent space by a query connector",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "protein sequence to protein retrieval",
+        "source_object": "protein sequence",
+        "transformation_chain": [
+          "processed by the protein language model",
+          "projected into the unified latent space via a retrieval-specific projector"
+        ],
+        "model_visible_form": "protein sequence tokens",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "the protein language model processes protein sequences and projects them into the unified latent space via a retrieval-specific projector",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "phenotype description text to question answering",
+        "source_object": "phenotype description text",
+        "transformation_chain": [
+          "tokenized via a standard text tokenizer",
+          "fed into a multimodal prompt for the LLM"
+        ],
+        "model_visible_form": "text tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the text is tokenized via a standard text tokenizer",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "protein sequence to question answering",
+        "source_object": "protein sequence",
+        "transformation_chain": [
+          "encoded via the modality-specific encoders",
+          "fed into a multimodal prompt for the LLM"
+        ],
+        "model_visible_form": "sequence encodings",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "the protein sequence and structure are encoded via the modality-specific encoders",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "protein structure to question answering",
+        "source_object": "protein structure",
+        "transformation_chain": [
+          "encoded via the modality-specific encoders",
+          "fed into a multimodal prompt for the LLM"
+        ],
+        "model_visible_form": "structure encodings",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "the protein sequence and structure are encoded via the modality-specific encoders",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "natural language prompt to phenotype generation",
+        "source_object": "natural language prompt",
+        "transformation_chain": [
+          "tokenized via a standard text tokenizer",
+          "processed by the LLM as part of a unified prompt"
+        ],
+        "model_visible_form": "text tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "the text is tokenized via a standard text tokenizer",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "protein sequence to phenotype generation",
+        "source_object": "protein sequence",
+        "transformation_chain": [
+          "encoded via the modality-specific encoders",
+          "processed by the LLM as part of a unified prompt"
+        ],
+        "model_visible_form": "sequence encodings",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "the protein sequence and structure are encoded via the modality-specific encoders",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "protein structure to phenotype generation",
+        "source_object": "protein structure",
+        "transformation_chain": [
+          "encoded via the modality-specific encoders",
+          "processed by the LLM as part of a unified prompt"
+        ],
+        "model_visible_form": "structure encodings",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "the protein sequence and structure are encoded via the modality-specific encoders",
+        "supporting_figure_or_table": "Figure 1b"
+      },
+      {
+        "route_label": "small molecular structure to phenotype generation",
+        "source_object": "small molecular structure",
+        "transformation_chain": [
+          "encoded as part of the multimodal prompt",
+          "processed by the LLM"
+        ],
+        "model_visible_form": "small molecular structures",
+        "carrier_family": "geometric_or_diffusion_state_carrier",
+        "carrier_subtype": "coordinate_backbone_or_shape_conditioning",
+        "fusion": "PROCYON models phenotypes using inputs containing interleaved textual phenotype descriptions, protein sequences, protein structures, and small molecular structures",
+        "supporting_figure_or_table": "Figure 1b"
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.

@@ -1,0 +1,315 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_382b827ca741",
+    "model_name": "o4-mini",
+    "paper_title": "Teampath: Building multimodal pathology experts with reasoning ai copilots",
+    "record_id": "full_2026-07-06__rec_003323",
+    "image_attachment_index": 1,
+    "figure_index": 13,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nGrouped bar chart comparing four methods across datasets/tasks. The x-axis labels are PubMed, SocialPath, EduContent, PathCLS, Atlas, and Avg. The y-axis ranges from 0 to 1, likely a performance metric. Legend shows Raw, Corrector, o3, and o4-mini.\n\nMain visible finding: o3 and o4-mini generally outperform Raw and Corrector, with o3 reaching 1.0 on Atlas and o4-mini reaching 1.0 on EduContent. Average performance is highest for o4-mini, followed closely by o3, while Raw and Corrector are lower and similar.",
+    "routes": [
+      {
+        "route_label": "Self-verifier image route",
+        "source_object": "pathology image",
+        "transformation_chain": [],
+        "model_visible_form": "pathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "vision-language verifier input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-verifier question route",
+        "source_object": "question",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "language verifier input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-verifier proposed solution route",
+        "source_object": "proposed solution",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "language verifier input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-verifier prompt route",
+        "source_object": "verifier prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language verifier input",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_5f2f0ba1126a",
+    "model_name": "OKR-CELL",
+    "paper_title": "Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training",
+    "record_id": "full_2026-07-06__rec_001277",
+    "image_attachment_index": 2,
+    "figure_index": 1,
+    "figure_caption": "Fig. 1 (A) The schematic overview of the OKR-CELL method. (B) The illustration of several downstream tasks implemented via OKR-CELL, including cell clustering, batch affect correlation, cell-type annotation and cross-modal retrieval.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel workflow/model architecture figure labeled **A** and **B**. Panel **A** shows a cross-modal cell-text pretraining pipeline: scRNA-seq/cell omics data and cell description text are tokenized, passed through **Cell Encoder** and **Text Encoder**, aligned by **cross-modal similarity**, and trained with intra-modal cellular generative pretraining plus cross-modal cell-text pretraining. It also includes a retrieval-augmented LLM workflow with **Retriever**, **Database**, **LLM**, and **Reliability Screen** for generating cell type definitions.\n\nPanel **B** shows downstream application of a **pretrained cell encoder** from scRNA-seq/gene expression tokens. Outputs are shown as small UMAP-like embeddings and task panels labeled **Clustering**, **Batch-effect Correction**, **Cell Type Annotation**, **Zero-shot Annotation**, **Few-shot Annotation**, and **Cross-modal Retrieval**.\n\nNo conventional numeric axes are visible. The figure primarily depicts a multimodal single-cell foundation model workflow linking gene expression profiles with text descriptions for cell representation learning, annotation, retrieval, and downstream analysis.",
+    "routes": [
+      {
+        "route_label": "OKR-CELL scRNA-seq cell encoder",
+        "source_object": "single-cell RNA-seq data",
+        "transformation_chain": [
+          "Gene Tokenization",
+          "Gene Expression Binning",
+          "Embedding Fusion",
+          "Transformer encoder blocks",
+          "<cls> token extraction"
+        ],
+        "model_visible_form": "gene tokens and binned expression values",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "multi_track_structural_symbol_stream",
+        "fusion": "scGPT Transformer backbone as the cell encoder",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "OKR-CELL text encoder",
+        "source_object": "LLM-enriched textual descriptions of cells",
+        "transformation_chain": [
+          "textual corpus preparation",
+          "Clinical-Longformer encoding",
+          "cell-to-text projector"
+        ],
+        "model_visible_form": "LLM-enriched textual descriptions",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "textual encoder and cross-modal projector",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "OKR-CELL gene-prompt inference",
+        "source_object": "a subset of known genes",
+        "transformation_chain": [
+          "Gene-prompt Generation",
+          "Cell-prompt Generation"
+        ],
+        "model_visible_form": "known gene tokens as the initial prompt",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "cell encoder with iterative prompt generation",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_064ca265f9bb",
+    "model_name": "OmicsLM",
+    "paper_title": "OmicsLM: A Multimodal Large Language Model for Multi-Sample Omics Reasoning",
+    "record_id": "june_update_2026-06-10__rec_000246",
+    "image_attachment_index": 3,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: OmicsLM overview. Top: example questions from diverse omics datasets are formatted as multi-task conversations for OmicsLM, with each <omics> placeholder denoting a biological profile and gene symbols treated as explicit tokens. Bottom: each placeholder is built by mapping a single-cell or bulk expression profile, including profiles from perturbation screens, to a continuous vector and projecting it into the LLM token-embedding space, allowing multiple profiles to be interleaved in one prompt for sample-level and comparative reasoning.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture schematic for **OmicsLM**, a language model using explicit gene and omics tokenization. The figure has two main sections: a top “multi-task questions” panel showing example biomedical prompts from HCA, TCGA, DEPMAP, and GEO-OMICQA, where `<omics>` tokens are inserted into text; and a right model box labeled “OmicsLM” with token types `text`, `<omics>`, and `gene`.\n\nThe bottom “<omics> token construction” panel shows an omics profile from single-cell or bulk data converted into a continuous profile vector with features such as `countTPM`, `expression`, `FunomicsTO`, and `Geneformer`, then passed through a linear omics projector from \\(R^D\\) to \\(R^H\\), replacing `<omics>` in the LLM input.\n\nMain visible point: the figure illustrates how omics profiles are embedded as tokens so the LLM can handle tasks such as cell typing, cancer phenotyping, perturbation effects, marker discovery, pathway reasoning, tissue annotation, and omics QA.",
+    "routes": [
+      {
+        "route_label": "standardized conversational omics prompt scaffold",
+        "source_object": "natural-language instructions and biological questions",
+        "transformation_chain": [
+          "rendered in a standardized conversational format via a dynamic templating engine",
+          "injects omics placeholders into textual prompts",
+          "tokenized as text"
+        ],
+        "model_visible_form": "text tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "surrounding natural-language prompt context",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "single-sample omics embedding",
+        "source_object": "single-cell or bulk expression profile",
+        "transformation_chain": [
+          "align all expression profiles to a fixed human gene panel of 19,260 genes",
+          "concatenate a one-dimensional input-scale indicator, the normalized expression vector, a 512-dimensional Funomics T0 embedding, and a 768-dimensional embedding from Geneformer-V2104M",
+          "normalize the feature groups",
+          "apply a trainable affine projection into the LLM token-embedding space",
+          "replace the <omics> placeholder token"
+        ],
+        "model_visible_form": "projected omics embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "replacing designated modality placeholders with these projected embeddings",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "multi-sample omics embedding",
+        "source_object": "multiple expression profiles",
+        "transformation_chain": [
+          "map each profile to a continuous vector",
+          "project each vector into the LLM token-embedding space",
+          "insert each profile at a designated <omics> position in the input sequence",
+          "interleave multiple profiles with natural-language instructions"
+        ],
+        "model_visible_form": "multiple projected omics embeddings in one prompt",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "<omics> placeholder token(s) interleaved in one prompt",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "pathway graph reasoning prompt text",
+        "source_object": "curated biological pathway graphs, protein-protein interaction networks, and gene set collections",
+        "transformation_chain": [
+          "used solely to construct natural-language graph-reasoning tasks over biological interaction networks and gene program annotations",
+          "rendered as conversational prompts"
+        ],
+        "model_visible_form": "text tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "surrounding natural-language prompt context",
+        "supporting_figure_or_table": "Table 6"
+      },
+      {
+        "route_label": "protein knowledge prompt text",
+        "source_object": "UniProt human protein annotations",
+        "transformation_chain": [
+          "downloaded the manually reviewed Swiss-Prot flat file",
+          "filtered it to human proteins only",
+          "extracted identity fields, functional descriptions, controlled-vocabulary keywords, subcellular localization, and protein class annotations",
+          "rendered as natural-language protein QA tasks"
+        ],
+        "model_visible_form": "text tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "surrounding natural-language prompt context",
+        "supporting_figure_or_table": "Table 6"
+      }
+    ]
+  },
+  {
+    "model_id": "model_b4d1be45d2bb",
+    "model_name": "Omni-DNA",
+    "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+    "record_id": "full_2026-07-06__rec_001773",
+    "image_attachment_index": 4,
+    "figure_index": 3,
+    "figure_caption": "Figure 4. Overview of of Omni-DNA architecture. In pretraining , Omni-DNA are trained on DNA only with next-token prediction. Multi-task finetuning enables the model to perform diverse tasks including classification, function prediction, and DNA-to-image.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram for an “Omni-DNA (Auto-Regressive Transformer)” system. The figure has two main phases: “Pretraining” on the left and “Multi-task Finetuning” on the right. It shows next-token prediction with a BPE tokenizer over DNA-like tokens such as `TATA`, `GCGC`, and `G`, feeding token IDs into the transformer.\n\nThe finetuning side shows task-unified inputs with “Instructions” and “Response” tokens for multiple downstream tasks, including “Classification,” “Function Prediction,” and “DNA2Images.” Example prompts ask whether DNA is H3/H4, predict DNA function, and map DNA to handwritten digits. The diagram emphasizes a shared expanded BPE tokenizer and task unification format for DNA-to-label, DNA-to-text, and DNA-to-tensor outputs. No quantitative axes or experimental results are shown.",
+    "routes": [
+      {
+        "route_label": "DNA-only autoregressive pretraining",
+        "source_object": "unlabeled DNA sequences",
+        "transformation_chain": [
+          "pretrain on DNA sequences",
+          "next token prediction objective",
+          "Byte-Pair Encoding tokenizer"
+        ],
+        "model_visible_form": "DNA token IDs",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "DNA-only input to the autoregressive transformer",
+        "supporting_figure_or_table": "Figure 3"
+      }
+    ]
+  },
+  {
+    "model_id": "model_0ed3db93beca",
+    "model_name": "Omni-DNA (1B)",
+    "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+    "record_id": "full_2026-07-06__rec_001773",
+    "image_attachment_index": 5,
+    "figure_index": 5,
+    "figure_caption": "Figure 6. Losses for Omni-DNA (116M) pretrained with ALiBi and RoPE, indicating RoPE's faster convergence and lower losses.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nLine plot of training/test cross entropy loss versus step `t`. The x-axis is labeled `t` and runs from 0 to about 800,000; the y-axis is labeled `Cross Entropy Loss (↓)` and spans roughly 4.0 to 5.75. The legend compares four curves/bands: Omni-DNA with Abilii test loss in orange, Omni-DNA with RoPE test loss in green, Abilii train loss in pink, and RoPE train loss in blue/purple. Both methods show a steep early loss drop followed by gradual decline; RoPE appears slightly lower than Abilii over much of training, especially later steps.",
+    "routes": [
+      {
+        "route_label": "DNA-to-image generation",
+        "source_object": "synthetic DNA sequences containing one of four functional motifs",
+        "transformation_chain": [
+          "generate synthetic DNA sequences by a Hidden Markov Model",
+          "insert one of four functional motifs",
+          "discretize MNIST images into 49 discrete tokens with a VQ-VAE",
+          "use task-unified format"
+        ],
+        "model_visible_form": "DNA sequence plus instruction prompt tokens, with handwritten digit responses encoded as 49 discrete tokens",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "task-unified format with response discretization",
+        "supporting_figure_or_table": "Figure 5"
+      }
+    ]
+  },
+  {
+    "model_id": "model_7fe355535858",
+    "model_name": "Omni-DNA@ft",
+    "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+    "record_id": "full_2026-07-06__rec_001773",
+    "image_attachment_index": 4,
+    "figure_index": 3,
+    "figure_caption": "Figure 4. Overview of of Omni-DNA architecture. In pretraining , Omni-DNA are trained on DNA only with next-token prediction. Multi-task finetuning enables the model to perform diverse tasks including classification, function prediction, and DNA-to-image.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram for an “Omni-DNA (Auto-Regressive Transformer)” system. The figure has two main phases: “Pretraining” on the left and “Multi-task Finetuning” on the right. It shows next-token prediction with a BPE tokenizer over DNA-like tokens such as `TATA`, `GCGC`, and `G`, feeding token IDs into the transformer.\n\nThe finetuning side shows task-unified inputs with “Instructions” and “Response” tokens for multiple downstream tasks, including “Classification,” “Function Prediction,” and “DNA2Images.” Example prompts ask whether DNA is H3/H4, predict DNA function, and map DNA to handwritten digits. The diagram emphasizes a shared expanded BPE tokenizer and task unification format for DNA-to-label, DNA-to-text, and DNA-to-tensor outputs. No quantitative axes or experimental results are shown.",
+    "routes": [
+      {
+        "route_label": "DNA-to-function text generation",
+        "source_object": "DNA sequences from various mammalian species",
+        "transformation_chain": [
+          "append a task-specific prompt",
+          "expand tokenizer vocabulary",
+          "generate concise short annotations and detailed natural language descriptions"
+        ],
+        "model_visible_form": "DNA sequence plus instruction prompt tokens",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "task-unified format",
+        "supporting_figure_or_table": "Figure 10"
+      }
+    ]
+  },
+  {
+    "model_id": "model_8aba876c5b86",
+    "model_name": "Omni-DNA@mult",
+    "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+    "record_id": "full_2026-07-06__rec_001773",
+    "image_attachment_index": 6,
+    "figure_index": 1,
+    "figure_caption": "Figure 2. Accuracy comparison of Omni-DNA@mult. against Omni-DNA@sgl. and baselines across 10 NT tasks. OmniDNA@mult. achieves the highest average accuracy.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nRadar/spider plot comparing multiple DNA foundation models across epigenomic/chromatin marks. The circular axes are labeled with histone modifications and chromatin features including H3K4ME1, H3K14AC, H3, H4AC, H4, H3K9AC, H3K79ME3, H3K4ME3, H3K4ME2, and H3K36ME3. Radial grid values include approximately 0.2, 0.4, 0.6, and 0.8.\n\nThe legend compares models: Omni-DNA multi-task, Omni-DNA single-task, CADUCEUS-PH single-task, DNABERT2 single-task, NT Transformer single-task, and HyenaDNA single-task. The plotted quantity appears to be model performance per mark, with higher values farther from the center.\n\nMain visible finding: Omni-DNA variants generally trace the outermost curves on several marks, especially H3K4ME2, H3K4ME3, H3K79ME3, and H4AC, indicating stronger performance than the single-task baselines on many evaluated chromatin marks.",
+    "routes": [
+      {
+        "route_label": "Unified multitask classification finetuning",
+        "source_object": "task-specific DNA sequences from the acetylation and methylation benchmarks",
+        "transformation_chain": [
+          "merge K task-specific datasets into a unified dataset D uni",
+          "append a task-specific prompt",
+          "expand tokenizer vocabulary",
+          "replicate class labels",
+          "add NEFTune noise during loss computing"
+        ],
+        "model_visible_form": "DNA sequence plus task-specific prompt tokens and replicated label tokens",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "fusion": "task unification under a single finetuning loop",
+        "supporting_figure_or_table": "Algorithm 1"
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.

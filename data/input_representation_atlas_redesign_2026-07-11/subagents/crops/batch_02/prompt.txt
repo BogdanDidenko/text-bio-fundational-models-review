@@ -1,0 +1,556 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_a0f67b1880c7",
+    "model_name": "Cell-o1",
+    "paper_title": "Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+    "record_id": "full_2026-07-06__rec_001617",
+    "image_attachment_index": 1,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of this work. Cell-o1 achieves state-of-the-art on the CellPuzzles task.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel schematic and results figure for the “CellPuzzles” task and “Cell-o1” training strategy. Left panel compares previous LLM-based cell type annotation, requiring no reasoning, with a CellPuzzles batch-level task requiring assignment of unique cell types using expressed genes and donor context, showing example reasoning for cell types such as CD4-positive alpha-beta T cell, CD8-positive alpha-beta T cell, capillary endothelial cell, plasma cell, and respiratory basal cell.\n\nMiddle panel shows the Cell-o1 training strategy with two stages: reasoning distillation, where candidate reasoning is accepted or rejected, and reinforcement learning using a policy model, reference model, reward function, KL term, group computation, and generated answers/rewards.\n\nRight panel contains radial bar-style result plots for cell-level accuracy and batch-level accuracy. A legend compares models including Llama3.1-8B-Instruct, Qwen2.5-7B-Instruct, Llama3.3-70B-Instruct, GPT-4o-mini, GPT-4o, o3-mini, o1, and Cell-o1. The main visible finding is that Cell-o1 has the highest reported accuracy: 0.68 cell-level accuracy, marked +5.65%, and 0.33 batch-level accuracy, marked +73.05%.",
+    "routes": [
+      {
+        "route_label": "single-cell decomposed reasoning prompt",
+        "source_object": "a single cell from a specific donor, together with its top-expressed genes, donor context, and a fixed candidate label set",
+        "transformation_chain": [
+          "split each batch into single-cell instances",
+          "preserve the original candidate label set",
+          "remove access to other cells in the batch",
+          "apply the single-cell prompt template"
+        ],
+        "model_visible_form": "a single-cell text prompt with gene-expression features, donor context, candidate labels, and <think> and <answer> tags",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "single-cell prompt template",
+        "supporting_figure_or_table": "Table 10"
+      },
+      {
+        "route_label": "open-ended QA prompt",
+        "source_object": "a batch of cells with gene expression profiles and donor metadata",
+        "transformation_chain": [
+          "present the batch without a constrained candidate label set",
+          "ask the model to generate a cell type name for each cell from gene expression and metadata"
+        ],
+        "model_visible_form": "free-form natural-language generation of one cell type name per cell",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "direct text generation",
+        "supporting_figure_or_table": "Table 12"
+      },
+      {
+        "route_label": "distilled reasoning-trace SFT dataset",
+        "source_object": "the distilled dataset",
+        "transformation_chain": [
+          "begin by performing reasoning distillation using OpenAI's o1",
+          "apply rejection sampling to accept only valid exact-match outputs",
+          "use the distilled dataset for supervised fine-tuning"
+        ],
+        "model_visible_form": "standardized prompt-response style",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "prompt-response style",
+        "supporting_figure_or_table": "Section 4.2.2"
+      }
+    ]
+  },
+  {
+    "model_id": "model_285e25ae2bfb",
+    "model_name": "Cell2Text",
+    "paper_title": "Cell2Text: Multimodal LLM for Generating Single-Cell Descriptions from RNA-Seq Data",
+    "record_id": "full_2026-07-06__rec_001838",
+    "image_attachment_index": 2,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of the Cell2Text framework. The model takes single-cell RNA-seq profiles as input and processes them through a pretrained Geneformer encoder to generate contextualized gene-level embeddings. These embeddings are projected into the semantic space of the language model via a lightweight adapter module, aligning biological signals with linguistic representations. A pretrained, instruction-tuned LLM decoder then generates structured natural language descriptions that capture cellular identity, tissue of origin, disease associations, and pathway activity.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nModel architecture/workflow diagram for generating or modeling single-cell descriptions from gene expression and metadata. It shows a cell with genes `Gene Z`, `Gene E`, ..., `Gene C` passed through a “cell encoder” to produce gene embeddings, then a “modality adapter” projecting dimensions labeled `+512`, `2048`, `3072`. These embeddings are combined with instruction embeddings and prompt embeddings as input to a language model decoder.\n\nLeft side lists cell metadata such as cell type, developmental stage, disease, sex, tissue, and pathway annotations, which form a textual cell description `Cp`. Bottom right shows next-token probability `p`, with the training objective labeled `Lsft = LCrossEntropy(Cp, p)`. Main visible point: the figure illustrates a supervised fine-tuning pipeline aligning single-cell gene/modal embeddings with text generation through a language model decoder.",
+    "routes": [
+      {
+        "route_label": "scRNA-seq profiles to Cell2Text decoder",
+        "source_object": "single-cell RNA-seq profiles",
+        "transformation_chain": [
+          "pretrained Geneformer encoder",
+          "lightweight adapter module"
+        ],
+        "model_visible_form": "contextualized gene-level embeddings projected into the language model's input embedding space",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "projected into the semantic space of the language model via a lightweight adapter module",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "instruction prompt to Cell2Text decoder",
+        "source_object": "system message and user prompt",
+        "transformation_chain": [
+          "instruction-following prompt structure",
+          "instruction embeddings",
+          "prompt embeddings"
+        ],
+        "model_visible_form": "system message and user prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "combined with the contextualized gene embeddings as input to a language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Cell2Text paired alignment dataset construction",
+        "source_object": "single-cell gene expression profiles",
+        "transformation_chain": [
+          "using a principled sampling strategy",
+          "select 1,000,000 cells from 7,331 donors, spanning 783 cell types, 347 tissue types, and 128 disease conditions",
+          "generate structured text descriptions by combining metadata annotations with functional context",
+          "enrich cell type information using OBO Cell Ontology definitions",
+          "capture biological processes through pathway activity analysis with pySCENIC applied to 34 curated MSigDB Hallmark pathways",
+          "identify the two most enriched pathways and translate them into human-readable descriptions of active biological processes"
+        ],
+        "model_visible_form": "structured text descriptions",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "by combining metadata annotations with functional context",
+        "supporting_figure_or_table": "Appendix A.2, Figure 8"
+      }
+    ]
+  },
+  {
+    "model_id": "model_35105bbde921",
+    "model_name": "Cell2Text-Gemma-4B",
+    "paper_title": "Cell2Text: Multimodal LLM for generating textual descriptions from single-cell RNA-Seq profiles",
+    "record_id": "june_update_2026-06-10__rec_000248",
+    "image_attachment_index": 3,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of the Cell2Text framework. The model takes single-cell RNA-seq profiles as input and processes them through a pretrained Geneformer encoder to generate contextualized gene-level embeddings. These embeddings are projected into the semantic space of the language model via a lightweight adapter module, aligning biological signals with linguistic representations. A pretrained, instruction-tuned LLM decoder then generates structured natural language descriptions that capture cellular identity, tissue of origin, disease associations, and pathway activity.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: schematic workflow/model architecture diagram.\n\nVisible labels/panels: The diagram shows a single-cell input sequence labeled “cell 1: Gene Z Gene E ... Gene C,” passed through a “cell encoder” to “gene embeddings,” then through a “modality adapter.” It also shows “Cells Metadata” including cell type, developmental stage, disease, sex, tissue, and pathway terms. These metadata are converted into a natural-language “cell description (Cp).” The lower section shows concatenated “instruction embeddings,” “gene embeddings,” and “prompt embeddings” feeding a “language model decoder,” which outputs “next token probability p.” A loss is shown as cross-entropy, approximately `Lsft = LCrossEntropy(Cp, p)`.\n\nBiological/model quantity shown: Integration of single-cell gene expression embeddings and metadata-derived text prompts into a language-model decoder for supervised fine-tuning or cell-description generation.\n\nMain visible finding/message: The architecture maps single-cell gene information and metadata into embeddings, aligns them through an adapter, and trains a language model to generate a textual cell description using next-token prediction loss.",
+    "routes": [
+      {
+        "route_label": "Cell2Text-Gemma-4B gene-expression conditioning",
+        "source_object": "single-cell RNA-seq profiles",
+        "transformation_chain": [
+          "pretrained Geneformer encoder",
+          "contextualized gene-level embeddings",
+          "lightweight adapter module",
+          "L2-normalized projected gene embeddings"
+        ],
+        "model_visible_form": "projected gene embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "concatenated with instruction embeddings and prompt embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Cell2Text-Gemma-4B prompt-conditioning",
+        "source_object": "instruction-following prompt structure",
+        "transformation_chain": [
+          "formatted as system and user messages",
+          "embedded as instruction embeddings and prompt embeddings"
+        ],
+        "model_visible_form": "instruction embeddings and prompt embeddings",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "concatenated with gene embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_99366b543213",
+    "model_name": "Cell2Text-Llama-1B",
+    "paper_title": "Cell2Text: Multimodal LLM for generating textual descriptions from single-cell RNA-Seq profiles",
+    "record_id": "june_update_2026-06-10__rec_000248",
+    "image_attachment_index": 3,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of the Cell2Text framework. The model takes single-cell RNA-seq profiles as input and processes them through a pretrained Geneformer encoder to generate contextualized gene-level embeddings. These embeddings are projected into the semantic space of the language model via a lightweight adapter module, aligning biological signals with linguistic representations. A pretrained, instruction-tuned LLM decoder then generates structured natural language descriptions that capture cellular identity, tissue of origin, disease associations, and pathway activity.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: schematic workflow/model architecture diagram.\n\nVisible labels/panels: The diagram shows a single-cell input sequence labeled “cell 1: Gene Z Gene E ... Gene C,” passed through a “cell encoder” to “gene embeddings,” then through a “modality adapter.” It also shows “Cells Metadata” including cell type, developmental stage, disease, sex, tissue, and pathway terms. These metadata are converted into a natural-language “cell description (Cp).” The lower section shows concatenated “instruction embeddings,” “gene embeddings,” and “prompt embeddings” feeding a “language model decoder,” which outputs “next token probability p.” A loss is shown as cross-entropy, approximately `Lsft = LCrossEntropy(Cp, p)`.\n\nBiological/model quantity shown: Integration of single-cell gene expression embeddings and metadata-derived text prompts into a language-model decoder for supervised fine-tuning or cell-description generation.\n\nMain visible finding/message: The architecture maps single-cell gene information and metadata into embeddings, aligns them through an adapter, and trains a language model to generate a textual cell description using next-token prediction loss.",
+    "routes": [
+      {
+        "route_label": "Cell2Text-Llama-1B gene-expression conditioning",
+        "source_object": "single-cell RNA-seq profiles",
+        "transformation_chain": [
+          "pretrained Geneformer encoder",
+          "contextualized gene-level embeddings",
+          "lightweight adapter module",
+          "L2-normalized projected gene embeddings"
+        ],
+        "model_visible_form": "projected gene embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "concatenated with instruction embeddings and prompt embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Cell2Text-Llama-1B prompt-conditioning",
+        "source_object": "instruction-following prompt structure",
+        "transformation_chain": [
+          "formatted as system and user messages",
+          "embedded as instruction embeddings and prompt embeddings"
+        ],
+        "model_visible_form": "instruction embeddings and prompt embeddings",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "concatenated with gene embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_9c283f71363e",
+    "model_name": "Cell2Text-Llama-1B-LoRa",
+    "paper_title": "Cell2Text: Multimodal LLM for generating textual descriptions from single-cell RNA-Seq profiles",
+    "record_id": "june_update_2026-06-10__rec_000248",
+    "image_attachment_index": 3,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of the Cell2Text framework. The model takes single-cell RNA-seq profiles as input and processes them through a pretrained Geneformer encoder to generate contextualized gene-level embeddings. These embeddings are projected into the semantic space of the language model via a lightweight adapter module, aligning biological signals with linguistic representations. A pretrained, instruction-tuned LLM decoder then generates structured natural language descriptions that capture cellular identity, tissue of origin, disease associations, and pathway activity.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nFigure type: schematic workflow/model architecture diagram.\n\nVisible labels/panels: The diagram shows a single-cell input sequence labeled “cell 1: Gene Z Gene E ... Gene C,” passed through a “cell encoder” to “gene embeddings,” then through a “modality adapter.” It also shows “Cells Metadata” including cell type, developmental stage, disease, sex, tissue, and pathway terms. These metadata are converted into a natural-language “cell description (Cp).” The lower section shows concatenated “instruction embeddings,” “gene embeddings,” and “prompt embeddings” feeding a “language model decoder,” which outputs “next token probability p.” A loss is shown as cross-entropy, approximately `Lsft = LCrossEntropy(Cp, p)`.\n\nBiological/model quantity shown: Integration of single-cell gene expression embeddings and metadata-derived text prompts into a language-model decoder for supervised fine-tuning or cell-description generation.\n\nMain visible finding/message: The architecture maps single-cell gene information and metadata into embeddings, aligns them through an adapter, and trains a language model to generate a textual cell description using next-token prediction loss.",
+    "routes": [
+      {
+        "route_label": "Cell2Text-Llama-1B-LoRa gene-expression conditioning",
+        "source_object": "single-cell RNA-seq profiles",
+        "transformation_chain": [
+          "pretrained Geneformer encoder",
+          "contextualized gene-level embeddings",
+          "lightweight adapter module",
+          "L2-normalized projected gene embeddings"
+        ],
+        "model_visible_form": "projected gene embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "concatenated with instruction embeddings and prompt embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Cell2Text-Llama-1B-LoRa prompt-conditioning",
+        "source_object": "instruction-following prompt structure",
+        "transformation_chain": [
+          "formatted as system and user messages",
+          "embedded as instruction embeddings and prompt embeddings"
+        ],
+        "model_visible_form": "instruction embeddings and prompt embeddings",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "concatenated with gene embeddings feeding the language model decoder",
+        "supporting_figure_or_table": "Figure 1"
+      }
+    ]
+  },
+  {
+    "model_id": "model_c0a097206f2c",
+    "model_name": "CellHermes",
+    "paper_title": "Language may be all omics needs: Harmonizing multimodal data for omics understanding with CellHermes",
+    "record_id": "full_2026-07-06__rec_001126",
+    "image_attachment_index": 4,
+    "figure_index": 1,
+    "figure_caption": "Fig. 1  |  CellHermes  construction  by  integrating  different  self-supervised  learning techniques. a.  Comparative diagram of different foundation model construction between traditional  methods  and  our  method; In traditional methods, we usually take one of the",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel workflow/model architecture figure for a biomedical AI paper. Panels are labeled **a–d**.\n\n- **Panel a:** Compares two strategies: training a foundation model from scratch from single-omics data using tokenization, LLM architecture, and pretraining, versus fine-tuning existing NLP LLMs for CellHermes using multiple omics data, textualization, and fine-tuning.\n- **Panel b:** Shows emulation of self-supervised learning with question-answer prompts. Includes gene expression data converted into masked cell sequences for **MLM in sequence** and **autoregressive sequence** tasks, plus a protein-protein network used for **mask node prediction in graph** and **mask link prediction in graph**. Reconstructed cells/graphs are shown on the right.\n- **Panel c:** Shows human-AI collaboration for prompt design, creating AI-generated diverse prompts from human-written prompts, then CellHermes training via instruction datasets and open-source LLMs such as Llama, Qwen, and DeepSeek with LoRA instruction fine-tuning.\n- **Panel d:** Shows CellHermes applications as an encoder, predictor, and explainer. Inputs include gene/cell text prompts, embeddings, biological databases, perturbation response, cell fitness, gene interaction, and natural-language explanations.\n\nNo quantitative axes or plotted experimental measurements are visible; the main content is a conceptual workflow describing CellHermes training tasks and downstream uses.",
+    "routes": [
+      {
+        "route_label": "single-cell transcriptome MLM pretraining",
+        "source_object": "single-cell transcriptomic profile",
+        "transformation_chain": [
+          "row-normalize the count matrix to 10,000",
+          "log-normalize by Scanpy",
+          "rank the gene expression values for each cell",
+          "truncate the top 100 genes",
+          "serialize gene identities into a natural language 'sentence'",
+          "mask tokens for MLM"
+        ],
+        "model_visible_form": "natural language question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "gene identities were serialized into natural language 'sentences'",
+        "supporting_figure_or_table": "Fig. 1b"
+      },
+      {
+        "route_label": "single-cell transcriptome autoregressive pretraining",
+        "source_object": "single-cell transcriptomic profile",
+        "transformation_chain": [
+          "row-normalize the count matrix to 10,000",
+          "log-normalize by Scanpy",
+          "rank the gene expression values for each cell",
+          "truncate the top 100 genes",
+          "serialize gene identities into a natural language 'sentence'",
+          "predict the next token from the preceding context"
+        ],
+        "model_visible_form": "natural language question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "predict the next token from its preceding context",
+        "supporting_figure_or_table": "Fig. 1b"
+      },
+      {
+        "route_label": "PPI masked node prediction pretraining",
+        "source_object": "protein-protein interaction network",
+        "transformation_chain": [
+          "download BioGRID physical human PPI data",
+          "represent the data as a graph",
+          "convert graph neighborhood context into relation statements",
+          "construct question-answer pairs",
+          "mask a node and predict it from its neighborhood"
+        ],
+        "model_visible_form": "natural language question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "five templates for masked node prediction",
+        "supporting_figure_or_table": "Fig. 1b"
+      },
+      {
+        "route_label": "PPI masked link prediction pretraining",
+        "source_object": "protein-protein interaction network",
+        "transformation_chain": [
+          "download BioGRID physical human PPI data",
+          "represent the data as a graph",
+          "convert graph neighborhood context into relation statements",
+          "construct question-answer pairs",
+          "mask an edge and predict the link from local context"
+        ],
+        "model_visible_form": "natural language question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "ten templates for mask link prediction",
+        "supporting_figure_or_table": "Fig. 1b"
+      },
+      {
+        "route_label": "gene embedding extraction from gene symbol",
+        "source_object": "complete gene name",
+        "transformation_chain": [
+          "provide the complete gene name as input",
+          "extract the final sub-token embedding from the last transformer layer"
+        ],
+        "model_visible_form": "gene symbol tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "when the complete gene name (e.g. BRCA1) was provided as input",
+        "supporting_figure_or_table": "Fig. 2a"
+      },
+      {
+        "route_label": "cell embedding from ranked gene sentence",
+        "source_object": "ranked gene names",
+        "transformation_chain": [
+          "transform the cell into a 'cell sentence' consisting of ranked gene names",
+          "extract the last sub-token embedding from the final transformer layer"
+        ],
+        "model_visible_form": "a 'cell sentence' consisting of ranked gene names",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "a 'cell sentence' consisting of ranked gene names",
+        "supporting_figure_or_table": "Fig. 3a"
+      },
+      {
+        "route_label": "cell embedding by expression-weighted averaging",
+        "source_object": "single-cell transcriptomic profile",
+        "transformation_chain": [
+          "derive gene embeddings",
+          "compute the expression-weighted average of individual gene embeddings"
+        ],
+        "model_visible_form": "gene embeddings weighted by expression levels",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "pooled_or_aggregated_embedding",
+        "fusion": "weighted average of gene embeddings",
+        "supporting_figure_or_table": "Fig. 3a"
+      },
+      {
+        "route_label": "cell-specific gene embeddings with cell context",
+        "source_object": "transcriptomic information of one cell",
+        "transformation_chain": [
+          "incorporate the transcriptomic information of one cell into the prompt",
+          "generate gene embeddings tailored to that cell"
+        ],
+        "model_visible_form": "cell-conditioned prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "we incorporated the transcriptomic information of one cell into the prompt",
+        "supporting_figure_or_table": "Fig. 2e"
+      },
+      {
+        "route_label": "perturbation prediction instruction tuning",
+        "source_object": "genetic perturbation examples",
+        "transformation_chain": [
+          "convert perturbation examples into an instruction-response format",
+          "evaluate unseen genes, unseen gene combinations, and unseen cell lines",
+          "fine-tune or infer with CellHermes"
+        ],
+        "model_visible_form": "question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "For the perturbation prediction task, we adopted the STAMP framework",
+        "supporting_figure_or_table": "Fig. 4c"
+      },
+      {
+        "route_label": "cell fitness prediction instruction tuning",
+        "source_object": "DepMap-derived dataset",
+        "transformation_chain": [
+          "convert cell fitness examples into an instruction-response format",
+          "evaluate unseen gene and unseen cell line scenarios"
+        ],
+        "model_visible_form": "question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "For cell fitness prediction, we used the DepMap-derived dataset",
+        "supporting_figure_or_table": "Fig. 4e"
+      },
+      {
+        "route_label": "genetic interaction classification instruction tuning",
+        "source_object": "genetic interaction examples",
+        "transformation_chain": [
+          "convert genetic interaction examples into an instruction-response format",
+          "evaluate across four different genetic interaction (GI) types"
+        ],
+        "model_visible_form": "question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "we evaluated performance across four different genetic interaction (GI) types",
+        "supporting_figure_or_table": "Supplementary Fig. 13b"
+      },
+      {
+        "route_label": "gene set classification instruction tuning",
+        "source_object": "gene sets from CellMarker, CTD, Orphanet, and DisGeNET",
+        "transformation_chain": [
+          "convert gene sets into a unified instruction-response format",
+          "fine-tune CellHermes on gene set labels",
+          "classify each gene set into its associated biological category"
+        ],
+        "model_visible_form": "question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "For gene set-based tasks (cell type, disease, phenotype, and rare disease), the objective was to classify gene sets according to their associated category.",
+        "supporting_figure_or_table": "Fig. 4f"
+      },
+      {
+        "route_label": "tumor-reactivity classification instruction tuning",
+        "source_object": "T cell transcriptomic profiles from melanoma patients",
+        "transformation_chain": [
+          "assemble transcriptomic examples with reactivity labels",
+          "construct instruction-label pairs",
+          "fine-tune CellHermes for tumor-reactivity classification",
+          "evaluate under cell-level and TCR-level splits"
+        ],
+        "model_visible_form": "question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "constructed instruction-label pairs to fine-tune CellHermes for tumor-reactivity classification",
+        "supporting_figure_or_table": "Fig. 5c"
+      },
+      {
+        "route_label": "text-based reasoning from transcriptome and predicted phenotype",
+        "source_object": "original transcriptome and predicted phenotype",
+        "transformation_chain": [
+          "provide the original transcriptome",
+          "provide the predicted phenotype",
+          "construct a prompt to justify the prediction",
+          "generate a reasoning-based explanation"
+        ],
+        "model_visible_form": "natural language prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "a prompt is constructed using both the original transcriptome and the predicted phenotype",
+        "supporting_figure_or_table": "Fig. 5b"
+      }
+    ]
+  },
+  {
+    "model_id": "model_8b27781d1156",
+    "model_name": "CellTosg2Sequence",
+    "paper_title": "CellTosg2Sequence: A Unified Text-Omics-Signaling-Graph Large Language Model for Single-Cell Analysis",
+    "record_id": "july_update_2026-07-06__rec_000060",
+    "image_attachment_index": 5,
+    "figure_index": 9,
+    "figure_caption": "Figure 9: Example single-cell perturbation LLM query. A single-cell profile (UMAP shown left) is preprocessed into two parallel streams: meta-labels (drug, CRISPR target, cell line, tissue) and a Cell Sentence (topK gene symbols). Both are merged with virtual KG tokens into a structured prompt fed to CellTosg2Sequence, which outputs a five-class differential expression prediction (Up / Slight-Up / No change / Slight-Down / Down) per gene as free text.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture schematic for predicting perturbation response from single-cell data. Left panel shows “Input Single Cell Data” with a colored cell embedding/cluster plot and an RNA-seq gene-by-cell expression heatmap legend for Cell 1, Cell 2, Cell 3, and Cell N. Middle panel, “Preprocessing the Input Modules,” lists meta-labels such as drug doxorubicin 1 µM, CRISPR sgTP53, cell line MCF7, tissue breast, plus cell-sentence tokens including IL7R, LTB, MALAT1, HLA-A, CST7, CCL5, and NKG7, overlaid with a knowledge graph schematic. Right panel, “Generate Perturbation Response,” shows a structured model input with meta-condition token, cell tokens, instruction token, and virtual KG token, followed by model output listing predicted differential-expression changes such as EPCAM up, KRT18 slight-down, MALAT1 down, TOP2A up, and MKI67 down.\n\nMain visible finding: the figure illustrates a multimodal tokenized framework that combines single-cell expression, metadata, and knowledge-graph context to generate gene-level perturbation-response predictions.",
+    "routes": [
+      {
+        "route_label": "Biomedical KG virtual-token prefix",
+        "source_object": "curated heterogeneous biomedical knowledge graph",
+        "transformation_chain": [
+          "merge 11 public databases",
+          "encode with a 2-layer R-GCN",
+          "score triples with RotatE",
+          "project with KGProjector MLP",
+          "produce compact virtual tokens"
+        ],
+        "model_visible_form": "[KG_VT] virtual tokens",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "virtual_token_prefix",
+        "fusion": "prepended to the textual prompt",
+        "supporting_figure_or_table": "Figure 1"
+      },
+      {
+        "route_label": "Cell Sentence for cell-state annotation",
+        "source_object": "raw scRNA-seq expression profiles from a single cell",
+        "transformation_chain": [
+          "quality control",
+          "log-normalisation to library size 10^4",
+          "rank genes by expression magnitude",
+          "keep the topK=200 HGNC symbols"
+        ],
+        "model_visible_form": "Cell Sentence block of ranked HGNC gene symbols",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "inserted as the [CellSentence] block in the structured prompt",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Cell-state metadata prompt fields",
+        "source_object": "biological metadata fields",
+        "transformation_chain": [
+          "render as short natural-language fields",
+          "insert into the prompt as metadata"
+        ],
+        "model_visible_form": "[Meta] natural-language fields",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "inserted as the [Meta] block in the structured prompt",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Cell Sentence for drug perturbation prediction",
+        "source_object": "baseline gene profile of a cell",
+        "transformation_chain": [
+          "rank genes by expression magnitude",
+          "keep the topK=200 HGNC symbols",
+          "package as a Cell Sentence"
+        ],
+        "model_visible_form": "Cell Sentence block of top-200 ranked genes",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "inserted into the structured prompt alongside perturbation metadata and KG tokens",
+        "supporting_figure_or_table": "Figure 9"
+      },
+      {
+        "route_label": "Drug perturbation metadata prompt fields",
+        "source_object": "drug perturbation context",
+        "transformation_chain": [
+          "render drug, time, dose, cell line, and tissue as prompt fields"
+        ],
+        "model_visible_form": "drug / time / dose / cell line / tissue metadata tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "inserted as metadata fields in the structured prompt",
+        "supporting_figure_or_table": "Figure 9"
+      },
+      {
+        "route_label": "Drug target virtual-token prefix",
+        "source_object": "drug target annotation for the perturbation target gene (e.g., MDM2)",
+        "transformation_chain": [
+          "map the target gene to its KG embedding",
+          "project it into a target-specific virtual token",
+          "prepend it to the perturbation prompt"
+        ],
+        "model_visible_form": "[Drug_Target_VT] <vt_MDM2>",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "virtual_token_prefix",
+        "fusion": "inserted into the structured perturbation prompt after the drug metadata",
+        "supporting_figure_or_table": "Figure 9"
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.

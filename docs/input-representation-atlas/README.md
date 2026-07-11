@@ -1,24 +1,46 @@
-# Interactive Input-Representation Atlas
+# Interactive Input-Representation Taxonomy Atlas
 
-This static GitHub Pages application presents the complete taxonomy result for
-the 52-paper accepted corpus:
+This static GitHub Pages application renders the accepted 52-paper corpus as an
+explicit taxonomic graph:
 
-- 111 model entities;
-- 376 lifecycle/task configurations;
-- 489 grounded input routes;
-- five carrier families and 15 operational subtypes;
-- 77 deduplicated figures extracted from the original papers.
+`root -> carrier family -> mechanism subtype -> model`
 
-Every architecture detail view retains its source record, paper title, DOI when
-available, original figure caption and page, figure SHA-256, route-level evidence
-quote, heading, pages, and native Docling references. The figure-selection score
-and reasons are included in `data/atlas.json`.
+The graph contains:
 
-Rebuild from the canonical taxonomy and Docling corpus with:
+- one taxonomy root, five carrier families, and 15 operational subtypes;
+- 111 unique model nodes and 234 explicit taxonomy links;
+- 376 lifecycle/task configurations and 489 grounded input routes;
+- 103 model-specific original-paper crops drawn from 68 deduplicated source
+  figures;
+- eight explicit `no_suitable_figure` cases where the papers had text evidence
+  but no figure that responsibly illustrated the input route.
+
+Each model node separates two visual roles:
+
+- **Original-paper crop**: source pixels shown through a recorded normalized
+  crop viewport, with figure, page, caption, confidence, SHA-256, and rationale.
+- **Illustrative input**: a small explanatory example of how the route's carrier
+  may look. It is always labeled as non-evidence.
+
+Multi-family models occur once and receive multiple incoming subtype links. A
+focused node exposes the complete grounded route inventory with source object,
+transformation chain, model-visible form, quote, heading, and pages.
+
+## Rebuild
 
 ```bash
-.venv-docling/bin/python scripts/build_input_representation_atlas.py
+python3 scripts/aggregate_atlas_crop_annotations.py
+python3 scripts/build_input_representation_atlas.py
 ```
 
-The build fails if a model has no source-paper figure. Integrity results are
-written to `data/build_report.json`. No LLM call occurs during site generation.
+The crop ledger is:
+
+`data/input_representation_atlas_redesign_2026-07-11/model_crop_annotations.json`
+
+All Codex subagent prompts, structured responses, stdout events, stderr, schemas,
+commands, timestamps, and retry metadata are retained under:
+
+`data/input_representation_atlas_redesign_2026-07-11/subagents/`
+
+No LLM call occurs during the deterministic site build. Integrity results are
+written to `data/build_report.json`.

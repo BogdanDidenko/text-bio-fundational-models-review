@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 TAXONOMY_ROOT = ROOT / "data/input_representation_taxonomy_2026-07-11"
 CORPUS_ROOT = ROOT / "data/docling_include_vlm_52_2026-07-10_nolimits"
 DEFAULT_OUTPUT = ROOT / "docs/input-representation-atlas"
+CROP_LEDGER = (
+    ROOT
+    / "data/input_representation_atlas_redesign_2026-07-11/model_crop_annotations.json"
+)
 
 FAMILY_META = {
     "text_native_token_stream": {
@@ -277,6 +281,8 @@ def main() -> int:
     args = parser.parse_args()
     output = args.output_dir.resolve()
     assets = output / "assets/figures"
+    if assets.exists():
+        shutil.rmtree(assets)
     assets.mkdir(parents=True, exist_ok=True)
 
     routes = [
@@ -287,6 +293,9 @@ def main() -> int:
         if line.strip()
     ]
     taxonomy = read_json(TAXONOMY_ROOT / "taxonomy_tree.json")
+    crop_ledger = {
+        item["model_id"]: item for item in read_json(CROP_LEDGER)
+    }
     with (TAXONOMY_ROOT / "study_model_registry.csv").open(
         newline="", encoding="utf-8"
     ) as stream:
@@ -309,32 +318,80 @@ def main() -> int:
     ):
         first = model_routes[0]
         record_id = first["record_id"]
-        figure, figure_score, selection_reasons = choose_figure(
-            model_routes, figures_by_record[record_id]
-        )
-        source_image = ROOT / figure["image_path"]
-        if not source_image.exists():
-            raise RuntimeError(f"Missing figure image: {source_image}")
-        source_key = str(source_image.resolve())
-        if source_key not in copied:
-            filename = (
-                f"{slug(record_id)}_figure_{int(figure['figure_index']):03d}"
-                f"{source_image.suffix.casefold()}"
+        crop_annotation = crop_ledger[model_id]
+        figure_payload = None
+        if crop_annotation["status"] == "cropped_source_figure":
+            crop_figure = crop_annotation["figure"]
+            figure = next(
+                item
+                for item in figures_by_record[record_id]
+                if int(item["figure_index"]) == int(crop_figure["figure_index"])
             )
-            target = assets / filename
-            shutil.copy2(source_image, target)
-            copied[source_key] = f"assets/figures/{filename}"
+            source_image = ROOT / figure["image_path"]
+            if not source_image.exists():
+                raise RuntimeError(f"Missing figure image: {source_image}")
+            source_key = str(source_image.resolve())
+            if source_key not in copied:
+                filename = (
+                    f"{slug(record_id)}_figure_{int(figure['figure_index']):03d}"
+                    f"{source_image.suffix.casefold()}"
+                )
+                target = assets / filename
+                shutil.copy2(source_image, target)
+                copied[source_key] = f"assets/figures/{filename}"
+            description = next(
+                (
+                    item.get("text")
+                    for item in figure.get("annotations") or []
+                    if item.get("kind") == "description" and item.get("text")
+                ),
+                "",
+            )
+            figure_payload = {
+                "status": crop_annotation["status"],
+                "asset": copied[source_key],
+                "source_path": figure["image_path"],
+                "figure_index": figure["figure_index"],
+                "caption": figure.get("caption") or "",
+                "description": description or "",
+                "page_no": figure.get("page_no"),
+                "sha256": hashlib.sha256(source_image.read_bytes()).hexdigest(),
+                "pixel_width": crop_figure["pixel_width"],
+                "pixel_height": crop_figure["pixel_height"],
+                "crop_box": crop_annotation["crop_box"],
+                "panel_label": crop_annotation["panel_label"],
+                "visible_input_object": crop_annotation["visible_input_object"],
+                "visible_model_interface": crop_annotation["visible_model_interface"],
+                "suitability": crop_annotation["figure_suitability"],
+                "confidence": crop_annotation["confidence"],
+                "rationale": crop_annotation["rationale"],
+                "annotation_pass": crop_annotation["annotation_pass"],
+            }
         record = registry[record_id]
-        description = next(
-            (
-                item.get("text")
-                for item in figure.get("annotations") or []
-                if item.get("kind") == "description" and item.get("text")
-            ),
-            "",
-        )
         family_counts = Counter(route["carrier_family"] for route in model_routes)
         subtype_counts = Counter(route["carrier_subtype"] for route in model_routes)
+        primary_subtype = max(
+            subtype_counts,
+            key=lambda key: (subtype_counts[key], key),
+        )
+        illustrative_examples = []
+        for subtype_id in sorted(subtype_counts):
+            representative = next(
+                route for route in model_routes if route["carrier_subtype"] == subtype_id
+            )
+            example = SUBTYPE_EXAMPLES[subtype_id]
+            illustrative_examples.append(
+                {
+                    "subtype_id": subtype_id,
+                    "family_id": representative["carrier_family"],
+                    "route_id": representative["route_id"],
+                    "example_input": example["input"],
+                    "example_carrier": example["carrier"],
+                    "example_interface": example["model"],
+                    "actual_source": representative["source_object_verbatim"],
+                    "actual_model_visible_form": representative["model_visible_form_verbatim"],
+                }
+            )
         architectures.append(
             {
                 "model_id": model_id,
@@ -354,6 +411,7 @@ def main() -> int:
                 "subtype_counts": dict(subtype_counts),
                 "families": sorted(family_counts, key=lambda key: FAMILY_META[key]["code"]),
                 "subtypes": sorted(subtype_counts),
+                "primary_subtype": primary_subtype,
                 "modalities": sorted(
                     {route["source_modality_normalized"] for route in model_routes}
                 ),
@@ -364,17 +422,12 @@ def main() -> int:
                     {route["fusion_topology"] for route in model_routes}
                 ),
                 "text_roles": sorted({route["text_role"] for route in model_routes}),
-                "figure": {
-                    "asset": copied[source_key],
-                    "source_path": figure["image_path"],
-                    "figure_index": figure["figure_index"],
-                    "caption": figure.get("caption") or "",
-                    "description": description or "",
-                    "page_no": figure.get("page_no"),
-                    "selection_score": figure_score,
-                    "selection_reasons": selection_reasons,
-                    "sha256": hashlib.sha256(source_image.read_bytes()).hexdigest(),
-                },
+                "figure": figure_payload,
+                "figure_status": crop_annotation["status"],
+                "no_figure_rationale": (
+                    crop_annotation["rationale"] if figure_payload is None else ""
+                ),
+                "illustrative_examples": illustrative_examples,
                 "routes": [compact_route(route) for route in model_routes],
             }
         )
@@ -414,6 +467,74 @@ def main() -> int:
             }
         )
 
+    graph_nodes = [
+        {
+            "id": "taxonomy_root",
+            "type": "root",
+            "label": "Model-visible input representation",
+        }
+    ]
+    graph_edges = []
+    for family in taxonomy_families:
+        family_node = f"family::{family['family_id']}"
+        graph_nodes.append(
+            {
+                "id": family_node,
+                "type": "family",
+                "label": family["name"],
+                "family_id": family["family_id"],
+                "code": family["code"],
+            }
+        )
+        graph_edges.append(
+            {
+                "id": f"edge::root::{family['family_id']}",
+                "source": "taxonomy_root",
+                "target": family_node,
+                "type": "contains_family",
+            }
+        )
+        for subtype in family["subtypes"]:
+            subtype_node = f"subtype::{subtype['subtype_id']}"
+            graph_nodes.append(
+                {
+                    "id": subtype_node,
+                    "type": "subtype",
+                    "label": subtype["name"],
+                    "subtype_id": subtype["subtype_id"],
+                    "family_id": family["family_id"],
+                    "leaf_id": subtype["leaf_id"],
+                }
+            )
+            graph_edges.append(
+                {
+                    "id": f"edge::{family['family_id']}::{subtype['subtype_id']}",
+                    "source": family_node,
+                    "target": subtype_node,
+                    "type": "contains_subtype",
+                }
+            )
+    for architecture in architectures:
+        model_node = f"model::{architecture['model_id']}"
+        graph_nodes.append(
+            {
+                "id": model_node,
+                "type": "model",
+                "label": architecture["model_name"],
+                "model_id": architecture["model_id"],
+                "primary_subtype": architecture["primary_subtype"],
+            }
+        )
+        for subtype_id in architecture["subtypes"]:
+            graph_edges.append(
+                {
+                    "id": f"edge::{subtype_id}::{architecture['model_id']}",
+                    "source": f"subtype::{subtype_id}",
+                    "target": model_node,
+                    "type": "classifies_model_route",
+                }
+            )
+
     payload = {
         "meta": {
             "title": "Atlas of Input Representation Methods",
@@ -426,11 +547,31 @@ def main() -> int:
             "configuration_count": len({r["configuration_id"] for r in routes}),
             "route_count": len(routes),
             "source_figure_count": len(copied),
+            "models_with_cropped_figure": sum(
+                architecture["figure_status"] == "cropped_source_figure"
+                for architecture in architectures
+            ),
+            "models_without_suitable_figure": sum(
+                architecture["figure_status"] == "no_suitable_figure"
+                for architecture in architectures
+            ),
+            "crop_ledger": str(CROP_LEDGER.relative_to(ROOT)),
             "classification_unit": taxonomy["classification_unit"],
             "organizing_principle": taxonomy["organizing_principle"],
         },
         "families": taxonomy_families,
         "architectures": architectures,
+        "graph": {
+            "nodes": graph_nodes,
+            "edges": graph_edges,
+            "counts": {
+                "root": 1,
+                "families": len(taxonomy_families),
+                "subtypes": sum(len(family["subtypes"]) for family in taxonomy_families),
+                "models": len(architectures),
+                "edges": len(graph_edges),
+            },
+        },
         "filter_values": {
             "modalities": sorted({route["source_modality_normalized"] for route in routes}),
             "lifecycle_phases": sorted({route["lifecycle_phase"] for route in routes}),
@@ -448,6 +589,12 @@ def main() -> int:
             "configurations": payload["meta"]["configuration_count"],
             "source_figures": len(copied),
             "models_without_figure": sum(not item.get("figure") for item in architectures),
+            "models_with_model_specific_crop": sum(
+                bool(item.get("figure") and item["figure"].get("crop_box"))
+                for item in architectures
+            ),
+            "graph_nodes": len(graph_nodes),
+            "graph_edges": len(graph_edges),
             "routes_without_grounding": sum(
                 not route.get("final_grounding_valid") for route in routes
             ),

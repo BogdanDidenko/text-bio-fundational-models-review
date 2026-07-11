@@ -1,0 +1,634 @@
+You are a scientific vision annotator. For every model below, inspect its attached original-paper figure and identify the smallest rectangular crop that visibly communicates the biological/textual input object and, where present, the interface by which it enters that model.
+
+Rules:
+- Coordinates are normalized to the full attached image: x and y are the top-left; width and height are extents, all in [0,1]. Ensure x+width <= 1 and y+height <= 1.
+- Keep labels, arrows, legends, or immediate model-interface elements required to interpret the input. Exclude unrelated outputs, benchmarks, training losses, performance plots, and downstream results.
+- A shared image may receive different crops for different models.
+- Use route evidence to decide what is relevant, but report only what is actually visible in the image.
+- Mark the figure unsuitable when it does not show the model's input representation or a directly relevant input example. A valid full-image crop is allowed only when nearly every panel is required; otherwise crop tightly.
+- If unsuitable, still return the best available crop, use low confidence, and set recommended_alternative_figure_index from a figure number cited by the route when one is available; otherwise null.
+- Do not infer scientific content that is not visible. Do not claim hidden chain-of-thought.
+
+The attached images are indexed in command order. Model records:
+[
+  {
+    "model_id": "model_d3d6352d5bcb",
+    "model_name": "Shusi",
+    "paper_title": "Systematic discovery of single-cell protein networks in cancer with Shusi",
+    "record_id": "full_2026-07-06__rec_001200",
+    "image_attachment_index": 1,
+    "figure_index": 1,
+    "figure_caption": "Fig. 1 Overview of Shusi. a, Pipeline for constructing single-cell protein interaction networks from scRNA-seq data. b, Architecture of the Shusi model for predicting novel interactions on single cell level. d, Fine-tuning and application of Shusi to AML patient scRNA-seq data.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel workflow/model architecture figure with panels labeled **a**, **b**, and **c**.\n\nPanel **a** shows **data collection and preprocessing** for **scRNA-seq** and protein/network data: “23 cancer types, 234 cell lines,” “12,350 proteins,” an experimentally validated **STRING-E** network, a t-SNE-like scRNA-seq plot, and construction of **75,010 networks**.\n\nPanel **b** shows **model training**: a **large language model** encodes amino acid sequences and functional descriptions into protein embeddings, then a **variational graph autoencoder** with a **GIN encoder**, latent variable **Z**, and decoder performs graph isomorphism/network link prediction for cell-specific networks.\n\nPanel **c** shows **drug target identification** using a “Shushi Model,” fine-tuning on **AML patient scRNA-seq**, link prediction, target identification, and experimental validation.\n\nMain visible finding/message: the figure presents an end-to-end computational pipeline connecting cancer scRNA-seq, protein language-model embeddings, graph neural network link prediction, and drug target discovery/validation.",
+    "routes": [
+      {
+        "route_label": "Pretraining: amino acid sequences",
+        "source_object": "amino acid sequences",
+        "transformation_chain": [
+          "encoded by Sentence-BERT"
+        ],
+        "model_visible_form": "Sentence-BERT protein-sequence embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "concatenated into the initial node features",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "Pretraining: functional descriptions",
+        "source_object": "functional descriptions",
+        "transformation_chain": [
+          "encoded by Galactica"
+        ],
+        "model_visible_form": "Galactica functional-description embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "concatenated into the initial node features",
+        "supporting_figure_or_table": "Fig. 1"
+      },
+      {
+        "route_label": "Fine-tuning: amino acid sequences",
+        "source_object": "amino acid sequences",
+        "transformation_chain": [
+          "retained from pre-training",
+          "encoded via Sentence-BERT",
+          "used within 4864-dimensional node features"
+        ],
+        "model_visible_form": "retained Sentence-BERT sequence embeddings within 4864-dimensional node features",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "continued to leverage the concatenated features from Galactica and Sentence-BERT",
+        "supporting_figure_or_table": "Fig. 6"
+      },
+      {
+        "route_label": "Fine-tuning: functional descriptions",
+        "source_object": "functional descriptions",
+        "transformation_chain": [
+          "retained from pre-training",
+          "encoded via Galactica",
+          "used within 4864-dimensional node features"
+        ],
+        "model_visible_form": "retained Galactica functional-description embeddings within 4864-dimensional node features",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "continued to leverage the concatenated features from Galactica and Sentence-BERT",
+        "supporting_figure_or_table": "Fig. 6"
+      }
+    ]
+  },
+  {
+    "model_id": "model_7f7febec35b3",
+    "model_name": "TeamPath",
+    "paper_title": "Teampath: Building multimodal pathology experts with reasoning ai copilots",
+    "record_id": "full_2026-07-06__rec_003323",
+    "image_attachment_index": 2,
+    "figure_index": 5,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure with a workflow schematic, bar plot, and microscopy/Q&A example. Panel **a** shows two TeamPath-style correction workflows: a verifier checks a proposed answer and sends wrong answers through an answer corrector in a feedback loop; a separate reason corrector receives a wrong reason and proposed answer to output a corrected reason/answer. Panel **b** is a bar chart comparing **Expert** vs **Corrector** performance across datasets labeled PubMed, SocialPath, Atlas, EduContent, PathCLS, and Avg; y-axis ranges roughly 0-100, with a legend showing green for Expert and pale pink for Corrector. The Corrector bars are consistently higher, with visible annotation **P-value=0.0004**. Panel **c** shows an H&E-like histopathology microscopy image and a multiple-choice pathology question about nuclear features in an image, followed by colored explanation boxes comparing expert and TeamPath answers/reasons; green text marks correct information and red text marks wrong information.",
+    "routes": [
+      {
+        "route_label": "Pathology VQA image route",
+        "source_object": "pathology image",
+        "transformation_chain": [],
+        "model_visible_form": "pathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "Expert Vis Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Pathology VQA question route",
+        "source_object": "question prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "Expert Lang Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-corrector image route",
+        "source_object": "pathology image",
+        "transformation_chain": [],
+        "model_visible_form": "pathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "Expert Vis Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-corrector question route",
+        "source_object": "question",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-corrector analysis route",
+        "source_object": "analysis",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Reason corrector image route",
+        "source_object": "pathology image",
+        "transformation_chain": [],
+        "model_visible_form": "pathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "Expert Vis Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Reason corrector question route",
+        "source_object": "question",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Reason corrector reason route",
+        "source_object": "reason",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Reason corrector solution route",
+        "source_object": "solution",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Caption summary image route",
+        "source_object": "histopathology image",
+        "transformation_chain": [],
+        "model_visible_form": "histopathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "Expert Vis Encoder",
+        "supporting_figure_or_table": "Figure 5"
+      },
+      {
+        "route_label": "Caption summary instruction route",
+        "source_object": "instruction prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Expert Lang Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Cross-modality generation image route",
+        "source_object": "histopathology image",
+        "transformation_chain": [],
+        "model_visible_form": "histopathology image features",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "Expert Vis Encoder",
+        "supporting_figure_or_table": "Figure 6"
+      },
+      {
+        "route_label": "Cross-modality generation instruction route",
+        "source_object": "instruction prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "Expert Lang Encoder",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Pathology VQA instruction prompt route",
+        "source_object": "Pathology VQA instruction prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Self-corrector prompt route",
+        "source_object": "corrector prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Reason corrector prompt route",
+        "source_object": "reason-corrector prompt",
+        "transformation_chain": [],
+        "model_visible_form": "text prompt tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "language corrector input",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_ff0ac12f6b2a",
+    "model_name": "TissueCraftAI",
+    "paper_title": "Query-driven generative AI synthesizes multi-modal spatial omics from histology.",
+    "record_id": "full_2026-07-06__rec_000060",
+    "image_attachment_index": 3,
+    "figure_index": 2,
+    "figure_caption": "Figure 2 -Improved histology image synthesis from nuclear staining image. (a) Box plot of Pearson Correlation Coefficients (PCCs) between ground truth images and images generated by HistoPlexer, Pix2Pix-Turbo, and TissueCraftAI. n=462,549 image patches. Mean values are indicated. P-values were calculated using a one-sided t-test. (b) Box plot of Fréchet Inception Distance (FID) scores for the three methods using all test CODEX datasets. Lower values indicate better image quality. n=8 datasets. (c) Representative synthetic H&E images. For three different input DAPI images, the corresponding ground truth H&E images are displayed alongside the synthesized images generated by HistoPlexer, Pix2Pix-Turbo, and TissueCraftAI. The PCCs are shown for each synthesized image. Arrowheads indicate representative image imperfections compared to the ground truth.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel experiment result figure, labeled Fig. 2, comparing three image-translation methods: HistoPlexer, Pix2Pix-Turbo, and TissueCraftAI.\n\nPanel a is a boxplot of Pearson Correlation Coefficient with y-axis from 0 to 1. TissueCraftAI shows the highest correlation, labeled around 0.915, compared with HistoPlexer around 0.825 and Pix2Pix-Turbo around 0.843. Significance brackets show p-values including p=0.024 and p=0.0076.\n\nPanel b is a bar plot of FID Score. Lower is better visually implied by the comparison: TissueCraftAI has the lowest FID score, 138.4, compared with Pix2Pix-Turbo 209.0 and HistoPlexer 262.8. Significance brackets show p=0.00039 and p=0.00015.\n\nPanel c shows qualitative microscopy/image synthesis examples in a grid. Columns are Input (DAPI), Ground Truth, HistoPlexer, Pix2Pix-Turbo, and TissueCraftAI. Rows show tissue image patches, with predicted histology-like outputs compared to ground truth. PCC values are annotated on generated images. The visible finding is that TissueCraftAI appears closest to ground truth and generally has higher PCC values than the other methods.",
+    "routes": [
+      {
+        "route_label": "DAPI-to-H&E synthesis with text prompt",
+        "source_object": "DAPI nuclear-staining slide",
+        "transformation_chain": [
+          "serves as a conditioning image",
+          "processed by a ControlNet neural network",
+          "merged with a text encoder output via cross-attention",
+          "decoded by a VAE"
+        ],
+        "model_visible_form": "conditioning image",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "A ControlNet neural network encodes the conditioning image",
+        "supporting_figure_or_table": "Figure 2"
+      },
+      {
+        "route_label": "H&E-to-spatial-proteomics query generation",
+        "source_object": "H&E histology image",
+        "transformation_chain": [
+          "serves as a conditioning image",
+          "processed by a ControlNet neural network",
+          "merged with a text encoder output via cross-attention",
+          "decoded by a VAE"
+        ],
+        "model_visible_form": "H&E histology image",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "A user-defined text prompt specifies the molecular target; the conditioning image is encoded by ControlNet",
+        "supporting_figure_or_table": "Figure 3"
+      },
+      {
+        "route_label": "H&E-to-spatial-transcriptomics query generation",
+        "source_object": "H&E histology image",
+        "transformation_chain": [
+          "serves as a conditioning image",
+          "processed by a ControlNet neural network",
+          "merged with a text encoder output via cross-attention",
+          "decoded by a VAE"
+        ],
+        "model_visible_form": "H&E histology image",
+        "carrier_family": "visual_raster_carrier",
+        "carrier_subtype": "raw_slide_or_patch_input",
+        "fusion": "A user-defined text prompt specifies the molecular target; the conditioning image is encoded by ControlNet",
+        "supporting_figure_or_table": "Figure 5"
+      }
+    ]
+  },
+  {
+    "model_id": "model_df8ed6559ceb",
+    "model_name": "TISSUENARRATOR",
+    "paper_title": "TISSUENARRATOR: Generative Modeling of Spatial Transcriptomics with Large Language Models.",
+    "record_id": "full_2026-07-06__rec_000063",
+    "image_attachment_index": 4,
+    "figure_index": 1,
+    "figure_caption": "Figure 1: Overview of the TISSUENARRATOR framework. A. TISSUENARRATOR takes as input a tissue patch, encodes individual cells into cell sentences, and assembles a spatial sentence from neighboring cells. The spatial sentence can be interpreted by an LLM with biological prior knowledge and contextual understanding to predict gene expressions in a cell and to answer questions about tissues. Text output of the LLM can be further transformed into gene expression levels. B. TISSUENARRATOR supports four downstream tasks: cell generation, neighborhood perturbation, genetic perturbation, and conversational tissue querying. For cell generation tasks, model-generated cell sentences can be converted back into gene expression space.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nWorkflow/model schematic with two labeled panels, **A** and **B**. Panel A shows a tissue patch converted into “cell sentences” with ordered gene lists, then into a “spatial sentence” containing ordered cells with position, metadata, cell type, and gene list. An LLM with biological prior knowledge/contextual understanding is used for generative prediction, including cell prediction and text prediction, and quantitative prediction of gene expression values for genes such as G1, G2, G3. Panel B lists applications: cell generation, conversational tissue querying, genetic perturbation, and neighborhood perturbation. No numerical experimental data or axes are shown; the main content is a conceptual architecture/workflow for spatial tissue modeling with language-model-style representations.",
+    "routes": [
+      {
+        "route_label": "Spatial sentence fine-tuning",
+        "source_object": "a tissue section",
+        "transformation_chain": [
+          "encode individual cells as cell sentences",
+          "assemble neighboring cells into a spatial sentence",
+          "tokenize the spatial sentence"
+        ],
+        "model_visible_form": "a 1D spatial sentence token sequence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "used to fine-tune an LLM",
+        "supporting_figure_or_table": "Fig. 1A"
+      },
+      {
+        "route_label": "Conditional cell generation from neighbors",
+        "source_object": "cell sentences from neighboring cells and the spatial location of a target cell",
+        "transformation_chain": [
+          "encode neighboring cells as cell sentences",
+          "assemble them into a spatial sentence",
+          "condition on the target cell type or other metadata"
+        ],
+        "model_visible_form": "spatial sentence tokens with optional metadata",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "input to the LLM as a spatial sentence",
+        "supporting_figure_or_table": "Fig. 1B"
+      },
+      {
+        "route_label": "Unconditional cell generation from neighbors",
+        "source_object": "cell sentences from neighboring cells and the spatial location of a target cell",
+        "transformation_chain": [
+          "encode neighboring cells as cell sentences",
+          "assemble them into a spatial sentence",
+          "infer the target cell's identity and expression profile solely from neighboring spatial cues"
+        ],
+        "model_visible_form": "spatial sentence tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "input to the LLM as a spatial sentence",
+        "supporting_figure_or_table": "Fig. 1B"
+      },
+      {
+        "route_label": "Counterfactual neighborhood perturbation",
+        "source_object": "a target cell within a neighborhood with counterfactual cell-type composition",
+        "transformation_chain": [
+          "add or remove neighbor cells",
+          "serialize the neighborhood into a spatial sentence"
+        ],
+        "model_visible_form": "spatial sentence tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "in silico spatial perturbation modeling",
+        "supporting_figure_or_table": "Fig. 3A-B"
+      },
+      {
+        "route_label": "Genetic perturbation from an edited cell",
+        "source_object": "a single unseen perturbed cancer cell",
+        "transformation_chain": [
+          "hold out one perturbation during training",
+          "generate the gene expression of neighboring T cells",
+          "compare generated cells near control and unseen knockout conditions"
+        ],
+        "model_visible_form": "spatial sentence tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "tissue-level response modeling",
+        "supporting_figure_or_table": "Fig. 3C-D"
+      },
+      {
+        "route_label": "Conversational tissue querying from anatomical structure names",
+        "source_object": "the name of an anatomical structure",
+        "transformation_chain": [
+          "split the dataset by structure name",
+          "fine-tune on questions derived from held-out structures",
+          "generate a natural-language answer"
+        ],
+        "model_visible_form": "natural-language queries",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "fusion": "conversational interface",
+        "supporting_figure_or_table": "Fig. 5A-B"
+      },
+      {
+        "route_label": "Missing cell generation",
+        "source_object": "a target cell missing from ST",
+        "transformation_chain": [],
+        "model_visible_form": "the location of the cell and the information from neighboring cells",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "using its neighborhood",
+        "supporting_figure_or_table": "Fig. 1B"
+      }
+    ]
+  },
+  {
+    "model_id": "model_4361ad5c9fbb",
+    "model_name": "X-Cell",
+    "paper_title": "X-Cell: Scaling Causal Perturbation Prediction Across Diverse Cellular Contexts via Diffusion Language Models",
+    "record_id": "full_2026-07-06__rec_003517",
+    "image_attachment_index": 5,
+    "figure_index": 1,
+    "figure_caption": "",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure describing the **X-Cell** model and dataset. Figure type: schematic workflow, model architecture diagram, dataset summary, training procedure, UMAP visualization, and model-size bar chart.\n\nPanels:\n- **A:** Dataset/screen overview. Shows X-Atlas datasets **Pisces (25.6M)** and **Orion (8M)** across screens including **HCT116, HEK293T, HepG2, iPSC, Jurkat resting/active, and iPSC Multi-Diff**. Includes a stacked bar plot of cell counts in millions and a **UMAP2/UMAP1** embedding labeled “Cell x Screen,” colored by cell/screen type.\n- **B:** X-Cell architecture workflow. Inputs from **X-Atlas/Pisces** feed gene perturbation information, prior knowledge sources such as **LLM/ESM2, STRING, DepMap, JUMP-cell painting, scGPT**, and gene-token/expression representations into a diffusion language-model architecture. The diagram highlights control encoding, perturbation conditioning, cross-attention, self-attention, and applications: **context generalization, perturbation prediction, and mechanism of action**.\n- **C:** Training/inference schematic for **Gene X knockdown**, showing control input, intermediate prediction/remasking, and final predicted expression with control vs predicted color legend.\n- **D:** Bar chart comparing model parameter counts in billions. X-Cell is labeled **55M 2026**, X-Cell-Ultra **4.9B 2026**, and other models include scGPT, Geneformer V2, STATE-SE, scFoundation, TranscriptFormer, and Tahoe-x1. A visible annotation indicates **92x** scaling from X-Cell to X-Cell-Ultra.\n\nMain visible finding: the figure presents X-Cell as a large-scale single-cell perturbation foundation model trained on multi-screen atlas data, designed for perturbation prediction and biological generalization, with X-Cell-Ultra shown as substantially larger than X-Cell.",
+    "routes": [
+      {
+        "route_label": "Control cell populations to diffusion transformer",
+        "source_object": "control cell populations",
+        "transformation_chain": [
+          "raw counts",
+          "CP10K normalization",
+          "log1p normalization",
+          "protein-coding gene filter",
+          "gene subsampling to context length",
+          "mix control and perturbed values according to perturbation mask",
+          "gene identity embedding",
+          "continuous value encoding",
+          "mask embedding",
+          "prepend CLS token"
+        ],
+        "model_visible_form": "partially revealed gene-expression tokens with gene, value, and mask embeddings",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "multi_track_structural_symbol_stream",
+        "fusion": "set-level diffusion transformer",
+        "supporting_figure_or_table": "Figure 1B, Table A2"
+      },
+      {
+        "route_label": "Target-domain control pairs for test-time adaptation",
+        "source_object": "independent pairs of NTC cell sets from the target domain",
+        "transformation_chain": [
+          "draw independent NTC cell sets",
+          "optimize MMD loss only",
+          "freeze cross-attention blocks",
+          "skip cross-attention during adaptation",
+          "re-enable cross-attention for perturbation inference"
+        ],
+        "model_visible_form": "pairs of control cell sets",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "multi_track_structural_symbol_stream",
+        "fusion": "self-attention representations adapted with cross-attention frozen and skipped",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "GenePT text embeddings",
+        "source_object": "NCBI gene summaries and related annotations",
+        "transformation_chain": [
+          "apply text embeddings with the text-embedding-3-large model",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Figure 1B"
+      },
+      {
+        "route_label": "ESM-2 protein embeddings",
+        "source_object": "protein sequences",
+        "transformation_chain": [
+          "protein language model embeddings",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Figure 1B"
+      },
+      {
+        "route_label": "STRING interaction embeddings",
+        "source_object": "STRING protein-protein interaction network",
+        "transformation_chain": [
+          "graph embeddings",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Figure 1B"
+      },
+      {
+        "route_label": "DepMap gene-dependency embeddings",
+        "source_object": "DepMap CRISPR gene dependency dataset",
+        "transformation_chain": [
+          "Chronos-inferred gene effect scores",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Figure 1B"
+      },
+      {
+        "route_label": "JUMP Cell Painting morphology embeddings",
+        "source_object": "JUMP Cell Painting dataset",
+        "transformation_chain": [
+          "batch-corrected embeddings",
+          "PCA dimensionality reduction",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Figure 1B"
+      },
+      {
+        "route_label": "Gene identity embedding prior conditioning",
+        "source_object": "gene identity embedding itself",
+        "transformation_chain": [
+          "use learned gene identity embedding",
+          "project to model dimension",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "projected prior embedding",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": null
+      },
+      {
+        "route_label": "Parse-1M ligand conditioning",
+        "source_object": "ligand information from the Parse-1M dataset",
+        "transformation_chain": [
+          "use Parse-1M cytokine perturbation information",
+          "map cytokines to protein-coding gene names",
+          "cross-attention conditioning"
+        ],
+        "model_visible_form": "ligand-conditioned perturbation context",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Fig. 3"
+      },
+      {
+        "route_label": "Tahoe drug MOA gene conditioning",
+        "source_object": "MOA gene of each inhibitor drug",
+        "transformation_chain": [
+          "filter to single-target inhibitor drugs",
+          "select the drug's MOA gene",
+          "encode MOA gene as perturbed target"
+        ],
+        "model_visible_form": "perturbed target gene label",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "fusion": "cross-attention",
+        "supporting_figure_or_table": "Fig. 3"
+      },
+      {
+        "route_label": "Zero-shot inference of T cell inactivating perturbations",
+        "source_object": "transcriptional profiles",
+        "transformation_chain": [
+          "project the transcriptional profiles into a low-dimensional space using Principal Component Analysis (PCA)"
+        ],
+        "model_visible_form": "a low-dimensional space using Principal Component Analysis (PCA) derived from the 2,000 most highly variable genes",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "fusion": "We projected the transcriptional profiles into a low-dimensional space using Principal Component Analysis (PCA)",
+        "supporting_figure_or_table": null
+      }
+    ]
+  },
+  {
+    "model_id": "model_3c62ea9d84a1",
+    "model_name": "X-Cell-Ultra",
+    "paper_title": "X-Cell: Scaling Causal Perturbation Prediction Across Diverse Cellular Contexts via Diffusion Language Models",
+    "record_id": "full_2026-07-06__rec_003517",
+    "image_attachment_index": 6,
+    "figure_index": 5,
+    "figure_caption": "Fig. 5 X-Cell-Ultra generalizes to melanocyte progenitors and primary human T cells in a zero-shot manner. (A) Schematic shows pre-training of X-Cell-Ultra on X-Atlas/Pisces datasets, excluding the melanocyte progenitor population from the iPSC Multi-Diff screen. We evaluated X-Cell-Ultra in a zero-shot manner on the melanocyte progenitor population as well as primary human T cell datasets from Zhu et al. [57]. We used test-time adaptation to calibrate the models on these datasets using self-supervised objectives. (B) Test loss follows a power law with trainable parameters ( L ( N ) ∝ N -0 . 03 , R 2 = 0 . 97; Table A4). Five models (83M-3.1B) were trained for 20 epochs on the Replogle-Nadig dataset under identical hyperparameters. Circle size is proportional to parameter count; color indicates DE Pearson r . Line plots (right) show how X-Cell-Architecture (blue) and X-Cell-Ultra-Architecture (pink) compare with respect to collapse metrics δ -norm ratio (top) and Pearson correlation of differentially expressed genes (bottom) on test set. (C) Performance of the control mean baseline, perturbation mean baseline, STATE, X-Cell, and X-Cell-Ultra with respect to Pearson ∆ (left), differential expression direction match (middle), and mean absolute error (right). Histogram (top) shows the metrics within 1,341 perturbations and the barplots (bottom) show mean ± 95% C.I. (D) Boxplots show the distribution of Pearson ∆ (left), differential expression direction match (middle), and mean absolute error (right) for 291 perturbations in resting and stimulated (2 time points) primary human T cells for 2 different donors. (E) Heatmaps show the log 2 fold change in expression of APPL2 in D2 (left) and D3 (right) 48 hours post-stimulation as observed by the data and predicted by STATE, X-Cell, and X-Cell-Ultra.",
+    "figure_description": "SCIENTIFIC_FIGURE\n\nMulti-panel scientific figure combining model/workflow schematic and quantitative benchmark plots for “X-Cell-Ultra.”\n\nPanel A shows a workflow/model diagram: perturbation data from cell lines and iPSC-derived cell types, pre-training, and genome-scale zero-shot inference for primary human T cells, including “test-time adaptation” with frozen cross-attention/reduced learning rate.\n\nPanel B shows model scaling dynamics: scatter/line plot of test loss versus trainable parameters for Replogle-Nadig, with Pearson r color scale, plus inset line plots comparing X-Cell and X-Cell-Ultra across epochs for Pearson correlation and differential expression Pearson correlation.\n\nPanels C and D show benchmark results with histograms and bar/box plots for Pearson Δ, differential expression direction match, and MAE. Labels include melanocyte progenitor test perturbations, D2/D3 rest and stimulation contexts, and baselines such as control mean, perturbation mean, STATE, X-Cell, and X-Cell-Ultra.\n\nPanel E shows clustered heatmaps of log fold-change values for APPL2 under D2 and D3 stimulation at 48 hours, comparing STATE, X-Cell, X-Cell-Ultra, and measured stimulation conditions.\n\nMain visible finding: X-Cell-Ultra generally improves predictive performance, with higher Pearson/direction-match metrics and lower MAE than X-Cell or baseline methods, and shows improved scaling with larger trainable parameter counts.",
+    "routes": [
+      {
+        "route_label": "X-Cell-Ultra",
+        "source_object": "the majority of X-Atlas/Pisces",
+        "transformation_chain": [],
+        "model_visible_form": "control cell sets",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "scaled X-Cell to 4.9 billion parameters, X-Cell-Ultra",
+        "supporting_figure_or_table": "Figure 5A"
+      },
+      {
+        "route_label": "Genome-scale inference on held-out melanocytes",
+        "source_object": "held-out melanocytes from the iPSC Multi-Diff screen",
+        "transformation_chain": [],
+        "model_visible_form": "held-out melanocytes from the iPSC Multi-Diff screen",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "fusion": "genome-scale inference on held-out melanocytes from the iPSC Multi-Diff screen",
+        "supporting_figure_or_table": "Figure 5C"
+      },
+      {
+        "route_label": "X-Cell-Ultra test-time adaptation",
+        "source_object": "Independent pairs of non-targeting control (NTC) cell sets",
+        "transformation_chain": [
+          "Independent pairs of non-targeting control (NTC) cell sets are drawn from the target domain",
+          "the model is fine-tuned with MMD loss term only",
+          "After adaptation, cross-attention is re-enabled for perturbation inference"
+        ],
+        "model_visible_form": "control-to-control self-supervised learning",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "multi_track_structural_symbol_stream",
+        "fusion": "self-attention layers are adapted while cross-attention blocks are frozen and skipped during TTA",
+        "supporting_figure_or_table": null
+      }
+    ]
+  }
+]
+
+Return exactly one annotation for every listed model_id and no others.
