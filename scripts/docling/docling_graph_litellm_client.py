@@ -3,12 +3,38 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import time
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping
 
 import litellm
 
 from docling_graph.exceptions import ClientError
 from docling_graph.llm_clients.response_handler import ResponseHandler
+
+
+def strict_json_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Convert a Pydantic schema to the strict subset accepted by Codex."""
+    value = deepcopy(schema)
+
+    def visit(node: Any) -> None:
+        if isinstance(node, dict):
+            node.pop("default", None)
+            if node.get("type") == "object" or "properties" in node:
+                properties = node.get("properties") or {}
+                node["additionalProperties"] = False
+                node["required"] = list(properties)
+            for child in node.values():
+                visit(child)
+        elif isinstance(node, list):
+            for child in node:
+                visit(child)
+
+    visit(value)
+    return value
 
 
 class LiteLLMEndpointClient:
@@ -23,6 +49,7 @@ class LiteLLMEndpointClient:
         timeout_s: int,
         max_tokens: int | None,
         temperature: float,
+        log_path: Path | None = None,
     ) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
@@ -30,6 +57,19 @@ class LiteLLMEndpointClient:
         self.timeout_s = timeout_s
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.log_path = log_path
+        self.request_index = 0
+
+    def _log(self, payload: dict[str, Any]) -> None:
+        if self.log_path is None:
+            return
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.log_path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, ensure_ascii=False, default=str) + "\n")
+
+    @staticmethod
+    def _timestamp() -> str:
+        return datetime.now(timezone.utc).isoformat()
 
     def get_json_response(
         self,
@@ -65,11 +105,46 @@ class LiteLLMEndpointClient:
         if self.max_tokens is not None:
             request["max_tokens"] = self.max_tokens
 
+        self.request_index += 1
+        request_index = self.request_index
+        started = time.time()
+        prompt_payload = prompt if isinstance(prompt, str) else dict(prompt)
+        self._log(
+            {
+                "event": "request",
+                "timestamp_utc": self._timestamp(),
+                "request_index": request_index,
+                "model": self.model,
+                "base_url": self.base_url,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "structured_output": structured_output,
+                "response_top_level": response_top_level,
+                "response_schema_name": response_schema_name,
+                "prompt": prompt_payload,
+                "prompt_sha256": hashlib.sha256(
+                    json.dumps(
+                        prompt_payload, ensure_ascii=False, sort_keys=True, default=str
+                    ).encode()
+                ).hexdigest(),
+                "schema_json": schema_json,
+            }
+        )
         try:
             response = litellm.completion(
                 **request,
             )
         except Exception as exc:
+            self._log(
+                {
+                    "event": "error",
+                    "timestamp_utc": self._timestamp(),
+                    "request_index": request_index,
+                    "elapsed_seconds": round(time.time() - started, 3),
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+            )
             raise ClientError(
                 f"LiteLLM call failed: {type(exc).__name__}",
                 details={
@@ -84,6 +159,18 @@ class LiteLLMEndpointClient:
         if not choices:
             raise ClientError("No choices in response", details={"model": self.model})
         content = choices[0].get("message", {}).get("content") or ""
+        self._log(
+            {
+                "event": "response",
+                "timestamp_utc": self._timestamp(),
+                "request_index": request_index,
+                "elapsed_seconds": round(time.time() - started, 3),
+                "finish_reason": choices[0].get("finish_reason"),
+                "content": content,
+                "response_model": response.get("model"),
+                "usage": response.get("usage"),
+            }
+        )
         return ResponseHandler.parse_json_response(
             content,
             client_name=self.__class__.__name__,

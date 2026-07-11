@@ -207,6 +207,25 @@ Run the screening-evidence extractor on existing `.docling.json` artifacts:
   --output-dir data/docling_graph_screening_evidence_2026-07-09
 ```
 
+For new analysis of the current 52 accepted records, use the canonical native
+VLM profile manifest instead of the historical include/uncertain manifests:
+
+```bash
+.venv-docling/bin/python scripts/docling/run_docling_graph_screening_evidence.py \
+  --canonical-manifest data/docling_include_vlm_52_2026-07-10_nolimits/manifests/canonical_docling_profile_manifest.csv \
+  --limit 1 \
+  --base-url http://127.0.0.1:8765/v1 \
+  --model openai/gpt-5.4-mini \
+  --extraction-contract direct \
+  --provenance detailed \
+  --output-dir data/docling_graph_canonical_vlm_smoke
+```
+
+The runner writes an explicit `llm_execution` block into each new
+`screening_evidence_summary.json`. This is the execution source of truth when a
+custom client is used; Docling Graph's own `metadata.json` may still display its
+default configured model rather than the model behind the custom client.
+
 Each per-record `screening_evidence_summary.json` includes:
 
 - `models`: Docling Graph entities extracted with the

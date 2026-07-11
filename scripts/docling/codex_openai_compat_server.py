@@ -14,7 +14,9 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import re
+import signal
 import subprocess
 import tempfile
 import time
@@ -163,22 +165,32 @@ def run_codex(
             cmd += ["--image", str(image_path)]
         cmd.append("-")
 
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
             cwd=cwd,
             text=True,
-            input=prompt,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=timeout,
+            start_new_session=True,
         )
+        try:
+            stdout, stderr = proc.communicate(input=prompt, timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            os.killpg(proc.pid, signal.SIGTERM)
+            try:
+                proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.communicate()
+            raise subprocess.TimeoutExpired(cmd, timeout) from exc
         final_message = output_path.read_text(encoding="utf-8").strip()
         if proc.returncode != 0:
-            stderr_tail = "\n".join(proc.stderr.strip().splitlines()[-20:])
+            stderr_tail = "\n".join(stderr.strip().splitlines()[-20:])
             raise RuntimeError(
                 f"codex exec failed with returncode={proc.returncode}: {stderr_tail}"
             )
-        return final_message or proc.stdout.strip()
+        return final_message or stdout.strip()
     finally:
         output_path.unlink(missing_ok=True)
         if schema_path is not None:

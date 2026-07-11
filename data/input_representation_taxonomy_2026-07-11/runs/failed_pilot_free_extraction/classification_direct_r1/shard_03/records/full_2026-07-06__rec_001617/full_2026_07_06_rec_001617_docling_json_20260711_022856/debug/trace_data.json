@@ -1,0 +1,534 @@
+{
+  "summary": {
+    "runtime_seconds": 438.0522,
+    "page_count": 28,
+    "extraction_success": true,
+    "fallback_used": false,
+    "node_count": 11,
+    "edge_count": 10
+  },
+  "steps": [
+    {
+      "name": "pipeline",
+      "runtime_seconds": 438.0522,
+      "status": "success",
+      "artifacts": {
+        "mode": "api",
+        "source": "/Users/bogdan.didenko/lpnu/review/data/docling_include_vlm_52_2026-07-10_nolimits/documents/full_2026_07_06_rec_001617.docling.json",
+        "processing_mode": "many-to-one",
+        "backend": "llm",
+        "inference": "local",
+        "debug": true
+      }
+    },
+    {
+      "name": "docling_conversion",
+      "runtime_seconds": 0.827,
+      "status": "success",
+      "artifacts": {
+        "pages": [
+          {
+            "page_number": 1,
+            "text_content": "### Cell-o1 : Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning\n\nYin Fang 1 ∗ Qiao Jin 1 ∗ Guangzhi Xiong 2 Bowen Jin 3 Xianrui Zhong 3 Siru Ouyang 3 Aidong Zhang 2 Jiawei Han 3 Zhiyong Lu 1 † 1 National Institutes of Health 2 University of Virginia 3 University of Illinois Urbana-Champaign\n\n#### Abstract\n\nCell type annotation is a key task in analyzing the heterogeneity of single-cell RNA sequencing data. Although recent foundation models automate this process, they typically annotate cells independently, without considering batch-level cellular context or providing explanatory reasoning. In contrast, human experts often annotate distinct cell types for different cell clusters based on their domain knowledge. To mimic this workflow, we introduce the CellPuzzles task, where the objective is to assign unique cell types to a batch of cells. This benchmark spans diverse tissues, diseases, and donor conditions, and requires reasoning across the batch-level cellular context to ensure label uniqueness. We find that off-the-shelf large language models (LLMs) struggle on CellPuzzles , with the best baseline (OpenAI's o1 ) achieving only 19.0% batch-level accuracy. To fill this gap, we propose Cell-o1 , a 7B LLM trained via supervised fine-tuning on distilled reasoning traces, followed by reinforcement learning with batch-level rewards. Cell-o1 achieves state-ofthe-art performance, outperforming o1 by over 73% and generalizing well across contexts. Further analysis of training dynamics and reasoning behaviors provides insights into batch-level annotation performance and emergent expert-like reasoning. Code and data are available at https://github.com/ncbi-nlp/cell-o1 .\n\nFigure 1: Overview of this work. Cell-o1 achieves state-of-the-art on the CellPuzzles task.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel schematic and results figure for the “CellPuzzles” task and “Cell-o1” training strategy. Left panel compares previous LLM-based cell type a... [truncated, total 3081 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 2,
+            "text_content": "## 1 Introduction\n\nAssigning accurate cell types to single-cell RNA sequencing (scRNA-seq) profiles is fundamental for understanding biological heterogeneity across tissues, diseases, and individuals [1, 2]. Traditional annotation workflows rely heavily on expert knowledge, typically involving clustering to group similar cells [3, 4], followed by manual inspection of marker gene expression to assign cell type labels based on biological domain knowledge [5, 6]. While accurate, this process is time-consuming and labor-intensive, with limited scalability across large or new datasets [1, 2, 5, 7, 8].\n\nRecent advances in deep learning have significantly improved automated cell type annotation through the development of single-cell foundation models [9-11]. These models leverage large-scale unsupervised pre-training to capture complex gene-expression patterns, enabling better representation learning and enhanced performance across various downstream tasks. In parallel, large language models (LLMs) have also been adapted for single-cell applications, either by translating gene-expression profiles into textual representations [12-15] or by integrating multimodal gene embeddings [16-19]. However, both foundation models and LLMs typically annotate each cell independently without considering the shared biological context or batch-level gene-expression information, which fundamentally differs from expert annotation practices [20]. Furthermore, most automated methods directly predict cell types without articulating the underlying reasoning process, making their decisions difficult to interpret and validate [21].\n\nTo bridge this gap, we first introduce CellPuzzles , a novel benchmark that formulates cell type annotation as a batch-level reasoning task, closely mimicking expert annotation workflows. As illustrated in Figure 1, unlike traditional methods that label each cell independently, CellPuzzles requires jointly assigning unique labels to all cells in a batch, using both thei... [truncated, total 4896 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 3,
+            "text_content": "Single-Cell Foundation Models. Recent advancements in deep learning have led to the emergence of powerful single-cell foundation models designed to capture complex gene expression patterns through deep representation learning [9-11]. Built upon transformer architectures, these models leverage extensive unsupervised pre-training on large-scale single-cell transcriptomic datasets to achieve enhanced representation quality and downstream task performance. These foundation models have demonstrated remarkable capabilities in transferring learned knowledge across different datasets and tasks, including cell type annotation [9, 10], gene network inference [28, 29], and perturbation prediction [30, 31]. Nevertheless, these models typically operate at the single-cell level, independently annotating each cell. Their performance in zero-shot settings remains limited, often necessitating fine-tuning with additional labeled data [9, 32, 10].\n\nLLM-driven Single-Cell Annotation. Recent research efforts have explored adapting single-cell gene expression data for LLMs, thereby leveraging their strong instruction-following, representation learning, and generalization capabilities [33, 34]. With their instruction-following and in-context learning capabilities, LLMs can quickly adapt to different single-cell tasks, an advantage that traditional single-cell analysis methods cannot achieve [35, 36]. To bridge the modality gap between scRNA-seq data and language models, several strategies have been proposed, including ranking genes by expression to form ordered lists [12, 13], embedding genes based on curated textual descriptions [14, 15], and directly encoding raw expression profiles using multimodal architectures [16-19]. These approaches enable LLMs to process biological information and perform tasks such as cell type annotation within a textual or multimodal framework. While promising, existing LLM-driven approaches still face challenges. Most approaches process cells individually, no... [truncated, total 4553 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 4,
+            "text_content": "The entire batch is associated with a contextual description m , derived from donor-level metadata such as tissue type, disease status, sex, developmental stage, and other biologically relevant attributes when available. We also provide a candidate label set Y = { y 1 , y 2 , . . . , y N } , which contains the ground-truth cell types for the N cells in the batch, randomly shuffled to remove positional biases. This setup mirrors the expert annotation scenario, where cell types are selected from a biologically plausible candidate pool rather than freely generated. The objective is to learn a mapping f : C → Y that assigns each cell to a unique label in Y by jointly considering gene expression profiles and contextual metadata, while generating interpretable reasoning traces to justify the label assignments.\n\nAs illustrated in Figure 3, CellPuzzles is built from human single-cell datasets in Cell × Gene portal [39] that span diverse tissues, disease conditions, and donor demographics. The detailed dataset construction protocol is provided in the Supplementary Materials.\n\nFigure 3: Data distribution of CellPuzzles . (A) Age group distribution with male-female breakdown. (B) Sample distribution across a wide range of disease conditions. (C) Number of unique cell types observed across different tissues. For clarity, only the top 20 entries are shown in (B) and (C).\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel quantitative plot figure with three labeled panels:\n\n(A) Horizontal age-group distribution with sex breakdown. X-axis is sample count; Y-axis is age group in years from 0-9 to 80-89. Beige horizontal bars show total age distribution, with small male/female pie markers or overlays; legend indicates Male in blue, Female in pink, Age in beige. Largest visible group is 60-69, followed by 70-79.\n\n(B) Horizontal bar chart titled “Sample Distribution across Diseases.” X-axis is sample count; Y-axis lists disease categories including lung adenocarcinoma, chronic obstructiv... [truncated, total 4835 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 5,
+            "text_content": "### 4.2 Reasoning Distillation and Cold Start\n\nThe batch-level reasoning task introduced in our benchmark poses significant challenges for model training. Unlike conventional classification tasks, the model must simultaneously analyze a group of cells, compare gene expression patterns, incorporate shared metadata, and generate a consistent label assignment. The high interdependence between inputs and outputs makes it difficult to produce valid and correct predictions, particularly at early training stages. We begin by performing reasoning distillation using OpenAI's o1 [22], a frontier LLM with strong multi-step reasoning capabilities, to construct a synthetic dataset of high-quality reasoning traces and predictions. This distilled dataset is then used for SFT, serving as a cold start initialization [40] for the subsequent RL.\n\n#### 4.2.1 Reasoning Distillation via Rejection Sampling\n\nWe use o1 [22] to generate reasoning traces and predictions for 10,155 instances in CellPuzzles . Each input is paired with the standardized prompt shown in Table 1. For each instance, we generate 8 candidate responses. We then apply rejection sampling to filter out low-quality outputs. A response is accepted only if it (1) adheres to the expected format and (2) yields a cell-type assignment that exactly matches the ground-truth labels. This process results in a distilled dataset containing 3,912 accepted examples, corresponding to an acceptance rate of 38.52%.\n\nThe collected reasoning traces exhibit several desirable properties for guiding models toward expert annotation behavior and serve as a strong foundation for SFT: First, they reflect domain-specific knowledge by referencing known gene markers and biological associations. Second, they demonstrate global reasoning behavior, in which multiple cells and candidate labels are considered jointly to ensure consistency in label assignments. Third, the reasoning is structured and interpretable, disentangled from the final prediction and ... [truncated, total 4142 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 6,
+            "text_content": "#### 4.3.2 Reward Modeling\n\nTo incentivize structured reasoning and ensure answer validity, we design a rule-based reward function that evaluates both the format and correctness of the model output. As instructed in Table 1, the model is required to generate responses in a strict format containing exactly one reasoning segment enclosed in &lt;think&gt; ... &lt;/think&gt; tags and one answer segment enclosed in &lt;answer&gt; ... &lt;/answer&gt; tags. Responses with incorrect tags, or extra texts, are considered invalid and receive a penalty.\n\nFor valid responses, we extract the predicted answer ˆ y = [ˆ y 1 , . . . , ˆ y N ] and compare it to the ground truth labels y = [ y 1 , . . . , y N ] . The batch-level reward is computed as:\n\n<!-- formula-not-decoded -->\n\nHere, 1 ( · ) is an indicator function. This setup ensures that a reward of 1 is given only when all cell types in the batch are correctly predicted; any incorrect prediction results in a reward of 0.\n\n## 5 Experiments\n\n### 5.1 Configuration\n\nDatasets. We conduct experiments on the proposed CellPuzzles . Each instance comprises 8 ≤ N ≤ 15 cells, each represented by its ranked top-expressed genes and a shared donor-level contextual description. For training, we perform reasoning distillation using a strong reasoning model to generate 3,912 high-quality reasoning traces, which are then used for SFT. In addition, we sample 3,000 extra instances to construct an RL dataset, resulting in a total of 6,912 instances for the GRPO stage. A held-out test set of 1,095 batches is used for final evaluation. More details on the dataset processing can be found in the Supplementary Materials.\n\nEvaluation Metrics. We report results using the following metrics: (1) Cell-level Accuracy: The average proportion of correctly predicted labels per batch. (2) Batch-level Accuracy: The proportion of batches where all predicted labels exactly match the ground truth. (3) Format Validity: The proportion of outputs that follow the require... [truncated, total 7110 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 7,
+            "text_content": "Cell-o1 achieves the highest accuracy at both the cell and batch levels, outperforming all other models. Cell-level accuracy is consistently higher than batch-level accuracy across all models, which is expected given the stricter requirement of the latter. While it trails slightly behind o1 and o3-mini in format validity and answer uniqueness, Cell-o1 still performs competitively on these dimensions, especially considering its smaller model size. Zero-shot models like Llama3.1-8B-Instruct often produce overly long outputs due to repeating cell labels or generating more predictions than required. Instruction-tuned variants without reasoning generate much shorter responses with better format adherence, but lack the ability to perform explicit, interpretable reasoning. Closed-source models such as GPT-4o and o1 show stronger instruction-following and reasoning consistency, producing well-structured outputs more reliably than most open-source models.\n\nTo further understand model behavior under varying conditions, we conduct a fine-grained analysis. Figure 4 (A) shows that all models experience a decline in accuracy as the number of cells per batch increases, with Cell-o1 consistently achieving higher scores across the full range. Figure 4 (B) further shows that Cell-o1 achieves the highest median and lowest variance in per-batch cell-level accuracy, indicating both strong and stable predictions across diverse contexts.\n\nFigure 4: Fine-grained analysis of model performance. (A) Cell-level and batch-level accuracy across varying numbers of cells per batch. (B) Distribution of per-batch cell-level accuracy across models.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel performance comparison figure with plots. Panel (A) contains two radar/spider charts: “Cell-level Acc by Number of Cells per Batch” and “Batch-level Acc by Number of Cells per Batch,” with spokes labeled 8–15 cells per batch and model legend including Llama3.1-8B-Instruct, Qwen2.5-7B-Instruct, Llama3.3-70B-In... [truncated, total 10237 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 8,
+            "text_content": "## 6 Analysis and Discussion\n\n### 6.1 Training and Inference Dynamics under Different Configurations\n\nTo understand how different training strategies affect model performance and behavior, we compare four training configurations that differ along three dimensions: the presence of SFT initialization, the RL algorithm (GRPO vs. PPO (Proximal Policy Optimization) [43]), and the design of the reward function. As shown in Figure 5, Cell-o1 (A) with SFT, GRPO, and batch-level reward achieves stable training, controlled response length, and the best test performance. The response length fluctuates briefly at the beginning of training and then stabilizes, indicating that the model learns to balance output structure and reward optimization during training. Removing SFT initialization (B) leads to ineffective reward learning and a sharp increase in response length, indicating poor task alignment. Replacing GRPO with PPO (C) results in noisier reward trajectories and limited test performance gains, likely due to a mismatch between the reward objective and the final evaluation metric. The steadily declining response length suggests that PPO encourages shorter, less informative outputs to stabilize rewards, potentially at the expense of reasoning quality. Configuration (D) augments the reward with a cell-level accuracy component, using the average of cell and batch-level accuracy as the training signal. This leads to higher training reward scores, but slightly less stable test performance, which remains overall comparable to configuration (A).\n\nFigure 5: Comparing training and inference dynamics across different configurations.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel experimental results plot with four conditions labeled (A)–(D). Each condition shows two stacked line charts over training steps/iterations from 0 to 1000. Legends describe reinforcement-learning fine-tuning setups using base model “w/ SFT,” RL method GRPO or PPO, and reward type “Batch Reward” or “Cell & Ba... [truncated, total 3669 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 9,
+            "text_content": "During the human evaluation, we observed two interesting patterns exhibited by Cell-o1 : selfreflection and curriculum reasoning. The former refers to the model's ability to revisit and revise its intermediate conclusions, while the latter reflects its tendency to tackle easier or more confident cases first before addressing more challenging ones. As shown in Figure 6 (C), Cell-o1 is the only model that consistently demonstrates both behaviors. This highlights its ability to structure reasoning more deliberately-similar to how human experts approach complex annotation tasks.\n\nFigure 6: Analysis of model reasoning behavior. (A) Step-by-step reasoning traces generated by each model for the same task. (B) Expert evaluation of reasoning quality comparing Cell-o1 with baseline models. (C) Proportion of traces exhibiting self-reflection and curriculum reasoning behaviors.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel scientific figure showing a comparison of cell-type annotation/reasoning by different LLMs. Panels include:\n\n(A) Workflow-style/table-like examples comparing predicted cell assignments for `Qwen2.5-7B-Instruct`, `GPT-4o`, `o1`, and `Cell-o1`, with labels such as “Right Prediction,” “Wrong Prediction,” “Incorrect Reasoning,” “No Reasoning,” and “Plausible but Incorrect.” It shows cell-by-cell analysis and final assignments for intestinal/goblet/plasma/T-cell examples.\n\n(B) Horizontal stacked bar chart comparing outcomes across models, with categories “Model wins,” “Tie,” and “Cell-o1 wins.” Cell-o1 visibly wins most comparisons against GPT-4o and Qwen2.5-7B-Instruct, while results against o1 are more balanced.\n\n(C) Two bar charts labeled “Self-Reflection Reasoning” and “Curriculum Reasoning,” showing proportions (%) for Qwen2.5-7B-Instruct, GPT-4o, o1, and Cell-o1. Cell-o1 has the highest visible proportions, especially for curriculum reasoning, while other models are near zero or lower.\n\nMain visible finding: the proposed `Cell-o1` approach appears to outpe... [truncated, total 3938 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 10,
+            "text_content": "#### Acknowledgments\n\nThis research was supported by the Division of Intramural Research (DIR) of the National Library of Medicine (NLM), National Institutes of Health.\n\n#### References\n\n- [1] Vladimir Yu Kiselev, Tallulah S Andrews, and Martin Hemberg. Challenges in unsupervised clustering of single-cell rna-seq data. Nature Reviews Genetics , 20(5):273-282, 2019.\n- [2] Malte D Luecken and Fabian J Theis. Current best practices in single-cell rna-seq analysis: a tutorial. Molecular systems biology , 15(6):e8746, 2019.\n- [3] Andrew Butler, Paul Hoffman, Peter Smibert, Efthymia Papalexi, and Rahul Satija. Integrating single-cell transcriptomic data across different conditions, technologies, and species. Nature biotechnology , 36(5):411-420, 2018.\n- [4] Vincent A Traag, Ludo Waltman, and Nees Jan Van Eck. From louvain to leiden: guaranteeing well-connected communities. Scientific reports , 9(1):1-12, 2019.\n- [5] Tim Stuart, Andrew Butler, Paul Hoffman, Christoph Hafemeister, Efthymia Papalexi, William M Mauck, Yuhan Hao, Marlon Stoeckius, Peter Smibert, and Rahul Satija. Comprehensive integration of single-cell data. cell , 177(7):1888-1902, 2019.\n- [6] Dvir Aran, Agnieszka P Looney, Leqian Liu, Esther Wu, Valerie Fong, Austin Hsu, Suzanna Chak, Ram P Naikawadi, Paul J Wolters, Adam R Abate, et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature immunology , 20(2):163-172, 2019.\n- [7] David Lähnemann, Johannes Köster, Ewa Szczurek, Davis J McCarthy, Stephanie C Hicks, Mark D Robinson, Catalina A Vallejos, Kieran R Campbell, Niko Beerenwinkel, Ahmed Mahfouz, et al. Eleven grand challenges in single-cell data science. Genome biology , 21:1-35, 2020.\n- [8] Tamim Abdelaal, Lieke Michielsen, Davy Cats, Dylan Hoogduin, Hailiang Mei, Marcel JT Reinders, and Ahmed Mahfouz. A comparison of automatic cell identification methods for single-cell rna sequencing data. Genome biology , 20:1-19, 2019.\n- [9] Fan Yang, Wench... [truncated, total 3402 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 11,
+            "text_content": "- [15] Yiqun Chen and James Zou. Simple and effective embedding model for single-cell biology built from chatgpt. Nature Biomedical Engineering , pages 1-11, 2024.\n- [16] Suyuan Zhao, Jiahuan Zhang, Yushuai Wu, Yizhen Luo, and Zaiqing Nie. Langcell: Languagecell pre-training for cell identity understanding. In International Conference on Machine Learning , pages 61159-61185. PMLR, 2024.\n- [17] Moritz Schaefer, Peter Peneder, Daniel Malzl, Mihaela Peycheva, Jake Burton, Anna Hakobyan, Varun Sharma, Thomas Krausgruber, Joerg Menche, Eleni M Tomazou, et al. Multimodal learning of transcriptomes and text enables interactive single-cell rna-seq data exploration with natural-language chats. bioRxiv , pages 2024-10, 2024.\n- [18] Yin Fang, Xinle Deng, Kangwei Liu, Ningyu Zhang, Jingyang Qian, Penghui Yang, Xiaohui Fan, and Huajun Chen. A multi-modal ai copilot for single-cell analysis with instruction following. arXiv preprint arXiv:2501.08187 , 2025.\n- [19] Yaorui Shi, Jiaqi Yang, Sihang Li, Junfeng Fang, Xiang Wang, Zhiyuan Liu, and Yang Zhang. Multimodal language modeling for high-accuracy single cell transcriptomics analysis and generation. arXiv preprint arXiv:2503.09427 , 2025.\n- [20] Giovanni Pasquini, Jesus Eduardo Rojo Arias, Patrick Schäfer, and Volker Busskamp. Automated methods for cell type annotation on scrna-seq data. Computational and Structural Biotechnology Journal , 19:961-969, 2021.\n- [21] Christina B Azodi, Jiliang Tang, and Shin-Han Shiu. Opening the black box: interpretable machine learning for geneticists. Trends in genetics , 36(6):442-455, 2020.\n- [22] Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv preprint arXiv:2412.16720 , 2024.\n- [23] Matthew Renze and Erhan Guven. Self-reflection in llm agents: Effects on problem-solving performance. arXiv preprint arXiv:2405.06682 , 2024.\n- [24] Lili Zhao, Yang Wang, Qi Liu, Mengyun ... [truncated, total 3656 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 12,
+            "text_content": "- [32] Haotian Cui, Chloe Wang, Hassaan Maan, Kuan Pang, Fengning Luo, Nan Duan, and Bo Wang. scgpt: toward building a foundation model for single-cell multi-omics using generative ai. Nature Methods , 21(8):1470-1480, 2024.\n- [33] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774 , 2023.\n- [34] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971 , 2023.\n- [35] Renze Lou, Kai Zhang, and Wenpeng Yin. Large language model instruction following: A survey of progresses and challenges. Computational Linguistics , 50(3):1053-1095, 2024.\n- [36] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. Advances in neural information processing systems , 33:1877-1901, 2020.\n- [37] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information processing systems , 35:24824-24837, 2022.\n- [38] Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yutaka Matsuo, and Yusuke Iwasawa. Large language models are zero-shot reasoners. Advances in neural information processing systems , 35:22199-22213, 2022.\n- [39] CZI Cell Science Program, Shibla Abdulla, Brian Aevermann, Pedro Assis, Seve Badajoz, Sidney M Bell, Emanuele Bezzi, Batuhan Cakir, Jim Chaffer, Signe Chambers, et al. Cz cellxgene discover: a single-cell data platform for scalable exploration, analysis and modeling of aggregated data. Nucleic Acids Research , 53(D1):D886-D900, 2025.\n- [... [truncated, total 4092 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 13,
+            "text_content": "- [49] Michael Ashburner, Catherine A Ball, Judith A Blake, David Botstein, Heather Butler, J Michael Cherry, Allan P Davis, Kara Dolinski, Selina S Dwight, Janan T Eppig, et al. Gene ontology: tool for the unification of biology. Nature genetics , 25(1):25-29, 2000.\n- [50] Mingyu Jin, Qinkai Yu, Dong Shu, Haiyan Zhao, Wenyue Hua, Yanda Meng, Yongfeng Zhang, and Mengnan Du. The impact of reasoning step length on large language models. arXiv preprint arXiv:2401.04925 , 2024.\n- [51] Shubo Tian, Qiao Jin, Lana Yeganova, Po-Ting Lai, Qingqing Zhu, Xiuying Chen, Yifan Yang, Qingyu Chen, Won Kim, Donald C Comeau, et al. Opportunities and challenges for chatgpt and large language models in biomedicine and health. Briefings in Bioinformatics , 25(1):bbad493, 2024.\n- [52] Marta Olah, Vilas Menon, Naomi Habib, Mariko F Taga, Yiyi Ma, Christina J Yung, Maria Cimpean, Anthony Khairallah, Guillermo Coronas-Samano, Roman Sankowski, et al. Single cell rna sequencing of human microglia uncovers a subset associated with alzheimer's disease. Nature communications , 11(1):6129, 2020.\n- [53] Marie Binvignat, Brenda Y Miao, Camilla Wibrand, Monica M Yang, Dmitry Rychkov, Emily Flynn, Joanne Nititham, Whitney Tamaki, Umair Khan, Alexander Carvidi, et al. Single-cell rna-seq analysis reveals cell subsets and gene signatures associated with rheumatoid arthritis disease activity. JCI insight , 9(16):e178499, 2024.\n- [54] Stefan Salcher, Gregor Sturm, Lena Horvath, Gerold Untergasser, Christiane Kuempers, Georgios Fotakis, Elisa Panizzolo, Agnieszka Martowicz, Manuel Trebo, Georg Pall, et al. Highresolution single-cell atlas reveals diversity and plasticity of tissue-resident neutrophils in non-small cell lung cancer. Cancer cell , 40(12):1503-1520, 2022.\n- [55] Rasa Elmentaite, Natsuhiko Kumasaka, Kenny Roberts, Aaron Fleming, Emma Dann, Hamish W King, Vitalii Kleshchevnikov, Monika Dabrowska, Sophie Pritchard, Liam Bolt, et al. Cells of the human intestinal tract mapped across space and ti... [truncated, total 3907 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 14,
+            "text_content": "- [62] Changya Chen, Wenbao Yu, Fatemeh Alikarami, Qi Qiu, Chia-hui Chen, Jennifer Flournoy, Peng Gao, Yasin Uzun, Li Fang, James W Davenport, et al. Single-cell multiomics reveals increased plasticity, resistant populations, and stem-cell-like blasts in kmt2a-rearranged leukemia. Blood, The Journal of the American Society of Hematology , 139(14):2198-2211, 2022.\n- [63] Javier Rodríguez-Ubreva, Anna Arutyunyan, Marc Jan Bonder, Lucía Del Pino-Molina, Stephen J Clark, Carlos de la Calle-Fabregat, Luz Garcia-Alonso, Louis-François Handfield, Laura Ciudad, Eduardo Andrés-León, et al. Single-cell atlas of common variable immunodeficiency shows germinal center-associated epigenetic dysregulation in b-cell responses. Nature communications , 13(1):1779, 2022.\n- [64] Gabriela Rapozo Guimarães, Giovanna Resk Maklouf, Cristiane Esteves Teixeira, Leandro de Oliveira Santos, Nayara Gusmão Tessarollo, Nayara Evelin de Toledo, Alessandra Freitas Serain, Cristóvão Antunes de Lanna, Marco Antônio Pretti, Jéssica Gonçalves Vieira da Cruz, et al. Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome. Nature Communications , 15(1):5694, 2024.\n- [65] Yuyao Zhai, C Liang, and Minghua Deng. Distribution-independent cell type identification for single-cell rna-seq data. In Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence (IJCAI-24) , pages 6143-51, 2024.\n- [66] Huan Zhao, Yiming Liu, Jina Yao, Ling Xiong, Zexin Zhou, and Zixing Zhang. Celler: A genomic language model for long-tailed single-cell annotation. arXiv preprint arXiv:2504.00020 , 2025.\n- [67] Leandro von Werra, Younes Belkada, Lewis Tunstall, Edward Beeching, Tristan Thrush, Nathan Lambert, Shengyi Huang, Kashif Rasul, and Quentin Gallouédec. Trl: Transformer reinforcement learning. https://github.com/huggingface/trl , 2020.\n- [68] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, e... [truncated, total 3766 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 15,
+            "text_content": "## A Dataset\n\n### A.1 Data Sources\n\nOur benchmark is constructed by collecting and curating a diverse range of high-quality single-cell RNA sequencing (scRNA-seq) datasets from publicly available sources, primarily hosted on the CELLxGENE platform [39]. These datasets cover a wide spectrum of human tissues, diseases, and biological conditions, ensuring both diversity and real-world relevance for evaluating model generalization.\n\nTable 4 summarizes all datasets used in our study, along with their corresponding accession links and references. The collection includes data from various immune-related diseases (e.g., rheumatoid arthritis, lupus, HIV), cancer types (e.g., lung adenocarcinoma, ovarian cancer), as well as healthy tissues across developmental and anatomical contexts.\n\nTable 4: Raw scRNA-seq data resources involved in our paper.\n\n| Data Source Name                                                                                                                                      | URL                                                                                |\n|-------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|\n| Single-cell Human Microglia [52]                                                                                                                      | https://cellxgene.cziscience.com/collections/ fcb3d1c1-03d2-41ac-8229-458e072b7a1c |\n| Single-Cell RNA-Seq Analysis Reveals Cell Subsets And Gene Signa- tures Associated With Rheumatoid Arthritis Disease Activity [53]                    | https://cellxgene.cziscience.com/collections/ e1a9ca56-f2ee-435d-980a-4f49ab7a952b |\n| The Single-Cell Lung Cancer Atlas (LuCA) [54]                                                                                                         | https://cellxgene.cziscience.com/collecti... [truncated, total 5277 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 16,
+            "text_content": "Table 5: Number of samples per disease in the dataset.\n\n| Disease                               |   #Samples | Disease                             |   #Samples |\n|---------------------------------------|------------|-------------------------------------|------------|\n| Lung Adenocarcinoma                   |       1292 | Crohn Disease                       |        215 |\n| Chronic Obstructive Pulmonary Disease |       1194 | Lung Large Cell Carcinoma           |        211 |\n| Squamous Cell Lung Carcinoma          |        946 | Non-Specific Interstitial Pneumonia |        172 |\n| Normal                                |        941 | Chronic Rhinitis                    |        158 |\n| Interstitial Lung Disease             |        777 | Hypersensitivity Pneumonitis        |        126 |\n| Pulmonary Fibrosis                    |        669 | Lymphangioleiomyomatosis            |        109 |\n| Non-Small Cell Lung Carcinoma         |        632 | Pleomorphic Carcinoma               |         87 |\n| B-Cell Acute Lymphoblastic Leukemia   |         74 | Pulmonary Sarcoidosis               |         58 |\n| Pneumonia                             |         48 | Acute Myeloid Leukemia              |         45 |\n| Common Variable Immunodeficiency      |         45 | Type 1 Diabetes Mellitus            |         35 |\n| Acute Promyelocytic Leukemia          |         28 | Rheumatoid Arthritis                |         23 |\n| Acute Kidney Failure                  |         20 | Malignant Ovarian Serous Tumor      |         18 |\n| Chronic Kidney Disease                |         18 | Age Related Macular Degeneration 7  |         13 |\n| Basal Laminar Drusen                  |         12 | Cystic Fibrosis                     |         11 |\n| Hiv Infectious Disease                |         11 | Alzheimer Disease                   |          8 |\n| Cataract                              |          7 | Temporal Lobe Epilepsy              |          4 |\n\nTable 6: Number of unique cell type... [truncated, total 5411 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 17,
+            "text_content": "Table 7: Frequency of cell types in the dataset (Part I).\n\n| Cell Type                                  |   #Instances | Cell Type                                                                  |   #Instances |\n|--------------------------------------------|--------------|----------------------------------------------------------------------------|--------------|\n| CD4-Positive, Alpha-Beta T Cell            |         4428 | Fibroblast                                                                 |           72 |\n| CD8-Positive, Alpha-Beta T Cell            |         4276 | Mucosal Invariant T Cell                                                   |           70 |\n| Classical Monocyte                         |         4167 | Precursor B Cell                                                           |           70 |\n| Natural Killer Cell                        |         4097 | Glial Cell                                                                 |           68 |\n| Alveolar Macrophage                        |         4051 | Mature B Cell                                                              |           68 |\n| Cd1C-Positive Myeloid Dendritic Cell       |         3965 | Pro-B Cell                                                                 |           68 |\n| B Cell                                     |         3495 | Stem Cell                                                                  |           67 |\n| Pulmonary Alveolar Type 2 Cell             |         3395 | Early Pro-B Cell                                                           |           66 |\n| Mast Cell                                  |         3062 | Stromal Cell Of Lamina Propria Of Small Intes- tine                        |           63 |\n| Plasma Cell                                |         2939 | Common Lymphoid Progenitor                                                 |           59 |\n| Vein Endothelial Cell                      |         2659 | Immature B Cell                ... [truncated, total 7152 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 18,
+            "text_content": "Table 8: Frequency of cell types in the dataset (Part II).\n\n| Cell Type                                             |   #Instances | Cell Type                                                 |   #Instances |\n|-------------------------------------------------------|--------------|-----------------------------------------------------------|--------------|\n| Epithelial Cell Of Lower Respiratory Tract            |          702 | Germinal Center B Cell                                    |           38 |\n| Conventional Dendritic Cell                           |          701 | Class Switched Memory B Cell                              |           37 |\n| Club Cell                                             |          685 | Kidney Connecting Tubule Epithelial Cell                  |           36 |\n| Dendritic Cell                                        |          681 | Hematopoietic Stem Cell                                   |           36 |\n| Lung Pericyte                                         |          569 | Unswitched Memory B Cell                                  |           36 |\n| Smooth Muscle Cell                                    |          464 | Mononuclear Phagocyte                                     |           36 |\n| T Cell                                                |          463 | Kidney Collecting Duct Intercalated Cell                  |           34 |\n| Nasal Mucosa Goblet Cell                              |          447 | Kidney Distal Convoluted Tubule Epithelial Cell           |           33 |\n| Pericyte                                              |          439 | Lymphoid Lineage Restricted Progenitor Cell               |           33 |\n| Lung Macrophage                                       |          422 | Plasmablast                                               |           33 |\n| Mesothelial Cell                                      |          412 | Inflammatory Macrophage                                   |           32 |\n| Neutrophil    ... [truncated, total 7607 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 19,
+            "text_content": "<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative logo/icon resembling a target or symbol, not a scientific figure with data, axes, panels, workflow, biological content, or experimental results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative/logo-style icon, not a scientific figure or data panel. It does not show axes, labels, experimental results, biological structures, or model/workflow information.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative biomedical-style icon/logo, showing a shield, medical cross, and molecule/gear-like symbols. It does not contain scientific data, axes, panels, labels, workflow steps, experimental results, or a biological/model diagram.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative/interface icon or branding-like symbol, not a scientific figure with data, axes, panels, biological content, workflow, or experimental results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative/icon-like graphic, not a scientific figure or data panel. It has no visible axes, labels, legend, biological quantities, workflow, model architecture, or experiment results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative microscope icon/logo, not a scientific figure or data panel. It has no axes, labels, legend, measurements, workflow, microscopy data, or experiment results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative biomedical/science-themed icon or logo, not a scientific figure with data, panels, axes, labels, workflow details, or experimental results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative brain icon or logo, not a scientific figure or data panel. It has no axes, labels, legend, measurements, workflow, microscopy details, or experimental results.\n\n<!-- image -->\n\nNON_SCIENTIFIC_IMAGE\n\nThis appears to be a small decorative icon... [truncated, total 21645 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 20,
+            "text_content": "where D is the set of evaluation batches, N j is the number of cells in batch j , and ˆ y ( j ) i and y ( j ) i denote the predicted and ground-truth labels of the i -th cell in batch j .\n\n##### · Batch-level Accuracy:\n\n<!-- formula-not-decoded -->\n\nA value of 1 is counted only when all labels in a batch are correct.\n\n##### · Format Validity:\n\n<!-- formula-not-decoded -->\n\nwhere ˆ y ( j ) is the predicted label sequence for batch j , and F denotes the set of responses that follow the required format (e.g., tag correctness, answer presence, etc.).\n\n##### · Answer Uniqueness:\n\n<!-- formula-not-decoded -->\n\nThis metric quantifies how often the model avoids repeated predictions within a batch.\n\n### B.2 Baselines\n\nTo contextualize the performance of Cell-o1 , we compare it against a range of baseline models, covering both open- and closed-source LLMs. All baselines are evaluated using the same input format and candidate label set for fair comparison.\n\nZero-shot (with reasoning) : These models are prompted with our structured format, including metadata, gene expression, and candidate labels, but are not trained specifically on this task.\n\n- LLaMA3.1-8B-Instruct : A multilingual, instruction-tuned model with 8 billion parameters, optimized for dialogue tasks and outperforming many open and closed models on industry benchmarks.\n- Qwen2.5-7B-Instruct : A 7.61 billion parameter model, excelling in instruction following, long-text generation, and structured output, with enhanced capabilities in coding and mathematics.\n- LLaMA3.3-70B-Instruct : A 70 billion parameter instruction-tuned model, optimized for multilingual dialogue and outperforming many open and closed chat models on common industry benchmarks.\n### GPT-4o : OpenAI's flagship multimodal model capable of processing text, images, and audio, offering real-time responses and improved performance over its predecessors.\n- GPT-4o-mini : A smaller, more affordable version of GPT-4o by OpenAI, balancing performance and cost-... [truncated, total 3535 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 21,
+            "text_content": "Reinforcement Learning with GRPO. We combine the 3,912 fine-tuning instances with 3,000 additional instances to form an RL training set of 6,912 examples. Training is performed using the verl [71] framework with GRPO [41]. For each training input, 5 rollouts are sampled per prompt. The actor model is Qwen2.5-7B-Instruct , initialized from the SFT checkpoint. We set the maximum prompt length to 3,072 tokens and response length to 3,000 tokens. The rollout engine is powered by vLLM [72], using 60% GPU memory and tensor parallelism of 2. KL-regularization is applied using a low-variance formulation, with coefficient β = 0 . 001 . The total batch size is 64 with micro batch size of 2 per GPU. Training is run for 20 epochs.\n\nAll experiments are conducted on 2 nodes with 8 × A100 GPUs (40GB).\n\n## C Cell-level vs. Batch-level Reasoning\n\nOur task formulation assumes joint reasoning over a batch of cells with shared context. To assess the necessity of this design, we introduce a decomposed variant in which each cell within a batch is annotated independently. Specifically, given a batch of N cells and N candidate labels, we split the task into N individual classification instances-each involving one cell and the full candidate label set. While the label space remains the same, the model no longer has access to other cells in the batch during inference.\n\nTable 10: Prompt template used for the decomposed cell-level reasoning task.\n\nYou are an expert assistant specialized in cell type annotation. You will be given the gene expression profile of a single cell from a specific donor. The top expressed genes are listed in descending order. Use both gene expression and donor context to determine the correct cell type. You will also receive a list of candidate cell types-choose the one that best fits this cell . Include your detailed reasoning within &lt;think&gt; and &lt;/think&gt; tags, and provide your final answer within &lt;answer&gt; and &lt;/answer&gt; tags. The final answer sh... [truncated, total 4754 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 22,
+            "text_content": "Table 11: Comparison of model performance between batch-level and decomposed cell-level settings. ♠ indicates instruction-tuned baselines trained without any reasoning tasks, which directly predict answers from the input without generating reasoning traces. The best and second-best results are highlighted in red and blue , respectively.\n\n| Model                                        | Response Length              | Cell-level Acc               | Batch-level Acc              | Format                       | Uniqueness                   |\n|----------------------------------------------|------------------------------|------------------------------|------------------------------|------------------------------|------------------------------|\n| Cell-level Prediction Setup                  | Cell-level Prediction Setup  | Cell-level Prediction Setup  | Cell-level Prediction Setup  | Cell-level Prediction Setup  | Cell-level Prediction Setup  |\n| Llama3.1-8B-Instruct ♠ Qwen2.5-7B-Instruct ♠ | 8.1 8.5                      | 0.4707 0.3890                | 0.0112 0.0000                | 0.6024 0.5955                | 0.5887 0.5978                |\n| Cell-level Reasoning Setup                   | Cell-level Reasoning Setup   | Cell-level Reasoning Setup   | Cell-level Reasoning Setup   | Cell-level Reasoning Setup   | Cell-level Reasoning Setup   |\n| GPT-4o-mini                                  | 349.5                        | 0.2761                       | 0.0000                       | 1.0000                       | 0.3706                       |\n| GPT-4o                                       | 494.7                        | 0.4093                       | 0.0000                       | 0.9900                       | 0.5273                       |\n| o3-mini                                      | 241.1                        | 0.4825                       | 0.0000                       | 1.0000                       | 0.5663                       |\n| o1                        ... [truncated, total 6266 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 23,
+            "text_content": "Table 12: Comparison of model performance between open-ended and constrained QA settings. ♠ indicates instruction-tuned baselines trained without any reasoning tasks, which directly predict answers from the input without generating reasoning traces. The best and second-best results are highlighted in red and blue , respectively.\n\n| Model                  | Response Length      | Cell-level Acc       | Batch-level Acc      | Format               | MedCPT Score         |\n|------------------------|----------------------|----------------------|----------------------|----------------------|----------------------|\n| Open-ended QA Setup    | Open-ended QA Setup  | Open-ended QA Setup  | Open-ended QA Setup  | Open-ended QA Setup  | Open-ended QA Setup  |\n| Llama3.1-8B-Instruct ♠ | 192.7                | 0.1068               | 0.0000               | 0.2822               | 0.7400               |\n| Qwen2.5-7B-Instruct ♠  | 248.8                | 0.2491               | 0.0000               | 0.6804               | 0.7304               |\n| GPT-4o-mini            | 456.7                | 0.2326               | 0.0000               | 0.9973               | 0.6680               |\n| GPT-4o                 | 401.0                | 0.3334               | 0.0000               | 0.9991               | 0.7060               |\n| o3-mini                | 590.7                | 0.4292               | 0.0000               | 1.0000               | 0.7411               |\n| o1                     | 436.5                | 0.4411               | 0.0000               | 1.0000               | 0.7519               |\n| Cell-o1                | 696.9                | 0.3367               | 0.0000               | 0.9224               | 0.7229               |\n| Constrained QA Setup   | Constrained QA Setup | Constrained QA Setup | Constrained QA Setup | Constrained QA Setup | Constrained QA Setup |\n| Llama3.1-8B-Instruct ♠ | 71.9                 | 0.6411               | 0.2969               | 0.9078    ... [truncated, total 4990 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 24,
+            "text_content": "All evaluations were performed independently, and ties were allowed when models performed comparably. The goal of the human study was to evaluate whether the model's reasoning steps reflected biologically grounded justifications and to identify common failure patterns in LLM predictions.\n\n## F Case Study: Comparing Reasoning Patterns Across Models\n\nTo better understand model behaviors, we conduct qualitative comparisons of reasoning traces produced by different models on the same 10-cell batch (Tables 13, 14, 15, and 16). We highlight correct predictions in blue and incorrect ones in red, and analyze each model's reasoning style.\n\n### F.1 Qwen2.5-7B-Instruct\n\nQwen2.5-7B-Instruct (Table 13) adopts a candidate-centric reasoning strategy, where it first enumerates all candidate cell types with brief gene-based descriptions and then loosely maps cells to the closest matching types. This approach relies on surface-level pattern matching between highly expressed genes and canonical cell type markers, such as matching TMSB4X to 'Intestine Goblet Cell' and IGKC/JCHAIN to 'Plasma Cell.'\n\nHowever, this model fails to leverage mutual exclusivity or batch-level constraints. For example, it assigns five different cells to 'Activated CD4-positive, Alpha-Beta T Cell,' despite the task requiring one-to-one mapping between cells and types. Moreover, some predictions contradict the model's own reasoning: Cell 6 is labeled as 'Capillary Endothelial Cell' even though it explicitly states that the evidence is 'not strongly supported.'\n\n##### F.2 GPT-4o\n\nGPT-4o (Table 14) displays strong domain knowledge and an ability to reason using both gene expression patterns and contextual biological information. It explicitly incorporates factors such as donor condition (Crohn disease), anatomical site (ileum), and immune cell enrichment. It also organizes its reasoning with structured sections: general observations , candidate type definitions , and cell-by-cell analysis , showing an impressive d... [truncated, total 4216 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 25,
+            "text_content": "Table 13: Prediction of Qwen2.5-7B-Instruct .\n\n· Intestine Goblet Cell: This cell type is characterized by high expression of genes like TMSB4X, which is present in Cells 1, 3, 9.\n\n· Capillary Endothelial Cell: This cell type often expresses genes like CD34, CD31, and VWF. However, these genes are not listed here, so we cannot confidently assign this cell type based on the given data.\n\n· Plasma Cell: Plasma cells typically express genes like IGKC (Immunoglobulin kappa chain), JCHAIN, and IGHA1. These genes are present in Cell 8, suggesting it could be a plasma cell.\n\n· Memory B Cell: Memory B cells might express genes like CD74, but this is not prominently featured in any of the cells.\n\n· Activated CD4-positive, Alpha-Beta T Cell: This cell type would express genes like RPL41, RPL13A, and RPS27, which are common in Cells 2, 5, 6, 7, 10.\n\n· CD4-positive, Alpha-Beta T Cell: This cell type would also express genes like RPL41, RPL13A, and RPS27, similar to the activated CD4-positive, alpha-beta T cell.\n\n· T-helper 1 Cell: This cell type would express genes like IL2RA, IFNG, and STAT1, which are not present in the given gene lists.\n\n· Germinal Center B Cell: Germinal center B cells would express genes like CD74, CD21, and CD23, which are not prominently featured in any of the cells.\n\n· IgA Plasma Cell: This cell type would express genes like IGLL1, IGHG1, and IGHM, which are not present in the given gene lists.\n\n· Vein Endothelial Cell: This cell type would express genes like CD34, CD31, and VWF, which are not present in the given gene lists.\n\nBased on the gene expression patterns, the most likely matches are:\n\n- Cell 1: Intestine Goblet Cell\n- Cell 2: Activated CD4-positive, Alpha-Beta T Cell\n- Cell 3: Intestine Goblet Cell\n- Cell 4: Activated CD4-positive, Alpha-Beta T Cell\n- Cell 5: Activated CD4-positive, Alpha-Beta T Cell\n- Cell 6: Capillary Endothelial Cell (though not strongly supported)\n- Cell 7: Activated CD4-positive, Alpha-Beta T Cell\n- Cell 8: Plasma Cell\n- C... [truncated, total 3910 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 26,
+            "text_content": "Key Observations:\n\n1. Gene Expression Patterns:\n\n· Many cells express ribosomal protein genes (e.g., RPLP1, RPL41, RPL10, RPS27, RPS18, etc.), which are common housekeeping genes. These genes alone are not sufficient for cell type identification.\n\n· Some cells express immune-related genes (e.g., IGKC, IGHA1, CD74, HLA-B, CXCR4), which suggest immune cell types.\n\n· Other cells express intestinal-specific genes (e.g., TFF3, SPINK4, REG1A, OLFM4), which are indicative of intestinal epithelial cells like goblet cells.\n\n· Endothelial-related genes (e.g., VWF, PLV AP, SPARC) are expressed in some cells, suggesting endothelial cell types.\n\n2. Candidate Cell Types:\n\n· The list includes immune cells (e.g., T cells, B cells, plasma cells), endothelial cells, and intestinal epithelial cells (e.g., goblet cells).\n\n· Some cell types are more specific (e.g., IgA plasma cell, activated CD4-positive T cell), while others are broader (e.g., plasma cell, vein endothelial cell).\n\n3. Contextual Relevance:\n\n· Crohn disease is an inflammatory bowel disease, so immune cells (e.g., T cells, B cells, plasma cells) and intestinal epithelial cells (e.g., goblet cells) are likely to be present.\n\n· The ileum is rich in immune cells (e.g., germinal center B cells, plasma cells) and specialized epithelial cells (e.g., goblet cells).\n\nCell-by-Cell Analysis:\n\n· Cell 1: Dominated by ribosomal genes and housekeeping genes (e.g., ACTB, MALAT1); No specific markers for immune or epithelial cells; Likely a generic plasma cell.\n\n· Cell 2: Similar to Cell 1, dominated by ribosomal genes; No strong markers for immune or epithelial cells; Likely a generic plasma cell.\n\n· Cell 3: Expresses GAPDH and mitochondrial genes (e.g., MT-CO1, MT-CO2), along with ribosomal genes; No specific immune or epithelial markers; Likely a generic plasma cell.\n\n· Cell 4: Expresses intestinal-specific genes (e.g., TFF3, SPINK4, REG1A, OLFM4), which are markers for goblet cells; Likely an intestine goblet cell.\n\n· Cell 5: Express... [truncated, total 3696 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 27,
+            "text_content": "· Cell 4 expresses TFF3, SPINK4, and REG1A, which are classic intestinal goblet cell markers (TFF3 is particularly specific).\n\n· Cell 6 has PLVAP and VWF, both of which are strongly associated with endothelial cells-especially PLVAP, which is a hallmark of capillary (fenestrated) endothelium, so Cell 6 is a capillary endothelial cell.\n\n· Cell 7 also expresses VWF but includes CCL21, HLA-E, and other features suggestive of a different endothelial subtype; since we must use both 'capillary endothelial cell' and 'vein endothelial cell', assigning Cell 7 to vein endothelial cell is consistent.\n\n· Cell 8 has IGKC, JCHAIN, and IGHA1 at high levels, unambiguously marking an IgA-expressing plasma cell (IgA plasma cell).\n\n· Cell 10 highly expresses IGKC and IGHM (and lacks IGHA1), indicating another antibody-producing cell but not IgA; this fits the generic 'plasma cell' category.\n\nThat leaves Cells 1, 2, 3, 5, and 9 to be mapped onto the remaining five types: CD4-positive, alpha-beta T cell; T-helper 1 cell; activated CD4-positive, alpha-beta T cell; memory B cell; germinal center B cell.\n\nAlthough many of these cells' top 50 genes are dominated by ribosomal/housekeeping transcripts, we can still deduce plausible assignments. Cell 5, for instance, is rich in mitochondrial genes (MT-CO1, MT-CO2, etc.) and also contains CD52 (commonly found on lymphocytes, especially T cells). High mitochondrial activity is characteristic of an activated T cell, so Cell 5 is best labeled 'activated CD4-positive, alpha-beta T cell'. Cells 1, 3, and 9 are then the remaining T cells (two of them) plus one more B cell or vice versa. However, we need two B-cell categories overall-'memory B cell' and 'germinal center B cell'-and we have not yet assigned either one to any cell besides the two plasma cells we already handled (Cells 8 and 10). Given that Cells 6 and 7 are endothelial, Cell 4 is goblet, Cell 8 and 10 are plasma lineage, and Cell 5 is activated T, we must place one B-cell type in Cell 2... [truncated, total 4147 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 28,
+            "text_content": "Reasoning: · Cell 4 stands out immediately because of its strong expression of TFF3, SPINK4, REG1A, and PIGR-classic markers of intestinal goblet cells. Hence Cell 4 is the 'intestine goblet cell.'\n\n· Cell 8 has high levels of IGKC, JCHAIN, and IGHA1, which are hallmark genes of antibody-secreting plasma cells, especially IgA plasma cells. Thus Cell 8 is the 'IgA plasma cell.'\n\n· Cell 10 co-expresses IGKC and IGHM (among others), consistent with a B lineage cell that is not yet a fully differentiated plasma cell (since plasma cells typically downregulate IGHM). This fits best with a 'memory B cell' or a 'germinal center B cell.' We will see that Cell 10 is most consistent with a 'memory B cell' once we compare it with Cell 8 and Cell 1.\n\n· Cell 6 has prominent expression of PLV AP, VWF, and SPARC. PLVAP is a well-known marker of fenestrated capillary endothelium, and VWF is a canonical endothelial marker. This makes Cell 6 the 'capillary endothelial cell.'\n\n· Cell 7 also shows strong expression of VWF and CCL21. CCL21 is famously associated with lymphatic endothelium, and VWF is again a hallmark of endothelium. This places Cell 7 as the 'vein endothelial cell' (rather than capillary), leaving Cell 6 to be the capillary endothelial cell.\n\n· Cell 1 and Cell 2 remain unassigned. Both are dominated by ribosomal genes and do not show overt markers for T cells, B cells, or endothelial cells. However, we must use the remaining two cell types: 'CD4-positive, alpha-beta T cell' and 'activated CD4-positive, alpha-beta T cell.' Neither Cell 1 nor Cell 2 shows strong evidence of activation (e.g. no PFN1 in Cell 2), so Cell 1 is most likely the 'activated CD4-positive, alpha-beta T cell,' and Cell 2 is the 'CD4-positive, alpha-beta T cell.'\n\n· Cell 3 is the remaining unassigned cell. The only remaining type is 'germinal center B cell,' so Cell 3 must be the 'germinal center B cell.'\n\nPutting these all together gives:\n\n- Cell 1 → activated CD4-positive, alpha-beta T cell\n- Cell 2... [truncated, total 3512 chars]",
+            "metadata": {}
+          }
+        ],
+        "conversion": {
+          "runtime_seconds": 0.826977014541626,
+          "page_count": 28,
+          "source": "docling_document_conversion"
+        }
+      }
+    },
+    {
+      "name": "data_extraction",
+      "runtime_seconds": 1.3001,
+      "status": "success",
+      "artifacts": {
+        "extractions": [
+          {
+            "extraction_id": 0,
+            "source_type": "chunk",
+            "source_id": 0,
+            "parsed_model": {
+              "taxonomy_version": "input-representation-taxonomy-v1",
+              "title": "Cell-o1 : Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+              "doi": null,
+              "input_routes": [
+                {
+                  "route_label": "Batch-level constrained reasoning",
+                  "model_name": "Cell-o1",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "CellPuzzles : Batch-Level Reasoning for Cell Type Annotation",
+                  "source_object_verbatim": "a batch of N cells from the same donor",
+                  "source_object_normalized": "same-donor batch of scRNA-seq cells with one unique cell type per cell",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor-level metadata",
+                  "transformation_chain_verbatim": [
+                    "ranked list of its top M expressed genes",
+                    "a candidate label set Y",
+                    "Include your detailed reasoning within <think> and </think> tags, and provide your final answer within <answer> and </answer> tags."
+                  ],
+                  "transformation_chain_normalized": [
+                    "rank top expressed genes",
+                    "shuffle candidate labels",
+                    "generate reasoning and final answer in tagged format"
+                  ],
+                  "model_visible_form_verbatim": "The final answer should be a single string listing the assigned cell types in order, separated by ' | '.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "Using both the gene expression data and donor information, determine the correct cell type for each cell.",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "assign each cell to a unique label in Y",
+                  "section_heading": "4.1 Prompt Template for Structured Reasoning",
+                  "supporting_figure_or_table": "Table 1",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Batch-level answer-only prediction",
+                  "model_name": "Llama3.1-8B-Instruct and Qwen2.5-7B-Instruct",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Batch-level Prediction Setup",
+                  "source_object_verbatim": "a batch of N cells",
+                  "source_object_normalized": "batch-level scRNA-seq cell annotation instance",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor metadata",
+                  "transformation_chain_verbatim": [
+                    "All baselines are evaluated using the same input format and candidate label set for fair comparison.",
+                    "These models are directly optimized for answer-only classification."
+                  ],
+                  "transformation_chain_normalized": [
+                    "use same batch-level input format",
+                    "train without reasoning traces",
+                    "answer-only classification"
+                  ],
+                  "model_visible_form_verbatim": "All baselines are evaluated using the same input format and candidate label set for fair comparison.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "same input format and candidate label set",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "baseline_only",
+                  "evidence_quote": "same input format and candidate label set",
+                  "section_heading": "B.2 Baselines",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Reasoning distillation via o1",
+                  "model_name": "OpenAI o1",
+                  "lifecycle_phase": "inference",
+                  "task_or_configuration_verbatim": "Reasoning Distillation via Rejection Sampling",
+                  "source_object_verbatim": "10,155 instances in CellPuzzles",
+                  "source_object_normalized": "CellPuzzles benchmark instances",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor metadata and candidate labels",
+                  "transformation_chain_verbatim": [
+                    "Each input is paired with the standardized prompt shown in Table 1.",
+                    "We generate 8 candidate responses.",
+                    "We then apply rejection sampling to filter out low-quality outputs."
+                  ],
+                  "transformation_chain_normalized": [
+                    "pair with standardized prompt",
+                    "sample 8 candidate responses",
+                    "reject outputs that do not match format and ground truth"
+                  ],
+                  "model_visible_form_verbatim": "We use o1 [22] to generate reasoning traces and predictions",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "Each input is paired with the standardized prompt shown in Table 1.",
+                  "fusion_topology": "concatenation",
+                  "text_role": "generated_output",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "We use o1 [22] to generate reasoning traces and predictions",
+                  "section_heading": "4.2.1 Reasoning Distillation via Rejection Sampling",
+                  "supporting_figure_or_table": "Table 1",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "SFT on distilled reasoning traces",
+                  "model_name": "Qwen2.5-7B-Instruct",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Supervised Fine-tuning with Distilled Reasoning",
+                  "source_object_verbatim": "the distilled dataset",
+                  "source_object_normalized": "distilled reasoning traces and correct predictions",
+                  "source_modality_normalized": "text-native biological prompt-response pairs",
+                  "transformation_chain_verbatim": [
+                    "This distilled dataset is then used for SFT, serving as a cold start initialization",
+                    "The model acquires the basic capacity to follow instructions, adhere to the required response format, and reason across multiple entities within a batch."
+                  ],
+                  "transformation_chain_normalized": [
+                    "use distilled demonstrations",
+                    "initialize policy",
+                    "learn structured reasoning and correct predictions"
+                  ],
+                  "model_visible_form_verbatim": "high-quality demonstrations of structured reasoning and correct predictions",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "This distilled dataset is then used for SFT",
+                  "fusion_topology": "concatenation",
+                  "text_role": "paired_alignment_supervision",
+                  "input_status": "paired_alignment_input",
+                  "evidence_quote": "This distilled dataset is then used for SFT",
+                  "section_heading": "4.2.2 Supervised Fine-tuning with Distilled Reasoning",
+                  "supporting_figure_or_table": null,
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "GRPO reinforcement learning",
+                  "model_name": "Qwen2.5-7B-Instruct",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Reinforcement Learning with GRPO",
+                  "source_object_verbatim": "a training input x",
+                  "source_object_normalized": "batch-level training input",
+                  "source_modality_normalized": "text-native biological prompt with candidate labels",
+                  "transformation_chain_verbatim": [
+                    "GRPO samples a group of G candidate responses",
+                    "the normalized advantage is computed",
+                    "The KL divergence term DKL penalizes deviation from a reference policy"
+                  ],
+                  "transformation_chain_normalized": [
+                    "sample grouped rollouts",
+                    "compute relative advantages",
+                    "apply KL-regularized policy optimization"
+                  ],
+                  "model_visible_form_verbatim": "GRPO samples a group of G candidate responses",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "Given a training input x",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "GRPO samples a group of G candidate responses",
+                  "section_heading": "4.3 Reinforcement Learning with GRPO",
+                  "supporting_figure_or_table": null,
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Decomposed cell-level reasoning",
+                  "model_name": "Cell-o1",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "a decomposed variant in which each cell within a batch is annotated independently",
+                  "source_object_verbatim": "a batch of N cells and N candidate labels",
+                  "source_object_normalized": "individual cell instances split from a batch",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor context",
+                  "transformation_chain_verbatim": [
+                    "we split the task into N individual classification instances",
+                    "one involving one cell and the full candidate label set",
+                    "the model no longer has access to other cells in the batch during inference"
+                  ],
+                  "transformation_chain_normalized": [
+                    "split batch into single-cell tasks",
+                    "retain full candidate label set",
+                    "remove batch-level context"
+                  ],
+                  "model_visible_form_verbatim": "You will be given the gene expression profile of a single cell from a specific donor.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "You will also receive a list of candidate cell types-choose the one that best fits this cell .",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "ablation_only",
+                  "evidence_quote": "we split the task into N individual classification instances",
+                  "section_heading": "C Cell-level vs. Batch-level Reasoning",
+                  "supporting_figure_or_table": "Table 10",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Cell-level answer-only prediction",
+                  "model_name": "Llama3.1-8B-Instruct and Qwen2.5-7B-Instruct",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Cell-level Prediction Setup",
+                  "source_object_verbatim": "a single cell from a specific donor",
+                  "source_object_normalized": "single-cell annotation instance",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor context",
+                  "transformation_chain_verbatim": [
+                    "Models have not been exposed to any reasoning tasks",
+                    "They directly predict answers from the input without generating reasoning traces."
+                  ],
+                  "transformation_chain_normalized": [
+                    "train without reasoning traces",
+                    "direct answer-only classification"
+                  ],
+                  "model_visible_form_verbatim": "directly predict answers from the input without generating reasoning traces.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "directly predict answers from the input without generating reasoning traces",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "baseline_only",
+                  "evidence_quote": "directly predict answers from the input without generating reasoning traces.",
+                  "section_heading": "B.2 Baselines",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Open-ended cell type generation",
+                  "model_name": "Cell-o1 and baselines",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "open-ended QA setup",
+                  "source_object_verbatim": "its gene expression profile and metadata",
+                  "source_object_normalized": "single-cell gene expression with donor metadata",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor metadata",
+                  "transformation_chain_verbatim": [
+                    "the model is prompted to freely generate a cell type name for each cell in a given batch",
+                    "without access to a constrained label set"
+                  ],
+                  "transformation_chain_normalized": [
+                    "free-form cell type generation",
+                    "no constrained candidate set"
+                  ],
+                  "model_visible_form_verbatim": "the model is prompted to freely generate a cell type name for each cell in a given batch",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "plain_language_prompt_or_question",
+                  "insertion_or_fusion_verbatim": "without access to a constrained label set",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "the model is prompted to freely generate a cell type name",
+                  "section_heading": "D Open-ended QA vs. Constrained QA",
+                  "supporting_figure_or_table": "Table 12",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Cell-level prediction setup",
+                  "model_name": "Llama3.1-8B-Instruct and Qwen2.5-7B-Instruct",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "Cell-level Prediction Setup",
+                  "source_object_verbatim": "one cell and the full candidate label set",
+                  "source_object_normalized": "individual cell annotation instance with shared donor context and full candidate label set",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor metadata",
+                  "transformation_chain_verbatim": [
+                    "we split the task into N individual classification instances",
+                    "These models directly predict answers from the input without generating reasoning traces."
+                  ],
+                  "transformation_chain_normalized": [
+                    "split batch into single-cell classification instances",
+                    "answer-only classification"
+                  ],
+                  "model_visible_form_verbatim": "The final answer should be a single string with exactly one cell type.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "one cell and the full candidate label set",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "baseline_only",
+                  "evidence_quote": "directly predict answers from the input without generating reasoning traces",
+                  "section_heading": "C Cell-level vs. Batch-level Reasoning",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "Open-ended QA setup",
+                  "model_name": "Llama3.1-8B-Instruct, Qwen2.5-7B-Instruct, GPT-4o-mini, GPT-4o, o3-mini, o1, Cell-o1",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "Open-ended QA Setup",
+                  "source_object_verbatim": "a given batch of N cells",
+                  "source_object_normalized": "batch-level cell type annotation instance without constrained label set",
+                  "source_modality_normalized": "single-cell RNA sequencing gene expression plus donor metadata",
+                  "transformation_chain_verbatim": [
+                    "the model is prompted to freely generate a cell type name for each cell in a given batch",
+                    "without access to a constrained label set"
+                  ],
+                  "transformation_chain_normalized": [
+                    "free-text cell type generation",
+                    "no constrained candidate label set"
+                  ],
+                  "model_visible_form_verbatim": "freely generate a cell type name for each cell in a given batch",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "gene expression profile and metadata, without access to a constrained label set",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "without access to a constrained label set",
+                  "section_heading": "D Open-ended QA vs. Constrained QA",
+                  "supporting_figure_or_table": "Table 12",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                }
+              ]
+            },
+            "extraction_time": 433.716037273407,
+            "error": null,
+            "metadata": {
+              "structured_attempted": false,
+              "structured_failed": false,
+              "fallback_used": false,
+              "fallback_error_class": null
+            }
+          }
+        ],
+        "provenance": {
+          "document_id": "456fe5ea83696fddfef1d121943a797b",
+          "resolution": "chunk",
+          "node_entries": 0,
+          "chunk_records": 90
+        }
+      }
+    },
+    {
+      "name": "graph_mapping",
+      "runtime_seconds": 0.0,
+      "status": "success",
+      "artifacts": {
+        "provenance_bound": {
+          "nodes_seen": 11,
+          "bound_verbatim": 11,
+          "bound_observed": 0,
+          "bound_document": 0,
+          "unresolved": 0
+        },
+        "graph": {
+          "processing_mode": "many-to-one",
+          "source_model_count": 1,
+          "node_count": 11,
+          "edge_count": 10
+        }
+      }
+    }
+  ]
+}

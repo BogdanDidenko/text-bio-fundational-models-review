@@ -1,0 +1,452 @@
+{
+  "summary": {
+    "runtime_seconds": 354.7579,
+    "page_count": 23,
+    "extraction_success": true,
+    "fallback_used": false,
+    "node_count": 9,
+    "edge_count": 8
+  },
+  "steps": [
+    {
+      "name": "pipeline",
+      "runtime_seconds": 354.7579,
+      "status": "success",
+      "artifacts": {
+        "mode": "api",
+        "source": "/Users/bogdan.didenko/lpnu/review/data/docling_include_vlm_52_2026-07-10_nolimits/documents/full_2026_07_06_rec_001773.docling.json",
+        "processing_mode": "many-to-one",
+        "backend": "llm",
+        "inference": "local",
+        "debug": true
+      }
+    },
+    {
+      "name": "docling_conversion",
+      "runtime_seconds": 0.4516,
+      "status": "success",
+      "artifacts": {
+        "pages": [
+          {
+            "page_number": 1,
+            "text_content": "## Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning\n\nZehui Li 1 2 Vallijah Subasri 3 4 Yifei Shen 1 Dongsheng Li 1 Yiren Zhao 2 Guy-Bart Stan 2 Caihua Shan 1\n\n### Abstract\n\nLarge Language Models (LLMs) demonstrate remarkable generalizability across diverse tasks, yet genomic foundation models (GFMs) still require separate finetuning for each downstream application, creating significant overhead as model sizes grow. Moreover, existing GFMs are constrained by rigid output formats, limiting their applicability to various genomic tasks. In this work, we revisit the transformer-based auto-regressive models and introduce Omni-DNA , a family of crossmodal multi-task models ranging from 20 million to 1 billion parameters. Our approach consists of two stages: (i) pretraining on DNA sequences with next token prediction objective, and (ii) expanding the multi-modal task-specific tokens and finetuning for multiple downstream tasks simultaneously. When evaluated on the Nucleotide Transformer and GB benchmarks, Omni-DNA achieves state-of-the-art performance on 18 out of 26 tasks. Through multi-task finetuning, Omni-DNA addresses 10 acetylation and methylation tasks at once, surpassing models trained on each task individually. Finally, we design two complex genomic tasks, DNA2Function and Needle-in-DNA , which map DNA sequences to textual functional descriptions and images, respectively, indicating OmniDNA's cross-modal capabilities to broaden the scope of genomic applications. All the models are available through https://huggingface. co/collections/zehui127 .\n\n## 1. Introduction\n\nThe volume of genomic data has been increasing at an exponential rate over the past decades (Lathe et al., 2008), making it infeasible to annotate these sequences manually.\n\n1 Microsoft Research 2 Imperial College London 3 Vector Institute 4 University Health Network. Correspondence to: Zehui Li &lt; zl6222@ic.ac.uk &gt; , Caihua Shan &lt; caihua.shan@microsoft.com &gt... [truncated, total 4281 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 2,
+            "text_content": "(MLPs) are attached for finetuning. This paradigm limits the generalization of the model in two ways. (i) The pretrained model needs to be separately finetuned K times given K tasks. This results in the additional cost of storing O ( K ) copies of model weights, incurring significant I/O latency, memory costs, and context-switching penalties. This also prevents models from leveraging shared biological patterns (e.g., conserved regulatory motifs or chromatin accessibility signatures (Van Roey et al., 2012; Yang et al., 2023)) across finetuning tasks. (ii) The output space of existing models is rigidly constrained to DNA sequences or predefined genomic labels, limiting their ability to generate diverse, semantically meaningful outputs. As a result, current GFMs struggle for multi-modal downstream tasks such as DNA2Text and DNA2Image.\n\nTo overcome these limitations, we introduce Omni-DNA , a family of cross-modal multi-task models ranging from 20 million to 1 billion parameters. This is achieved through carefully ablated pretraining of transformer-based autoregressive models on DNA sequences and cross-modal multi-task finetuning.\n\nThe pretraining stage explores previously overlooked key configurations and their impact on training dynamics. This includes a comparison of non-parametric LayerNorm (Ba, 2016) vs. RMSNorm (Zhang &amp; Sennrich, 2019), RoPE (Su et al., 2024) vs. ALiBi (Press et al., 2021) positional embeddings, and other configurations, ultimately leading OmniDNA to achieve state-of-the-art performance on 18 out of 26 tasks on the Nucleotide Transformer (Dalla-Torre et al., 2024) and GB benchmarks (Greˇ sov´ a et al., 2023). When evaluated with a conventional paradigm, Omni-DNA outperforms existing bidirectional models.\n\nCross-modal multi-task finetuning expands the vocabulary in the model's tokenizer by dynamically modifying the embedding matrix. To address the distribution shift of existing tokens due to vocabulary expansion (Hewitt, 2021), we propose Impor... [truncated, total 5919 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 3,
+            "text_content": "Figure 3. (a) Cross Entropy Loss on test set during pretraining. The models with varying sizes show a stable decrease in loss. (b) No-Bias Normalization Layer stabilizes the average value of feed-forward weights in transformer layers. This pattern is consistent across all the transformer blocks.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nTwo-panel line plot showing language model training dynamics versus tokens seen.\n\nFigure type: multi-line experimental result plot.\n\nPanels and axes:\n- Panel (a): CrossEntropyLoss versus Tokens Seen (billions).\n- Panel (b): Avg Weight versus Tokens Seen (billions).\n- X-axis ranges from 0 to 300 billion tokens.\n- Legend compares model/data scale conditions: 20M, 60M, 116M, 300M, 700M, and 1B.\n\nMeasured quantities:\n- Cross-entropy loss during training.\n- Average weight metric over training tokens.\n\nMain visible finding:\n- Cross-entropy loss decreases over training for all curves, with larger-scale conditions generally achieving lower loss.\n- In panel (b), the 20M curve shows much larger and noisier growth in average weight, while most larger models remain comparatively stable; the 60M curve trends downward below zero.\n\n<!-- formula-not-decoded -->\n\nNotably, y could include new set of vocabulary V z that do not overlap with V o . Therefore, each term in Equation (1) is computed through Equation (2).\n\n<!-- formula-not-decoded -->\n\nwhere h t -1 is the neural representation of the prefix sequence ( y 1: t -1 , x ) , e m is the embedding of vocab m .\n\nAs a result, during the finetuning stage, the embeddings for each new vocabulary token n ∈ V z must be initialized, and the original token probabilities are shifted due to the expanded output space, as detailed in Hewitt (2021).\n\n## 3. Approach\n\nIn this section, we introduce Omni-DNA with various model sizes for genomic tasks. The pretraining process is present in Section 3.1, followed by cross-modal multi-task finetuning in Section 3.2. The framework is illustrated in Figure 4.\n\n### 3.1. Pretrainin... [truncated, total 5294 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 4,
+            "text_content": "Figure 4. Overview of of Omni-DNA architecture. In pretraining , Omni-DNA are trained on DNA only with next-token prediction. Multi-task finetuning enables the model to perform diverse tasks including classification, function prediction, and DNA-to-image.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram for an “Omni-DNA (Auto-Regressive Transformer)” system. The figure has two main phases: “Pretraining” on the left and “Multi-task Finetuning” on the right. It shows next-token prediction with a BPE tokenizer over DNA-like tokens such as `TATA`, `GCGC`, and `G`, feeding token IDs into the transformer.\n\nThe finetuning side shows task-unified inputs with “Instructions” and “Response” tokens for multiple downstream tasks, including “Classification,” “Function Prediction,” and “DNA2Images.” Example prompts ask whether DNA is H3/H4, predict DNA function, and map DNA to handwritten digits. The diagram emphasizes a shared expanded BPE tokenizer and task unification format for DNA-to-label, DNA-to-text, and DNA-to-tensor outputs. No quantitative axes or experimental results are shown.\n\nTable 1. Examples of Genomic Task Unification, including inputs, labels, instructions, and responses.\n\n| Task Type                 | Original      | Original                          | Unified Format               | Unified Format                          |\n|---------------------------|---------------|-----------------------------------|------------------------------|-----------------------------------------|\n|                           | Input x ( i ) | Target y ( i )                    | Instruction ˜ x ( i )        | Response ˜ y ( i )                      |\n| Promoter CLS (2024)       | AT...T        | 0/1                               | AT...Tis this a promoter?    | Yes/No                                  |\n| Enhancer Types CLS (2024) | AT...A        | 0/1/2                             | AT...Awhat is enhancer type? | Type 0/1/2                              |\n| DNA2... [truncated, total 4999 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 5,
+            "text_content": "Response Discretization In many genomic tasks such as genomic assay prediction (Avsec et al., 2021a) and structure prediction (Abramson et al., 2024), the response is a highdimensional continuous variable y ∈ R d 1 × d 2 ···× d k . To adopt Omni-DNA, we need to discretize the response first.\n\nHere we consider a three-dimensional continuous variable y ∈ R d 1 × d 2 × d 3 . Response discretization is achieved by training a VQ-VAE (Van Den Oord et al., 2017), which learns a latent embedding space of dimension [ K,D ] , where K represents the number of quantized embeddings, and D denotes the dimensionality of each latent embedding vector e i ∈ R D . The VQ-VAE compresses the input y ( i ) to a sequence of discrete latent variables ˜ y ( i ) = { e 0 , e 1 , ..., e L } ∈ N L K . Here, L = d ′ 1 × d ′ 2 corresponds to the spatial dimensions of the encoded variable ˜ y ( i ) , where d ′ 1 = d 1 /r and d ′ 2 = d 2 /r . The compression ratio r quantifies the reduction in dimensionality achieved during encoding. The decoder then reconstructs the input y from discrete latent sequences ˜ y . By employing response discretization, any DNA-to-continuous-variable task can be converted into a DNA-to-discrete-token task.\n\n## 4. Results on Conventional Genomics Tasks\n\nSetup To evaluate the quality of Omni-DNA and establish a baseline for multi-tasking, we first follow the conventional evaluation process in single task mode. We compare Omni-DNA with DNABERT-2 (Zhou et al., 2023), NTTransformer (Dalla-Torre et al., 2024), HyenaDNA (Nguyen et al., 2024), and Caduceus models (Schiff et al., 2024), across two widely used benchmarks: NT-Downstream Tasks (Dalla-Torre et al., 2024) and Genomic Benchmark (Greˇ sov´ a et al., 2023). Evaluation is performed using a conventional approach, where a MLP head is attached to the pretrained models, followed by full-size finetuning. The detailed set up of the evaluation is in Appendix D.\n\n### 4.1. Nucleotide Transformer Downstream Tasks\n\nNT Downstream Ta... [truncated, total 5225 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 6,
+            "text_content": "Table 2. Comparison of Omni-DNA with existing GFMs on 18 NT downstream tasks. The family of Omni-DNA obtains the best average result. In splice tasks, Omni-DNA performs lower than NT models but still surpasses other models.\n\n| Pretraining Objective   | Pretraining Data        | Model              |   Histone (AVG. MCC in 10 Tasks) ↑ |   Enhancer (AVG. MCC in 2 Tasks) ↑ |   Promoter (AVG. F1 in 3 Tasks) ↑ |   Splice (AVG. F1 in 3 Tasks) ↑ |   Average (Across 18 Tasks) ↑ |\n|-------------------------|-------------------------|--------------------|------------------------------------|------------------------------------|-----------------------------------|---------------------------------|-------------------------------|\n| MLM                     | Human                   | CADUCEUS-PH (1.9M) |                              0.635 |                             0.4925 |                             0.964 |                           0.942 |                         0.715 |\n|                         |                         | CADUCEUS-PS (1.9M) |                              0.585 |                              0.454 |                             0.964 |                           0.912 |                         0.689 |\n|                         |                         | DNABERT2 (120M)    |                              0.551 |                              0.470 |                             0.966 |                           0.959 |                         0.679 |\n|                         |                         | NT (50M)           |                              0.493 |                              0.465 |                             0.953 |                           0.980 |                         0.648 |\n|                         | Multi-                  | NT (100M)          |                              0.496 |                              0.475 |                             0.957 |                           0.983 |                         0.661 |\n|                 ... [truncated, total 8017 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 7,
+            "text_content": "Table 4. Performance comparison across 10 related acetylation and methylation tasks. Omni-DNA@mult. outperforms single-task models in 4 tasks, and achieves the second-best performance in 5 tasks, demonstrating the synergistic effect of multi-task genomic fine-tuning.\n\n|          | Omni-DNA@mult. (1B)   | Omni-DNA@sgl. (1B)   | DNABERT2@sgl. (117M)   | NT Transformer@sgl. (500M)   | CADUCEUS-PH@sgl. (1.9M)   |\n|----------|-----------------------|----------------------|------------------------|------------------------------|---------------------------|\n| H3       | 0 . 759 ± 0 . 021     | 0 . 824 ± 0 . 032    | 0 . 785 ± 0 . 033      | 0 . 784 ± 0 . 047            | 0 . 815 ± 0 . 048         |\n| H3K14AC  | 0 . 890 ± 0 . 011     | 0 . 697 ± 0 . 077    | 0 . 516 ± 0 . 028      | 0 . 551 ± 0 . 021            | 0 . 631 ± 0 . 026         |\n| H3K36ME3 | 0 . 674 ± 0 . 008     | 0 . 686 ± 0 . 002    | 0 . 591 ± 0 . 020      | 0 . 625 ± 0 . 013            | 0 . 601 ± 0 . 129         |\n| H3K4ME1  | 0 . 565 ± 0 . 015     | 0 . 617 ± 0 . 000    | 0 . 511 ± 0 . 028      | 0 . 550 ± 0 . 021            | 0 . 523 ± 0 . 039         |\n| H3K4ME2  | 0 . 691 ± 0 . 008     | 0 . 547 ± 0 . 006    | 0 . 336 ± 0 . 040      | 0 . 319 ± 0 . 045            | 0 . 487 ± 0 . 170         |\n| H3K4ME3  | 0 . 785 ± 0 . 008     | 0 . 642 ± 0 . 001    | 0 . 352 ± 0 . 077      | 0 . 410 ± 0 . 033            | 0 . 544 ± 0 . 045         |\n| H3K79ME3 | 0 . 709 ± 0 . 017     | 0 . 752 ± 0 . 007    | 0 . 613 ± 0 . 030      | 0 . 626 ± 0 . 026            | 0 . 697 ± 0 . 077         |\n| H3K9AC   | 0 . 693 ± 0 . 013     | 0 . 701 ± 0 . 002    | 0 . 542 ± 0 . 029      | 0 . 562 ± 0 . 040            | 0 . 622 ± 0 . 030         |\n| H4       | 0 . 773 ± 0 . 013     | 0 . 822 ± 0 . 005    | 0 . 796 ± 0 . 027      | 0 . 799 ± 0 . 025            | 0 . 811 ± 0 . 022         |\n| H4AC     | 0 . 853 ± 0 . 014     | 0 . 652 ± 0 . 001    | 0 . 463 ± 0 . 041      | 0 . 495 ± 0 . 032            | 0 . 621 ± 0 . 054         |\n| A... [truncated, total 5821 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 8,
+            "text_content": "Figure 5. F1 scores and invalid percentages for Needle-in-DNA , averaged and per class . Omni-DNA outperforms both baselines.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nMulti-panel experimental result figure combining example outputs and bar plots. The top panel is a table-like visual labeled “Examples From Models” with columns for Class 0 through Class 3, showing “Valid” and “Invalid” image examples alongside DNA-like sequence snippets with highlighted motifs.\n\nBelow are bar charts of F1 Score and Invalid % for model comparisons. Legend: Omni-DNA, OLMO, Unpretrained, and a red dashed Random Guess baseline. Panels include Average, Class 0, Class 1, Class 2, and Class 3. The y-axes are “F1 Score ↑” and “Invalid % ↓”.\n\nMain visible finding: Omni-DNA achieves near-perfect F1 scores across classes with low invalid output rates, while OLMO and especially the unpretrained model show lower F1 or higher invalid percentages in several classes.\n\n, } , sampled from the MNIST dataset (Yadav &amp; Bottou, 2019). The dataset is split into finetuning, validation, and test sets in an 8:1:1 ratio.\n\nFollowing data discretization in Section 3.2, we train a VQVAE (Van Den Oord et al., 2017) with six quantized vectors of dimension 32 and a compression ratio of 4. This model converts the grayscale images of size 28 × 28 into 49 discrete tokens. It leverages a multi-task setting with two tasks: (1) classify the DNA sequences, and (2) generate the corresponding handwritten digit image. The details of dataset construction can be found in Appendix E.\n\nEvaluation and Baselines To assess the benefit of pretraining on DNA sequences, we employ two baselines: OLMo-1B, a natural language model pretrained on text with instruction tuning, and the Vanilla Model, which shares Omni-DNA's architecture but is randomly initialized without pretraining. The baselines and Omni-DNA (1B) are all fine-tuned on the fine-tuning dataset for 10 epochs.\n\nThe evaluation is conducted by two human annotators who independently... [truncated, total 4766 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 9,
+            "text_content": "Figure 6. Losses for Omni-DNA (116M) pretrained with ALiBi and RoPE, indicating RoPE's faster convergence and lower losses.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nLine plot of training/test cross entropy loss versus step `t`. The x-axis is labeled `t` and runs from 0 to about 800,000; the y-axis is labeled `Cross Entropy Loss (↓)` and spans roughly 4.0 to 5.75. The legend compares four curves/bands: Omni-DNA with Abilii test loss in orange, Omni-DNA with RoPE test loss in green, Abilii train loss in pink, and RoPE train loss in blue/purple. Both methods show a steep early loss drop followed by gradual decline; RoPE appears slightly lower than Abilii over much of training, especially later steps.\n\nFigure 7. Impact of model size on performance degradation due to vocabulary expansion. Larger models exhibit better resilience against distribution shifts.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nPlot comparing model performance by parameter count. It shows F1 score on `Promoter-TATA` on the y-axis versus `Parameter Count` on the x-axis, with points at 20M, 60M, 116M, 300M, 700M, and 1B. Legend indicates orange circles for “Classification Head Approach” and green stars for “Predict Labels as New Token.” Vertical lines connect paired results, with percentage drops annotated.\n\nMain visible finding: the classification-head approach consistently achieves higher F1 scores than predicting labels as new tokens, with the largest visible gap around 60M parameters and smaller gaps at larger model sizes.\n\n### 6.3. Impact of Token Replication Factor\n\nFigure 8 illustrates the effect of the token replication factor α on the promoter TATA classification task for Omni-DNA sized 116M and 1B. Without token replication ( α = 1 ), classification performance is poor. We find that setting α within the range [8, 11] is effective across various task types.\n\nFigure 8. Impact of the token replication factor α on the promoter TATA classification task.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nLine plot showing F1... [truncated, total 5432 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 10,
+            "text_content": "- Andrews, G., Fan, K., Pratt, H. E., Phalke, N., §, Z. C., Karlsson, E. K., Lindblad-Toh, K., Gazal, S., Moore, J. E., Weng, Z., et al. Mammalian evolution of human cis-regulatory elements and transcription factor binding sites. Science , 380(6643):eabn7930, 2023.\n- Avsec, ˇ Z., Agarwal, V., Visentin, D., Ledsam, J. R., GrabskaBarwinska, A., Taylor, K. R., Assael, Y., Jumper, J., Kohli, P., and Kelley, D. R. Effective gene expression prediction from sequence by integrating long-range interactions. Nature methods , 18(10):1196-1203, 2021a.\n- Avsec, ˇ Z., Weilert, M., Shrikumar, A., Krueger, S., Alexandari, A., Dalal, K., Fropf, R., McAnany, C., Gagneur, J., Kundaje, A., et al. Base-resolution models of transcription-factor binding reveal soft motif syntax. Nature genetics , 53(3):354-366, 2021b.\n- Ba, J. L. Layer normalization. arXiv preprint arXiv:1607.06450 , 2016.\n- Benegas, G., Batra, S. S., and Song, Y. S. Dna language models are powerful predictors of genome-wide variant effects. Proceedings of the National Academy of Sciences , 120(44):e2311219120, 2023.\n- Cheng, J., Novati, G., Pan, J., Bycroft, C., ˇ Zemgulyt˙ e, A., Applebaum, T., Pritzel, A., Wong, L. H., Zielinski, M., Sargeant, T., et al. Accurate proteome-wide missense variant effect prediction with alphamissense. Science , 381(6664):eadg7492, 2023.\n- Cheng, W., Song, Z., Zhang, Y., Wang, S., Wang, D., Yang, M., Li, L., and Ma, J. Dnalongbench: A benchmark suite for long-range dna prediction tasks. bioRxiv , pp. 2025-01, 2025.\n- Dalla-Torre, H., Gonzalez, L., Mendoza-Revilla, J., Lopez Carranza, N., Grzywaczewski, A. H., Oteri, F., Dallago, C., Trop, E., de Almeida, B. P., Sirelkhatim, H., et al. Nucleotide transformer: building and evaluating robust foundation models for human genomics. Nature Methods , pp. 1-11, 2024.\n- de Almeida, B. P., Dalla-Torre, H., Richard, G., Blum, C., Hexemer, L., G´ elard, M., Mendoza-Revilla, J., Pandey, P., Laurent, S., Lopez, M., et al. Segmentnt: annotating the genome ... [truncated, total 4826 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 11,
+            "text_content": "- Pokholok, D. K., Harbison, C. T., Levine, S., Cole, M., Hannett, N. M., Lee, T. I., Bell, G. W., Walker, K., Rolfe, P. A., Herbolsheimer, E., et al. Genome-wide map of nucleosome acetylation and methylation in yeast. Cell , 122(4):517-527, 2005.\n- Press, O., Smith, N. A., and Lewis, M. Train short, test long: Attention with linear biases enables input length extrapolation. arXiv preprint arXiv:2108.12409 , 2021.\n- Qiao, L., Ye, P., Ren, Y., Bai, W., Liang, C., Ma, X., Dong, N., and Ouyang, W. Model decides how to tokenize: Adaptive dna sequence tokenization with mxdna. arXiv preprint arXiv:2412.13716 , 2024.\n- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., Sutskever, I., et al. Language models are unsupervised multitask learners. OpenAI blog , 1(8):9, 2019.\n- Rae, J. W., Borgeaud, S., Cai, T., Millican, K., Hoffmann, J., Song, F., Aslanides, J., Henderson, S., Ring, R., Young, S., et al. Scaling language models: Methods, analysis &amp; insights from training gopher. arXiv preprint arXiv:2112.11446 , 2021.\n- Sanabria, M., Hirsch, J., Joubert, P. M., and Poetsch, A. R. Dna language model grover learns sequence context in the human genome. Nature Machine Intelligence , 6(8): 911-923, 2024.\n- Sanh, V., Webson, A., Raffel, C., Bach, S. H., Sutawika, L., Alyafeai, Z., Chaffin, A., Stiegler, A., Scao, T. L., Raja, A., et al. Multitask prompted training enables zero-shot task generalization. arXiv preprint arXiv:2110.08207 , 2021.\n- Schiff, Y., Kao, C.-H., Gokaslan, A., Dao, T., Gu, A., and Kuleshov, V. Caduceus: Bi-directional equivariant long-range dna sequence modeling. arXiv preprint arXiv:2403.03234 , 2024.\n- Schmidinger, N., Schneckenreiter, L., Seidl, P., Schimunek, J., Hoedt, P.-J., Brandstetter, J., Mayr, A., Luukkonen, S., Hochreiter, S., and Klambauer, G. Bio-xlstm: Generative modeling, representation and in-context learning of biological and chemical sequences. arXiv preprint arXiv:2411.04165 , 2024.\n- Schoch, C. L., Ciufo, S., Domrachev, M., Hotton, C.... [truncated, total 4685 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 12,
+            "text_content": "- sox9 competes for epigenetic factors to switch stem cell fates. Nature Cell Biology , 25(8):1185-1195, 2023.\n- Zhang, B. and Sennrich, R. Root mean square layer normalization. Advances in Neural Information Processing Systems , 32, 2019.\n- Zheng, J., Qiu, S., Shi, C., and Ma, Q. Towards lifelong learning of large language models: A survey. arXiv preprint arXiv:2406.06391 , 2024.\n- Zhou, J. and Troyanskaya, O. G. Predicting effects of noncoding variants with deep learning-based sequence model. Nature methods , 12(10):931-934, 2015.\n- Zhou, Z., Ji, Y., Li, W., Dutta, P., Davuluri, R., and Liu, H. Dnabert-2: Efficient foundation model and benchmark for multi-species genome. arXiv preprint arXiv:2306.15006 , 2023.",
+            "metadata": {}
+          },
+          {
+            "page_number": 13,
+            "text_content": "#### A. Pretraining Model Configurations\n\nThe family of Omni-DNA has six models, and their parameters and architectures are shown in Table 6 and Table 7.\n\nTable 6. Architecture for 6 Omni-DNA models.\n\n| Parameters   |   Layers |   Heads |   d model | LayerNorm   |\n|--------------|----------|---------|-----------|-------------|\n| 20M          |        8 |       8 |       256 | RMS         |\n| 60M          |        8 |       8 |       512 | RMS         |\n| 116M         |       12 |      12 |       768 | No Bias     |\n| 300M         |       16 |      16 |      1024 | RMS         |\n| 700M         |       16 |      16 |      1536 | RMS         |\n| 1B           |       16 |      16 |      2048 | No Bias     |\n\nTable 7. Comparison of pretraining setup between Omni-DNA, DNABERT2, and NT-transformer.\n\n|                             | Omni-DNA (six sizes)             | DNABERT2 (116M)             | NT-transformer (5 sizes)   |\n|-----------------------------|----------------------------------|-----------------------------|----------------------------|\n| Layer norm type             | non-parametric/RMSNorm           | parametric                  | parametric                 |\n| Positional embeddings       | RoPE                             | ALiBi                       | RoPE                       |\n| Attention variant           | full                             | full                        | full                       |\n| Biases                      | none                             | in both LN and Attention    | in both LN and Attention   |\n| Block type                  | sequential                       | sequential                  | sequential                 |\n| Activation                  | SwiGLU                           | GEGLU                       | SwiGLU                     |\n| Sequence length (In Tokens) | 250                              | 128                         | 1000                       |\n| Batch size (Across GPUs)    | 384                           ... [truncated, total 4467 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 14,
+            "text_content": "| Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   | Table 8. Comparison of Pretraining Models and Fine-tuning Performance Across Tasks (Part 1)   |\n|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|\n| Metric                                                                    ... [truncated, total 24239 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 15,
+            "text_content": "- Y : Represents pyrimidines (C or T).\n- Other characters (e.g., W , S , K , M , etc.) represent specific nucleotide subsets or unknown bases.\n\nThese characters were removed during preprocessing to retain only the core nucleotide sequences ( { A, T, G, C } ), ensuring consistency and facilitating the deduplication process.\n\n#### C.2. Chunk-Based Deduplication\n\nThe deduplication procedure was performed as follows:\n\n1. Chunking : The genome was divided into non-overlapping chunks of 1024 base pairs.\n2. Exact Matching : Identical sequences across the dataset were identified and removed.\n3. Efficiency : This step utilized hashing techniques and optimized string comparison algorithms to handle the large dataset efficiently.\n\n#### C.3. Results\n\nThe raw genome dataset initially contained approximately 170 billion nucleotides. After applying the deduplication process, the dataset was reduced to 30 billion nucleotides, representing unique sequences across multiple species.\n\n#### C.4. Rationale for Multiple Epochs\n\nAlthough deduplication significantly reduced the size of the dataset, the smaller dataset was iterated over multiple epochs during pretraining. This approach ensured that repeated sequences were temporally separated during the training process. By maximizing the temporal distance between occurrences of the same sequence, the risk of overfitting was mitigated, leading to better generalization performance.\n\n#### D. Finetuning with Classificatoin Head\n\nBasic Setup We closely follow the setup from Caduceus (Schiff et al., 2024) for evaluating Omni-DNA. The following models are compared: Omni-DNA, DNABERT-2 (Zhou et al., 2023), NT-Transformer (Dalla-Torre et al., 2024), HyenaDNA (Nguyen et al., 2024), and the Caduceus models (Schiff et al., 2024).\n\nFor NT Downstream tasks, we use a maximum fine-tuning epoch of 20, while for the Genomic Benchmark (GB) tasks, we use a maximum of 10 epochs. Both NT Downstream and GB tasks include a training set and a test set. For hyperpar... [truncated, total 3123 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 16,
+            "text_content": "Table 10. Finetuning hyperparameters.\n\n| Hyperparameter              | Value                                             |\n|-----------------------------|---------------------------------------------------|\n| Peak learning rate          | [3 × 10 - 4 , 1 × 10 - 5 , 5 × 10 - 6 ] [8,16,32] |\n| Per device train batch size |                                                   |\n| Max gradient norm           | 1.0                                               |\n| Weight decay                | 0.1                                               |\n| Adam β 1                    | 0.9                                               |\n| Adam β 2                    | 0.999                                             |\n| Adam ϵ                      | 1 × 10 - 8                                        |\n| Optimizer                   | ADAMW                                             |\n\nAdditional Notes We observe a performance gap in HyenaDNA between our replication results, which align with those of (Schiff et al., 2024), and the results reported in the original paper (Nguyen et al., 2024), both on NT downstream and GB tasks. Our replication follows our own setup, yielding results consistent with (Schiff et al., 2024). Upon reviewing the code within the container image provided by (Nguyen et al., 2024), we identified additional techniques such as Exponential Moving Average (EMA) and data augmentation that were employed, which may account for the discrepancy. In this work, we use HyenaDNA results obtained without these techniques as the baseline.\n\n#### E. Needles in a DNA\n\nFor random DNA sequence generation, we use the Expectation-Maximization (EM) algorithm implemented in the Python package hmmlearn to train a Hidden Markov Model (HMM) with two states, learning both the transition and emission probabilities. We then insert one of the functional motifs from { TATAAA, CAAT, GGGCGG, TTAGGG } into the randomly generated sequences. Finally, we filter the sequences, preserving only those t... [truncated, total 3578 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 17,
+            "text_content": "- The exponential moving average (EMA) variant, which updates the codebook using an EMA of past embeddings to stabilize training.\n\nGiven a latent representation z e , the closest embedding vector z q is selected based on the Euclidean distance. The loss function includes a commitment loss term, weighted by a hyperparameter β , ensuring that encoded representations stay close to their assigned embedding vectors.\n\n#### E.1.3. DECODER\n\nThe decoder reconstructs the input from the discretized representation. It mirrors the encoder with transposed convolutions for upsampling:\n\n- A 3 × 3 convolution to process the quantized representation.\n- A residual stack for improved reconstruction.\n- Two transposed convolutions ( 4 × 4 , stride 2) to upsample back to the original image size.\n\n#### E.1.4. TRAINING AND HYPERPARAMETERS\n\nWe train the VQ-VAE using the Adam optimizer with a learning rate of 5 × 10 -4 . The following hyperparameters are used:\n\n- Number of hidden channels: 128\n- Number of residual layers: 2\n- Number of residual hidden units: 32\n- Codebook size: 6\n- Embedding dimension: 32\n- Commitment cost ( β ): 0.25\n- Decay factor (for EMA variant): 0.99\n\nThe reconstruction loss is measured using mean squared error (MSE), and training is monitored with additional metrics such as perplexity and codebook usage. The trained VQ-VAE is used to convert MNIST images into discrete tokens, which are then linked to DNA motifs for downstream analysis.",
+            "metadata": {}
+          },
+          {
+            "page_number": 18,
+            "text_content": "Figure 9. Images Generated by Omni-DNA. These digits are novel in the sense that they do not exist in the training set.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nFigure type: image grid / dataset sample panel.\n\nVisible elements: an 8x8 grid of small grayscale handwritten digit images on a black background, with white digits including 0, 1, 2, and 3. No axes, panel labels, legend, scale bar, or annotations are visible.\n\nQuantity shown: visual examples of handwritten digit classes, likely from an image classification dataset or model input/output panel.\n\nMain visible finding: the panel shows multiple handwritten digit instances with varied shapes and stroke styles, emphasizing class variability rather than presenting a measured biological result.\n\n#### F. Functional Annotation Generation\n\nFigure 10. Seq2Func Dataset Construction and Evaluation Pipeline. Genomic sequences from 20 species are annotated with functional descriptions using an LLM, generating 300,000 DNA-function pairs. The evaluation pipeline compares model predictions against ground truth, with an LLM determining transcription type accuracy.\n\n<!-- image -->\n\nSCIENTIFIC_FIGURE\n\nWorkflow/model evaluation schematic for generating and evaluating an LLM-annotated DNA/RNA function dataset. The left panel, titled “Dataset Generation from NCBI Ref Seq,” shows genomes from 20 species including human, chimpanzee, and horse, with an example sequence “ATAC” linked to “Lnc_RNA 2789” and a short function annotation. An “LLM (Annotator)” extends the short annotation into a longer functional description, producing “300,000 DNA, Function Pairs” with an example mentioning lncRNA 2789.\n\nThe right panel, titled “Evaluation Pipeline,” shows an input DNA sequence “ATGGACG...,” a ground-truth description involving Hsa-miR-4263 regulation of gene expression, and a model prediction saying it is a microRNA found in chickens. An “LLM (Evaluator)” compares ground truth and prediction using a prompt to decide transcription type, outputting... [truncated, total 2475 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 19,
+            "text_content": "- GCF-018350175.1, cat\n- GCF-011100685.1, dog\n- GCF-000696695.1, burgud\n- GCF-000003025.6, pig\n- GCF-016772045.2, sheep\n- GCF-016699485.2, chicken\n- GCF-025200985.1, fly\n- GCF-000002035.6, Zebrafish\n- GCF-029289425.2, Pygmy Chimpanzee\n- GCF-029281585.2, Western gorilla\n- GCF-028885655.2, Pongo abelii\n- GCF-028885625.2, Bornean orangutan\n- GCF-003339765.1, Rhesus monkey\n- GCF-037993035.1, Macaca fascicularis\n- GCF-003668045.3, Chinese hamster\n- GCF-041296265.1, horse\n\nThe construction process follows these key steps:\n\n#### Sequence Extraction and Functional Annotation\n\n- The raw dataset includes a diverse set of RNA sequences with different functional annotations.\n- The original dataset consists of the following RNA types and their counts:\n- -mRNA: 220397\n- -tRNA: 20674\n- -snRNA: 18996\n- -snoRNA: 15577\n- -lncRNA: 14291\n- -miRNA: 12238\n- -primary-transcript: 8644\n- -rRNA: 6225\n- -transcript: 3860\n- -ncRNA: 477\n- -guide-RNA: 143\n- -antisense-RNA: 28\n- -RNase-P-RNA: 9\n- -V-gene-segment: 7\n- -scRNA: 7\n- -Y-RNA: 6\n- -telomerase-RNA: 5",
+            "metadata": {}
+          },
+          {
+            "page_number": 20,
+            "text_content": "- -vault-RNA: 4\n- -SRP-RNA: 4\n- -RNase-MRP-RNA: 3\n- -C-gene-segment: 2\n- -D-gene-segment: 1\n- To refine the dataset, only seven functional RNA types are retained:\n- -mRNA\n- -tRNA\n- -snRNA\n- -snoRNA\n- -lncRNA\n- -miRNA\n- -rRNA\n\n#### Annotation Enhancement Using a Large Language Model (LLM)\n\n- A LLMAnnotator is employed to extend and refine functional annotations.\n- The model is prompted with: Describe the functions of the given gene/RNA precisely and concisely. '\n- For example, an initial annotation like Lnc RNA 2789' is expanded into:\n\n'It is Lnc RNA 2789 that doesn't encode proteins but regulates various biological processes.'\n\n#### Final Dataset Composition\n\n- The final dataset consists of 300,000 DNA-function pairs , where each DNA sequence is paired with an enhanced functional description.\n- These functionally annotated sequences serve as high-quality input for machine learning models.\n\nTable 11. Prompt Used during dataset construction, evaluation and zeroshot prediction\n\n| Usage                                                                                         | Prompt                                                                                                                                                                                                                                                   |\n|-----------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| Used by LLM(Annotator) for ex- tending the short annotation to de- tailed function annotation | (System Prompt) You are a helpful assistant that answers functions of given gene/rna precisely and concisely.                                                                                                         ... [truncated, total 2734 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 21,
+            "text_content": "Table 12. Comparison of Ground Truth, GPT4o, Olmo@ft, and OmniDNA@ft in RNA type determination (Example 1)\n\n| Ground Truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | GPT4o                                                                                                                                                                                                                                      | Olmo@ft                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | OmniDNA@ft                                                                                                                                                                                                                                                                                                                                                                                                                     |\n|------------------... [truncated, total 7599 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 22,
+            "text_content": "Table 13. Comparison of Ground Truth, GPT4o, Olmo@ft, and OmniDNA@ft in RNA type determination (Example 2)\n\n| Ground Truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | GPT4o                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Olmo@ft                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | OmniDNA@ft                                                                  ... [truncated, total 9603 chars]",
+            "metadata": {}
+          },
+          {
+            "page_number": 23,
+            "text_content": "Table 14. Comparison of Ground Truth, GPT4o, Olmo@ft, and OmniDNA@ft in RNA type determination (Example 3)\n\n| Ground Truth                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | GPT4o                                                                                                                                                                                                                                                        | Olmo@ft                                                                                                                                                                                                                                                                                                                                                                                                                                                           | OmniDNA@ft                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |\n|---------------------------------------------------------------... [truncated, total 7419 chars]",
+            "metadata": {}
+          }
+        ],
+        "conversion": {
+          "runtime_seconds": 0.4516310691833496,
+          "page_count": 23,
+          "source": "docling_document_conversion"
+        }
+      }
+    },
+    {
+      "name": "data_extraction",
+      "runtime_seconds": 1.4906,
+      "status": "success",
+      "artifacts": {
+        "extractions": [
+          {
+            "extraction_id": 0,
+            "source_type": "chunk",
+            "source_id": 0,
+            "parsed_model": {
+              "taxonomy_version": "input-representation-taxonomy-v1",
+              "title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+              "doi": null,
+              "input_routes": [
+                {
+                  "route_label": "omni_dna_pretraining_dna_only_ntp",
+                  "model_name": "Omni-DNA",
+                  "lifecycle_phase": "pretraining",
+                  "task_or_configuration_verbatim": "pretraining on DNA sequences with next token prediction objective",
+                  "source_object_verbatim": "unlabeled DNA sequences",
+                  "source_object_normalized": "DNA sequences",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequences",
+                    "next token prediction"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "autoregressive next-token prediction"
+                  ],
+                  "model_visible_form_verbatim": "DNA only with next-token prediction",
+                  "carrier_family": "discrete_biological_symbol_stream",
+                  "carrier_subtype": "native_biological_token_stream",
+                  "insertion_or_fusion_verbatim": "On DNA sequences with next token prediction objective",
+                  "fusion_topology": "tokenizer_sequence",
+                  "text_role": "biological_payload",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "we pretrain a series of autoregressive transformer-based models using unlabeled DNA data",
+                  "section_heading": "3.1. Pretraining",
+                  "supporting_figure_or_table": "Figure 4",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "omni_dna_classification_head_evaluation",
+                  "model_name": "Omni-DNA",
+                  "lifecycle_phase": "evaluation",
+                  "task_or_configuration_verbatim": "Evaluation is performed using a conventional approach, where a MLP head is attached to the pretrained models",
+                  "source_object_verbatim": "labeled DNA sequences",
+                  "source_object_normalized": "DNA sequences",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequences",
+                    "MLP head",
+                    "sequence classification"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "classification head",
+                    "sequence classification"
+                  ],
+                  "model_visible_form_verbatim": "a MLP head is attached to the pretrained models",
+                  "carrier_family": "discrete_biological_symbol_stream",
+                  "carrier_subtype": "native_biological_token_stream",
+                  "insertion_or_fusion_verbatim": "a MLP head is attached to the pretrained models",
+                  "fusion_topology": "other_explicit",
+                  "text_role": "no_text_on_this_route",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "a MLP head is attached to the pretrained models",
+                  "section_heading": "4. Results on Conventional Genomics Tasks",
+                  "supporting_figure_or_table": "Table 2",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": "The paper does not spell out the exact serialization beyond plain DNA sequences plus an attached classifier head."
+                },
+                {
+                  "route_label": "omni_dna_multitask_prompted_classification",
+                  "model_name": "Omni-DNA@mult",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Cross-modal Multi-task Finetuning",
+                  "source_object_verbatim": "K genomic tasks with labeled datasets",
+                  "source_object_normalized": "labeled DNA sequences",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequence",
+                    "task-specific prompt",
+                    "response tokens"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "instruction prompt",
+                    "label token response"
+                  ],
+                  "model_visible_form_verbatim": "˜ x ( i ) = ( x ( i ) , Prompt k )",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "append a task-specific prompt Prompt k to its input x ( i )",
+                  "fusion_topology": "concatenation",
+                  "text_role": "paired_alignment_supervision",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "˜ x ( i ) = ( x ( i ) , Prompt k )",
+                  "section_heading": "3.2. Cross-modal Multi-task Finetuning",
+                  "supporting_figure_or_table": "Algorithm 1; Table 1",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": "The paper mixes DNA tokens with newly added prompt and response tokens; this is coded as text-native because the scaffold is explicitly serialized."
+                },
+                {
+                  "route_label": "gpt4o_zeroshot_dna_function_prediction",
+                  "model_name": "GPT4o@zeroshot",
+                  "lifecycle_phase": "inference",
+                  "task_or_configuration_verbatim": "Given to GPT4o@zeroshot for performing zeroshot DNA function prediction",
+                  "source_object_verbatim": "DNA sequences",
+                  "source_object_normalized": "DNA sequence",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequence",
+                    "system prompt",
+                    "zero-shot DNA function prediction"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "instruction prompt",
+                    "zero-shot function prediction"
+                  ],
+                  "model_visible_form_verbatim": "the given DNA sequence",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "Given to GPT4o@zeroshot for performing zeroshot DNA function prediction",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "Given to GPT4o@zeroshot for performing zeroshot DNA function prediction",
+                  "section_heading": "5.2. Functional Annotation Generation (DNA2Func)",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "omni_dna_dna2func_finetuning",
+                  "model_name": "Omni-DNA@ft",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Functional Annotation Generation (DNA2Func)",
+                  "source_object_verbatim": "DNA sequences from various mammalian species",
+                  "source_object_normalized": "DNA sequence",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequence",
+                    "concise short annotation",
+                    "more detailed natural language description"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "functional annotation text",
+                    "natural language description"
+                  ],
+                  "model_visible_form_verbatim": "a concise short annotation followed by a more detailed natural language description",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+                  "insertion_or_fusion_verbatim": "each sequence is annotated with a concise short annotation followed by a more detailed natural language description",
+                  "fusion_topology": "concatenation",
+                  "text_role": "training_target",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "each sequence is annotated with a concise short annotation followed by a more detailed natural language description",
+                  "section_heading": "5.2. Functional Annotation Generation (DNA2Func)",
+                  "supporting_figure_or_table": "Figure 10; Table 5",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "omni_dna_dna2image_finetuning",
+                  "model_name": "Omni-DNA",
+                  "lifecycle_phase": "fine_tuning",
+                  "task_or_configuration_verbatim": "Needle-in-DNA Task (DNA2Image)",
+                  "source_object_verbatim": "synthetic DNA sequences",
+                  "source_object_normalized": "DNA sequence",
+                  "source_modality_normalized": "DNA sequence",
+                  "transformation_chain_verbatim": [
+                    "DNA sequence",
+                    "VQ-VAE",
+                    "discrete tokens",
+                    "handwritten digit image"
+                  ],
+                  "transformation_chain_normalized": [
+                    "DNA sequence",
+                    "vector-quantized image tokens",
+                    "image generation"
+                  ],
+                  "model_visible_form_verbatim": "the label is represented by an image of a handwritten digit",
+                  "carrier_family": "discrete_biological_symbol_stream",
+                  "carrier_subtype": "learned_quantized_id_or_codebook_token",
+                  "insertion_or_fusion_verbatim": "the label is represented by an image of a handwritten digit",
+                  "fusion_topology": "concatenation",
+                  "text_role": "generated_output",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "Each sequence contains one of four functional motifs",
+                  "section_heading": "5.3. Needle-in-DNA Task (DNA2Image)",
+                  "supporting_figure_or_table": "Figure 5; Table 1",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "llm_annotator_gene_rna_function_expansion",
+                  "model_name": "LLMAnnotator",
+                  "lifecycle_phase": "inference",
+                  "task_or_configuration_verbatim": "Used by LLM(Annotator) for extending the short annotation to detailed function annotation",
+                  "source_object_verbatim": "the given gene/rna",
+                  "source_object_normalized": "gene/RNA short annotation",
+                  "source_modality_normalized": "text",
+                  "transformation_chain_verbatim": [
+                    "short annotation",
+                    "detailed function annotation"
+                  ],
+                  "transformation_chain_normalized": [
+                    "text annotation",
+                    "functional description"
+                  ],
+                  "model_visible_form_verbatim": "(System Prompt) You are a helpful assistant that answers functions of given gene/rna precisely and concisely.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "plain_language_prompt_or_question",
+                  "insertion_or_fusion_verbatim": "answers functions of given gene/rna precisely and concisely",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "You are a helpful assistant that answers functions of given gene/rna precisely and concisely.",
+                  "section_heading": "F. Functional Annotation Generation",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                },
+                {
+                  "route_label": "llm_evaluator_function_description_to_rna_type",
+                  "model_name": "GPT4o",
+                  "lifecycle_phase": "inference",
+                  "task_or_configuration_verbatim": "Used by LLM (Evaluator) for deciding the type of RNA based on the given function description",
+                  "source_object_verbatim": "the given function description",
+                  "source_object_normalized": "functional description",
+                  "source_modality_normalized": "text",
+                  "transformation_chain_verbatim": [
+                    "function description",
+                    "RNA type label"
+                  ],
+                  "transformation_chain_normalized": [
+                    "functional description",
+                    "RNA class label"
+                  ],
+                  "model_visible_form_verbatim": "(System Prompt) You are a helpful assistant that determines the type of RNA based on the given function description.",
+                  "carrier_family": "text_native_token_stream",
+                  "carrier_subtype": "plain_language_prompt_or_question",
+                  "insertion_or_fusion_verbatim": "determines the type of RNA based on the given function description",
+                  "fusion_topology": "concatenation",
+                  "text_role": "instruction_or_query",
+                  "input_status": "actual_model_input",
+                  "evidence_quote": "You are a helpful assistant that determines the type of RNA based on the given function description.",
+                  "section_heading": "F. Functional Annotation Generation",
+                  "supporting_figure_or_table": "Table 11",
+                  "evidence_status": "explicit_text",
+                  "uncertainty": null
+                }
+              ]
+            },
+            "extraction_time": 350.9334759712219,
+            "error": null,
+            "metadata": {
+              "structured_attempted": false,
+              "structured_failed": false,
+              "fallback_used": false,
+              "fallback_error_class": null
+            }
+          }
+        ],
+        "provenance": {
+          "document_id": "f2ac8ca24ae5785644826f60b9e2a705",
+          "resolution": "chunk",
+          "node_entries": 0,
+          "chunk_records": 99
+        }
+      }
+    },
+    {
+      "name": "graph_mapping",
+      "runtime_seconds": 0.0,
+      "status": "success",
+      "artifacts": {
+        "provenance_bound": {
+          "nodes_seen": 9,
+          "bound_verbatim": 9,
+          "bound_observed": 0,
+          "bound_document": 0,
+          "unresolved": 0
+        },
+        "graph": {
+          "processing_mode": "many-to-one",
+          "source_model_count": 1,
+          "node_count": 9,
+          "edge_count": 8
+        }
+      }
+    }
+  ]
+}

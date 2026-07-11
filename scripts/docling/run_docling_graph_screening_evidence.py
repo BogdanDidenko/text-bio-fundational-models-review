@@ -26,6 +26,11 @@ from scripts.docling_graph_templates.biomedical_screening_evidence import (
 
 DEFAULT_INCLUDE = REPO / "data/docling_include_final_coverage_2026-07-09/final_docling_manifest.csv"
 DEFAULT_UNCERTAIN = REPO / "data/docling_uncertain_final_coverage_2026-07-09/final_docling_manifest.csv"
+DEFAULT_CANONICAL = (
+    REPO
+    / "data/docling_include_vlm_52_2026-07-10_nolimits/manifests"
+    / "canonical_docling_profile_manifest.csv"
+)
 DEFAULT_OUT = REPO / "data/docling_graph_screening_evidence_2026-07-09"
 
 
@@ -51,19 +56,39 @@ def read_manifest(path: Path, corpus: str) -> list[dict[str, str]]:
     return rows
 
 
+def read_canonical_manifest(path: Path) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    with path.open(newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("profile_status") != "complete":
+                continue
+            rows.append(
+                {
+                    **row,
+                    "record_id": row.get("source_record_id", ""),
+                    "source_corpus": "canonical_vlm_include",
+                }
+            )
+    return rows
+
+
 def load_records(
     include_manifest: Path,
     uncertain_manifest: Path,
+    canonical_manifest: Path | None,
     limit: int,
     sample_size: int,
     sample_seed: int,
     shard_index: int,
     shard_count: int,
 ) -> list[dict[str, str]]:
-    rows = [
-        *read_manifest(include_manifest, "include"),
-        *read_manifest(uncertain_manifest, "uncertain"),
-    ]
+    if canonical_manifest is not None:
+        rows = read_canonical_manifest(canonical_manifest)
+    else:
+        rows = [
+            *read_manifest(include_manifest, "include"),
+            *read_manifest(uncertain_manifest, "uncertain"),
+        ]
     if sample_size:
         rng = random.Random(sample_seed)
         rows = rng.sample(rows, min(sample_size, len(rows)))
@@ -173,6 +198,16 @@ def run_one(row: dict[str, str], args: argparse.Namespace, client: LiteLLMEndpoi
         "output_dir": rel(record_out),
         "elapsed_seconds": elapsed,
         "extraction_contract": args.extraction_contract,
+        "llm_execution": {
+            "client": client.__class__.__name__,
+            "model": args.model,
+            "base_url": args.base_url,
+            "temperature": args.temperature,
+            "structured_output": args.structured_output,
+            "max_tokens": args.max_tokens,
+            "context_limit": args.context_limit,
+            "timeout_seconds": args.timeout,
+        },
         "models": models,
         "section_grounding": section_grounding,
         "graph": graph_summary(context),
@@ -188,6 +223,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--include-manifest", type=Path, default=DEFAULT_INCLUDE)
     parser.add_argument("--uncertain-manifest", type=Path, default=DEFAULT_UNCERTAIN)
+    parser.add_argument(
+        "--canonical-manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Use a canonical VLM profile manifest instead of the historical "
+            "include/uncertain manifests."
+        ),
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--limit", type=int, default=1)
     parser.add_argument("--sample-size", type=int, default=0)
@@ -229,6 +273,7 @@ def main() -> int:
     rows = load_records(
         args.include_manifest,
         args.uncertain_manifest,
+        args.canonical_manifest,
         args.limit,
         args.sample_size,
         args.sample_seed,

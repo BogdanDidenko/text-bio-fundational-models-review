@@ -110,41 +110,47 @@ def make_converter(args: argparse.Namespace) -> DocumentConverter:
                 "OPENAI_API_KEY is required for --picture-description-backend openai-api"
             )
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-        model_spec = VlmModelSpec(
-            name=f"Codex via OpenAI-compatible API ({args.openai_model})",
-            default_repo_id="codex-openai-compatible",
-            prompt=args.picture_description_prompt or SCIENTIFIC_FIGURE_PROMPT,
-            response_format=ResponseFormat.PLAINTEXT,
-            supported_engines={VlmEngineType.API_OPENAI},
-            api_overrides={
+        model_spec_args: dict[str, Any] = {
+            "name": f"Codex via OpenAI-compatible API ({args.openai_model})",
+            "default_repo_id": "codex-openai-compatible",
+            "prompt": args.picture_description_prompt or SCIENTIFIC_FIGURE_PROMPT,
+            "response_format": ResponseFormat.PLAINTEXT,
+            "supported_engines": {VlmEngineType.API_OPENAI},
+            "api_overrides": {
                 VlmEngineType.API_OPENAI: ApiModelConfig(
                     params={"model": args.openai_model}
                 )
             },
-            temperature=args.picture_description_temperature,
-            max_new_tokens=args.picture_description_max_tokens,
-        )
+            "temperature": args.picture_description_temperature,
+        }
+        if args.picture_description_max_tokens is not None:
+            model_spec_args["max_new_tokens"] = args.picture_description_max_tokens
+        model_spec = VlmModelSpec(**model_spec_args)
+        api_params: dict[str, Any] = {
+            "model": args.openai_model,
+            "temperature": args.picture_description_temperature,
+            "usage_response_key": "usage",
+        }
+        if args.picture_description_max_tokens is not None:
+            api_params["max_tokens"] = args.picture_description_max_tokens
+        generation_config: dict[str, Any] = {
+            "do_sample": False,
+            "temperature": args.picture_description_temperature,
+        }
+        if args.picture_description_max_tokens is not None:
+            generation_config["max_new_tokens"] = args.picture_description_max_tokens
         opts.picture_description_options = PictureDescriptionVlmEngineOptions(
             engine_options=ApiVlmEngineOptions(
                 engine_type=VlmEngineType.API_OPENAI,
                 url=args.openai_base_url,
                 headers=headers,
-                params={
-                    "model": args.openai_model,
-                    "temperature": args.picture_description_temperature,
-                    "max_tokens": args.picture_description_max_tokens,
-                    "usage_response_key": "usage",
-                },
+                params=api_params,
                 timeout=args.picture_description_timeout,
                 concurrency=args.picture_description_concurrency,
             ),
             model_spec=model_spec,
             prompt=args.picture_description_prompt or SCIENTIFIC_FIGURE_PROMPT,
-            generation_config={
-                "max_new_tokens": args.picture_description_max_tokens,
-                "do_sample": False,
-                "temperature": args.picture_description_temperature,
-            },
+            generation_config=generation_config,
             scale=args.picture_description_scale,
             picture_area_threshold=args.picture_description_area_threshold,
             batch_size=args.picture_description_concurrency,
@@ -267,11 +273,21 @@ def main() -> int:
     parser.add_argument("--openai-model", default="gpt-5.5")
     parser.add_argument("--picture-description-timeout", type=float, default=120.0)
     parser.add_argument("--picture-description-concurrency", type=int, default=1)
-    parser.add_argument("--picture-description-max-tokens", type=int, default=500)
+    parser.add_argument(
+        "--picture-description-max-tokens",
+        type=int,
+        default=None,
+        help="Optional VLM output cap. Omit for no output-token cap.",
+    )
     parser.add_argument("--picture-description-temperature", type=float, default=0.0)
     parser.add_argument("--picture-description-scale", type=float, default=2.0)
     parser.add_argument("--picture-description-area-threshold", type=float, default=0.05)
     parser.add_argument("--picture-description-prompt", default="")
+    parser.add_argument(
+        "--skip-chunks",
+        action="store_true",
+        help="Do not run the HybridChunker RAG export after conversion.",
+    )
     args = parser.parse_args()
 
     out = args.out.resolve()
@@ -312,7 +328,7 @@ def main() -> int:
 
             doc.save_as_json(doc_json)
             markdown.write_text(doc.export_to_markdown(), encoding="utf-8")
-            chunk_count = write_chunks(doc, candidate_id, chunks)
+            chunk_count = 0 if args.skip_chunks else write_chunks(doc, candidate_id, chunks)
             figures = extract_figures(doc, candidate_id, figures_dir)
             (figures_dir / "figures_manifest.json").write_text(
                 json.dumps(figures, ensure_ascii=False, indent=2) + "\n",
@@ -324,7 +340,9 @@ def main() -> int:
                     "status": "ok",
                     "docling_json": str(doc_json.relative_to(REPO)),
                     "markdown": str(markdown.relative_to(REPO)),
-                    "chunks": str(chunks.relative_to(REPO)),
+                    "chunks": (
+                        None if args.skip_chunks else str(chunks.relative_to(REPO))
+                    ),
                     "chunk_count": chunk_count,
                     "figure_count": len(figures),
                     "figures_manifest": str(

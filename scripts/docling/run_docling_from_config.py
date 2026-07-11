@@ -80,6 +80,8 @@ def main() -> int:
     prompt = settings.get("picture_description_prompt")
     if prompt:
         cmd.extend(["--picture-description-prompt", prompt])
+    if settings.get("skip_chunks"):
+        cmd.append("--skip-chunks")
 
     for item in config["pdfs"]:
         pdf_path = as_path(item["path"] if isinstance(item, dict) else item)
