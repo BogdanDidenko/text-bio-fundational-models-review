@@ -25,8 +25,9 @@ Each model node separates two visual roles:
 
 Every model occurs once and belongs to exactly one membership group defined by
 its complete subtype set. Subtypes connect to the group, and the group connects
-to its models. The interactive layout mirrors family and subtype ports on the
-left and right to balance the graph without duplicating groups or models. A
+to its models. The interactive layout keeps one canonical node for every
+carrier family on the central spine and mirrors only subtype layout ports on
+the left and right to balance the graph without duplicating groups or models. A
 focused model exposes the complete grounded route inventory with source object,
 transformation chain, model-visible form, quote, heading, and pages.
 

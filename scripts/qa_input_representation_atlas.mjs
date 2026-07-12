@@ -77,7 +77,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   if (initial.rootNodes !== 1 || initial.membershipGroupNodes !== 48 || initial.modelNodes !== 111 || initial.uniqueNodeIds !== initial.graphNodes) {
     throw new Error(`Unexpected graph node counts: ${JSON.stringify(initial)}`);
   }
-  if (initial.familyNodes < 5 || initial.familyNodes > 10 || initial.subtypeNodes < 15 || initial.subtypeNodes > 30) throw new Error(`Mirrored taxonomy ports are incomplete: ${JSON.stringify(initial)}`);
+  if (initial.familyNodes !== 5 || initial.subtypeNodes < 15 || initial.subtypeNodes > 30) throw new Error(`Canonical families or mirrored subtype ports are incomplete: ${JSON.stringify(initial)}`);
   if (initial.leftGroups < 1 || initial.rightGroups < 1) throw new Error(`Membership groups were not split across both sides: ${JSON.stringify(initial)}`);
   if (initial.overlaps !== 0 || initial.groupFailures.length || initial.modelIncomingFailures) throw new Error(`Grouped graph topology failed: ${JSON.stringify(initial)}`);
   if (initial.cropNodes !== 158) throw new Error(`Expected 158 crop viewports for 79 validated figures across graph and index, found ${initial.cropNodes}`);
@@ -157,7 +157,7 @@ async function inspect(viewport, screenshot, mobile = false) {
     models: document.querySelectorAll("foreignObject.graph-node-model").length,
     edges: document.querySelectorAll("path.graph-edge").length,
   }));
-  if (focused.families < 1 || focused.families > 2 || focused.subtypes < 1 || focused.groups < 1 || focused.models < 1 || focused.models >= 111) {
+  if (focused.families !== 1 || focused.subtypes < 1 || focused.groups < 1 || focused.models < 1 || focused.models >= 111) {
     throw new Error(`Family focus failed: ${JSON.stringify(focused)}`);
   }
   await page.selectOption("#subtype-filter", "connector_mediated_embedding");

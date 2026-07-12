@@ -11,9 +11,9 @@
 - Unique model nodes: 111/111
 - Canonical graph nodes: 180
 - Canonical graph edges: 257
-- Full mirrored render nodes: 198
-- Full mirrored render edges: 275
-- Mirrored family ports: 10
+- Full two-sided render nodes: 193
+- Full two-sided render edges: 270
+- Canonical family nodes in render: 5
 - Mirrored subtype ports: 28
 - Configurations: 376/376
 - Grounded routes: 489/489
@@ -39,7 +39,8 @@ The static site was exercised with Playwright against local Google Chrome at:
 Verified behaviors:
 
 - one root, 48 membership-group, and 111 unique model nodes render;
-- mirrored family and subtype layout ports appear on both sides of the root;
+- each carrier family appears once on the central taxonomy spine;
+- subtype layout ports appear on both sides of the central family spine;
 - every model has exactly one incoming membership-group edge;
 - every group has exactly the subtype-parent edges and model-child edges stated
   in the canonical graph artifact;

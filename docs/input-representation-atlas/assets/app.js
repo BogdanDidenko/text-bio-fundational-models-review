@@ -251,10 +251,9 @@ function calculateGraphLayout() {
   const LEFT_MODEL_X = 48;
   const LEFT_GROUP_X = LEFT_MODEL_X + SIDE_MODEL_SPAN + 44;
   const LEFT_SUBTYPE_X = LEFT_GROUP_X + GROUP_W + 54;
-  const LEFT_FAMILY_X = LEFT_SUBTYPE_X + SUBTYPE_W + 48;
-  const ROOT_X = LEFT_FAMILY_X + FAMILY_W + 62;
-  const RIGHT_FAMILY_X = ROOT_X + ROOT_W + 62;
-  const RIGHT_SUBTYPE_X = RIGHT_FAMILY_X + FAMILY_W + 48;
+  const ROOT_X = LEFT_SUBTYPE_X + SUBTYPE_W + 210;
+  const FAMILY_X = ROOT_X + (ROOT_W - FAMILY_W) / 2;
+  const RIGHT_SUBTYPE_X = ROOT_X + ROOT_W + 210;
   const RIGHT_GROUP_X = RIGHT_SUBTYPE_X + SUBTYPE_W + 54;
   const RIGHT_MODEL_X = RIGHT_GROUP_X + GROUP_W + 44;
   const graphWidth = RIGHT_MODEL_X + SIDE_MODEL_SPAN + 48;
@@ -302,7 +301,7 @@ function calculateGraphLayout() {
       sideCursors[side] += group.blockHeight + GROUP_GAP_Y;
     });
   });
-  const graphHeight = Math.max(680, sideCursors.left, sideCursors.right) + 24;
+  let graphHeight = Math.max(680, sideCursors.left, sideCursors.right) + 24;
 
   function spreadCenters(items, minimumGap) {
     const sorted = [...items].sort((a, b) => a.desired - b.desired || a.order - b.order);
@@ -318,7 +317,6 @@ function calculateGraphLayout() {
   }
 
   const sideSubtypeNodes = { left: [], right: [] };
-  const sideFamilyNodes = { left: [], right: [] };
   ["left", "right"].forEach((side) => {
     const groupsOnSide = sideGroups[side];
     const usedSubtypeIds = unique(groupsOnSide.flatMap((group) => group.subtype_ids));
@@ -336,36 +334,41 @@ function calculateGraphLayout() {
       positions.set(nodeId, { x: side === "left" ? LEFT_SUBTYPE_X : RIGHT_SUBTYPE_X, y: item.center - SUBTYPE_H / 2, width: SUBTYPE_W, height: SUBTYPE_H, type: "subtype" });
       sideSubtypeNodes[side].push({ nodeId, subtype_id: item.id, family_id: subtype.family_id, data: subtype, centerY: item.center });
     });
-    const usedFamilyIds = unique(sideSubtypeNodes[side].map((node) => node.family_id));
-    const familyItems = usedFamilyIds.map((familyId) => {
-      const linked = sideSubtypeNodes[side].filter((node) => node.family_id === familyId);
-      return {
-        id: familyId,
-        order: state.atlas.families.findIndex((family) => family.family_id === familyId),
-        desired: linked.reduce((sum, node) => sum + node.centerY, 0) / linked.length,
-      };
-    });
-    spreadCenters(familyItems, FAMILY_H + 26).forEach((item) => {
-      const family = families.find((candidate) => candidate.family_id === item.id);
-      const nodeId = `family::${side}::${item.id}`;
-      positions.set(nodeId, { x: side === "left" ? LEFT_FAMILY_X : RIGHT_FAMILY_X, y: item.center - FAMILY_H / 2, width: FAMILY_W, height: FAMILY_H, type: "family" });
-      sideFamilyNodes[side].push({ nodeId, family_id: item.id, data: family, centerY: item.center });
-    });
   });
-  positions.set("taxonomy_root", { x: ROOT_X, y: graphHeight / 2 - ROOT_H / 2, width: ROOT_W, height: ROOT_H, type: "root" });
+  const allSubtypeNodes = [...sideSubtypeNodes.left, ...sideSubtypeNodes.right];
+  const familyItems = families.map((family, index) => {
+    const linked = allSubtypeNodes.filter((node) => node.family_id === family.family_id);
+    return {
+      id: family.family_id,
+      order: index,
+      desired: linked.reduce((sum, node) => sum + node.centerY, 0) / linked.length,
+      data: family,
+    };
+  });
+  const familyNodes = spreadCenters(familyItems, FAMILY_H + 28);
+  const minimumFamilyCenter = 48 + ROOT_H + 70 + FAMILY_H / 2;
+  const familyShift = familyNodes.length ? Math.max(0, minimumFamilyCenter - familyNodes[0].center) : 0;
+  familyNodes.forEach((family) => {
+    family.center += familyShift;
+    const nodeId = `family::${family.id}`;
+    family.nodeId = nodeId;
+    positions.set(nodeId, { x: FAMILY_X, y: family.center - FAMILY_H / 2, width: FAMILY_W, height: FAMILY_H, type: "family" });
+  });
+  if (familyNodes.length) graphHeight = Math.max(graphHeight, familyNodes.at(-1).center + FAMILY_H / 2 + 48);
+  positions.set("taxonomy_root", { x: ROOT_X, y: 48, width: ROOT_W, height: ROOT_H, type: "root" });
 
   const nodes = [{ id: "taxonomy_root", type: "root", label: "Model-visible input representation" }];
+  familyNodes.forEach((family) => nodes.push({ id: family.nodeId, type: "family", label: family.data.name, family_id: family.id, data: family.data }));
   ["left", "right"].forEach((side) => {
-    sideFamilyNodes[side].forEach((family) => nodes.push({ id: family.nodeId, type: "family", side, label: family.data.name, family_id: family.family_id, data: family.data }));
     sideSubtypeNodes[side].forEach((subtype) => nodes.push({ id: subtype.nodeId, type: "subtype", side, label: subtype.data.name, family_id: subtype.family_id, subtype_id: subtype.subtype_id, data: subtype.data }));
   });
   groups.forEach((group) => nodes.push({ id: `group::${group.id}`, type: "membership_group", side: group.side, label: group.leaf_ids.join(" + "), group_id: group.id, subtype_ids: group.subtype_ids, family_ids: group.family_ids, data: group }));
   models.forEach((model) => nodes.push({ id: `model::${model.model_id}`, type: "model", label: model.model_name, model_id: model.model_id, data: model }));
 
   const edges = [];
+  familyNodes.forEach((family) => edges.push({ id: `edge::root::${family.id}`, source: "taxonomy_root", target: family.nodeId, type: "contains_family", family_id: family.id }));
   ["left", "right"].forEach((side) => {
-    sideFamilyNodes[side].forEach((family) => edges.push({ id: `edge::root::${side}::${family.family_id}`, source: "taxonomy_root", target: family.nodeId, type: "contains_family", family_id: family.family_id }));
-    sideSubtypeNodes[side].forEach((subtype) => edges.push({ id: `edge::${side}::${subtype.family_id}::${subtype.subtype_id}`, source: `family::${side}::${subtype.family_id}`, target: subtype.nodeId, type: "contains_subtype", family_id: subtype.family_id }));
+    sideSubtypeNodes[side].forEach((subtype) => edges.push({ id: `edge::${side}::${subtype.family_id}::${subtype.subtype_id}`, source: `family::${subtype.family_id}`, target: subtype.nodeId, type: "contains_subtype", family_id: subtype.family_id }));
   });
   groups.forEach((group) => {
     group.subtype_ids.forEach((subtypeId) => edges.push({
@@ -388,7 +391,16 @@ function calculateGraphLayout() {
 function edgePath(edge, positions) {
   const source = positions.get(edge.source);
   const target = positions.get(edge.target);
-  const travelsRight = target.x + target.width / 2 >= source.x + source.width / 2;
+  const sourceCenterX = source.x + source.width / 2;
+  const targetCenterX = target.x + target.width / 2;
+  if (Math.abs(sourceCenterX - targetCenterX) < 1) {
+    const travelsDown = target.y + target.height / 2 >= source.y + source.height / 2;
+    const y1 = travelsDown ? source.y + source.height : source.y;
+    const y2 = travelsDown ? target.y : target.y + target.height;
+    const bend = y1 + (y2 - y1) * 0.52;
+    return `M${sourceCenterX},${y1} C${sourceCenterX},${bend} ${targetCenterX},${bend} ${targetCenterX},${y2}`;
+  }
+  const travelsRight = targetCenterX >= sourceCenterX;
   const x1 = travelsRight ? source.x + source.width : source.x;
   const y1 = source.y + source.height / 2;
   const x2 = travelsRight ? target.x : target.x + target.width;
@@ -661,7 +673,7 @@ function rootInspector() {
   return `<div class="inspector-scroll root-inspector">
     <p class="section-kicker">How to read the graph</p>
     <h3>Follow the carrier into the model</h3>
-    <p>Each model belongs to one exact membership group defined by its complete visible subtype set. The mirrored left and right branches are layout ports for the same canonical taxonomy.</p>
+    <p>Each model belongs to one exact membership group defined by its complete visible subtype set. Carrier families remain unique on the central spine; only subtype branches use mirrored layout ports.</p>
     <div class="reading-sequence"><span>Root</span><i data-lucide="arrow-right"></i><span>Family</span><i data-lucide="arrow-right"></i><span>Subtype</span><i data-lucide="arrow-right"></i><span>Group</span><i data-lucide="arrow-right"></i><span>Model</span></div>
     <div class="inspector-family-list">${state.atlas.families.map((family) => `<button data-inspector-family="${escapeHtml(family.family_id)}" style="--family-color:${family.color}"><b>${escapeHtml(family.code)}</b><span>${escapeHtml(family.name)}</span><em>${family.model_count} models</em></button>`).join("")}</div>
     <div class="method-note"><i data-lucide="scan-line"></i><p><b>Evidence and explanation are separate.</b> Paper pixels appear under “Original-paper crop.” Small input strings or vectors are illustrative and never presented as source evidence.</p></div>
