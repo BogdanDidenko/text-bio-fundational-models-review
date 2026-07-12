@@ -1,0 +1,180 @@
+You are the blinded adjudicator for a biomedical input-representation atlas. Resolve two independent crop reviews using visible evidence, not majority voting.
+
+Image 1 is the current review panel. For an existing crop, its LEFT side is the full source figure with a red rectangle and its RIGHT side is the exact rendered crop. For a no-figure baseline, it is the original contact sheet.
+Image 2 is a contact sheet of all source-paper figure candidates in `candidate_figure_order`, left-to-right and top-to-bottom.
+
+Decision rules:
+- `accept_current`: the exact right crop clearly and readably shows a source object, transformation, model-visible carrier, or immediate model-facing interface for at least one listed `actual_model_input` route.
+- `adjust_current`: the current figure is correct but the rectangle must change. Return final normalized coordinates relative to the full original figure.
+- `replace_figure`: another visible candidate is better. Return its figure index and null crop; a separate high-resolution crop pass will follow.
+- `no_suitable_figure`: no source figure visibly supports the model input route. Return null figure and crop. Do not substitute outputs, performance plots, generic data summaries, or unrelated training diagrams.
+- A crop may represent one core route rather than every route, but `route_ids_supported` must identify exactly what it supports.
+- Preserve labels/arrows necessary to interpret the input path while excluding unrelated outputs/results.
+- Ensure x+width <= 1 and y+height <= 1.
+- Do not claim hidden chain-of-thought. Give concise visible-evidence rationale.
+
+Record and blind reviews:
+{
+  "model_id": "model_e113b973b85a",
+  "model_name": "AlphaGenome",
+  "paper_title": "Bio-BLIP: A Multimodal Architecture for Transferable Reasoning in Genomic Variant Interpretation",
+  "current_status": "cropped_source_figure",
+  "current_figure_index": 1,
+  "current_crop_box": {
+    "x": 0.0,
+    "y": 0.0,
+    "width": 0.64,
+    "height": 0.93
+  },
+  "routes": [
+    {
+      "route_id": "route_de5d833fa8b8",
+      "route_label": "AlphaGenome DNA-window route",
+      "lifecycle_phase": "inference",
+      "input_status": "actual_model_input",
+      "source_object_verbatim": "reference and alternate alleles of each OpenTargets SNV",
+      "transformation_chain_verbatim": [
+        "a fixed 131,072 bp window centered on the variant",
+        "using the hg38 reference genome",
+        "128-bp resolution",
+        "1024 genomic bins per variant"
+      ],
+      "model_visible_form_verbatim": "a fixed 131,072 bp window centered on the variant",
+      "carrier_family": "discrete_biological_symbol_stream",
+      "carrier_subtype": "native_biological_token_stream",
+      "insertion_or_fusion_verbatim": "Each variant was evaluated in a fixed 131,072 bp window centered on the variant",
+      "evidence_quote": "Each variant was evaluated in a fixed 131,072 bp window centered on the variant",
+      "section_heading": "C.2 AlphaGenome Prediction Details",
+      "supporting_figure_or_table": null,
+      "pages": [
+        14
+      ]
+    }
+  ],
+  "figure_candidates": [
+    {
+      "figure_index": 1,
+      "page_no": 2,
+      "caption": "Figure 1: (a) Embeddings (E) from Biological Foundation Models (BioFMs) are input to Bio-BLIP to provide multiple modalities of information, here from AlphaGenome , GenePT , and ESM-2 . (b) Modality-specific Q-formers align diverse biological embeddings with captions of genomic variants, which contain functional and locational information. The Q-formers output query tokens encoding relevant information from each modality. (c) The Master Qformer integrates modality-specific tokens through cross-attention, producing a fixed-length visual prefix (d) The LLM, its weights frozen , takes as input the multimodal prefix and a prompt. During pretraining, the LLM loss backpropagates only to train the Q-formers. Pretraining and evaluation is conducted on variant annotation; all weights are frozen and the model is then applied to downstream evaluation tasks.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nModel architecture/workflow diagram labeled “BioBLIP Architecture.” It shows panel-like labels A-D: A indicates multiple input embedding sources (AlphaGenome Ref/Alt embeddings, GenoPT embeddings, ESM Protein embeddings) as blue triangular inputs E1, E2, … En; B shows modality-specific query modules (“DNA Qformer,” “Gene Qformer,” “Protein Qformer”) producing DNA/gene/protein-specific query tokens; C shows a “Master Qformer” receiving query tokens plus an instruction describing genomic variant context and outputting a fixed-length variant prefix; D shows this prefix fed with a text prompt into a “Frozen LLM,” producing a generated variant annotation JSON.\n\nNo quantitative axes or plots are present. The biological/model content shown is a multimodal genomic variant annotation architecture integrating DNA, gene, and protein embeddings for tasks including variant annotation, target gene identification, and regulatory variant prioritization. Main visible finding/claim: BioBLIP uses chained Q-former modules to convert heterogeneous biological embeddings into an LLM-compatible prefix for structured variant annotation."
+      ]
+    },
+    {
+      "figure_index": 2,
+      "page_no": 6,
+      "caption": "",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nRadar/spider plot comparing four genomic annotation resources across four axes: Variant Type, Chromosome Location, Nearest Genes, and Variant Consequence. The radial scale is labeled 25%, 50%, 75%, and 100%. Legend shows AFG, ESM, GENE, and BioLIP Stage 2.\n\nBioLIP Stage 2 appears as a dashed outline reaching 100% on all four axes. Among the other datasets, GENE has high coverage for chromosome location and nearest genes, AFG is high for variant type and variant consequence but very low for nearest genes, and ESM is intermediate overall."
+      ]
+    },
+    {
+      "figure_index": 3,
+      "page_no": 7,
+      "caption": "Figure 3: Target Gene Identification . (Left) Accuracy on all reasoning traces. (Right) Accuracy on reasoning traces where the target gene is not the closest gene.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nTwo-panel bar chart comparing gene trace performance across language/model systems. Left panel is titled “All Gene Traces (n = 396)” with percentage y-axis and bars for Baseline - Closest Gene, Qwen3-4B, Qwen3-32B, Bio-BLIP (Ours), and Claude Sonnet 4.6. Values shown are 56.3%, 59.6%, 64.4%, 71.2%, and 75.8%, with Bio-BLIP highlighted in purple and annotated as +6.8 percentage points over Qwen3-32B.\n\nRight panel is titled “Non-closest Gene Traces (n = 175)” with the same model labels and percentage y-axis. Values shown are 0%, 19.4%, 29.7%, 41.1%, and 46.3%, with Bio-BLIP highlighted and annotated as +11.4 percentage points over Qwen3-32B.\n\nMain visible finding: Bio-BLIP outperforms Qwen3-32B on both all gene traces and non-closest gene traces, while Claude Sonnet 4.6 has the highest displayed percentages overall."
+      ]
+    },
+    {
+      "figure_index": 4,
+      "page_no": 8,
+      "caption": "",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nA horizontal dot-and-line accuracy plot comparing several models on “Accuracy (10 options).” The x-axis runs from 0% to 100%, with model names on the y-axis: Random, Qwen3-32B, Evo2-7B, GPN Promoter, Bio-BLIP (Ours), and GPN MSA. Each row shows Top-1 accuracy and Top-2 accuracy as dark points connected by a line, with a legend at lower right.\n\nVisible values include Random 10.0%/20.0%, Qwen3-32B 19.8%/28.7%, Evo2-7B 37.3%/47.6%, GPN Promoter 38.8%/51.2%, Bio-BLIP 48.2%/53.0%, and GPN MSA 68.9%/80.2%. The main finding is that GPN MSA has the highest Top-1 and Top-2 accuracy, while Bio-BLIP (Ours) outperforms the other non-GPN-MSA baselines shown."
+      ]
+    },
+    {
+      "figure_index": 5,
+      "page_no": 9,
+      "caption": "",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nTwo-panel experimental results figure showing BioBLIP validation performance and ablation.\n\nTop panel: line plot titled “Validation Set Performance vs Training Epoch.” X-axis is Epoch, y-axis is Mean JSON Accuracy. Legend compares BioBLIP in blue vs “BioBLIP - No Master Model” in orange. BioBLIP accuracy increases steadily from about 32% to about 52%, while the no-master-model variant fluctuates around 26–38% and plateaus near 35%.\n\nBottom panel: grouped bar chart titled “Master Model Ablation.” Y-axis is Score, with categories Nearest Genes (Exact Match), Chromosome, Consequence, Cell Type (ROUGE), and Variant Type. Legend again compares BioBLIP vs BioBLIP - No Master Model. BioBLIP outperforms the ablated model in all categories, with annotated gains of approximately +35.0 pp, +17.8 pp, +1.3 pp, +1.0 pp, and +0.8 pp respectively."
+      ]
+    },
+    {
+      "figure_index": 6,
+      "page_no": 14,
+      "caption": "Figure 6: Stage 1 Evaluation Losses for Bio-BLIP with Embeddings permuted to incorrect variants (blue), versus Embeddings matched with the correct variants (orange).",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nThree-panel line plot showing training loss over steps for two runs, with a legend indicating blue = `Ablated Embedding` and orange = `Embedding`.\n\nPanels are labeled `itc_sum`, `itm_sum`, and `itg_sum`. Each panel has x-axis `Step` and y-axis `Loss`.\n\nMain visible findings:\n- `itc_sum`: Ablated Embedding loss stays high and slightly increases, while Embedding loss steadily decreases.\n- `itm_sum`: Both runs fluctuate substantially; Embedding dips sharply around step 7 and spikes near step 11.\n- `itg_sum`: Both losses decrease over steps, with Ablated Embedding consistently lower than Embedding after the first steps."
+      ]
+    }
+  ],
+  "candidate_figure_order": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "review_a": {
+    "validator_a": {
+      "model_id": "model_e113b973b85a",
+      "decision": "accept_as_is",
+      "route_ids_supported": [
+        "route_de5d833fa8b8"
+      ],
+      "representative_scope": "multiple_routes",
+      "required_input_elements_visible": [
+        "AlphaGenome Ref/Alt embeddings",
+        "DNA Qformer",
+        "Gene Qformer",
+        "Protein Qformer",
+        "instruction text",
+        "Master Qformer",
+        "Frozen LLM",
+        "fixed-length variant prefix"
+      ],
+      "missing_or_irrelevant_elements": [
+        "The raw 131,072 bp DNA window is abstracted into embeddings rather than shown directly."
+      ],
+      "proposed_figure_index": null,
+      "proposed_crop_box": null,
+      "rationale": "The rendered crop clearly shows the model inputs at the interface level: biological embeddings for variant context, modality-specific Q-formers, the master Q-former, and the frozen LLM prompt path. That is sufficient evidence for the route's input representation.",
+      "confidence": "high"
+    },
+    "validator_b": {
+      "model_id": "model_e113b973b85a",
+      "decision": "accept_as_is",
+      "route_ids_supported": [
+        "route_de5d833fa8b8"
+      ],
+      "representative_scope": "core_route",
+      "required_input_elements_visible": [
+        "AlphaGenome-derived embeddings",
+        "DNA Qformer",
+        "Master Qformer",
+        "frozen LLM prefix/interface"
+      ],
+      "missing_or_irrelevant_elements": [
+        "raw 131,072 bp DNA window is not shown, but the model-visible carrier is"
+      ],
+      "proposed_figure_index": 1,
+      "proposed_crop_box": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 0.64,
+        "height": 0.93
+      },
+      "rationale": "The crop clearly shows the AlphaGenome embedding input flowing through the DNA Qformer into the Master Qformer and frozen LLM. That is a visible, grounded input route for the model.",
+      "confidence": "high"
+    }
+  },
+  "review_b": {
+    "final_preview_validator": {
+      "model_id": "model_e113b973b85a",
+      "decision": "reject",
+      "route_ids_supported": [],
+      "visible_input_evidence": [
+        "The rendered crop shows Bio-BLIP-style architecture elements such as `DNA Qformer`, `Gene Qformer`, `Protein Qformer`, `Master Qformer`, and a text prompt, but not AlphaGenome's actual input route.",
+        "The actual route requires a fixed 131,072 bp genomic window centered on the variant, which is not visible in the crop."
+      ],
+      "problem": "The crop does not visibly show AlphaGenome's actual model input or immediate input interface. It shows downstream/related embeddings inside a different architecture figure rather than the source object or model-facing carrier for AlphaGenome.",
+      "proposed_crop_box": null,
+      "rationale": "The figure crop is about Bio-BLIP using AlphaGenome embeddings, not AlphaGenome itself. Since the listed AlphaGenome route requires the variant-centered DNA window as the actual input, this crop does not satisfy the required input-visibility test.",
+      "confidence": "high"
+    }
+  }
+}

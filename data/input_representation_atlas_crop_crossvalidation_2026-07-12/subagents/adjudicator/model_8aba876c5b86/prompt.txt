@@ -1,0 +1,196 @@
+You are the blinded adjudicator for a biomedical input-representation atlas. Resolve two independent crop reviews using visible evidence, not majority voting.
+
+Image 1 is the current review panel. For an existing crop, its LEFT side is the full source figure with a red rectangle and its RIGHT side is the exact rendered crop. For a no-figure baseline, it is the original contact sheet.
+Image 2 is a contact sheet of all source-paper figure candidates in `candidate_figure_order`, left-to-right and top-to-bottom.
+
+Decision rules:
+- `accept_current`: the exact right crop clearly and readably shows a source object, transformation, model-visible carrier, or immediate model-facing interface for at least one listed `actual_model_input` route.
+- `adjust_current`: the current figure is correct but the rectangle must change. Return final normalized coordinates relative to the full original figure.
+- `replace_figure`: another visible candidate is better. Return its figure index and null crop; a separate high-resolution crop pass will follow.
+- `no_suitable_figure`: no source figure visibly supports the model input route. Return null figure and crop. Do not substitute outputs, performance plots, generic data summaries, or unrelated training diagrams.
+- A crop may represent one core route rather than every route, but `route_ids_supported` must identify exactly what it supports.
+- Preserve labels/arrows necessary to interpret the input path while excluding unrelated outputs/results.
+- Ensure x+width <= 1 and y+height <= 1.
+- Do not claim hidden chain-of-thought. Give concise visible-evidence rationale.
+
+Record and blind reviews:
+{
+  "model_id": "model_8aba876c5b86",
+  "model_name": "Omni-DNA@mult",
+  "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+  "current_status": "cropped_source_figure",
+  "current_figure_index": 3,
+  "current_crop_box": {
+    "x": 0.0,
+    "y": 0.0,
+    "width": 1.0,
+    "height": 0.26
+  },
+  "routes": [
+    {
+      "route_id": "route_4c03386d3b2b",
+      "route_label": "Unified multitask classification finetuning",
+      "lifecycle_phase": "fine_tuning",
+      "input_status": "paired_alignment_input",
+      "source_object_verbatim": "task-specific DNA sequences from the acetylation and methylation benchmarks",
+      "transformation_chain_verbatim": [
+        "merge K task-specific datasets into a unified dataset D uni",
+        "append a task-specific prompt",
+        "expand tokenizer vocabulary",
+        "replicate class labels",
+        "add NEFTune noise during loss computing"
+      ],
+      "model_visible_form_verbatim": "DNA sequence plus task-specific prompt tokens and replicated label tokens",
+      "carrier_family": "discrete_biological_symbol_stream",
+      "carrier_subtype": "native_biological_token_stream",
+      "insertion_or_fusion_verbatim": "task unification under a single finetuning loop",
+      "evidence_quote": "each sample from task k is modified by appending a task-specific prompt Prompt k to its input x ( i )",
+      "section_heading": "3.2. Cross-modal Multi-task Finetuning",
+      "supporting_figure_or_table": "Algorithm 1",
+      "pages": [
+        2,
+        3,
+        4,
+        6,
+        7
+      ]
+    }
+  ],
+  "figure_candidates": [
+    {
+      "figure_index": 1,
+      "page_no": 2,
+      "caption": "Figure 2. Accuracy comparison of Omni-DNA@mult. against Omni-DNA@sgl. and baselines across 10 NT tasks. OmniDNA@mult. achieves the highest average accuracy.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nRadar/spider plot comparing multiple DNA foundation models across epigenomic/chromatin marks. The circular axes are labeled with histone modifications and chromatin features including H3K4ME1, H3K14AC, H3, H4AC, H4, H3K9AC, H3K79ME3, H3K4ME3, H3K4ME2, and H3K36ME3. Radial grid values include approximately 0.2, 0.4, 0.6, and 0.8.\n\nThe legend compares models: Omni-DNA multi-task, Omni-DNA single-task, CADUCEUS-PH single-task, DNABERT2 single-task, NT Transformer single-task, and HyenaDNA single-task. The plotted quantity appears to be model performance per mark, with higher values farther from the center.\n\nMain visible finding: Omni-DNA variants generally trace the outermost curves on several marks, especially H3K4ME2, H3K4ME3, H3K79ME3, and H4AC, indicating stronger performance than the single-task baselines on many evaluated chromatin marks."
+      ]
+    },
+    {
+      "figure_index": 2,
+      "page_no": 3,
+      "caption": "Figure 3. (a) Cross Entropy Loss on test set during pretraining. The models with varying sizes show a stable decrease in loss. (b) No-Bias Normalization Layer stabilizes the average value of feed-forward weights in transformer layers. This pattern is consistent across all the transformer blocks.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nTwo-panel line plot showing language model training dynamics versus tokens seen.\n\nFigure type: multi-line experimental result plot.\n\nPanels and axes:\n- Panel (a): CrossEntropyLoss versus Tokens Seen (billions).\n- Panel (b): Avg Weight versus Tokens Seen (billions).\n- X-axis ranges from 0 to 300 billion tokens.\n- Legend compares model/data scale conditions: 20M, 60M, 116M, 300M, 700M, and 1B.\n\nMeasured quantities:\n- Cross-entropy loss during training.\n- Average weight metric over training tokens.\n\nMain visible finding:\n- Cross-entropy loss decreases over training for all curves, with larger-scale conditions generally achieving lower loss.\n- In panel (b), the 20M curve shows much larger and noisier growth in average weight, while most larger models remain comparatively stable; the 60M curve trends downward below zero."
+      ]
+    },
+    {
+      "figure_index": 3,
+      "page_no": 4,
+      "caption": "Figure 4. Overview of of Omni-DNA architecture. In pretraining , Omni-DNA are trained on DNA only with next-token prediction. Multi-task finetuning enables the model to perform diverse tasks including classification, function prediction, and DNA-to-image.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram for an “Omni-DNA (Auto-Regressive Transformer)” system. The figure has two main phases: “Pretraining” on the left and “Multi-task Finetuning” on the right. It shows next-token prediction with a BPE tokenizer over DNA-like tokens such as `TATA`, `GCGC`, and `G`, feeding token IDs into the transformer.\n\nThe finetuning side shows task-unified inputs with “Instructions” and “Response” tokens for multiple downstream tasks, including “Classification,” “Function Prediction,” and “DNA2Images.” Example prompts ask whether DNA is H3/H4, predict DNA function, and map DNA to handwritten digits. The diagram emphasizes a shared expanded BPE tokenizer and task unification format for DNA-to-label, DNA-to-text, and DNA-to-tensor outputs. No quantitative axes or experimental results are shown."
+      ]
+    },
+    {
+      "figure_index": 4,
+      "page_no": 8,
+      "caption": "Figure 5. F1 scores and invalid percentages for Needle-in-DNA , averaged and per class . Omni-DNA outperforms both baselines.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nMulti-panel experimental result figure combining example outputs and bar plots. The top panel is a table-like visual labeled “Examples From Models” with columns for Class 0 through Class 3, showing “Valid” and “Invalid” image examples alongside DNA-like sequence snippets with highlighted motifs.\n\nBelow are bar charts of F1 Score and Invalid % for model comparisons. Legend: Omni-DNA, OLMO, Unpretrained, and a red dashed Random Guess baseline. Panels include Average, Class 0, Class 1, Class 2, and Class 3. The y-axes are “F1 Score ↑” and “Invalid % ↓”.\n\nMain visible finding: Omni-DNA achieves near-perfect F1 scores across classes with low invalid output rates, while OLMO and especially the unpretrained model show lower F1 or higher invalid percentages in several classes."
+      ]
+    },
+    {
+      "figure_index": 5,
+      "page_no": 9,
+      "caption": "Figure 6. Losses for Omni-DNA (116M) pretrained with ALiBi and RoPE, indicating RoPE's faster convergence and lower losses.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nLine plot of training/test cross entropy loss versus step `t`. The x-axis is labeled `t` and runs from 0 to about 800,000; the y-axis is labeled `Cross Entropy Loss (↓)` and spans roughly 4.0 to 5.75. The legend compares four curves/bands: Omni-DNA with Abilii test loss in orange, Omni-DNA with RoPE test loss in green, Abilii train loss in pink, and RoPE train loss in blue/purple. Both methods show a steep early loss drop followed by gradual decline; RoPE appears slightly lower than Abilii over much of training, especially later steps."
+      ]
+    },
+    {
+      "figure_index": 6,
+      "page_no": 9,
+      "caption": "Figure 7. Impact of model size on performance degradation due to vocabulary expansion. Larger models exhibit better resilience against distribution shifts.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nPlot comparing model performance by parameter count. It shows F1 score on `Promoter-TATA` on the y-axis versus `Parameter Count` on the x-axis, with points at 20M, 60M, 116M, 300M, 700M, and 1B. Legend indicates orange circles for “Classification Head Approach” and green stars for “Predict Labels as New Token.” Vertical lines connect paired results, with percentage drops annotated.\n\nMain visible finding: the classification-head approach consistently achieves higher F1 scores than predicting labels as new tokens, with the largest visible gap around 60M parameters and smaller gaps at larger model sizes."
+      ]
+    },
+    {
+      "figure_index": 7,
+      "page_no": 9,
+      "caption": "Figure 8. Impact of the token replication factor α on the promoter TATA classification task.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nLine plot showing F1-score versus repeating factor. The x-axis is labeled “Repeating Factor” with values around 2, 4, 6, 8, 10, and 12; the y-axis is labeled “F1-Score” ranging roughly from 0.4 to 0.9+. Two curves are shown: orange “Omni-DNA 116M” and green “Omni-DNA 1B.” Both improve as repeating factor increases. Omni-DNA 116M rises quickly by factor 4 and then stays near 0.9, while Omni-DNA 1B stays low until factor 4, jumps sharply by factor 6, and remains slightly higher near 0.95 afterward."
+      ]
+    },
+    {
+      "figure_index": 8,
+      "page_no": 18,
+      "caption": "Figure 9. Images Generated by Omni-DNA. These digits are novel in the sense that they do not exist in the training set.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nFigure type: image grid / dataset sample panel.\n\nVisible elements: an 8x8 grid of small grayscale handwritten digit images on a black background, with white digits including 0, 1, 2, and 3. No axes, panel labels, legend, scale bar, or annotations are visible.\n\nQuantity shown: visual examples of handwritten digit classes, likely from an image classification dataset or model input/output panel.\n\nMain visible finding: the panel shows multiple handwritten digit instances with varied shapes and stroke styles, emphasizing class variability rather than presenting a measured biological result."
+      ]
+    },
+    {
+      "figure_index": 9,
+      "page_no": 18,
+      "caption": "Figure 10. Seq2Func Dataset Construction and Evaluation Pipeline. Genomic sequences from 20 species are annotated with functional descriptions using an LLM, generating 300,000 DNA-function pairs. The evaluation pipeline compares model predictions against ground truth, with an LLM determining transcription type accuracy.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nWorkflow/model evaluation schematic for generating and evaluating an LLM-annotated DNA/RNA function dataset. The left panel, titled “Dataset Generation from NCBI Ref Seq,” shows genomes from 20 species including human, chimpanzee, and horse, with an example sequence “ATAC” linked to “Lnc_RNA 2789” and a short function annotation. An “LLM (Annotator)” extends the short annotation into a longer functional description, producing “300,000 DNA, Function Pairs” with an example mentioning lncRNA 2789.\n\nThe right panel, titled “Evaluation Pipeline,” shows an input DNA sequence “ATGGACG...,” a ground-truth description involving Hsa-miR-4263 regulation of gene expression, and a model prediction saying it is a microRNA found in chickens. An “LLM (Evaluator)” compares ground truth and prediction using a prompt to decide transcription type, outputting miRNA vs miRNA with a green check mark. No quantitative axes or plotted experimental measurements are shown."
+      ]
+    }
+  ],
+  "candidate_figure_order": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "review_a": {
+    "model_id": "model_8aba876c5b86",
+    "decision": "adjust_crop",
+    "route_ids_supported": [
+      "route_4c03386d3b2b"
+    ],
+    "representative_scope": "single_route",
+    "required_input_elements_visible": [
+      "DNA sequence tokens",
+      "task-specific prompt / Instructions-Response interface",
+      "label-token or classification-task output scaffold"
+    ],
+    "missing_or_irrelevant_elements": [
+      "The current crop is only the top title strip and does not show the DNA input scaffold, prompt tokens, or label/interface region needed to understand what enters the model."
+    ],
+    "proposed_figure_index": 3,
+    "proposed_crop_box": {
+      "x": 0.02,
+      "y": 0.31,
+      "width": 0.96,
+      "height": 0.69
+    },
+    "rationale": "The current crop cuts off the concrete finetuning interface. A lower crop that includes the task-unification block, prompt tokens, and downstream classification examples is needed to show what actually enters the model for this route.",
+    "confidence": "high"
+  },
+  "review_b": {
+    "model_id": "model_8aba876c5b86",
+    "decision": "adjust_crop",
+    "route_ids_supported": [
+      "route_4c03386d3b2b"
+    ],
+    "representative_scope": "single_route",
+    "required_input_elements_visible": [
+      "task-specific prompt tokens",
+      "DNA sequence input path",
+      "task-unification / instruction-response interface",
+      "expanded BPE tokenizer"
+    ],
+    "missing_or_irrelevant_elements": [
+      "top-only crop omits the actual DNA/token interface",
+      "top header labels are not sufficient by themselves"
+    ],
+    "proposed_figure_index": 3,
+    "proposed_crop_box": {
+      "x": 0.0,
+      "y": 0.23,
+      "width": 1.0,
+      "height": 0.77
+    },
+    "rationale": "The current crop is too high-level: it stops before the actual input/interface region. Shifting downward keeps the minimal architecture needed while exposing the tokenizer and instruction-response path that grounds the multitask classification route.",
+    "confidence": "high"
+  }
+}

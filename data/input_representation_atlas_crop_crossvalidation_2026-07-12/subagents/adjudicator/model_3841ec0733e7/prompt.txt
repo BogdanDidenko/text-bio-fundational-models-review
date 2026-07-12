@@ -1,0 +1,160 @@
+You are the blinded adjudicator for a biomedical input-representation atlas. Resolve two independent crop reviews using visible evidence, not majority voting.
+
+Image 1 is the current review panel. For an existing crop, its LEFT side is the full source figure with a red rectangle and its RIGHT side is the exact rendered crop. For a no-figure baseline, it is the original contact sheet.
+Image 2 is a contact sheet of all source-paper figure candidates in `candidate_figure_order`, left-to-right and top-to-bottom.
+
+Decision rules:
+- `accept_current`: the exact right crop clearly and readably shows a source object, transformation, model-visible carrier, or immediate model-facing interface for at least one listed `actual_model_input` route.
+- `adjust_current`: the current figure is correct but the rectangle must change. Return final normalized coordinates relative to the full original figure.
+- `replace_figure`: another visible candidate is better. Return its figure index and null crop; a separate high-resolution crop pass will follow.
+- `no_suitable_figure`: no source figure visibly supports the model input route. Return null figure and crop. Do not substitute outputs, performance plots, generic data summaries, or unrelated training diagrams.
+- A crop may represent one core route rather than every route, but `route_ids_supported` must identify exactly what it supports.
+- Preserve labels/arrows necessary to interpret the input path while excluding unrelated outputs/results.
+- Ensure x+width <= 1 and y+height <= 1.
+- Do not claim hidden chain-of-thought. Give concise visible-evidence rationale.
+
+Record and blind reviews:
+{
+  "model_id": "model_3841ec0733e7",
+  "model_name": "gene_eng_gpt2_para_seg",
+  "paper_title": "Human Genome Book:Words,Sentences and Paragraphs",
+  "current_status": "cropped_source_figure",
+  "current_figure_index": 1,
+  "current_crop_box": {
+    "x": 0,
+    "y": 0.59,
+    "width": 0.46,
+    "height": 0.29
+  },
+  "routes": [
+    {
+      "route_id": "route_93bd114730a5",
+      "route_label": "wikipedia_paragraph_segmentation_training",
+      "lifecycle_phase": "fine_tuning",
+      "input_status": "actual_model_input",
+      "source_object_verbatim": "Wikipedia text",
+      "transformation_chain_verbatim": [
+        "replace newline characters between paragraphs with <p_end>",
+        "continuous pre-training",
+        "predict next token"
+      ],
+      "model_visible_form_verbatim": "tokenized Wikipedia text with <p_end> markers",
+      "carrier_family": "text_native_token_stream",
+      "carrier_subtype": "plain_language_prompt_or_question",
+      "insertion_or_fusion_verbatim": "GPT2LMHeadModel with a causal language modeling head",
+      "evidence_quote": "The paragraph segmentation model, named gene_eng_gpt2_para_seg",
+      "section_heading": "2.4. Text Segmentation Model",
+      "supporting_figure_or_table": null,
+      "pages": [
+        3,
+        4,
+        5,
+        10
+      ]
+    },
+    {
+      "route_id": "route_9dc2938dfe33",
+      "route_label": "chromosome1_paragraph_segmentation_inference",
+      "lifecycle_phase": "inference",
+      "input_status": "actual_model_input",
+      "source_object_verbatim": "Chromosome 1",
+      "transformation_chain_verbatim": [
+        "divide Chromosome 1 into 25 segments",
+        "apply segmentation model"
+      ],
+      "model_visible_form_verbatim": "DNA sequence segments",
+      "carrier_family": "discrete_biological_symbol_stream",
+      "carrier_subtype": "native_biological_token_stream",
+      "insertion_or_fusion_verbatim": "segmentation model",
+      "evidence_quote": "focusing primarily on processing Chromosome 1",
+      "section_heading": "2.7. Genome Segmentation - Chapter Division - Sentence Splitting",
+      "supporting_figure_or_table": "Figure 4. Structure of the Genome Catalog.",
+      "pages": [
+        1,
+        13,
+        14
+      ]
+    }
+  ],
+  "figure_candidates": [
+    {
+      "figure_index": 1,
+      "page_no": 5,
+      "caption": "",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nWorkflow/model architecture diagram. It shows DNA sequence, protein sequence, and natural language inputs passed through a unified BPE tokenization/encoder, then pre-training of a GPT-2 model labeled `GPT2-gene-eng`. The model is fine-tuned using PAWS English datasets and a sequence similarity classification dataset, producing `GPT2-gene-eng-ft`. Further fine-tuning branches use English summary datasets and English paragraph segmentation datasets, yielding models labeled `gene_eng_gpt2_para_seg` and `gene_eng_gpt2_summary`.\n\nNo axes or quantitative plots are present. The diagram depicts language capability transfer from English to DNA, with one branch marked “Verifiable” and a later genome-book application marked as “Unverified?” / “Indirect Verification?”. The visible main idea is a proposed pipeline for transferring natural-language modeling capabilities to genomic sequence tasks through unified tokenization and GPT-2 pretraining/fine-tuning."
+      ]
+    },
+    {
+      "figure_index": 2,
+      "page_no": 8,
+      "caption": "Figure 2. Structure of gpt2-gene-eng . The model architecture is identical to that of GPT-2 small. Pretraining and instruction tuning use the same causal language header, the layer mapped 768 hidden units to 100000 units (the number of tokens in the vocabulary). Classication uses sequence classication header, The layer maps from 768 hidden units to only 2 units, where the 2 units represent the two classes id.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nModel architecture diagram showing a GPT-style transformer. The left panel depicts tokenized text inputs passing through token embedding, positional embedding, dropout, and a 12× repeated transformer block with LayerNorm, masked multi-head attention, dropout, residual connections, feed-forward layer, final LayerNorm, and linear output layer. The right panels compare output heads: a causal language modeling head for pretraining with 768 hidden units to 50,257 vocabulary outputs, a sequence classification head for classification tuning with 768 to 2 outputs, and a causal language head for instruction tuning. Main visible point: the same GPT backbone can be paired with different task-specific heads for pretraining, classification, or instruction tuning."
+      ]
+    },
+    {
+      "figure_index": 3,
+      "page_no": 10,
+      "caption": "Figure 3. On the left, Figure A shows the word vectors generated by the pre-trained model. Blue points represent DNA word vectors, and red points represent English word vectors. On the right, Figure B shows the word vectors generated by the ne-tuned model. Again, blue points represent DNA word vectors, and red points represent English word vectors.In Figure A, it is evident that the DNA word vectors and English word vectors are generally far apart, with a clear boundary between them. In contrast, in Figure B, the DNA word vectors and English word vectors are noticeably closer, with some overlapping regions. This further illustrates the reason for language capability transfer in the ne-tuned model.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nTwo-panel PCA scatter plot comparing DNA vectors and English word vectors. Both panels are titled “PCA of DNA and English Word Vectors” and plot Principal Component 1 vs Principal Component 2, with a legend showing DNA vectors in blue and English vectors in red.\n\nPanel A is labeled “Pretrained model”: blue DNA vectors cluster on the left at negative PC1 values, while red English vectors form a largely separate cluster on the right at positive PC1 values, indicating strong separation between vector spaces.\n\nPanel B is labeled “Finetune model”: the blue DNA vectors remain mostly on the left, while the red English vectors form a broader curved distribution extending from overlapping/nearby lower PC1 regions to high positive PC1 and PC2 values, suggesting altered geometry and partial proximity after finetuning."
+      ]
+    },
+    {
+      "figure_index": 4,
+      "page_no": 14,
+      "caption": "Figure 4. Structure of the Genome Catalog. Each genome is organized by chromosome, forming the highest-level directory. We divided the chromosome sequences into equal-sized segments, referred to as 'Parts.' For each part, we further subdivided into 'Chapters' and 'Sections,' where each section represents specic DNA sequence paragraphs.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nFigure type: conceptual biological hierarchy diagram.\n\nVisible labels: “Genome Book” at the top, branching to “Chromosome 1,” “Chromosome 2,” and “……”. Under Chromosome 1, nested labels include “ChromosomePart1,” “ChromosomePart2,” “DNA Chapter1,” “DNA Chapter2,” “DNA Section1,” “DNASection2,” “DNA para 1,” and “DNA para 2.”\n\nAxes/panels/legend: no axes, panels, scale bars, or legend are visible.\n\nBiological/model quantity shown: an analogy or hierarchical organization of genomic DNA, representing the genome as a book and chromosomes/DNA subdivisions as nested textual units.\n\nMain visible finding: the image illustrates that a genome can be organized hierarchically from chromosomes down to smaller DNA sections/paragraph-like units."
+      ]
+    },
+    {
+      "figure_index": 5,
+      "page_no": 16,
+      "caption": "Figure 5. Screenshot of the Genomic Book Content, where Figure A on the left shows the DNA sequence content, and Figure B on the right shows the translated English content.",
+      "vlm_descriptions": [
+        "SCIENTIFIC_FIGURE\n\nTwo-panel figure labeled A and B showing document/PDF screenshot comparisons. Panel A contains readable text with a DNA-like nucleotide sequence header (`CHAPTER-2 ...`) and a long block of sequence/text below. Panel B shows a distorted or poorly decoded version of similar page content, with mixed readable words and corrupted/repeated characters. No axes or quantitative plot are visible. The figure appears to illustrate text extraction/OCR or document rendering quality, with the main visible contrast being cleaner readable sequence text in A versus degraded/corrupted text output in B."
+      ]
+    }
+  ],
+  "candidate_figure_order": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "review_a": {
+    "model_id": "model_3841ec0733e7",
+    "decision": "confirm_no_suitable_figure",
+    "route_ids_supported": [],
+    "representative_scope": "none",
+    "required_input_elements_visible": [],
+    "missing_or_irrelevant_elements": [
+      "the crop shows the paragraph-segmentation branch label and adjacent training boxes only",
+      "the actual input representation 'tokenized Wikipedia text with <p_end> markers' is not visible",
+      "no concrete source text or insertion interface is readable"
+    ],
+    "proposed_figure_index": null,
+    "proposed_crop_box": null,
+    "rationale": "The crop is a branch of the architecture, but it does not visibly show the actual model input for paragraph segmentation. The required tokenized Wikipedia text with paragraph markers is absent, so the evidence is insufficient.",
+    "confidence": "high"
+  },
+  "review_b": {
+    "model_id": "model_3841ec0733e7",
+    "decision": "confirm_no_suitable_figure",
+    "route_ids_supported": [],
+    "representative_scope": "none",
+    "required_input_elements_visible": [],
+    "missing_or_irrelevant_elements": [
+      "Wikipedia text with <p_end> markers",
+      "the actual paragraph-segmentation input sequence",
+      "a clear model-input interface for the route"
+    ],
+    "proposed_figure_index": null,
+    "proposed_crop_box": null,
+    "rationale": "The crop shows a branch label and finetuning block, but not the stated input representation. It is too generic and omits the grounded source object needed to justify the route.",
+    "confidence": "medium"
+  }
+}

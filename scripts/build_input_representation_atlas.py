@@ -19,7 +19,7 @@ CORPUS_ROOT = ROOT / "data/docling_include_vlm_52_2026-07-10_nolimits"
 DEFAULT_OUTPUT = ROOT / "docs/input-representation-atlas"
 CROP_LEDGER = (
     ROOT
-    / "data/input_representation_atlas_redesign_2026-07-11/model_crop_annotations.json"
+    / "data/input_representation_atlas_crop_crossvalidation_2026-07-12/final_crossvalidated_crop_ledger.json"
 )
 
 FAMILY_META = {

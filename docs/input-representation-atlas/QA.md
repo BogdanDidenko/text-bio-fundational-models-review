@@ -10,15 +10,17 @@
 - Graph edges: 234
 - Configurations: 376/376
 - Grounded routes: 489/489
-- Models with a model-specific source crop: 103
-- Explicit no-suitable-figure cases: 8
-- Deduplicated copied source figures: 68
+- Models with a cross-validated source crop: 79
+- Explicit no-suitable-figure cases: 32
 - Routes without final grounding: 0
 
-The crop audit covers all 111 model IDs exactly once. It contains 98 suitable,
-five partially suitable, and eight explicit unsuitable/no-figure outcomes. The
-second pass reselected and recropped 29 models after the original automatic
-figure selector was rejected by vision review.
+The crop audit covers all 111 model IDs exactly once. Two blind reviewers each
+checked all 111 model decisions. Exact rendered previews were then subjected to
+an adversarial input-role check that distinguishes target-model input from
+graders, outputs, downstream consumers, and mismatched routes. Every non-pass
+was resolved by a scope-aware `gpt-5.4` adjudicator. The 79 retained crops have
+no unresolved validation finding; the remaining 32 are explicitly excluded
+from figure display.
 
 ## Browser verification
 

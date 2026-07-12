@@ -37,11 +37,11 @@ async function inspect(viewport, screenshot, mobile = false) {
     throw new Error(`Unexpected graph node counts: ${JSON.stringify(initial)}`);
   }
   if (initial.edges !== 234) throw new Error(`Expected 234 edges, found ${initial.edges}`);
-  if (initial.cropNodes < 103) throw new Error(`Expected at least 103 crop viewports, found ${initial.cropNodes}`);
+  if (initial.cropNodes !== 158) throw new Error(`Expected 158 crop viewports for 79 validated figures across graph and index, found ${initial.cropNodes}`);
   if (initial.pageOverflow > 1) throw new Error(`Page has ${initial.pageOverflow}px horizontal overflow`);
   if (initial.graphBox.width < 300 || initial.graphBox.height < 450) throw new Error("Graph viewport is undersized");
 
-  const firstModel = page.locator("foreignObject.graph-node-model").first();
+  const firstModel = page.locator("foreignObject.graph-node-model").filter({ has: page.locator(".paper-crop") }).first();
   await firstModel.dispatchEvent("click");
   await page.waitForSelector("#graph-inspector .inspector-title");
   const inspector = await page.evaluate(() => ({
@@ -123,7 +123,7 @@ await browser.close();
 const result = { status: "ok", desktop, mobile };
 fs.writeFileSync("/tmp/atlas-graph-qa.json", JSON.stringify(result, null, 2));
 fs.writeFileSync(
-  "data/input_representation_atlas_redesign_2026-07-11/browser_qa.json",
+  "data/input_representation_atlas_crop_crossvalidation_2026-07-12/browser_qa.json",
   `${JSON.stringify(result, null, 2)}\n`,
 );
 console.log(JSON.stringify(result));

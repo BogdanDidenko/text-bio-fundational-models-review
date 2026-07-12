@@ -10,9 +10,8 @@ The graph contains:
 - one taxonomy root, five carrier families, and 15 operational subtypes;
 - 111 unique model nodes and 234 explicit taxonomy links;
 - 376 lifecycle/task configurations and 489 grounded input routes;
-- 103 model-specific original-paper crops drawn from 68 deduplicated source
-  figures;
-- eight explicit `no_suitable_figure` cases where the papers had text evidence
+- 79 independently cross-validated model-specific original-paper crops;
+- 32 explicit `no_suitable_figure` cases where the papers had text evidence
   but no figure that responsibly illustrated the input route.
 
 Each model node separates two visual roles:
@@ -29,18 +28,26 @@ transformation chain, model-visible form, quote, heading, and pages.
 ## Rebuild
 
 ```bash
-python3 scripts/aggregate_atlas_crop_annotations.py
 python3 scripts/build_input_representation_atlas.py
 ```
 
-The crop ledger is:
+The complete logged crop-validation command sequence is documented in
+`CROP_CROSSVALIDATION.md`; the deterministic site build consumes only its frozen
+ledger.
 
-`data/input_representation_atlas_redesign_2026-07-11/model_crop_annotations.json`
+The canonical cross-validated crop ledger is:
+
+`data/input_representation_atlas_crop_crossvalidation_2026-07-12/final_crossvalidated_crop_ledger.json`
+
+Its audit report and complete method description are:
+
+- `data/input_representation_atlas_crop_crossvalidation_2026-07-12/crossvalidation_final_report.json`
+- `data/input_representation_atlas_crop_crossvalidation_2026-07-12/CROP_CROSSVALIDATION.md`
 
 All Codex subagent prompts, structured responses, stdout events, stderr, schemas,
 commands, timestamps, and retry metadata are retained under:
 
-`data/input_representation_atlas_redesign_2026-07-11/subagents/`
+`data/input_representation_atlas_crop_crossvalidation_2026-07-12/subagents/`
 
 No LLM call occurs during the deterministic site build. Integrity results are
 written to `data/build_report.json`.
