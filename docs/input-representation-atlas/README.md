@@ -57,3 +57,18 @@ commands, timestamps, and retry metadata are retained under:
 
 No LLM call occurs during the deterministic site build. Integrity results are
 written to `data/build_report.json`.
+
+## Social preview
+
+The GitHub Pages entrypoint includes Open Graph and Twitter Card metadata for a
+1200 x 630 large-image preview. The image is generated from the actual rendered
+atlas graph rather than a separate diagram.
+
+After starting a static server for `docs/input-representation-atlas/`, rebuild
+the preview with:
+
+```bash
+NODE_PATH=/path/to/node_modules node \
+  scripts/render_input_representation_atlas_social_preview.mjs \
+  http://127.0.0.1:8765/
+```

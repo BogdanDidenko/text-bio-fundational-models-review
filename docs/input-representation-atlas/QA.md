@@ -54,6 +54,8 @@ Verified behaviors:
 - the secondary model index and evidence table remain filterable;
 - no page horizontal overflow occurs at either viewport;
 - no browser console or page errors occur;
+- Open Graph and Twitter Card metadata reference the absolute public preview;
+- the rendered social preview is a nonblank 1200 x 630 PNG;
 - screenshots are nonblank and were visually inspected in all-model, subtype,
   model-focus, and mobile states.
 

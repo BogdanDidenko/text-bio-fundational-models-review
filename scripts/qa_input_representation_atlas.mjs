@@ -84,6 +84,32 @@ async function inspect(viewport, screenshot, mobile = false) {
   if (initial.pageOverflow > 1) throw new Error(`Page has ${initial.pageOverflow}px horizontal overflow`);
   if (initial.graphBox.width < 300 || initial.graphBox.height < 450) throw new Error("Graph viewport is undersized");
 
+  const socialPreview = await page.evaluate(async () => {
+    const meta = (selector) => document.querySelector(selector)?.content;
+    const localImage = new Image();
+    const loaded = new Promise((resolve, reject) => {
+      localImage.onload = resolve;
+      localImage.onerror = reject;
+    });
+    localImage.src = new URL("assets/social-preview.png", document.baseURI).href;
+    await loaded;
+    return {
+      canonical: document.querySelector('link[rel="canonical"]')?.href,
+      ogTitle: meta('meta[property="og:title"]'),
+      ogImage: meta('meta[property="og:image"]'),
+      ogWidth: meta('meta[property="og:image:width"]'),
+      ogHeight: meta('meta[property="og:image:height"]'),
+      twitterCard: meta('meta[name="twitter:card"]'),
+      twitterImage: meta('meta[name="twitter:image"]'),
+      localImageWidth: localImage.naturalWidth,
+      localImageHeight: localImage.naturalHeight,
+    };
+  });
+  const publicPreview = "https://bogdandidenko.github.io/text-bio-fundational-models-review/assets/social-preview.png";
+  if (socialPreview.ogImage !== publicPreview || socialPreview.twitterImage !== publicPreview || socialPreview.twitterCard !== "summary_large_image" || socialPreview.ogWidth !== "1200" || socialPreview.ogHeight !== "630" || socialPreview.localImageWidth !== 1200 || socialPreview.localImageHeight !== 630) {
+    throw new Error(`Social preview metadata failed: ${JSON.stringify(socialPreview)}`);
+  }
+
   const firstModel = page.locator("foreignObject.graph-node-model").filter({ has: page.locator(".paper-crop") }).first();
   await firstModel.dispatchEvent("click");
   await page.waitForSelector("#graph-inspector .inspector-title");
@@ -207,7 +233,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   const screenshotSize = fs.statSync(screenshot).size;
   if (screenshotSize < 50_000) throw new Error(`Screenshot appears blank: ${screenshotSize} bytes`);
   await page.close();
-  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, chatCellGroup, groupInspectorKeepsFocus, groupOutsideClickClearsFocus, focused, subtypeLayout, audit: { ...audit, multiIncoming, membershipGroupId, groupIncoming }, screenshot, screenshotSize, consoleErrors: errors };
+  return { viewport, initial, socialPreview, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, chatCellGroup, groupInspectorKeepsFocus, groupOutsideClickClearsFocus, focused, subtypeLayout, audit: { ...audit, multiIncoming, membershipGroupId, groupIncoming }, screenshot, screenshotSize, consoleErrors: errors };
 }
 
 const desktop = await inspect({ width: 1440, height: 1000 }, "/tmp/atlas-graph-desktop.png");
