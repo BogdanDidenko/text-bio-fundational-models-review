@@ -479,9 +479,27 @@ function modelInspector(architecture) {
     const family = familyMeta(familyId);
     return `<span class="family-chip" style="--family-color:${family.color}">${escapeHtml(family.code)} · ${escapeHtml(family.short)}</span>`;
   }).join("");
+  const subtypePaths = architecture.subtypes
+    .map((subtypeId) => {
+      const subtype = subtypeById.get(subtypeId);
+      const family = familyMeta(subtype?.family_id);
+      return { subtypeId, subtype, family, routeCount: architecture.subtype_counts[subtypeId] || 0 };
+    })
+    .sort((left, right) => (left.subtype?.leaf_id || left.subtypeId).localeCompare(right.subtype?.leaf_id || right.subtypeId));
+  const subtypePathChips = subtypePaths.map(({ subtypeId, subtype, family, routeCount }) => `<span class="subtype-path-chip" data-inspector-subtype-path="${escapeHtml(subtypeId)}" style="--family-color:${family.color}">
+    <b>${escapeHtml(subtype?.leaf_id || subtypeId)}</b><span>${escapeHtml(subtype?.name || subtypeId)}</span><em>${routeCount} ${routeCount === 1 ? "route" : "routes"}</em>
+  </span>`).join("");
+  const pathScope = architecture.families.length === 1
+    ? `All subtype paths remain within ${familyMeta(architecture.families[0]).code}.`
+    : `Paths span ${architecture.families.length} carrier families.`;
   return `<div class="inspector-scroll">
     <div class="inspector-title"><p class="section-kicker">Model node</p><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p></div>
     <div class="chip-row">${familyChips}</div>
+    <div class="model-path-summary">
+      <div class="model-path-heading"><strong>Graph paths</strong><span>${architecture.subtypes.length} subtype ${architecture.subtypes.length === 1 ? "path" : "paths"} · ${architecture.route_count} routes</span></div>
+      <p>${escapeHtml(pathScope)}</p>
+      <div class="subtype-path-list">${subtypePathChips}</div>
+    </div>
     ${evidenceProvenance(architecture)}
     <section class="inspector-section"><div class="inspector-section-title"><h4>What the input can look like</h4><span>Explanatory examples</span></div>${exampleMarkup(architecture, "detail")}</section>
     <section class="inspector-section"><div class="inspector-section-title"><h4>Grounded routes</h4><span>${architecture.route_count} routes</span></div>${architecture.routes.map(routeMarkup).join("")}</section>

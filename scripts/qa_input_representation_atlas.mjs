@@ -72,6 +72,20 @@ async function inspect(viewport, screenshot, mobile = false) {
   await firstModel.dispatchEvent("click");
   if (!mobile) await page.screenshot({ path: "/tmp/atlas-graph-model-focus.png" });
 
+  const chatCellId = await page.evaluate(async () => {
+    const atlas = await (await fetch("data/atlas.json")).json();
+    return atlas.architectures.find((item) => item.model_name === "CHATCELL")?.model_id;
+  });
+  await page.locator(`foreignObject[data-node-id="model::${chatCellId}"]`).dispatchEvent("click");
+  const chatCellPaths = await page.evaluate(() => ({
+    heading: document.querySelector("#graph-inspector .model-path-heading")?.textContent?.replace(/\s+/g, " ").trim(),
+    scope: document.querySelector("#graph-inspector .model-path-summary > p")?.textContent?.trim(),
+    chips: [...document.querySelectorAll("#graph-inspector [data-inspector-subtype-path]")].map((item) => item.textContent.replace(/\s+/g, " ").trim()),
+  }));
+  if (chatCellPaths.chips.length !== 3 || !chatCellPaths.heading?.includes("3 subtype paths · 7 routes") || chatCellPaths.scope !== "All subtype paths remain within F1.") {
+    throw new Error(`CHATCELL graph-path explanation is incomplete: ${JSON.stringify(chatCellPaths)}`);
+  }
+
   await page.locator("#show-all").click();
   await page.locator('#family-filter button[data-family="dense_continuous_carrier"]').click();
   await page.waitForTimeout(550);
@@ -128,7 +142,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   const screenshotSize = fs.statSync(screenshot).size;
   if (screenshotSize < 50_000) throw new Error(`Screenshot appears blank: ${screenshotSize} bytes`);
   await page.close();
-  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, focused, subtypeLayout, audit, screenshot, screenshotSize, consoleErrors: errors };
+  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, focused, subtypeLayout, audit, screenshot, screenshotSize, consoleErrors: errors };
 }
 
 const desktop = await inspect({ width: 1440, height: 1000 }, "/tmp/atlas-graph-desktop.png");
