@@ -467,6 +467,19 @@ def main() -> int:
             }
         )
 
+    subtype_catalog = {
+        subtype["subtype_id"]: {
+            **subtype,
+            "family_id": family["family_id"],
+        }
+        for family in taxonomy_families
+        for subtype in family["subtypes"]
+    }
+    membership_groups: dict[tuple[str, ...], list[dict[str, Any]]] = defaultdict(list)
+    for architecture in architectures:
+        signature = tuple(sorted(architecture["subtypes"]))
+        membership_groups[signature].append(architecture)
+
     graph_nodes = [
         {
             "id": "taxonomy_root",
@@ -514,24 +527,57 @@ def main() -> int:
                     "type": "contains_subtype",
                 }
             )
-    for architecture in architectures:
-        model_node = f"model::{architecture['model_id']}"
+    for signature in sorted(membership_groups):
+        signature_text = "|".join(signature)
+        group_id = f"membership_{hashlib.sha1(signature_text.encode('utf-8')).hexdigest()[:12]}"
+        group_node = f"group::{group_id}"
+        group_models = sorted(
+            membership_groups[signature], key=lambda item: item["model_name"].casefold()
+        )
+        family_ids = sorted(
+            {subtype_catalog[subtype_id]["family_id"] for subtype_id in signature},
+            key=lambda family_id: FAMILY_META[family_id]["code"],
+        )
+        leaf_ids = [subtype_catalog[subtype_id]["leaf_id"] for subtype_id in signature]
         graph_nodes.append(
             {
-                "id": model_node,
-                "type": "model",
-                "label": architecture["model_name"],
-                "model_id": architecture["model_id"],
-                "primary_subtype": architecture["primary_subtype"],
+                "id": group_node,
+                "type": "membership_group",
+                "label": " + ".join(leaf_ids),
+                "group_id": group_id,
+                "subtype_ids": list(signature),
+                "family_ids": family_ids,
+                "model_ids": [item["model_id"] for item in group_models],
+                "model_count": len(group_models),
             }
         )
-        for subtype_id in architecture["subtypes"]:
+        for subtype_id in signature:
             graph_edges.append(
                 {
-                    "id": f"edge::{subtype_id}::{architecture['model_id']}",
+                    "id": f"edge::{subtype_id}::{group_id}",
                     "source": f"subtype::{subtype_id}",
+                    "target": group_node,
+                    "type": "defines_membership_group",
+                }
+            )
+        for architecture in group_models:
+            architecture["membership_group_id"] = group_id
+            model_node = f"model::{architecture['model_id']}"
+            graph_nodes.append(
+                {
+                    "id": model_node,
+                    "type": "model",
+                    "label": architecture["model_name"],
+                    "model_id": architecture["model_id"],
+                    "membership_group_id": group_id,
+                }
+            )
+            graph_edges.append(
+                {
+                    "id": f"edge::{group_id}::{architecture['model_id']}",
+                    "source": group_node,
                     "target": model_node,
-                    "type": "classifies_model_route",
+                    "type": "contains_model",
                 }
             )
 
@@ -546,6 +592,7 @@ def main() -> int:
             "model_count": len(architectures),
             "configuration_count": len({r["configuration_id"] for r in routes}),
             "route_count": len(routes),
+            "membership_group_count": len(membership_groups),
             "source_figure_count": len(copied),
             "models_with_cropped_figure": sum(
                 architecture["figure_status"] == "cropped_source_figure"
@@ -568,6 +615,7 @@ def main() -> int:
                 "root": 1,
                 "families": len(taxonomy_families),
                 "subtypes": sum(len(family["subtypes"]) for family in taxonomy_families),
+                "membership_groups": len(membership_groups),
                 "models": len(architectures),
                 "edges": len(graph_edges),
             },

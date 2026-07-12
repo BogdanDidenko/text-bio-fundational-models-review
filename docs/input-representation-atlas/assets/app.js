@@ -15,6 +15,7 @@ const familyById = new Map();
 const subtypeById = new Map();
 const architectureById = new Map();
 const graphNodeById = new Map();
+const membershipGroupBySignature = new Map();
 let graphZoom = null;
 let graphLayout = null;
 
@@ -205,89 +206,192 @@ function calculateGraphLayout() {
   const subtypeOrder = new Map();
   let orderIndex = 0;
   state.atlas.families.forEach((family) => family.subtypes.forEach((subtype) => subtypeOrder.set(subtype.subtype_id, orderIndex++)));
-  const assigned = new Map([...allowedSubtypeIds].map((id) => [id, []]));
   const parentSubtypes = new Map();
+  const groupsBySignature = new Map();
   models.forEach((model) => {
     const parents = model.subtypes.filter((id) => allowedSubtypeIds.has(id)).sort((a, b) => subtypeOrder.get(a) - subtypeOrder.get(b));
     parentSubtypes.set(model.model_id, parents);
-    const primary = parents.includes(model.primary_subtype) ? model.primary_subtype : parents[0];
-    if (primary) assigned.get(primary).push(model);
+    if (!parents.length) return;
+    const signature = [...parents].sort().join("|");
+    if (!groupsBySignature.has(signature)) {
+      const canonical = membershipGroupBySignature.get(signature);
+      groupsBySignature.set(signature, {
+        id: canonical?.group_id || `visible_${signature}`,
+        signature,
+        subtype_ids: parents,
+        models: [],
+      });
+    }
+    groupsBySignature.get(signature).models.push(model);
   });
-  assigned.forEach((list) => list.sort((a, b) => a.model_name.localeCompare(b.model_name)));
+  const groups = [...groupsBySignature.values()];
+  groups.forEach((group) => {
+    group.models.sort((a, b) => a.model_name.localeCompare(b.model_name));
+    group.family_ids = unique(group.subtype_ids.map((id) => subtypeById.get(id).family_id));
+    group.leaf_ids = group.subtype_ids.map((id) => subtypeById.get(id).leaf_id);
+    group.order = group.subtype_ids.reduce((total, id) => total + subtypeOrder.get(id), 0) / group.subtype_ids.length;
+  });
 
-  const modelColumns = models.length <= 12 ? 3 : models.length <= 35 ? 5 : 7;
+  const MODEL_COLUMNS = models.length <= 12 ? 1 : models.length <= 36 ? 2 : 3;
   const positions = new Map();
-  const ROOT_X = 44;
-  const FAMILY_X = 302;
-  const SUBTYPE_X = 600;
-  const MODEL_X = 960;
   const MODEL_W = 230;
   const MODEL_H = 132;
   const MODEL_GAP_X = 22;
   const MODEL_GAP_Y = 18;
-  let cursorY = 48;
-  const visibleSubtypes = [];
+  const GROUP_W = 254;
+  const GROUP_H = 92;
+  const GROUP_GAP_Y = 34;
+  const SUBTYPE_W = 280;
+  const SUBTYPE_H = 92;
+  const FAMILY_W = 228;
+  const FAMILY_H = 86;
+  const ROOT_W = 196;
+  const ROOT_H = 98;
+  const SIDE_MODEL_SPAN = MODEL_COLUMNS * MODEL_W + (MODEL_COLUMNS - 1) * MODEL_GAP_X;
+  const LEFT_MODEL_X = 48;
+  const LEFT_GROUP_X = LEFT_MODEL_X + SIDE_MODEL_SPAN + 44;
+  const LEFT_SUBTYPE_X = LEFT_GROUP_X + GROUP_W + 54;
+  const LEFT_FAMILY_X = LEFT_SUBTYPE_X + SUBTYPE_W + 48;
+  const ROOT_X = LEFT_FAMILY_X + FAMILY_W + 62;
+  const RIGHT_FAMILY_X = ROOT_X + ROOT_W + 62;
+  const RIGHT_SUBTYPE_X = RIGHT_FAMILY_X + FAMILY_W + 48;
+  const RIGHT_GROUP_X = RIGHT_SUBTYPE_X + SUBTYPE_W + 54;
+  const RIGHT_MODEL_X = RIGHT_GROUP_X + GROUP_W + 44;
+  const graphWidth = RIGHT_MODEL_X + SIDE_MODEL_SPAN + 48;
 
-  families.forEach((family) => {
-    const familyStart = cursorY;
-    family.visibleSubtypes.forEach((subtype) => {
-      const subtypeModels = assigned.get(subtype.subtype_id) || [];
-      const rows = Math.max(1, Math.ceil(subtypeModels.length / modelColumns));
-      const blockHeight = Math.max(138, rows * (MODEL_H + MODEL_GAP_Y));
-      const centerY = cursorY + blockHeight / 2;
-      positions.set(`subtype::${subtype.subtype_id}`, { x: SUBTYPE_X, y: centerY - 46, width: 280, height: 92, type: "subtype" });
-      visibleSubtypes.push(subtype);
-      subtypeModels.forEach((model, index) => {
-        const column = index % modelColumns;
-        const row = Math.floor(index / modelColumns);
+  groups.forEach((group) => {
+    const rows = Math.max(1, Math.ceil(group.models.length / MODEL_COLUMNS));
+    group.blockHeight = Math.max(GROUP_H + 24, rows * (MODEL_H + MODEL_GAP_Y));
+  });
+  const sideLoads = { left: 0, right: 0 };
+  [...groups]
+    .sort((a, b) => b.blockHeight - a.blockHeight || a.signature.localeCompare(b.signature))
+    .forEach((group) => {
+      group.side = sideLoads.left <= sideLoads.right ? "left" : "right";
+      sideLoads[group.side] += group.blockHeight + GROUP_GAP_Y;
+    });
+
+  const sideGroups = {
+    left: groups.filter((group) => group.side === "left").sort((a, b) => a.order - b.order || a.signature.localeCompare(b.signature)),
+    right: groups.filter((group) => group.side === "right").sort((a, b) => a.order - b.order || a.signature.localeCompare(b.signature)),
+  };
+  const sideCursors = { left: 48, right: 48 };
+  ["left", "right"].forEach((side) => {
+    sideGroups[side].forEach((group) => {
+      const cursorY = sideCursors[side];
+      group.centerY = cursorY + group.blockHeight / 2;
+      positions.set(`group::${group.id}`, {
+        x: side === "left" ? LEFT_GROUP_X : RIGHT_GROUP_X,
+        y: group.centerY - GROUP_H / 2,
+        width: GROUP_W,
+        height: GROUP_H,
+        type: "membership_group",
+      });
+      group.models.forEach((model, index) => {
+        const column = index % MODEL_COLUMNS;
+        const row = Math.floor(index / MODEL_COLUMNS);
+        const outwardColumn = side === "left" ? MODEL_COLUMNS - column - 1 : column;
         positions.set(`model::${model.model_id}`, {
-          x: MODEL_X + column * (MODEL_W + MODEL_GAP_X),
+          x: (side === "left" ? LEFT_MODEL_X : RIGHT_MODEL_X) + outwardColumn * (MODEL_W + MODEL_GAP_X),
           y: cursorY + row * (MODEL_H + MODEL_GAP_Y),
           width: MODEL_W,
           height: MODEL_H,
           type: "model",
         });
       });
-      cursorY += blockHeight + 28;
+      sideCursors[side] += group.blockHeight + GROUP_GAP_Y;
     });
-    const familyEnd = cursorY - 28;
-    positions.set(`family::${family.family_id}`, { x: FAMILY_X, y: (familyStart + familyEnd) / 2 - 43, width: 228, height: 86, type: "family" });
-    cursorY += 38;
   });
-  const graphHeight = Math.max(680, cursorY + 24);
-  positions.set("taxonomy_root", { x: ROOT_X, y: graphHeight / 2 - 49, width: 196, height: 98, type: "root" });
-  const graphWidth = MODEL_X + modelColumns * (MODEL_W + MODEL_GAP_X) + 48;
+  const graphHeight = Math.max(680, sideCursors.left, sideCursors.right) + 24;
+
+  function spreadCenters(items, minimumGap) {
+    const sorted = [...items].sort((a, b) => a.desired - b.desired || a.order - b.order);
+    sorted.forEach((item, index) => {
+      item.center = index ? Math.max(item.desired, sorted[index - 1].center + minimumGap) : Math.max(48 + minimumGap / 2, item.desired);
+    });
+    if (!sorted.length) return sorted;
+    const overflow = sorted[sorted.length - 1].center + minimumGap / 2 - (graphHeight - 48);
+    if (overflow > 0) sorted.forEach((item) => { item.center -= overflow; });
+    const underflow = 48 + minimumGap / 2 - sorted[0].center;
+    if (underflow > 0) sorted.forEach((item) => { item.center += underflow; });
+    return sorted;
+  }
+
+  const sideSubtypeNodes = { left: [], right: [] };
+  const sideFamilyNodes = { left: [], right: [] };
+  ["left", "right"].forEach((side) => {
+    const groupsOnSide = sideGroups[side];
+    const usedSubtypeIds = unique(groupsOnSide.flatMap((group) => group.subtype_ids));
+    const subtypeItems = usedSubtypeIds.map((subtypeId) => {
+      const linked = groupsOnSide.filter((group) => group.subtype_ids.includes(subtypeId));
+      return {
+        id: subtypeId,
+        order: subtypeOrder.get(subtypeId),
+        desired: linked.reduce((sum, group) => sum + group.centerY, 0) / linked.length,
+      };
+    });
+    spreadCenters(subtypeItems, SUBTYPE_H + 20).forEach((item) => {
+      const subtype = subtypeById.get(item.id);
+      const nodeId = `subtype::${side}::${item.id}`;
+      positions.set(nodeId, { x: side === "left" ? LEFT_SUBTYPE_X : RIGHT_SUBTYPE_X, y: item.center - SUBTYPE_H / 2, width: SUBTYPE_W, height: SUBTYPE_H, type: "subtype" });
+      sideSubtypeNodes[side].push({ nodeId, subtype_id: item.id, family_id: subtype.family_id, data: subtype, centerY: item.center });
+    });
+    const usedFamilyIds = unique(sideSubtypeNodes[side].map((node) => node.family_id));
+    const familyItems = usedFamilyIds.map((familyId) => {
+      const linked = sideSubtypeNodes[side].filter((node) => node.family_id === familyId);
+      return {
+        id: familyId,
+        order: state.atlas.families.findIndex((family) => family.family_id === familyId),
+        desired: linked.reduce((sum, node) => sum + node.centerY, 0) / linked.length,
+      };
+    });
+    spreadCenters(familyItems, FAMILY_H + 26).forEach((item) => {
+      const family = families.find((candidate) => candidate.family_id === item.id);
+      const nodeId = `family::${side}::${item.id}`;
+      positions.set(nodeId, { x: side === "left" ? LEFT_FAMILY_X : RIGHT_FAMILY_X, y: item.center - FAMILY_H / 2, width: FAMILY_W, height: FAMILY_H, type: "family" });
+      sideFamilyNodes[side].push({ nodeId, family_id: item.id, data: family, centerY: item.center });
+    });
+  });
+  positions.set("taxonomy_root", { x: ROOT_X, y: graphHeight / 2 - ROOT_H / 2, width: ROOT_W, height: ROOT_H, type: "root" });
 
   const nodes = [{ id: "taxonomy_root", type: "root", label: "Model-visible input representation" }];
-  families.forEach((family) => {
-    nodes.push({ id: `family::${family.family_id}`, type: "family", label: family.name, family_id: family.family_id, data: family });
-    family.visibleSubtypes.forEach((subtype) => nodes.push({ id: `subtype::${subtype.subtype_id}`, type: "subtype", label: subtype.name, family_id: family.family_id, subtype_id: subtype.subtype_id, data: subtype }));
+  ["left", "right"].forEach((side) => {
+    sideFamilyNodes[side].forEach((family) => nodes.push({ id: family.nodeId, type: "family", side, label: family.data.name, family_id: family.family_id, data: family.data }));
+    sideSubtypeNodes[side].forEach((subtype) => nodes.push({ id: subtype.nodeId, type: "subtype", side, label: subtype.data.name, family_id: subtype.family_id, subtype_id: subtype.subtype_id, data: subtype.data }));
   });
+  groups.forEach((group) => nodes.push({ id: `group::${group.id}`, type: "membership_group", side: group.side, label: group.leaf_ids.join(" + "), group_id: group.id, subtype_ids: group.subtype_ids, family_ids: group.family_ids, data: group }));
   models.forEach((model) => nodes.push({ id: `model::${model.model_id}`, type: "model", label: model.model_name, model_id: model.model_id, data: model }));
 
   const edges = [];
-  families.forEach((family) => {
-    edges.push({ id: `edge::root::${family.family_id}`, source: "taxonomy_root", target: `family::${family.family_id}`, type: "contains_family" });
-    family.visibleSubtypes.forEach((subtype) => edges.push({ id: `edge::${family.family_id}::${subtype.subtype_id}`, source: `family::${family.family_id}`, target: `subtype::${subtype.subtype_id}`, type: "contains_subtype", family_id: family.family_id }));
+  ["left", "right"].forEach((side) => {
+    sideFamilyNodes[side].forEach((family) => edges.push({ id: `edge::root::${side}::${family.family_id}`, source: "taxonomy_root", target: family.nodeId, type: "contains_family", family_id: family.family_id }));
+    sideSubtypeNodes[side].forEach((subtype) => edges.push({ id: `edge::${side}::${subtype.family_id}::${subtype.subtype_id}`, source: `family::${side}::${subtype.family_id}`, target: subtype.nodeId, type: "contains_subtype", family_id: subtype.family_id }));
   });
-  models.forEach((model) => {
-    (parentSubtypes.get(model.model_id) || []).forEach((subtypeId) => edges.push({
-      id: `edge::${subtypeId}::${model.model_id}`,
-      source: `subtype::${subtypeId}`,
-      target: `model::${model.model_id}`,
-      type: "classifies_model_route",
+  groups.forEach((group) => {
+    group.subtype_ids.forEach((subtypeId) => edges.push({
+      id: `edge::${group.side}::${subtypeId}::${group.id}`,
+      source: `subtype::${group.side}::${subtypeId}`,
+      target: `group::${group.id}`,
+      type: "defines_membership_group",
       family_id: subtypeById.get(subtypeId).family_id,
     }));
+    group.models.forEach((model) => edges.push({
+      id: `edge::${group.id}::${model.model_id}`,
+      source: `group::${group.id}`,
+      target: `model::${model.model_id}`,
+      type: "contains_model",
+    }));
   });
-  return { nodes, edges, positions, graphWidth, graphHeight, modelMap };
+  return { nodes, edges, positions, graphWidth, graphHeight, modelMap, groups };
 }
 
 function edgePath(edge, positions) {
   const source = positions.get(edge.source);
   const target = positions.get(edge.target);
-  const x1 = source.x + source.width;
+  const travelsRight = target.x + target.width / 2 >= source.x + source.width / 2;
+  const x1 = travelsRight ? source.x + source.width : source.x;
   const y1 = source.y + source.height / 2;
-  const x2 = target.x;
+  const x2 = travelsRight ? target.x : target.x + target.width;
   const y2 = target.y + target.height / 2;
   const bend = x1 + (x2 - x1) * 0.52;
   return `M${x1},${y1} C${bend},${y1} ${bend},${y2} ${x2},${y2}`;
@@ -301,13 +405,17 @@ function taxonomyNodeMarkup(node) {
     const family = familyMeta(node.family_id);
     return `<div class="taxonomy-node family-node" style="--family-color:${family.color}"><span>${escapeHtml(family.code)} · Carrier family</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.route_count} routes · ${node.data.model_count} models</small></div>`;
   }
+  if (node.type === "membership_group") {
+    const single = node.subtype_ids.length === 1;
+    return `<div class="taxonomy-node membership-group-node"><span>${single ? "Single subtype" : "Exact subtype combination"}</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.models.length} ${node.data.models.length === 1 ? "model" : "models"} · ${node.subtype_ids.length} ${node.subtype_ids.length === 1 ? "path" : "paths"}</small></div>`;
+  }
   const family = familyMeta(node.family_id);
   return `<div class="taxonomy-node subtype-node" style="--family-color:${family.color}"><span>${escapeHtml(node.data.leaf_id)} · Subtype</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.route_count} routes · ${node.data.model_count} models</small></div>`;
 }
 
 function modelNodeMarkup(architecture) {
-  const primaryFamily = familyMeta(subtypeById.get(architecture.primary_subtype).family_id);
-  return `<div class="model-graph-node" style="--family-color:${primaryFamily.color}" data-model-id="${escapeHtml(architecture.model_id)}">
+  const firstFamily = familyMeta(architecture.families[0]);
+  return `<div class="model-graph-node ${architecture.families.length > 1 ? "is-multi-family" : ""}" style="--family-color:${firstFamily.color}" data-model-id="${escapeHtml(architecture.model_id)}">
     <div class="model-node-media">
       <div class="node-evidence"><span>Paper evidence</span>${cropMarkup(architecture, "node")}</div>
       ${exampleMarkup(architecture, "node")}
@@ -349,7 +457,7 @@ function renderGraph({ fit = false } = {}) {
     .on("click", (_, item) => selectGraphNode(item));
   merged.select("div").html((item) => item.type === "model" ? modelNodeMarkup(item.data) : taxonomyNodeMarkup(item));
 
-  $("#graph-summary").textContent = `${graphLayout.nodes.filter((node) => node.type === "model").length} models · ${graphLayout.edges.length} visible links`;
+  $("#graph-summary").textContent = `${graphLayout.nodes.filter((node) => node.type === "model").length} models · ${graphLayout.groups.length} exact groups · ${graphLayout.edges.length} visible links`;
   if (!graphZoom) {
     graphZoom = d3.zoom().scaleExtent([0.12, 3]).on("zoom", (event) => d3.select("#graph-stage").attr("transform", event.transform));
     svg.call(graphZoom).on("dblclick.zoom", null);
@@ -381,19 +489,35 @@ function highlightedIds(nodeId) {
   if (!node) return { nodes: new Set(), edges: new Set() };
   const nodeIds = new Set([nodeId]);
   const edgeIds = new Set();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    graphLayout.edges.forEach((edge) => {
-      const includeAncestor = nodeIds.has(edge.target);
-      const includeDescendant = node.type !== "model" && nodeIds.has(edge.source);
-      if ((includeAncestor || includeDescendant) && !edgeIds.has(edge.id)) {
-        edgeIds.add(edge.id);
-        nodeIds.add(edge.source);
-        nodeIds.add(edge.target);
-        changed = true;
+
+  const upstream = [nodeId];
+  const upstreamSeen = new Set(upstream);
+  while (upstream.length) {
+    const targetId = upstream.shift();
+    graphLayout.edges.filter((edge) => edge.target === targetId).forEach((edge) => {
+      edgeIds.add(edge.id);
+      nodeIds.add(edge.source);
+      if (!upstreamSeen.has(edge.source)) {
+        upstreamSeen.add(edge.source);
+        upstream.push(edge.source);
       }
     });
+  }
+
+  if (node.type !== "model") {
+    const downstream = [nodeId];
+    const downstreamSeen = new Set(downstream);
+    while (downstream.length) {
+      const sourceId = downstream.shift();
+      graphLayout.edges.filter((edge) => edge.source === sourceId).forEach((edge) => {
+        edgeIds.add(edge.id);
+        nodeIds.add(edge.target);
+        if (!downstreamSeen.has(edge.target)) {
+          downstreamSeen.add(edge.target);
+          downstream.push(edge.target);
+        }
+      });
+    }
   }
   return { nodes: nodeIds, edges: edgeIds };
 }
@@ -420,15 +544,17 @@ function selectGraphNode(node) {
   if (node.type === "family") {
     state.family = node.family_id;
     state.subtype = "";
+    state.selection.key = node.family_id;
     syncFilterControls();
     renderAll({ fitGraph: true });
-    state.selection = { type: "family", id: node.id };
+    state.selection = { type: "family", id: node.id, key: node.family_id };
   } else if (node.type === "subtype") {
     state.family = node.family_id;
     state.subtype = node.subtype_id;
+    state.selection.key = node.subtype_id;
     syncFilterControls();
     renderAll({ fitGraph: true });
-    state.selection = { type: "subtype", id: node.id };
+    state.selection = { type: "subtype", id: node.id, key: node.subtype_id };
   }
   renderInspector();
   applySelectionHighlight();
@@ -517,11 +643,14 @@ function renderInspector() {
     const architecture = architectureById.get(selection.id.replace("model::", ""));
     inspector.innerHTML = architecture ? modelInspector(architecture) : rootInspector();
   } else if (selection.type === "family") {
-    const family = familyById.get(selection.id.replace("family::", ""));
+    const family = familyById.get(selection.key || selection.id.split("::").at(-1));
     inspector.innerHTML = familyInspector(family);
   } else if (selection.type === "subtype") {
-    const subtype = subtypeById.get(selection.id.replace("subtype::", ""));
+    const subtype = subtypeById.get(selection.key || selection.id.split("::").at(-1));
     inspector.innerHTML = subtypeInspector(subtype);
+  } else if (selection.type === "membership_group") {
+    const group = graphLayout?.nodes.find((node) => node.id === selection.id)?.data;
+    inspector.innerHTML = group ? membershipGroupInspector(group) : rootInspector();
   } else {
     inspector.innerHTML = rootInspector();
   }
@@ -532,8 +661,8 @@ function rootInspector() {
   return `<div class="inspector-scroll root-inspector">
     <p class="section-kicker">How to read the graph</p>
     <h3>Follow the carrier into the model</h3>
-    <p>Each edge maps a grounded input route from the model-visible carrier family to a mechanism subtype and then to a single model identity.</p>
-    <div class="reading-sequence"><span>Root</span><i data-lucide="arrow-right"></i><span>Family</span><i data-lucide="arrow-right"></i><span>Subtype</span><i data-lucide="arrow-right"></i><span>Model</span></div>
+    <p>Each model belongs to one exact membership group defined by its complete visible subtype set. The mirrored left and right branches are layout ports for the same canonical taxonomy.</p>
+    <div class="reading-sequence"><span>Root</span><i data-lucide="arrow-right"></i><span>Family</span><i data-lucide="arrow-right"></i><span>Subtype</span><i data-lucide="arrow-right"></i><span>Group</span><i data-lucide="arrow-right"></i><span>Model</span></div>
     <div class="inspector-family-list">${state.atlas.families.map((family) => `<button data-inspector-family="${escapeHtml(family.family_id)}" style="--family-color:${family.color}"><b>${escapeHtml(family.code)}</b><span>${escapeHtml(family.name)}</span><em>${family.model_count} models</em></button>`).join("")}</div>
     <div class="method-note"><i data-lucide="scan-line"></i><p><b>Evidence and explanation are separate.</b> Paper pixels appear under “Original-paper crop.” Small input strings or vectors are illustrative and never presented as source evidence.</p></div>
   </div>`;
@@ -559,6 +688,22 @@ function subtypeInspector(subtype) {
     <div class="input-example standalone-example"><div class="example-label"><span>Mechanism example</span><em>Illustrative · not paper evidence</em></div><div class="example-flow"><code>${escapeHtml(subtype.example.input)}</code><i data-lucide="arrow-right"></i><code>${escapeHtml(subtype.example.carrier)}</code><i data-lucide="arrow-right"></i><strong>${escapeHtml(subtype.example.model)}</strong></div></div>
     <h4 class="model-list-title">${models.length} visible models</h4>
     <div class="inspector-model-list">${models.map((model) => `<button data-inspector-model="${escapeHtml(model.model_id)}"><span>${cropMarkup(model, "tiny")}</span><b>${escapeHtml(model.model_name)}</b><em>${model.route_count} routes</em></button>`).join("")}</div>
+  </div>`;
+}
+
+function membershipGroupInspector(group) {
+  const subtypeRows = group.subtype_ids.map((subtypeId) => {
+    const subtype = subtypeById.get(subtypeId);
+    const family = familyMeta(subtype.family_id);
+    return `<div class="membership-path-row" style="--family-color:${family.color}"><b>${escapeHtml(subtype.leaf_id)}</b><span>${escapeHtml(subtype.name)}</span><em>${escapeHtml(family.code)}</em></div>`;
+  }).join("");
+  return `<div class="inspector-scroll membership-group-inspector">
+    <p class="section-kicker">Exact membership group</p>
+    <h3>${escapeHtml(group.leaf_ids.join(" + "))}</h3>
+    <p>Every model in this section has exactly this set of visible input-representation subtypes.</p>
+    <div class="membership-path-list">${subtypeRows}</div>
+    <h4 class="model-list-title">${group.models.length} ${group.models.length === 1 ? "model" : "models"}</h4>
+    <div class="inspector-model-list">${group.models.map((model) => `<button data-inspector-model="${escapeHtml(model.model_id)}"><span>${cropMarkup(model, "tiny")}</span><b>${escapeHtml(model.model_name)}</b><em>${model.route_count} routes</em></button>`).join("")}</div>
   </div>`;
 }
 
@@ -637,8 +782,8 @@ function openModel(modelId) {
   applySelectionHighlight();
 }
 
-function clearModelFocus() {
-  if (state.selection?.type !== "model") return;
+function clearCardFocus() {
+  if (!["model", "membership_group"].includes(state.selection?.type)) return;
   state.selection = { type: "root", id: "taxonomy_root" };
   renderInspector();
   applySelectionHighlight();
@@ -657,7 +802,7 @@ function bindEvents() {
     if (!button) return;
     state.family = button.dataset.family;
     if (state.subtype && subtypeById.get(state.subtype)?.family_id !== state.family) state.subtype = "";
-    state.selection = state.family ? { type: "family", id: `family::${state.family}` } : { type: "root", id: "taxonomy_root" };
+    state.selection = state.family ? { type: "family", id: `family::${state.family}`, key: state.family } : { type: "root", id: "taxonomy_root" };
     state.evidencePage = 1;
     syncFilterControls();
     renderAll({ fitGraph: true });
@@ -665,7 +810,7 @@ function bindEvents() {
   $("#subtype-filter").addEventListener("change", (event) => {
     state.subtype = event.target.value;
     if (state.subtype) state.family = subtypeById.get(state.subtype).family_id;
-    state.selection = state.subtype ? { type: "subtype", id: `subtype::${state.subtype}` } : state.family ? { type: "family", id: `family::${state.family}` } : { type: "root", id: "taxonomy_root" };
+    state.selection = state.subtype ? { type: "subtype", id: `subtype::${state.subtype}`, key: state.subtype } : state.family ? { type: "family", id: `family::${state.family}`, key: state.family } : { type: "root", id: "taxonomy_root" };
     state.evidencePage = 1;
     syncFilterControls();
     renderAll({ fitGraph: true });
@@ -685,7 +830,7 @@ function bindEvents() {
     if (familyButton) {
       state.family = familyButton.dataset.inspectorFamily;
       state.subtype = "";
-      state.selection = { type: "family", id: `family::${state.family}` };
+      state.selection = { type: "family", id: `family::${state.family}`, key: state.family };
       syncFilterControls();
       renderAll({ fitGraph: true });
     }
@@ -693,7 +838,7 @@ function bindEvents() {
     if (subtypeButton) {
       state.subtype = subtypeButton.dataset.inspectorSubtype;
       state.family = subtypeById.get(state.subtype).family_id;
-      state.selection = { type: "subtype", id: `subtype::${state.subtype}` };
+      state.selection = { type: "subtype", id: `subtype::${state.subtype}`, key: state.subtype };
       syncFilterControls();
       renderAll({ fitGraph: true });
     }
@@ -702,7 +847,7 @@ function bindEvents() {
 
     const clickedGraphNode = event.target.closest("foreignObject.graph-node");
     const clickedInspector = event.target.closest("#graph-inspector");
-    if (!modelButton && !clickedGraphNode && !clickedInspector) clearModelFocus();
+    if (!modelButton && !clickedGraphNode && !clickedInspector) clearCardFocus();
   });
   window.addEventListener("resize", () => { if (state.view === "graph") fitGraph(); });
 }
@@ -718,6 +863,9 @@ async function initialize() {
     });
     state.atlas.architectures.forEach((architecture) => architectureById.set(architecture.model_id, architecture));
     state.atlas.graph.nodes.forEach((node) => graphNodeById.set(node.id, node));
+    state.atlas.graph.nodes
+      .filter((node) => node.type === "membership_group")
+      .forEach((node) => membershipGroupBySignature.set([...node.subtype_ids].sort().join("|"), node));
     populateHeader();
     populateFilters();
     bindEvents();

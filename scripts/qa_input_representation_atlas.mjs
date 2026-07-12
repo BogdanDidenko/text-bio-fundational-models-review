@@ -21,22 +21,65 @@ async function inspect(viewport, screenshot, mobile = false) {
   await page.waitForFunction(() => document.querySelector("#loading-screen")?.classList.contains("is-hidden"));
   await page.waitForSelector("foreignObject.graph-node-model");
 
-  const initial = await page.evaluate(() => ({
-    graphNodes: document.querySelectorAll("foreignObject.graph-node").length,
-    rootNodes: document.querySelectorAll("foreignObject.graph-node-root").length,
-    familyNodes: document.querySelectorAll("foreignObject.graph-node-family").length,
-    subtypeNodes: document.querySelectorAll("foreignObject.graph-node-subtype").length,
-    modelNodes: document.querySelectorAll("foreignObject.graph-node-model").length,
-    edges: document.querySelectorAll("path.graph-edge").length,
-    uniqueNodeIds: new Set([...document.querySelectorAll("foreignObject.graph-node")].map((node) => node.dataset.nodeId)).size,
-    cropNodes: document.querySelectorAll("[data-model-crop]").length,
-    pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    graphBox: document.querySelector("#taxonomy-graph").getBoundingClientRect().toJSON(),
-  }));
-  if (initial.graphNodes !== 132 || initial.rootNodes !== 1 || initial.familyNodes !== 5 || initial.subtypeNodes !== 15 || initial.modelNodes !== 111 || initial.uniqueNodeIds !== 132) {
+  const initial = await page.evaluate(async () => {
+    const atlas = await (await fetch("data/atlas.json")).json();
+    const nodeElements = [...document.querySelectorAll("foreignObject.graph-node")];
+    const edgeElements = [...document.querySelectorAll("path.graph-edge")];
+    const boxes = nodeElements.map((node) => ({
+      id: node.dataset.nodeId,
+      x: Number(node.getAttribute("x")),
+      y: Number(node.getAttribute("y")),
+      width: Number(node.getAttribute("width")),
+      height: Number(node.getAttribute("height")),
+    }));
+    let overlaps = 0;
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) {
+        const width = Math.min(boxes[i].x + boxes[i].width, boxes[j].x + boxes[j].width) - Math.max(boxes[i].x, boxes[j].x);
+        const height = Math.min(boxes[i].y + boxes[i].height, boxes[j].y + boxes[j].height) - Math.max(boxes[i].y, boxes[j].y);
+        if (width > 0.1 && height > 0.1) overlaps += 1;
+      }
+    }
+    const canonicalGroups = atlas.graph.nodes.filter((node) => node.type === "membership_group");
+    const groupFailures = canonicalGroups.flatMap((group) => {
+      const groupNodeId = `group::${group.group_id}`;
+      const nodeCount = nodeElements.filter((node) => node.dataset.nodeId === groupNodeId).length;
+      const parentEdges = edgeElements.filter((edge) => edge.dataset.target === groupNodeId).length;
+      const modelEdges = edgeElements.filter((edge) => edge.dataset.source === groupNodeId).length;
+      return nodeCount === 1 && parentEdges === group.subtype_ids.length && modelEdges === group.model_ids.length
+        ? []
+        : [{ groupNodeId, nodeCount, parentEdges, expectedParents: group.subtype_ids.length, modelEdges, expectedModels: group.model_ids.length }];
+    });
+    const modelIncomingFailures = atlas.architectures.filter((model) => edgeElements.filter((edge) => edge.dataset.target === `model::${model.model_id}`).length !== 1).length;
+    const root = boxes.find((box) => box.id === "taxonomy_root");
+    const groupBoxes = boxes.filter((box) => box.id.startsWith("group::"));
+    const rootCenter = root.x + root.width / 2;
+    return {
+      graphNodes: nodeElements.length,
+      rootNodes: document.querySelectorAll("foreignObject.graph-node-root").length,
+      familyNodes: document.querySelectorAll("foreignObject.graph-node-family").length,
+      subtypeNodes: document.querySelectorAll("foreignObject.graph-node-subtype").length,
+      membershipGroupNodes: document.querySelectorAll("foreignObject.graph-node-membership_group").length,
+      modelNodes: document.querySelectorAll("foreignObject.graph-node-model").length,
+      edges: edgeElements.length,
+      uniqueNodeIds: new Set(nodeElements.map((node) => node.dataset.nodeId)).size,
+      cropNodes: document.querySelectorAll("[data-model-crop]").length,
+      pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      graphBox: document.querySelector("#taxonomy-graph").getBoundingClientRect().toJSON(),
+      canonicalGroupCount: canonicalGroups.length,
+      leftGroups: groupBoxes.filter((box) => box.x + box.width / 2 < rootCenter).length,
+      rightGroups: groupBoxes.filter((box) => box.x + box.width / 2 > rootCenter).length,
+      overlaps,
+      groupFailures,
+      modelIncomingFailures,
+    };
+  });
+  if (initial.rootNodes !== 1 || initial.membershipGroupNodes !== 48 || initial.modelNodes !== 111 || initial.uniqueNodeIds !== initial.graphNodes) {
     throw new Error(`Unexpected graph node counts: ${JSON.stringify(initial)}`);
   }
-  if (initial.edges !== 234) throw new Error(`Expected 234 edges, found ${initial.edges}`);
+  if (initial.familyNodes < 5 || initial.familyNodes > 10 || initial.subtypeNodes < 15 || initial.subtypeNodes > 30) throw new Error(`Mirrored taxonomy ports are incomplete: ${JSON.stringify(initial)}`);
+  if (initial.leftGroups < 1 || initial.rightGroups < 1) throw new Error(`Membership groups were not split across both sides: ${JSON.stringify(initial)}`);
+  if (initial.overlaps !== 0 || initial.groupFailures.length || initial.modelIncomingFailures) throw new Error(`Grouped graph topology failed: ${JSON.stringify(initial)}`);
   if (initial.cropNodes !== 158) throw new Error(`Expected 158 crop viewports for 79 validated figures across graph and index, found ${initial.cropNodes}`);
   if (initial.pageOverflow > 1) throw new Error(`Page has ${initial.pageOverflow}px horizontal overflow`);
   if (initial.graphBox.width < 300 || initial.graphBox.height < 450) throw new Error("Graph viewport is undersized");
@@ -72,11 +115,13 @@ async function inspect(viewport, screenshot, mobile = false) {
   await firstModel.dispatchEvent("click");
   if (!mobile) await page.screenshot({ path: "/tmp/atlas-graph-model-focus.png" });
 
-  const chatCellId = await page.evaluate(async () => {
+  const chatCell = await page.evaluate(async () => {
     const atlas = await (await fetch("data/atlas.json")).json();
-    return atlas.architectures.find((item) => item.model_name === "CHATCELL")?.model_id;
+    const model = atlas.architectures.find((item) => item.model_name === "CHATCELL");
+    const group = atlas.graph.nodes.find((item) => item.type === "membership_group" && item.group_id === model.membership_group_id);
+    return { modelId: model.model_id, groupId: model.membership_group_id, groupModelCount: group.model_count };
   });
-  await page.locator(`foreignObject[data-node-id="model::${chatCellId}"]`).dispatchEvent("click");
+  await page.locator(`foreignObject[data-node-id="model::${chatCell.modelId}"]`).dispatchEvent("click");
   const chatCellPaths = await page.evaluate(() => ({
     heading: document.querySelector("#graph-inspector .model-path-heading")?.textContent?.replace(/\s+/g, " ").trim(),
     scope: document.querySelector("#graph-inspector .model-path-summary > p")?.textContent?.trim(),
@@ -85,6 +130,22 @@ async function inspect(viewport, screenshot, mobile = false) {
   if (chatCellPaths.chips.length !== 3 || !chatCellPaths.heading?.includes("3 subtype paths · 7 routes") || chatCellPaths.scope !== "All subtype paths remain within F1.") {
     throw new Error(`CHATCELL graph-path explanation is incomplete: ${JSON.stringify(chatCellPaths)}`);
   }
+  await page.locator(`foreignObject[data-node-id="group::${chatCell.groupId}"]`).dispatchEvent("click");
+  const chatCellGroup = await page.evaluate(() => ({
+    title: document.querySelector("#graph-inspector .membership-group-inspector h3")?.textContent?.trim(),
+    subtypeRows: document.querySelectorAll("#graph-inspector .membership-path-row").length,
+    modelRows: document.querySelectorAll("#graph-inspector [data-inspector-model]").length,
+  }));
+  if (chatCellGroup.subtypeRows !== 3 || chatCellGroup.modelRows !== chatCell.groupModelCount) {
+    throw new Error(`CHATCELL exact membership group is incomplete: ${JSON.stringify({ chatCell, chatCellGroup })}`);
+  }
+  await page.locator("#graph-inspector .membership-group-inspector h3").click();
+  const groupInspectorKeepsFocus = await page.locator("foreignObject.graph-node-membership_group.is-highlighted").count() === 1;
+  if (!groupInspectorKeepsFocus) throw new Error("Clicking inside the membership-group inspector cleared group focus");
+  await page.locator("#graph-summary").click();
+  const groupOutsideClickClearsFocus = await page.locator("#graph-inspector .root-inspector").count() === 1
+    && await page.locator("foreignObject.graph-node.is-dimmed").count() === 0;
+  if (!groupOutsideClickClearsFocus) throw new Error("Clicking outside a membership-group card did not clear focus");
 
   await page.locator("#show-all").click();
   await page.locator('#family-filter button[data-family="dense_continuous_carrier"]').click();
@@ -92,10 +153,11 @@ async function inspect(viewport, screenshot, mobile = false) {
   const focused = await page.evaluate(() => ({
     families: document.querySelectorAll("foreignObject.graph-node-family").length,
     subtypes: document.querySelectorAll("foreignObject.graph-node-subtype").length,
+    groups: document.querySelectorAll("foreignObject.graph-node-membership_group").length,
     models: document.querySelectorAll("foreignObject.graph-node-model").length,
     edges: document.querySelectorAll("path.graph-edge").length,
   }));
-  if (focused.families !== 1 || focused.subtypes < 1 || focused.models < 1 || focused.models >= 111) {
+  if (focused.families < 1 || focused.families > 2 || focused.subtypes < 1 || focused.groups < 1 || focused.models < 1 || focused.models >= 111) {
     throw new Error(`Family focus failed: ${JSON.stringify(focused)}`);
   }
   await page.selectOption("#subtype-filter", "connector_mediated_embedding");
@@ -111,9 +173,9 @@ async function inspect(viewport, screenshot, mobile = false) {
         if (width > 1 && height > 1) overlaps += 1;
       }
     }
-    return { modelNodes: boxes.length, overlaps };
+    return { modelNodes: boxes.length, groupNodes: document.querySelectorAll("foreignObject.graph-node-membership_group").length, overlaps };
   });
-  if (subtypeLayout.overlaps !== 0) throw new Error(`Subtype graph has overlapping model nodes: ${JSON.stringify(subtypeLayout)}`);
+  if (subtypeLayout.overlaps !== 0 || subtypeLayout.groupNodes !== 1) throw new Error(`Subtype graph grouping failed: ${JSON.stringify(subtypeLayout)}`);
   if (!mobile) await page.screenshot({ path: "/tmp/atlas-graph-subtype-focus.png" });
   await page.locator("#show-all").click();
   await page.waitForTimeout(500);
@@ -125,9 +187,12 @@ async function inspect(viewport, screenshot, mobile = false) {
     return { multiId: multi.model_id, multiParents: multi.subtypes.length, noFigureId: noFigure.model_id };
   });
   await page.locator(`foreignObject[data-node-id="model::${audit.multiId}"]`).dispatchEvent("click");
-  const multiIncoming = await page.locator(`path.graph-edge[data-target="model::${audit.multiId}"]`).count();
-  if (multiIncoming !== audit.multiParents || await page.locator(`foreignObject[data-node-id="model::${audit.multiId}"]`).count() !== 1) {
-    throw new Error(`Multi-parent model identity failed: ${JSON.stringify({ audit, multiIncoming })}`);
+  const modelIncoming = page.locator(`path.graph-edge[data-target="model::${audit.multiId}"]`);
+  const multiIncoming = await modelIncoming.count();
+  const membershipGroupId = await modelIncoming.first().getAttribute("data-source");
+  const groupIncoming = await page.locator(`path.graph-edge[data-target="${membershipGroupId}"]`).count();
+  if (multiIncoming !== 1 || groupIncoming !== audit.multiParents || await page.locator(`foreignObject[data-node-id="model::${audit.multiId}"]`).count() !== 1) {
+    throw new Error(`Multi-parent model grouping failed: ${JSON.stringify({ audit, multiIncoming, membershipGroupId, groupIncoming })}`);
   }
   await page.locator(`foreignObject[data-node-id="model::${audit.noFigureId}"]`).dispatchEvent("click");
   if (await page.locator("#graph-inspector .evidence-absence").count() !== 1) throw new Error("No-suitable-figure state is not explicit");
@@ -142,7 +207,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   const screenshotSize = fs.statSync(screenshot).size;
   if (screenshotSize < 50_000) throw new Error(`Screenshot appears blank: ${screenshotSize} bytes`);
   await page.close();
-  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, focused, subtypeLayout, audit, screenshot, screenshotSize, consoleErrors: errors };
+  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, chatCellGroup, groupInspectorKeepsFocus, groupOutsideClickClearsFocus, focused, subtypeLayout, audit: { ...audit, multiIncoming, membershipGroupId, groupIncoming }, screenshot, screenshotSize, consoleErrors: errors };
 }
 
 const desktop = await inspect({ width: 1440, height: 1000 }, "/tmp/atlas-graph-desktop.png");
