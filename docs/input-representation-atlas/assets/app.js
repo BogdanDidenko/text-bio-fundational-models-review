@@ -619,6 +619,13 @@ function openModel(modelId) {
   applySelectionHighlight();
 }
 
+function clearModelFocus() {
+  if (state.selection?.type !== "model") return;
+  state.selection = { type: "root", id: "taxonomy_root" };
+  renderInspector();
+  applySelectionHighlight();
+}
+
 function bindEvents() {
   $$(".view-tab").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
   $("#search-input").addEventListener("input", (event) => {
@@ -674,6 +681,10 @@ function bindEvents() {
     }
     const pageButton = event.target.closest("[data-page]");
     if (pageButton && !pageButton.disabled) { state.evidencePage = Number(pageButton.dataset.page); renderEvidence(); refreshIcons(); }
+
+    const clickedGraphNode = event.target.closest("foreignObject.graph-node");
+    const clickedInspector = event.target.closest("#graph-inspector");
+    if (!modelButton && !clickedGraphNode && !clickedInspector) clearModelFocus();
   });
   window.addEventListener("resize", () => { if (state.view === "graph") fitGraph(); });
 }

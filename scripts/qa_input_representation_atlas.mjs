@@ -55,6 +55,21 @@ async function inspect(viewport, screenshot, mobile = false) {
   if (!inspector.title || !inspector.evidence || inspector.examples < 1 || inspector.routes < 1 || inspector.highlightedEdges < 3 || inspector.evidenceImageWidth < 20) {
     throw new Error(`Model focus failed: ${JSON.stringify(inspector)}`);
   }
+
+  await page.locator("#graph-inspector .inspector-title").click();
+  const inspectorClickKeepsFocus = await page.locator("foreignObject.graph-node-model.is-highlighted").count() === 1;
+  if (!inspectorClickKeepsFocus) throw new Error("Clicking inside the inspector cleared model focus");
+
+  await page.locator("#graph-summary").click();
+  const outsideClick = await page.evaluate(() => ({
+    title: document.querySelector("#graph-inspector .root-inspector h3")?.textContent?.trim(),
+    dimmedNodes: document.querySelectorAll("foreignObject.graph-node.is-dimmed").length,
+  }));
+  if (!outsideClick.title || outsideClick.dimmedNodes !== 0) {
+    throw new Error(`Clicking outside the selected card did not clear focus: ${JSON.stringify(outsideClick)}`);
+  }
+
+  await firstModel.dispatchEvent("click");
   if (!mobile) await page.screenshot({ path: "/tmp/atlas-graph-model-focus.png" });
 
   await page.locator("#show-all").click();
@@ -113,7 +128,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   const screenshotSize = fs.statSync(screenshot).size;
   if (screenshotSize < 50_000) throw new Error(`Screenshot appears blank: ${screenshotSize} bytes`);
   await page.close();
-  return { viewport, initial, inspector, focused, subtypeLayout, audit, screenshot, screenshotSize, consoleErrors: errors };
+  return { viewport, initial, inspector, inspectorClickKeepsFocus, outsideClick, focused, subtypeLayout, audit, screenshot, screenshotSize, consoleErrors: errors };
 }
 
 const desktop = await inspect({ width: 1440, height: 1000 }, "/tmp/atlas-graph-desktop.png");
