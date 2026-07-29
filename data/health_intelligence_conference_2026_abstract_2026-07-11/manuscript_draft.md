@@ -1,0 +1,47 @@
+# From Biological Modalities to Model Inputs: A Route Taxonomy for Generative Multimodal Foundation Models
+
+**Authors:** [Author names]  
+**Affiliations:** [Affiliations]  
+**Correspondence:** *Correspondence: [email]
+
+## Abstract
+
+**Motivation:** Text can provide task control, biological semantics and interpretable output, while non-text measurements ground generation. However, grouping models by source modality hides the model-facing representation: the same biological object may be serialized, projected, tokenized or rasterized. A representation-level vocabulary is needed for architectural comparison.
+
+**Results:** From a PRISMA-ScR corpus of 52 records (51 studies), we annotated 489 source-to-model routes across 111 models and 376 task configurations. We classify the carrier consumed by the generative backbone into five families and 15 subtypes. Although 37 records used multiple families, only 44 configurations were multi-family; 332 exposed one family at a time. Text served as instruction/query in 165 routes, biological payload in 115 and paired-alignment supervision in 63. Thus, paper-level multimodality, text participation and simultaneous model input are not equivalent. Repeated classifications achieved route-detection Jaccard of at least 0.948 and carrier-family Krippendorff alpha 0.875.
+
+**Availability and implementation:** Code, protocol and versioned artifacts: https://github.com/BogdanDidenko/text-bio-fundational-models-review
+
+## 1 Introduction
+
+Generalist models are expected to accept flexible modality combinations (Moor et al., 2023), but text is not merely another biomedical modality. It can specify a task, carry external knowledge and express an explanation, whereas sequences, omics, images and structures constrain generation to measured biology. Labels such as text-omics or hybrid describe available sources, not what the backbone receives. We therefore classify source-to-model transformations rather than papers.
+
+## 2 Methods
+
+Following PRISMA-ScR and PRISMA-S (Tricco et al., 2018; Rethlefsen et al., 2021), searches across seven databases identified 7,531 records; repeated role-based screening retained 52. VLM-enriched Docling profiles (Auer et al., 2024) and Docling Graph provenance supported open extraction without a predefined taxonomy. Three syntheses were reconciled before three fixed-candidate classifications, dense coverage audit and blinded adjudication without source truncation. Accepted routes required verbatim canonical-text or native-item evidence; figure descriptions alone were insufficient.
+
+## 3 Results
+
+The taxonomy assigns each source object to the first model-facing carrier after semantic preprocessing (Fig. 1); source modality, text role, lifecycle and fusion remain orthogonal. RNA routes crossed three families (15 text-native, 12 dense and one discrete). Dense carriers entered through cross-attention (19 routes), placeholder replacement (17), concatenation (16) or prefixes (9), showing that carrier and fusion are not interchangeable. Thirty-seven records combined families, but 332/376 task configurations used one family and only 44 used several. Text was primarily a control interface (165 instruction/query routes), but also biological payload (115) and alignment supervision (63). Rare mechanisms were retained rather than absorbed into a hybrid category.
+
+## 4 Discussion and conclusion
+
+The contribution is a compositional vocabulary, not a ranking of architectures. It separates what the data are, how they become model-visible and how they are fused, preventing source/carrier, lifecycle and hybrid-category errors. This makes heterogeneous models comparable and exposes underexplored interfaces for future design. Route counts describe the reviewed corpus, not effectiveness or field prevalence; annotations are provenance-linked repeated LLM decisions rather than human-validated ground truth.
+
+## Availability
+
+Code, protocol and versioned artifacts: https://github.com/BogdanDidenko/text-bio-fundational-models-review
+
+## Funding
+
+[Funding information.]
+
+## References
+
+Auer,C. et al. (2024) Docling technical report. arXiv:2408.09869.
+
+Moor,M. et al. (2023) Foundation models for generalist medical artificial intelligence. Nature, 616, 259-265.
+
+Rethlefsen,M.L. et al. (2021) PRISMA-S: an extension to the PRISMA Statement for reporting literature searches. Syst. Rev., 10, 39.
+
+Tricco,A.C. et al. (2018) PRISMA extension for scoping reviews (PRISMA-ScR). Ann. Intern. Med., 169, 467-473.

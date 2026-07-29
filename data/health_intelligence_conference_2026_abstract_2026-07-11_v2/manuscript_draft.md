@@ -1,0 +1,43 @@
+# A Taxonomy of Input Representation Routes in Generative Text-Bio Foundation Models
+
+**Authors:** Bohdan Didenko  
+**Affiliations:** Lviv Polytechnic National University  
+**Correspondence:** *Correspondence: bohdan.didenko.asp.2025@lpnu.ua
+
+## Abstract
+
+**Motivation:** Foundation-scale language modeling unifies scalable training and inference with flexible task specification, knowledge transfer and open-ended generation. Generative text-bio models seek to ground these capabilities in measured molecular, cellular, visual and structural evidence, but broad multimodal labels conceal how that connection is implemented. We therefore systematically identified the field and classified its model-visible input routes.
+
+**Results:** Across 52 records (51 studies), we identified 111 models, 376 task-input settings and 489 grounded routes in five families: text-native tokens, dense continuous carriers, visual raster inputs, discrete biological symbols, and geometric or diffusion states, comprising 15 subtypes. Across whole papers, 37/52 (71.2%) used multiple carrier families. Yet only 44/376 (11.7%) individual model-task-phase settings combined families; 332/376 used one. In 15 papers, different families appeared only in separate tasks or phases, not as simultaneous inputs. Repeated classification achieved route-detection Jaccard at least 0.948, family agreement 0.925 and Krippendorff alpha 0.875.
+
+**Availability and implementation:** Code, protocol and versioned artifacts: https://bogdandidenko.github.io/text-bio-fundational-models-review/
+
+## 1 Introduction
+
+Biological foundation models include encoders, predictors, LLM wrappers and primary models connecting measured biology with language. Only the latter combine biological grounding with the scalable generative interface of the LLM ecosystem. Corpus authors motivate text as task control, knowledge and interpretable output, yet modality and architecture labels do not reveal what the generator consumes. This representation boundary motivates route-level analysis.
+
+## 2 Methods
+
+Seven databases and four rounds identified 7,531 records; 4,577 were title/abstract-screened, 221 section-screened, and 52 records representing 51 studies accepted. Two independently prompted LLM reviewer roles assessed scope and architecture; a deterministic criterion gate and separately prompted LLM adjudicator were applied to title/abstracts, then complete selected sections. Six residual cases were manually resolved from Docling evidence. Eligibility required a primary generative foundation-model contribution, central biological modality and substantive in-model text-bio bridge; biological-token modeling alone and LLM wrappers did not qualify. We synthesized 174 verified motivation claims across all 52 records. A route followed one source object to the first model-visible carrier consumed by the generator. Open Docling Graph extraction over complete VLM-enriched documents, unseeded by the eventual taxonomy, preceded three syntheses, three classifications, dense coverage and blinded adjudication. Accepted routes required canonical text or native Docling-item provenance; figure descriptions alone were insufficient. All computational roles used repeated gpt-5.4-mini invocations without configured source truncation.
+
+## 3 Results
+
+The first model-visible carrier after semantic preprocessing is the primary axis. Eligibility and route coding remained distinct: biological tokens alone did not qualify a study, but token routes within eligible text-bio models were retained. Source, lifecycle, text role and fusion remain orthogonal; settings may contain several routes without a hybrid label. Changing the denominator changed the scientific interpretation: paper-level multimodality often reflected separate single-family task settings rather than simultaneous multi-carrier input. RNA traversed text-native, dense and discrete carriers, while dense carriers used several fusion mechanisms (Fig. 1D); source does not determine carrier, and carrier does not determine fusion. Text likewise had no single operational meaning: it served as control, biological payload, alignment supervision, context or generated output, and was absent from some individual routes. All 489 routes passed grounding validation: 477 quotes matched canonical Markdown and 12 were recovered through cited native Docling items; none relied on picture-only evidence.
+
+## 4 Discussion and conclusion
+
+Generative text-bio modeling currently comprises a fragmented collection of task- and model-specific interfaces. The route taxonomy organizes this design space through six linked elements: biological source, transformation, model-visible carrier, fusion topology, lifecycle phase and text role. This representation makes heterogeneous systems comparable, exposes highly populated and underexplored mechanisms, and provides a reproducible reporting framework. It also establishes a basis for testing how representation choices shape biological grounding, cross-task transfer, computational efficiency and generative capability.
+
+## Funding
+
+OpenAI provided six months of complimentary ChatGPT Pro access, including Codex, through Codex for Open Source; no direct financial funding was received.
+
+## References
+
+Auer,C. et al. (2024) Docling technical report. arXiv:2408.09869.
+
+Moor,M. et al. (2023) Foundation models for generalist medical artificial intelligence. Nature, 616, 259-265.
+
+Rethlefsen,M.L. et al. (2021) PRISMA-S: an extension to the PRISMA Statement for reporting literature searches. Syst. Rev., 10, 39.
+
+Tricco,A.C. et al. (2018) PRISMA extension for scoping reviews (PRISMA-ScR). Ann. Intern. Med., 169, 467-473.
