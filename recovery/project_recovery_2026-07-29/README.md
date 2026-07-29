@@ -39,3 +39,16 @@ This audit distinguishes four states:
 
 Large binary PDFs are intentionally excluded from Git and included in a separate checksummed archive. Git retains their manifests and retrieval logs.
 
+## Git Repository Repair
+
+The shared Git directory behind this worktree was initially shallow at commit `75e51c21`, despite several parent objects being present locally. This caused an early bundle to pass `git bundle verify` but fail a clean clone while traversing the hidden parent chain.
+
+The repository was repaired with a full `fetch --unshallow`. After repair:
+
+- `main` contains 48 commits and the recovery lineage contains 62 commits;
+- `git fsck --full` reports no graph or missing-object errors;
+- the final bundle clones into a new directory as a non-shallow repository;
+- `git fsck --full` in that clean clone reports no errors;
+- the recovered audit file is readable at the cloned `HEAD`.
+
+The two earlier shallow bundles and their checksum files were moved to `Downloads/text-bio-review-obsolete-shallow-bundles-20260729/` and must not be used. The authoritative backup filenames end in `-final`.
