@@ -5,29 +5,24 @@
 - Taxonomy root: 1
 - Carrier families: 5
 - Operational subtypes: 15
-- Exact subtype-membership groups: 48
-- Single-subtype groups: 9
-- Combination groups: 39
-- Unique model nodes: 111/111
-- Canonical graph nodes: 180
-- Canonical graph edges: 257
-- Full two-sided render nodes: 193
-- Full two-sided render edges: 270
+- Exact subtype-membership groups: 51
+- Unique model nodes: 117/117
 - Canonical family nodes in render: 5
 - Mirrored subtype ports: 28
-- Configurations: 376/376
-- Grounded routes: 489/489
-- Models with a cross-validated source crop: 79
+- Configurations: 400/400
+- Grounded routes: 519/519
+- Models with a validated source crop: 85
 - Explicit no-suitable-figure cases: 32
 - Routes without final grounding: 0
 
-The crop audit covers all 111 model IDs exactly once. Two blind reviewers each
-checked all 111 model decisions. Exact rendered previews were then subjected to
+The baseline crop audit covers its 111 model IDs exactly once. Two blind
+reviewers checked those baseline decisions. Exact rendered previews were then subjected to
 an adversarial input-role check that distinguishes target-model input from
 graders, outputs, downstream consumers, and mismatched routes. Every non-pass
-was resolved by a scope-aware `gpt-5.4` adjudicator. The 79 retained crops have
-no unresolved validation finding; the remaining 32 are explicitly excluded
-from figure display.
+was resolved by a scope-aware `gpt-5.4` adjudicator. The six newly integrated
+model entries passed the incremental grounding and crop-selection checks. The
+combined atlas retains crops for 85 models; the remaining 32 are explicitly
+excluded from figure display.
 
 ## Browser verification
 
@@ -38,7 +33,7 @@ The static site was exercised with Playwright against local Google Chrome at:
 
 Verified behaviors:
 
-- one root, 48 membership-group, and 111 unique model nodes render;
+- one root, 51 membership-group, and 117 unique model nodes render;
 - each carrier family appears once on the central taxonomy spine;
 - subtype layout ports appear on both sides of the central family spine;
 - every model has exactly one incoming membership-group edge;
@@ -52,6 +47,7 @@ Verified behaviors:
 - model nodes visually separate the original-paper crop from the illustrative
   input example;
 - the secondary model index and evidence table remain filterable;
+- the `2026-08-09` collection filter isolates 3 records, 6 models, and 30 routes;
 - no page horizontal overflow occurs at either viewport;
 - no browser console or page errors occur;
 - Open Graph and Twitter Card metadata reference the absolute public preview;

@@ -211,6 +211,37 @@ async function inspect(viewport, screenshot, mobile = false) {
   await page.locator("#show-all").click();
   await page.waitForTimeout(500);
 
+  const latestBatchContract = await page.evaluate(async () => {
+    const atlas = await (await fetch("data/atlas.json")).json();
+    const batch = atlas.filter_values.collection_batches[0];
+    return {
+      ...batch,
+      modelNames: atlas.architectures
+        .filter((architecture) => architecture.collection_date === batch.date)
+        .map((architecture) => architecture.model_name)
+        .sort(),
+    };
+  });
+  await page.selectOption("#collection-filter", latestBatchContract.date);
+  await page.waitForTimeout(700);
+  const latestBatch = await page.evaluate(() => ({
+    selected: document.querySelector("#collection-filter")?.value,
+    modelNames: [...document.querySelectorAll("foreignObject.graph-node-model strong[title]")].map((node) => node.textContent.trim()),
+    cardCount: document.querySelectorAll("#architecture-grid .architecture-card").length,
+    evidenceCount: Number(document.querySelector("#evidence-result-count")?.textContent?.match(/^\d+/)?.[0] || 0),
+  }));
+  const actualModelNames = [...latestBatch.modelNames].sort();
+  if (latestBatch.selected !== latestBatchContract.date || latestBatch.cardCount !== latestBatchContract.model_count || latestBatch.evidenceCount !== latestBatchContract.route_count || JSON.stringify(actualModelNames) !== JSON.stringify(latestBatchContract.modelNames)) {
+    throw new Error(`Latest collection-batch filter failed: ${JSON.stringify({ latestBatchContract, latestBatch })}`);
+  }
+  latestBatch.contract = latestBatchContract;
+  if (!mobile) {
+    latestBatch.screenshot = "/tmp/atlas-latest-batch-desktop.png";
+    await page.screenshot({ path: latestBatch.screenshot });
+  }
+  await page.locator("#show-all").click();
+  await page.waitForTimeout(500);
+
   const audit = await page.evaluate(async () => {
     const atlas = await (await fetch("data/atlas.json")).json();
     const multi = atlas.architectures.reduce((best, item) => item.subtypes.length > best.subtypes.length ? item : best, atlas.architectures[0]);
@@ -238,7 +269,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   const screenshotSize = fs.statSync(screenshot).size;
   if (screenshotSize < 50_000) throw new Error(`Screenshot appears blank: ${screenshotSize} bytes`);
   await page.close();
-  return { viewport, initial, socialPreview, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, chatCellGroup, groupInspectorKeepsFocus, groupOutsideClickClearsFocus, focused, subtypeLayout, audit: { ...audit, multiIncoming, membershipGroupId, groupIncoming }, screenshot, screenshotSize, consoleErrors: errors };
+  return { viewport, initial, socialPreview, inspector, inspectorClickKeepsFocus, outsideClick, chatCellPaths, chatCellGroup, groupInspectorKeepsFocus, groupOutsideClickClearsFocus, focused, subtypeLayout, latestBatch, audit: { ...audit, multiIncoming, membershipGroupId, groupIncoming }, screenshot, screenshotSize, consoleErrors: errors };
 }
 
 const desktop = await inspect({ width: 1440, height: 1000 }, "/tmp/atlas-graph-desktop.png");

@@ -1,6 +1,6 @@
 # Interactive Input-Representation Taxonomy Atlas
 
-This static GitHub Pages application renders the accepted 52-paper corpus as an
+This static GitHub Pages application renders the accepted 55-record corpus as an
 explicit taxonomic graph:
 
 `root -> carrier family -> mechanism subtype -> exact membership group -> model`
@@ -8,11 +8,10 @@ explicit taxonomic graph:
 The graph contains:
 
 - one taxonomy root, five carrier families, and 15 operational subtypes;
-- 48 exact subtype-membership groups: 9 single-subtype groups and 39 subtype
-  combinations;
-- 111 unique model nodes and 257 canonical taxonomy links;
-- 376 lifecycle/task configurations and 489 grounded input routes;
-- 79 independently cross-validated model-specific original-paper crops;
+- 51 exact subtype-membership groups;
+- 117 unique model nodes;
+- 400 lifecycle/task configurations and 519 grounded input routes;
+- 85 validated model-specific original-paper crops;
 - 32 explicit `no_suitable_figure` cases where the papers had text evidence
   but no figure that responsibly illustrated the input route.
 
@@ -31,10 +30,20 @@ the left and right to balance the graph without duplicating groups or models. A
 focused model exposes the complete grounded route inventory with source object,
 transformation chain, model-visible form, quote, heading, and pages.
 
+Each model also carries the collection date encoded by its canonical record ID.
+The **Collection batch** filter can isolate a living-review update, including the
+latest `2026-08-09` batch, across the graph, model index, and evidence table.
+
 ## Rebuild
 
 ```bash
-python3 scripts/build_input_representation_atlas.py
+.venv-docling/bin/python scripts/build_input_representation_atlas.py \
+  --taxonomy-root data/living_catalog_updates/update_2026-08-09/14_snapshot_55_records_2026-08-11 \
+  --crop-ledger data/living_catalog_updates/update_2026-08-09/14_snapshot_55_records_2026-08-11/crop_ledger.json \
+  --output-dir docs/input-representation-atlas \
+  --corpus-root data/docling_include_vlm_52_2026-07-10_nolimits \
+  --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm/profiles \
+  --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm_manual_recall_xunzi_2026-08-11/profiles
 ```
 
 The complete logged crop-validation command sequence is documented in

@@ -10,6 +10,7 @@ import json
 import re
 import shutil
 from collections import Counter, defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -196,6 +197,17 @@ def tokens(value: Any) -> set[str]:
 
 def slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.casefold()).strip("_")
+
+
+def collection_metadata(record_id: str) -> dict[str, str]:
+    """Recover the immutable collection batch encoded in canonical record IDs."""
+    batch_id = record_id.split("__", 1)[0]
+    match = re.search(r"(\d{4}-\d{2}-\d{2})$", batch_id)
+    if not match:
+        raise ValueError(f"Record ID does not encode a collection date: {record_id}")
+    collection_date = match.group(1)
+    date.fromisoformat(collection_date)
+    return {"batch_id": batch_id, "date": collection_date}
 
 
 def figure_text(figure: dict[str, Any]) -> str:
@@ -413,6 +425,7 @@ def main() -> int:
                 "annotation_pass": crop_annotation["annotation_pass"],
             }
         record = registry[record_id]
+        collection = collection_metadata(record_id)
         family_counts = Counter(route["carrier_family"] for route in model_routes)
         subtype_counts = Counter(route["carrier_subtype"] for route in model_routes)
         primary_subtype = max(
@@ -442,6 +455,8 @@ def main() -> int:
                 "model_id": model_id,
                 "model_name": first["model_name"],
                 "record_id": record_id,
+                "collection_batch_id": collection["batch_id"],
+                "collection_date": collection["date"],
                 "study_id": first["study_id"],
                 "paper_title": first["title"],
                 "doi": record.get("doi") or "",
@@ -484,6 +499,30 @@ def main() -> int:
     for route in routes:
         family_models[route["carrier_family"]].add(route["model_id"])
         subtype_models[route["carrier_subtype"]].add(route["model_id"])
+
+    record_collection_dates = {
+        record_id: collection_metadata(record_id)["date"] for record_id in registry
+    }
+    collection_batches = []
+    for collection_date in sorted(set(record_collection_dates.values()), reverse=True):
+        batch_record_ids = {
+            record_id
+            for record_id, value in record_collection_dates.items()
+            if value == collection_date
+        }
+        batch_architectures = [
+            architecture
+            for architecture in architectures
+            if architecture["collection_date"] == collection_date
+        ]
+        collection_batches.append(
+            {
+                "date": collection_date,
+                "record_count": len(batch_record_ids),
+                "model_count": len(batch_architectures),
+                "route_count": sum(item["route_count"] for item in batch_architectures),
+            }
+        )
 
     taxonomy_families = []
     for family in taxonomy["families"]:
@@ -666,6 +705,7 @@ def main() -> int:
             },
         },
         "filter_values": {
+            "collection_batches": collection_batches,
             "modalities": sorted({route["source_modality_normalized"] for route in routes}),
             "lifecycle_phases": sorted({route["lifecycle_phase"] for route in routes}),
             "fusion_topologies": sorted({route["fusion_topology"] for route in routes}),
@@ -693,6 +733,7 @@ def main() -> int:
             ),
             "family_route_counts": dict(family_counts),
             "subtype_route_counts": dict(subtype_counts),
+            "collection_batches": collection_batches,
         },
     )
     print(json.dumps(payload["meta"], ensure_ascii=False))

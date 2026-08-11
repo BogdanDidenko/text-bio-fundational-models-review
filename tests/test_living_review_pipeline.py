@@ -26,6 +26,7 @@ from build_living_review_cohorts import (
     fulltext_candidates,
     normalized_download_status,
 )
+from build_input_representation_atlas import collection_metadata
 from build_search_update_config import build_config
 from build_docling_graph_pipeline_input import (
     choose_sections_for_input,
@@ -92,6 +93,14 @@ from capture_google_scholar_serpapi import normalize_result, scrub_secret
 
 
 class SearchConfigTests(unittest.TestCase):
+    def test_atlas_collection_date_is_derived_from_canonical_record_id(self) -> None:
+        self.assertEqual(
+            collection_metadata("update_2026-08-09__manual_recall_xunzi"),
+            {"batch_id": "update_2026-08-09", "date": "2026-08-09"},
+        )
+        with self.assertRaises(ValueError):
+            collection_metadata("record_without_collection_date")
+
     def test_contact_sheet_font_resolves_to_a_real_file(self) -> None:
         self.assertTrue(contact_sheet_font().is_file())
 
