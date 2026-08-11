@@ -1,7 +1,7 @@
 # PRISMA-S Protocol: Generative Foundation Models Bridging Text and Biological Data
 
-**Version**: 4.4
-**Date**: 2026-07-10
+**Version**: 4.5
+**Date**: 2026-08-09
 **Type**: Scoping review (PRISMA-ScR) with PRISMA-S compliant search methodology and PRISMA-trAIce-style LLM screening
 
 ---
@@ -149,24 +149,33 @@ See [data_extraction.md](data_extraction.md) for extraction template.
 
 ## 9. PRISMA-S Search Log
 
-To be populated after search execution:
-
-| Database | Interface | Date | Query (ref) | Filters | Results | Notes |
-|----------|-----------|------|-------------|---------|---------|-------|
-| PubMed | Entrez API | TBD | queries/pubmed.txt | OA, EN, 2018-2026 | TBD | |
-| Scopus | Elsevier API | TBD | queries/scopus.txt | OA, EN, 2018-2026, AR+CP | TBD | |
-| SpringerNature | Meta API v2 | TBD | queries/springernature.txt | 2018-2026 | TBD | |
-| SpringerNature | OA API | TBD | queries/springernature.txt | 2018-2026, OA only | TBD | |
-| arXiv | arXiv API | TBD | queries/arxiv.txt | 2018-2026 | TBD | Inherently OA |
-| bioRxiv/medRxiv | EuropePMC API | TBD | queries/biorxiv_medrxiv.txt | 2018-2026, SRC:PPR | TBD | Inherently OA |
-| Google Scholar | paper-search-mcp | TBD | queries/google_scholar.txt | 2018-2026 | TBD | Supplementary |
-| Semantic Scholar | S2 Bulk API | TBD | queries/semantic_scholar.txt | 2018-2026, OA | TBD | |
+The executed four-round search is reported database by database, with exact
+queries, interfaces, date filters, result counts, deduplication, and artifact
+locations in
+[prisma_search_screening_log_2026-07-07.md](prisma_search_screening_log_2026-07-07.md).
+It covers PubMed, Scopus, Semantic Scholar, arXiv, bioRxiv/medRxiv through
+Europe PMC, SpringerNature, and Google Scholar from 2018-01-01 through
+2026-07-06. The machine-readable checkpoint is
+[`analysis/living_review_baseline_prisma_facts_2026-08-09.json`](../analysis/living_review_baseline_prisma_facts_2026-08-09.json).
 
 ---
 
 ## 10. PRISMA Flow Diagram
 
-See [prisma_flow_template.md](prisma_flow_template.md) — to be populated after screening.
+The completed baseline flow is:
+
+`7,531 identified -> 4,802 unique/new -> 4,577 title/abstract screened -> 250 full-text candidates -> 235 retrieved -> 221 complete-section screened -> 52 accepted records / 51 studies`.
+
+Detailed branch counts and their source artifacts are retained in the executed
+PRISMA-S log and machine-readable checkpoint above. The original diagram
+scaffold remains in [prisma_flow_template.md](prisma_flow_template.md).
+
+For prospective updates, the complete search-to-atlas procedure, stage-specific
+logs, technical-failure categories, manual gates, and publication rules are
+defined in
+[living_review_update_pipeline_2026-08-09.md](living_review_update_pipeline_2026-08-09.md).
+Each published update emits a machine-readable `prisma_update_facts.json`; counts
+from unfinished runs are never added to the cumulative flow.
 
 ---
 
@@ -215,3 +224,6 @@ See [data/existing_reviews_compilation.md](../data/existing_reviews_compilation.
 | 2026-07-06 | 4.2 | Top-up search 2026-06-11 → 2026-07-06 across the same 7 DBs using `scripts/search_config_update_2026-07-06.json`. Results: 197 raw records → 155 internally deduplicated → 134 new after cross-dedup against the 4,027-record master. CrossRef audit found no hidden duplicates or DOI enrichments. Final screening-ready set contains 119 records; Google Scholar returned 0 because the automated `scholarly` run was fully rate-limited. |
 | 2026-07-10 | 4.3 | Added the executed targeted full-text section screening method. Docling Graph processed 235 full-text records; 221 had valid dual-section evidence and entered the corrected second-stage screening payload. Final automated decisions: 50 INCLUDE, 165 EXCLUDE, 6 UNCERTAIN; 67 records were adjudicated. Full provenance, prompt, output, and decision audit is in `protocol/full_text_section_screening_2026-07-10.md`. |
 | 2026-07-10 | 4.4 | Added an append-only human-confirmed manual-resolution layer for the six automated-UNCERTAIN full-text records. The review lead inspected the cited full Docling sections and confirmed 2 INCLUDE and 4 EXCLUDE decisions. The automated `50 / 165 / 6` output remains immutable; the current eligibility checkpoint for the 221 entered records is `52 INCLUDE / 169 EXCLUDE / 0 UNCERTAIN`. |
+| 2026-08-09 | 4.5 | Added the resumable living-review update protocol from the next dated search through cumulative deduplication, two-stage agent screening, OA retrieval, no-VLM and VLM Docling profiles, Docling Graph section grounding, frozen-taxonomy route annotation, cross-validated source-figure crops, staged atlas QA, and explicit publication. Historical runs remain immutable. |
+| 2026-08-10 | 4.6 | Executed living-search v3.3 for 2026-07-07 through 2026-08-09 across eight sources, using one provider-mediated Google Scholar query. Results: 639 source records -> 514 within-update clusters -> 287 records absent from the prior master -> 285 after Crossref removed two hidden duplicates. Crossref queried 97 DOI-less candidates and added 53 corroborated DOI values. The earlier seven-query Scholar capture is retained as a diagnostic, not mixed into the canonical denominator. |
+| 2026-08-10 | 4.7 | Added OpenAlex DOI retrieval to abstract enrichment after an audit found OpenAlex abstracts for records missed by the prior fallback chain. All 12 initially missing abstracts were recovered; 48 of 74 short abstracts were replaced by longer versions. All 285 genuinely new records now have at least 50 abstract characters and enter title/abstract screening; no record is excluded for abstract unavailability. |

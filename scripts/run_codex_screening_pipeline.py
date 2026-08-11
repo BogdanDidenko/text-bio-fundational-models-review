@@ -20,6 +20,7 @@ import csv
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -533,6 +534,146 @@ def codex_batch(
     return meta
 
 
+def archive_failed_batch_attempt(outdir: Path, role: str, batch_index: int, attempt: int) -> list[str]:
+    """Preserve every failed prompt/response before retrying the canonical batch path."""
+    role_dir = outdir / "role_logs" / role
+    batch_name = f"batch_{batch_index:04d}"
+    archived: list[str] = []
+    for suffix in ("prompt.txt", "stdout.log", "stderr.log", "response.txt", "meta.json"):
+        source = role_dir / f"{batch_name}.{suffix}"
+        if not source.exists():
+            continue
+        target = role_dir / f"{batch_name}.attempt_{attempt:02d}.{suffix}"
+        source.replace(target)
+        archived.append(str(target))
+    return archived
+
+
+def recover_complete_batch_by_split(
+    *, max_attempts: int, failures: list[dict[str, Any]], **kwargs: Any
+) -> dict[str, Any]:
+    """Recover an incomplete batch without accepting any partial model response."""
+    batch = list(kwargs["batch"])
+    if len(batch) < 2:
+        raise RuntimeError("Cannot split a one-record batch")
+    midpoint = (len(batch) + 1) // 2
+    parts = [batch[:midpoint], batch[midpoint:]]
+    outdir = Path(kwargs["outdir"])
+    role = str(kwargs["role"])
+    batch_index = int(kwargs["batch_index"])
+    batch_name = f"batch_{batch_index:04d}"
+    recovery_root = outdir / ".batch_recovery" / role / batch_name
+    recovery_root.mkdir(parents=True, exist_ok=True)
+    combined: list[dict[str, Any]] = []
+    recovery_logs: list[str] = []
+
+    try:
+        for part_index, part in enumerate(parts, 1):
+            part_out = recovery_root / f"part_{part_index:02d}"
+            part_kwargs = {
+                **kwargs,
+                "outdir": part_out,
+                "batch": part,
+                "batch_index": 1,
+            }
+            codex_batch_with_retries(
+                max_attempts=max_attempts,
+                allow_split=False,
+                **part_kwargs,
+            )
+            part_dir = part_out / "role_logs" / role
+            part_parsed = load_json(part_dir / "batch_0001.parsed.json")
+            combined.extend(part_parsed)
+            destination_dir = outdir / "role_logs" / role
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            for source in sorted(part_dir.glob("batch_0001.*")):
+                suffix = source.name.removeprefix("batch_0001.")
+                target = destination_dir / f"recovery_{batch_name}_part_{part_index:02d}.{suffix}"
+                shutil.copy2(source, target)
+                recovery_logs.append(str(target))
+
+        expected_ids = [str(row["record_id"]) for row in batch]
+        combined, duplicate_ids, unexpected_ids = normalize_batch_results(combined, expected_ids)
+        role_dir = outdir / "role_logs" / role
+        parsed_path = role_dir / f"{batch_name}.parsed.json"
+        response_path = role_dir / f"{batch_name}.response.txt"
+        meta_path = role_dir / f"{batch_name}.meta.json"
+        write_json(parsed_path, combined)
+        response_path.write_text(json.dumps(combined, ensure_ascii=False), encoding="utf-8")
+        meta = {
+            "created": now(),
+            "role": role,
+            "batch_index": batch_index,
+            "record_ids": expected_ids,
+            "model": kwargs.get("model", MODEL),
+            "evidence_mode": kwargs.get("evidence_mode", "title_abstract"),
+            "status": "ok_recovered_by_split",
+            "parsed_path": str(parsed_path),
+            "response_path": str(response_path),
+            "response_kind": "deterministic_merge_of_recovery_part_responses",
+            "failed_full_batch_attempts": failures,
+            "recovery_part_sizes": [len(part) for part in parts],
+            "recovery_logs": recovery_logs,
+        }
+        if duplicate_ids:
+            meta["duplicate_record_ids_removed"] = duplicate_ids
+        if unexpected_ids:
+            meta["unexpected_record_ids_removed"] = unexpected_ids
+        write_json(meta_path, meta)
+        return meta
+    finally:
+        shutil.rmtree(recovery_root, ignore_errors=True)
+
+
+def codex_batch_with_retries(
+    *, max_attempts: int, allow_split: bool = True, **kwargs: Any
+) -> dict[str, Any]:
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be >= 1")
+    failures: list[dict[str, Any]] = []
+    for attempt in range(1, max_attempts + 1):
+        try:
+            meta = codex_batch(**kwargs)
+            if failures:
+                meta_path = (
+                    Path(kwargs["outdir"])
+                    / "role_logs"
+                    / str(kwargs["role"])
+                    / f"batch_{int(kwargs['batch_index']):04d}.meta.json"
+                )
+                persisted = load_json(meta_path)
+                persisted["attempts_total"] = attempt
+                persisted["failed_attempts"] = failures
+                write_json(meta_path, persisted)
+                meta = persisted
+            return meta
+        except Exception as exc:
+            archived = archive_failed_batch_attempt(
+                Path(kwargs["outdir"]),
+                str(kwargs["role"]),
+                int(kwargs["batch_index"]),
+                attempt,
+            )
+            failures.append({
+                "attempt": attempt,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "archived_paths": archived,
+            })
+            if attempt == max_attempts:
+                if allow_split and len(kwargs["batch"]) > 1:
+                    return recover_complete_batch_by_split(
+                        max_attempts=max_attempts,
+                        failures=failures,
+                        **kwargs,
+                    )
+                raise RuntimeError(
+                    f"{kwargs['role']} batch_{int(kwargs['batch_index']):04d} "
+                    f"failed after {max_attempts} attempts"
+                ) from exc
+    raise AssertionError("unreachable")
+
+
 def collect_role_outputs(outdir: Path, role: str) -> dict[str, dict[str, Any]]:
     outputs: dict[str, dict[str, Any]] = {}
     for path in sorted((outdir / "role_logs" / role).glob("batch_*.parsed.json")):
@@ -616,6 +757,7 @@ def run_role(
     model: str = MODEL,
     evidence_mode: EvidenceMode = "title_abstract",
     timeout_s: int | None = None,
+    max_attempts: int = 1,
 ) -> None:
     schema = schema_for_role(role, outdir)
     batches = chunks(records, batch_size)
@@ -623,7 +765,8 @@ def run_role(
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = [
             pool.submit(
-                codex_batch,
+                codex_batch_with_retries,
+                max_attempts=max_attempts,
                 role=role,
                 batch_index=i,
                 batch=batch,
@@ -657,6 +800,12 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--adjudicator-batch-size", type=int, default=6)
     parser.add_argument("--max-workers", type=int, default=2)
+    parser.add_argument(
+        "--batch-attempts",
+        type=int,
+        default=3,
+        help="Maximum attempts for a malformed, failed, or timed-out batch; every failed attempt is logged.",
+    )
     parser.add_argument(
         "--codex-timeout",
         type=int,
@@ -697,6 +846,7 @@ def main() -> None:
         "batch_size": args.batch_size,
         "adjudicator_batch_size": args.adjudicator_batch_size,
         "max_workers": args.max_workers,
+        "batch_attempts": args.batch_attempts,
         "codex_timeout": timeout_s,
         "limit": args.limit,
         "full_text_record_count": full_text_record_count,
@@ -723,6 +873,7 @@ def main() -> None:
             model=args.model,
             evidence_mode=args.evidence_mode,
             timeout_s=timeout_s,
+            max_attempts=args.batch_attempts,
         )
 
     if args.start_at in {"scope", "architecture"}:
@@ -735,6 +886,7 @@ def main() -> None:
             model=args.model,
             evidence_mode=args.evidence_mode,
             timeout_s=timeout_s,
+            max_attempts=args.batch_attempts,
         )
 
     scope_outputs = collect_role_outputs(outdir, "scope_reviewer")
@@ -780,6 +932,7 @@ def main() -> None:
             model=args.model,
             evidence_mode=args.evidence_mode,
             timeout_s=timeout_s,
+            max_attempts=args.batch_attempts,
         )
 
     adjudicator_outputs = collect_role_outputs(outdir, "adjudicator")

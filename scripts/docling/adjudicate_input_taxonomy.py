@@ -21,6 +21,7 @@ from scripts.docling.docling_graph_litellm_client import (
     LiteLLMEndpointClient,
     strict_json_schema,
 )
+from scripts.docling.profile_artifact_contract import validate_profile_artifacts
 from scripts.docling_graph_templates.input_representation_taxonomy import (
     FinalAdjudicatedTaxonomyDocument,
 )
@@ -67,6 +68,13 @@ REQUIRED_COMPOSITE_SOURCE_REFS = {
     "full_2026-07-06__rec_000090::route_032",
     "june_update_2026-06-10__rec_000121::route_006",
 }
+
+
+def record_output_name(record_id: str) -> str:
+    if not record_id:
+        raise ValueError("Taxonomy adjudicator received an empty candidate_id")
+    readable = re.sub(r"[^A-Za-z0-9._-]", "_", record_id)[:120]
+    return f"{readable}_{hashlib.sha256(record_id.encode('utf-8')).hexdigest()[:12]}"
 
 
 def read_json(path: Path) -> Any:
@@ -699,6 +707,7 @@ def main() -> int:
     parser.add_argument("--taxonomy", type=Path, required=True)
     parser.add_argument("--inventory", type=Path, default=DEFAULT_INVENTORY)
     parser.add_argument("--canonical-manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--expected-records", type=int, default=0)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--record-id", action="append", default=[])
     parser.add_argument("--shard-index", type=int, default=0)
@@ -714,6 +723,9 @@ def main() -> int:
         raise RuntimeError("Expected exactly three direct run roots")
     with args.canonical_manifest.open(newline="", encoding="utf-8") as stream:
         rows = [row for row in csv.DictReader(stream) if row.get("profile_status") == "complete"]
+    manifest_ids = [str(row.get("candidate_id") or "") for row in rows]
+    if not all(manifest_ids) or len(set(manifest_ids)) != len(manifest_ids):
+        raise RuntimeError("Canonical manifest has duplicate or empty candidate_id")
     inventory = group_inventory(read_json(args.inventory))
     direct_maps = [load_fixed_run(root) for root in args.direct_run]
     dense_map = load_dense_run(args.dense_run)
@@ -728,11 +740,12 @@ def main() -> int:
             raise RuntimeError(f"Missing requested dense records: {sorted(missing_dense)}")
         rows = [row for row in rows if row["candidate_id"] in selected_ids]
     else:
+        expected = args.expected_records or len(rows)
         for root, mapping in zip(args.direct_run, direct_maps):
-            if len(mapping) != 52:
-                raise RuntimeError(f"Expected 52 fixed records in {root}, found {len(mapping)}")
-        if len(dense_map) != 52:
-            raise RuntimeError(f"Expected 52 dense records, found {len(dense_map)}")
+            if len(mapping) != expected:
+                raise RuntimeError(f"Expected {expected} fixed records in {root}, found {len(mapping)}")
+        if len(dense_map) != expected:
+            raise RuntimeError(f"Expected {expected} dense records, found {len(dense_map)}")
     rows = rows[args.shard_index :: args.shard_count]
     taxonomy = read_json(args.taxonomy)
     schema = strict_json_schema(FinalAdjudicatedTaxonomyDocument.model_json_schema())
@@ -763,8 +776,9 @@ def main() -> int:
     summaries = []
     for row in rows:
         record_id = row["candidate_id"]
-        markdown = (ROOT / row["markdown"]).read_text(encoding="utf-8")
-        native_items = load_native_item_texts(ROOT / row["docling_json"])
+        docling_path, markdown_path = validate_profile_artifacts(row)
+        markdown = markdown_path.read_text(encoding="utf-8")
+        native_items = load_native_item_texts(docling_path)
         discovery = inventory[record_id]
         dense, automatic_dense_exclusions = dense_candidates(record_id, dense_map[record_id])
         fixed_sets = [
@@ -775,7 +789,7 @@ def main() -> int:
         prompt = prompt_for_record(
             row, markdown, taxonomy, discovery, fixed_sets, dense, schema
         )
-        record_dir = args.output_dir / "records" / re.sub(r"[^A-Za-z0-9._-]", "_", record_id)
+        record_dir = args.output_dir / "records" / record_output_name(record_id)
         record_dir.mkdir(parents=True, exist_ok=True)
         (record_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
         started = time.time()

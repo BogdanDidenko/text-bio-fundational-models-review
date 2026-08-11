@@ -1,0 +1,52 @@
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title/abstract record plus the structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | EC4_no_foundation_model_evidence | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | foundation_model_evidence_unclear | mixed_signals | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the abstract and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the title/abstract evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- If the abstract only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the title/abstract and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the title/abstract that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+[{"record_id":"rec_000001","title":"XunZi, an AI biologist, reveals disease-modifying targets","abstract":"XunZi is an AI biologist capable of synergizing logical reasoning and multimodal data fusion to generate de novo therapeutic target hypotheses. XunZi was used to discover two therapeutic targets in Parkinson’s disease that were subsequently verified. Hypothesis generation in biomedicine is constrained by human cognitive limitations in synthesizing insights from fragmented biomedical knowledge and multimodal data sources. Here we introduce XunZi, an AI biologist that integrates logical reasoning and multimodal data fusion to autonomously generate de novo therapeutic target hypotheses with testable mechanisms. XunZi has been trained on 24.4 million publications and 613.6 TB of multisource data spanning 21,008 human genes and 5,850 diseases, and outperforms existing methods in both accuracy and interpretability across diverse disease contexts. In Parkinson’s disease (PD), where complex mechanisms and limited targets hamper therapy development, XunZi identifies aberrant activation of CHK2 and IRAK4 kinases across multiple models. Pharmacological or genetic inhibition of Chk2 rescues dopaminergic neuron loss and motor deficits in PD mice. We further demonstrate XunZi’s broad versatility in diseases such as non-small-cell lung cancer. XunZi establishes a paradigm-shifting framework to translate fragmented biomedical knowledge and data into actionable therapeutics.","doi":"10.1038/s41551-026-01769-6","year":"2026","venue":"Nature Biomedical Engineering","sources":["springernature"],"first_pass_outputs":{"scope_reviewer":{"record_id":"rec_000001","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","primary_exclusion_code":"none","uncertainty_reason":"none","decision_rationale":"Introduces XunZi as an AI biologist that integrates logical reasoning and multimodal data fusion to generate de novo therapeutic target hypotheses. The abstract centers on biomedical data, publications, and hypothesis generation rather than a review or benchmark.","evidence_snippet":"\"integrates logical reasoning and multimodal data fusion to autonomously generate de novo therapeutic target hypotheses\"; trained on \"24.4 million publications and 613.6 TB of multisource data\"."},"architecture_reviewer":{"record_id":"rec_000001","paper_type":"primary_model_paper","generative_model_present":"unclear","foundation_model_evidence":"yes","primary_exclusion_code":"none","uncertainty_reason":"generative_status_unclear","decision_rationale":"The abstract says XunZi can “autonomously generate de novo therapeutic target hypotheses,” but it does not specify a clearly generative architecture. It does show foundation-model-like scale and breadth, including training on 24.4 million publications and 613.6 TB of multisource data across many genes and diseases.","evidence_snippet":"“autonomously generate de novo therapeutic target hypotheses”; “trained on 24.4 million publications and 613.6 TB of multisource data”"},"python_gate":{"provisional_decision":"ADJUDICATE","provisional_code":"none","adjudication_reason":"criterion_unclear_or_reviewer_conflict","paper_type":"primary_model_paper","bio_modality_present":"yes","text_component_present":"yes","text_bio_bridge_present":"yes","generative_model_present":"unclear","foundation_model_evidence":"yes"}}}]

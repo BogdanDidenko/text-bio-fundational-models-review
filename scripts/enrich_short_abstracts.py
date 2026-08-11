@@ -24,6 +24,9 @@ import requests
 from datetime import datetime
 from urllib.parse import quote
 
+from metadata_match import accept_title_candidate
+from enrich_abstracts import fetch_abstract_openalex_doi
+
 RECORDS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "deduplicated_records.json")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "enrichment_short_abstracts_log.json")
 
@@ -50,9 +53,10 @@ def retry_get(url, headers=None, params=None, max_retries=3, base_delay=2):
     return None
 
 
-def fetch_s2_by_doi(doi):
+def fetch_s2_by_doi(doi, api_key=None):
     url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{quote(doi, safe='')}"
-    r = retry_get(url, params={"fields": "abstract"})
+    headers = {"x-api-key": api_key} if api_key else None
+    r = retry_get(url, headers=headers, params={"fields": "abstract"})
     if r is None:
         return None
     abstract = r.json().get("abstract")
@@ -73,40 +77,56 @@ def fetch_crossref_by_doi(doi):
     return None
 
 
-def _title_match(title_a, title_b, threshold=0.85):
-    """Check if two titles match by word overlap."""
-    a_clean = re.sub(r'[^\w\s]', '', title_a.lower()).split()
-    b_clean = re.sub(r'[^\w\s]', '', title_b.lower()).split()
-    if not a_clean or not b_clean:
-        return False
-    overlap = len(set(a_clean) & set(b_clean)) / max(len(a_clean), len(b_clean))
-    return overlap >= threshold
-
-
-def fetch_crossref_by_title(title):
+def fetch_crossref_by_title(record):
     """Fetch abstract from CrossRef by title search (no DOI needed)."""
     url = "https://api.crossref.org/works"
     headers = {"User-Agent": "SystematicReviewBot/1.0 (mailto:review@example.com)"}
-    params = {"query.bibliographic": title[:200], "rows": 3}
+    title = str(record.get("title") or "")
+    params = {"query.bibliographic": title[:200], "rows": 5}
 
     r = retry_get(url, headers=headers, params=params)
     if r is None:
         return None
 
     items = r.json().get("message", {}).get("items", [])
+    rejections = []
     for item in items:
-        item_title = (item.get("title") or [""])[0]
         abstract = item.get("abstract", "")
-        if abstract and _title_match(title, item_title):
-            return re.sub(r"<[^>]+>", "", abstract).strip()
+        candidate = {
+            "title": (item.get("title") or [""])[0],
+            "year": next(
+                (parts[0][0] for key in ("published-print", "published-online", "issued")
+                 if (parts := (item.get(key) or {}).get("date-parts")) and parts[0]), None
+            ),
+            "authors": item.get("author") or [],
+            "doi": item.get("DOI", ""),
+        }
+        accepted, status, evidence = accept_title_candidate(record, candidate)
+        if abstract and accepted:
+            return {
+                "accepted": True,
+                "abstract": re.sub(r"<[^>]+>", "", abstract).strip(),
+                "match": evidence,
+                "match_status": status,
+                "candidate_doi": candidate["doi"],
+            }
+        if abstract:
+            rejections.append(
+                {
+                    "candidate_doi": candidate["doi"],
+                    "reason": status,
+                    "evidence": evidence,
+                }
+            )
+    return {"accepted": False, "rejections": rejections}
 
-    return None
 
-
-def fetch_s2_by_title(title):
+def fetch_s2_by_title(record, api_key=None):
+    title = str(record.get("title") or "")
     url = "https://api.semanticscholar.org/graph/v1/paper/search"
-    params = {"query": title[:200], "limit": 3, "fields": "title,abstract"}
-    r = retry_get(url, params=params)
+    params = {"query": title[:200], "limit": 5, "fields": "title,abstract,year,authors,paperId"}
+    headers = {"x-api-key": api_key} if api_key else None
+    r = retry_get(url, headers=headers, params=params)
     if r is None:
         return None
 
@@ -114,12 +134,27 @@ def fetch_s2_by_title(title):
     if not papers:
         return None
 
+    rejections = []
     for p in papers:
-        p_title = p.get("title") or ""
-        if _title_match(title, p_title) and p.get("abstract"):
-            return p["abstract"].strip()
-
-    return None
+        if not p.get("abstract"):
+            continue
+        accepted, status, evidence = accept_title_candidate(record, p)
+        if accepted:
+            return {
+                "accepted": True,
+                "abstract": p["abstract"].strip(),
+                "match": evidence,
+                "match_status": status,
+                "candidate_id": p.get("paperId", ""),
+            }
+        rejections.append(
+            {
+                "candidate_id": p.get("paperId", ""),
+                "reason": status,
+                "evidence": evidence,
+            }
+        )
+    return {"accepted": False, "rejections": rejections}
 
 
 def fetch_pubmed_by_pmid(pmid, api_key=None):
@@ -153,19 +188,28 @@ def fetch_pubmed_by_pmid(pmid, api_key=None):
 def main():
     parser = argparse.ArgumentParser(description="Enrich short/truncated abstracts")
     parser.add_argument("--keys", help="Path to api_keys.json")
+    parser.add_argument("--input", default=RECORDS_PATH, help="Input JSON record artifact")
+    parser.add_argument("--output", default=None, help="Output JSON; defaults to overwriting --input")
+    parser.add_argument("--log-output", default=LOG_PATH)
     parser.add_argument("--max-len", type=int, default=250,
                         help="Treat abstracts shorter than this as 'short' (default: 250)")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--limit", type=int, default=0, help="Max records to process (0=all)")
     args = parser.parse_args()
+    records_path = args.input
+    output_path = args.output or records_path
 
     ncbi_key = None
+    s2_key = None
+    openalex_key = None
     if args.keys:
         with open(args.keys) as f:
             keys = json.load(f)
         ncbi_key = keys.get("ncbi")
+        s2_key = keys.get("semantic_scholar") or keys.get("S2_API_KEY")
+        openalex_key = keys.get("openalex") or keys.get("OPENALEX_API_KEY")
 
-    with open(RECORDS_PATH, "r", encoding="utf-8") as f:
+    with open(records_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     records = data["records"]
 
@@ -184,11 +228,13 @@ def main():
         print(f"Processing first {len(short_indices)}")
 
     log = {
+        "enrichment_version": 2,
         "started": datetime.now().isoformat(),
         "max_len_threshold": args.max_len,
         "total_short": len(short_indices),
         "enriched": 0,
         "s2_doi": 0,
+        "openalex_doi": 0,
         "crossref": 0,
         "s2_title": 0,
         "pubmed": 0,
@@ -209,10 +255,11 @@ def main():
 
         new_abstract = None
         source = None
+        title_result = None
 
         # 1. S2 by DOI
         if doi and not new_abstract:
-            new_abstract = fetch_s2_by_doi(doi)
+            new_abstract = fetch_s2_by_doi(doi, s2_key)
             if new_abstract and len(new_abstract) > old_len:
                 source = "s2_doi"
                 log["s2_doi"] += 1
@@ -220,7 +267,17 @@ def main():
                 new_abstract = None
             time.sleep(0.12)
 
-        # 2. CrossRef by DOI
+        # 2. OpenAlex by DOI
+        if doi and not new_abstract:
+            new_abstract = fetch_abstract_openalex_doi(doi, openalex_key)
+            if new_abstract and len(new_abstract) > old_len:
+                source = "openalex_doi"
+                log["openalex_doi"] += 1
+            else:
+                new_abstract = None
+            time.sleep(0.1)
+
+        # 3. CrossRef by DOI
         if doi and not new_abstract:
             new_abstract = fetch_crossref_by_doi(doi)
             if new_abstract and len(new_abstract) > old_len:
@@ -230,9 +287,10 @@ def main():
                 new_abstract = None
             time.sleep(0.1)
 
-        # 3. CrossRef by title (fast, no rate limit issues)
+        # 4. CrossRef by title (fast, no rate limit issues)
         if not new_abstract and title:
-            new_abstract = fetch_crossref_by_title(title)
+            title_result = fetch_crossref_by_title(rec)
+            new_abstract = title_result["abstract"] if title_result and title_result.get("accepted") else None
             if new_abstract and len(new_abstract) > old_len:
                 source = "crossref_title"
                 log["crossref_title"] = log.get("crossref_title", 0) + 1
@@ -240,7 +298,7 @@ def main():
                 new_abstract = None
             time.sleep(0.05)
 
-        # 4. PubMed by PMID
+        # 5. PubMed by PMID
         if pmid and not new_abstract:
             new_abstract = fetch_pubmed_by_pmid(pmid, ncbi_key)
             if new_abstract and len(new_abstract) > old_len:
@@ -250,9 +308,10 @@ def main():
                 new_abstract = None
             time.sleep(0.1)
 
-        # 5. S2 by title (DISABLED — too slow without API key, rate limited)
+        # 6. S2 by title, with title plus independent metadata corroboration.
         # if not new_abstract and title:
-        #     new_abstract = fetch_s2_by_title(title)
+        #     title_result = fetch_s2_by_title(rec, s2_key)
+        #     new_abstract = title_result["abstract"] if title_result else None
         #     if new_abstract and len(new_abstract) > old_len:
         #         source = "s2_title"
         #         log["s2_title"] += 1
@@ -266,16 +325,30 @@ def main():
                 records[rec_idx]["abstract"] = new_abstract
                 records[rec_idx]["abstract_enriched_from"] = source
                 records[rec_idx]["abstract_old_len"] = old_len
-            log["details"].append({
+            detail = {
                 "cluster_id": rec.get("cluster_id"),
                 "title": title[:80],
                 "source": source,
                 "old_len": old_len,
                 "new_len": len(new_abstract),
                 "sources_db": rec.get("sources", []),
-            })
+            }
+            if source == "crossref_title":
+                detail["title_match"] = title_result["match"]
+                detail["title_match_status"] = title_result["match_status"]
+                detail["source_candidate_doi"] = title_result["candidate_doi"]
+            log["details"].append(detail)
         else:
             log["not_found"] += 1
+            if title_result and title_result.get("rejections"):
+                log["details"].append(
+                    {
+                        "cluster_id": rec.get("cluster_id"),
+                        "title": title[:80],
+                        "source": None,
+                        "crossref_title_search_rejections": title_result["rejections"],
+                    }
+                )
 
     log["enriched"] = enriched
     log["finished"] = datetime.now().isoformat()
@@ -287,6 +360,7 @@ def main():
     print(f"  Processed:     {len(short_indices)}")
     print(f"  Enriched:      {enriched} ({enriched/max(len(short_indices),1)*100:.1f}%)")
     print(f"    S2 (DOI):    {log['s2_doi']}")
+    print(f"    OpenAlex DOI:{log['openalex_doi']}")
     print(f"    CrossRef DOI:{log['crossref']}")
     print(f"    CrossRef tit:{log.get('crossref_title', 0)}")
     print(f"    PubMed:      {log['pubmed']}")
@@ -314,13 +388,13 @@ def main():
             "enriched": enriched,
             "html_cleaned": html_cleaned,
         }
-        with open(RECORDS_PATH, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"  Saved: {RECORDS_PATH}")
+        print(f"  Saved: {output_path}")
 
-    with open(LOG_PATH, "w", encoding="utf-8") as f:
+    with open(args.log_output, "w", encoding="utf-8") as f:
         json.dump(log, f, ensure_ascii=False, indent=2)
-    print(f"  Log: {LOG_PATH}")
+    print(f"  Log: {args.log_output}")
     print("\nDone.")
 
 

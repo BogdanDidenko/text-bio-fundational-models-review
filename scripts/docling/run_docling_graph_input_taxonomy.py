@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from scripts.docling.docling_graph_litellm_client import LiteLLMEndpointClient
+from scripts.docling.profile_artifact_contract import validate_profile_artifacts
 from scripts.docling_graph_templates.input_representation_taxonomy import (
     InputRouteDiscoveryDocument,
     TaxonomyCodedDocument,
@@ -70,8 +71,9 @@ def sha256(path: Path) -> str:
 def load_manifest(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as stream:
         rows = [row for row in csv.DictReader(stream) if row.get("profile_status") == "complete"]
-    if len(rows) != 52:
-        raise RuntimeError(f"Expected 52 complete canonical profiles, found {len(rows)}")
+    candidate_ids = [str(row.get("candidate_id") or "") for row in rows]
+    if not all(candidate_ids) or len(set(candidate_ids)) != len(candidate_ids):
+        raise RuntimeError(f"Canonical manifest has duplicate or empty candidate_id: {path}")
     return rows
 
 
@@ -95,7 +97,10 @@ def select_rows(rows: list[dict[str, str]], args: argparse.Namespace) -> list[di
 
 
 def safe_name(value: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in value)[:160]
+    if not value:
+        raise ValueError("Taxonomy record has an empty candidate_id")
+    readable = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in value)[:120]
+    return f"{readable}_{hashlib.sha256(value.encode('utf-8')).hexdigest()[:12]}"
 
 
 def graph_payload(context: Any) -> dict[str, Any]:
@@ -235,8 +240,7 @@ def run_record(
     row: dict[str, str], args: argparse.Namespace, client: LiteLLMEndpointClient
 ) -> dict[str, Any]:
     template = InputRouteDiscoveryDocument if args.stage == "discovery" else TaxonomyCodedDocument
-    source = resolve(row["docling_json"])
-    markdown_path = resolve(row["markdown"])
+    source, markdown_path = validate_profile_artifacts(row)
     markdown = markdown_path.read_text(encoding="utf-8")
     record_output = args.output_dir / "records" / safe_name(row["candidate_id"])
     generation: dict[str, Any] = {"temperature": args.temperature}
@@ -325,6 +329,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", choices=["discovery", "coded"], required=True)
     parser.add_argument("--canonical-manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument(
+        "--expected-records",
+        type=int,
+        default=0,
+        help="Optional completeness assertion; 0 accepts the manifest's full cohort.",
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT / "runs" / "smoke")
     parser.add_argument("--replicate-id", default="r1")
     parser.add_argument("--record-id", action="append", default=[])
@@ -355,7 +365,12 @@ def main() -> int:
         parser.error("shard index/count are inconsistent")
     args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    rows = select_rows(load_manifest(args.canonical_manifest), args)
+    manifest_rows = load_manifest(args.canonical_manifest)
+    if args.expected_records and len(manifest_rows) != args.expected_records:
+        raise RuntimeError(
+            f"Expected {args.expected_records} complete profiles, found {len(manifest_rows)}"
+        )
+    rows = select_rows(manifest_rows, args)
     write_json(args.output_dir / "selected_records.json", rows)
     write_json(
         args.output_dir / "run_config.json",

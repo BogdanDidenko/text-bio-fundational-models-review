@@ -278,8 +278,33 @@ def compact_route(route: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--taxonomy-root", type=Path, default=TAXONOMY_ROOT)
+    parser.add_argument(
+        "--corpus-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Docling corpus root containing figures/; repeat for living snapshots.",
+    )
+    parser.add_argument("--crop-ledger", type=Path, default=CROP_LEDGER)
+    parser.add_argument(
+        "--prior-atlas-root",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help="Reuse already validated baseline crop assets when recovered source figures are absent.",
+    )
     args = parser.parse_args()
     output = args.output_dir.resolve()
+    taxonomy_root = args.taxonomy_root.resolve()
+    corpus_roots = [path.resolve() for path in args.corpus_root] or [CORPUS_ROOT]
+    crop_ledger_path = args.crop_ledger.resolve()
+    prior_atlas_root = args.prior_atlas_root.resolve()
+    prior_architectures: dict[str, dict[str, Any]] = {}
+    prior_atlas_path = prior_atlas_root / "data/atlas.json"
+    if prior_atlas_path.exists() and prior_atlas_root != output:
+        prior_architectures = {
+            row["model_id"]: row for row in read_json(prior_atlas_path).get("architectures", [])
+        }
     assets = output / "assets/figures"
     if assets.exists():
         shutil.rmtree(assets)
@@ -287,24 +312,25 @@ def main() -> int:
 
     routes = [
         json.loads(line)
-        for line in (TAXONOMY_ROOT / "route_annotations.jsonl").read_text(
+        for line in (taxonomy_root / "route_annotations.jsonl").read_text(
             encoding="utf-8"
         ).splitlines()
         if line.strip()
     ]
-    taxonomy = read_json(TAXONOMY_ROOT / "taxonomy_tree.json")
+    taxonomy = read_json(taxonomy_root / "taxonomy_tree.json")
     crop_ledger = {
-        item["model_id"]: item for item in read_json(CROP_LEDGER)
+        item["model_id"]: item for item in read_json(crop_ledger_path)
     }
-    with (TAXONOMY_ROOT / "study_model_registry.csv").open(
+    with (taxonomy_root / "study_model_registry.csv").open(
         newline="", encoding="utf-8"
     ) as stream:
         registry = {row["record_id"]: row for row in csv.DictReader(stream)}
 
     figures_by_record: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for manifest_path in sorted((CORPUS_ROOT / "figures").glob("*/figures_manifest.json")):
-        for figure in read_json(manifest_path):
-            figures_by_record[figure["candidate_id"]].append(figure)
+    for corpus_root in corpus_roots:
+        for manifest_path in sorted((corpus_root / "figures").glob("*/figures_manifest.json")):
+            for figure in read_json(manifest_path):
+                figures_by_record[figure["candidate_id"]].append(figure)
 
     routes_by_model: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for route in routes:
@@ -323,38 +349,57 @@ def main() -> int:
         if crop_annotation["status"] == "cropped_source_figure":
             crop_figure = crop_annotation["figure"]
             figure = next(
-                item
-                for item in figures_by_record[record_id]
-                if int(item["figure_index"]) == int(crop_figure["figure_index"])
+                (
+                    item
+                    for item in figures_by_record[record_id]
+                    if int(item["figure_index"]) == int(crop_figure["figure_index"])
+                ),
+                None,
             )
-            source_image = ROOT / figure["image_path"]
+            prior_figure = (prior_architectures.get(model_id) or {}).get("figure")
+            if figure is not None:
+                source_image = ROOT / figure["image_path"]
+            elif prior_figure and prior_figure.get("asset"):
+                source_image = prior_atlas_root / prior_figure["asset"]
+            else:
+                raise RuntimeError(
+                    f"Missing source and validated prior crop asset for {model_id}"
+                )
             if not source_image.exists():
                 raise RuntimeError(f"Missing figure image: {source_image}")
             source_key = str(source_image.resolve())
             if source_key not in copied:
                 filename = (
-                    f"{slug(record_id)}_figure_{int(figure['figure_index']):03d}"
+                    f"{slug(record_id)}_figure_{int(crop_figure['figure_index']):03d}"
                     f"{source_image.suffix.casefold()}"
                 )
                 target = assets / filename
                 shutil.copy2(source_image, target)
                 copied[source_key] = f"assets/figures/{filename}"
-            description = next(
-                (
-                    item.get("text")
-                    for item in figure.get("annotations") or []
-                    if item.get("kind") == "description" and item.get("text")
-                ),
-                "",
+            description = (
+                next(
+                    (
+                        item.get("text")
+                        for item in figure.get("annotations") or []
+                        if item.get("kind") == "description" and item.get("text")
+                    ),
+                    "",
+                )
+                if figure is not None
+                else str(prior_figure.get("description") or "")
             )
             figure_payload = {
                 "status": crop_annotation["status"],
                 "asset": copied[source_key],
-                "source_path": figure["image_path"],
-                "figure_index": figure["figure_index"],
-                "caption": figure.get("caption") or "",
+                "source_path": (
+                    figure["image_path"] if figure is not None else prior_figure.get("source_path", "")
+                ),
+                "figure_index": int(crop_figure["figure_index"]),
+                "caption": (
+                    figure.get("caption") or "" if figure is not None else prior_figure.get("caption", "")
+                ),
                 "description": description or "",
-                "page_no": figure.get("page_no"),
+                "page_no": figure.get("page_no") if figure is not None else prior_figure.get("page_no"),
                 "sha256": hashlib.sha256(source_image.read_bytes()).hexdigest(),
                 "pixel_width": crop_figure["pixel_width"],
                 "pixel_height": crop_figure["pixel_height"],
@@ -585,10 +630,10 @@ def main() -> int:
         "meta": {
             "title": "Atlas of Input Representation Methods",
             "taxonomy_version": taxonomy["taxonomy_version"],
-            "generated_from": str(TAXONOMY_ROOT.relative_to(ROOT)),
-            "canonical_corpus": str(CORPUS_ROOT.relative_to(ROOT)),
-            "record_count": 52,
-            "study_count": 51,
+            "generated_from": str(taxonomy_root.relative_to(ROOT)),
+            "canonical_corpus": [str(path.relative_to(ROOT)) for path in corpus_roots],
+            "record_count": len(registry),
+            "study_count": len({row["study_id"] for row in registry.values()}),
             "model_count": len(architectures),
             "configuration_count": len({r["configuration_id"] for r in routes}),
             "route_count": len(routes),
@@ -602,7 +647,7 @@ def main() -> int:
                 architecture["figure_status"] == "no_suitable_figure"
                 for architecture in architectures
             ),
-            "crop_ledger": str(CROP_LEDGER.relative_to(ROOT)),
+            "crop_ledger": str(crop_ledger_path.relative_to(ROOT)),
             "classification_unit": taxonomy["classification_unit"],
             "organizing_principle": taxonomy["organizing_principle"],
         },

@@ -17,13 +17,15 @@ import os
 import re
 import time
 import xml.etree.ElementTree as ET
-from difflib import SequenceMatcher
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, unquote, urljoin, urlsplit
 
 import requests
+
+from metadata_match import accept_title_candidate
 
 
 USER_AGENT = "lpnu-review-fulltext-harvester/2026-07-07 (mailto:{email})"
@@ -112,16 +114,23 @@ def arxiv_id_from_record(record: dict[str, Any]) -> str:
     return ""
 
 
-def title_score(a: str, b: str) -> float:
-    def norm(s: str) -> str:
-        return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
-
-    aa, bb = norm(a), norm(b)
-    if not aa or not bb:
-        return 0.0
-    if aa in bb or bb in aa:
-        return 0.95
-    return SequenceMatcher(None, aa, bb).ratio()
+def record_title_candidate_attempt(
+    attempts: list[dict[str, Any]], source: str, candidate: dict[str, Any]
+) -> bool:
+    """Audit a title-derived location and return whether it is safe to follow."""
+    candidate_metadata = dict(candidate)
+    record = candidate_metadata.pop("record")
+    accepted, reason, evidence = accept_title_candidate(record, candidate_metadata)
+    attempts.append(
+        {
+            "time": now_iso(),
+            "source": source,
+            "candidate_identifier": candidate_metadata.get("doi") or candidate_metadata.get("paperId") or candidate_metadata.get("id") or "",
+            "title_match_status": reason,
+            "title_match_evidence": evidence,
+        }
+    )
+    return accepted
 
 
 def add_openalex_locations(work: dict[str, Any], urls: list[tuple[str, str]], prefix: str = "openalex") -> None:
@@ -189,7 +198,40 @@ def fetch_url(session: requests.Session, url: str, attempts: list[dict[str, Any]
 
 
 def looks_like_pdf(payload: bytes, content_type: str) -> bool:
-    return payload.startswith(b"%PDF") or "pdf" in content_type.lower()
+    # MIME headers are frequently wrong or point to HTML access-denied pages.
+    return payload.lstrip().startswith(b"%PDF")
+
+
+def payload_kind(payload: bytes, content_type: str) -> str:
+    if looks_like_pdf(payload, content_type):
+        return "pdf"
+    head = payload[:4096].lstrip().lower()
+    if b"<!doctype html" in head or b"<html" in head:
+        return "html"
+    if head.startswith(b"<?xml") or b"<article" in head:
+        return "xml"
+    lowered_type = content_type.casefold()
+    if "html" in lowered_type:
+        return "html"
+    if "xml" in lowered_type:
+        return "xml"
+    return "unknown"
+
+
+def technical_attempt_failures(attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    failures = []
+    for attempt in attempts:
+        status = int(attempt.get("status_code") or 0)
+        if attempt.get("error") or status in {408, 425, 429} or status >= 500:
+            failures.append(attempt)
+    return failures
+
+
+def access_restriction_attempts(attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        attempt for attempt in attempts
+        if int(attempt.get("status_code") or 0) in {401, 403}
+    ]
 
 
 def html_text_len(payload: bytes) -> int:
@@ -199,6 +241,25 @@ def html_text_len(payload: bytes) -> int:
     text = html.unescape(text)
     text = re.sub(r"\s+", " ", text).strip()
     return len(text)
+
+
+def looks_like_full_text_html(payload: bytes) -> bool:
+    if html_text_len(payload) < HTML_MIN_TEXT_CHARS:
+        return False
+    lowered = payload.decode("utf-8", errors="ignore").casefold()
+    paywall_markers = (
+        'id="access-options"',
+        "id='access-options'",
+        'data-test="buy-or-subscribe"',
+        "data-test='buy-or-subscribe'",
+        'class="buyboxsection"',
+        "class='buyboxsection'",
+        '<meta name="ncbi_app" content="pubmed"',
+        "<meta name='ncbi_app' content='pubmed'",
+        'name="citation_abstract_html_url"',
+        "name='citation_abstract_html_url'",
+    )
+    return not any(marker in lowered for marker in paywall_markers)
 
 
 def write_payload(out_dir: Path, name: str, payload: bytes, attempts: list[dict[str, Any]], content_type: str, source: str) -> dict[str, Any]:
@@ -223,13 +284,67 @@ def try_download(session: requests.Session, url: str, out_dir: Path, stem: str, 
     if not result:
         return None
     payload, content_type, _ = result
-    if looks_like_pdf(payload, content_type) and len(payload) >= PDF_MIN_BYTES:
+    kind = payload_kind(payload, content_type)
+    if kind == "pdf" and len(payload) >= PDF_MIN_BYTES:
         return write_payload(out_dir, f"{stem}.pdf", payload, attempts, content_type, source)
-    if "html" in content_type.lower() and html_text_len(payload) >= HTML_MIN_TEXT_CHARS:
+    if kind == "html" and looks_like_full_text_html(payload):
         return write_payload(out_dir, f"{stem}.html", payload, attempts, content_type, source)
-    if "xml" in content_type.lower() and len(payload) >= HTML_MIN_TEXT_CHARS:
+    if kind == "xml" and len(payload) >= HTML_MIN_TEXT_CHARS:
         return write_payload(out_dir, f"{stem}.xml", payload, attempts, content_type, source)
     return None
+
+
+class FullTextLinkParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = {key.casefold(): (value or "") for key, value in attrs}
+        if tag.casefold() == "a":
+            href = values.get("href", "")
+            marker = " ".join((values.get("title", ""), values.get("class", ""))).casefold()
+            if href and ("pdf" in marker or re.search(r"(?:\.pdf|/pdf|pdf/)", href, flags=re.I)):
+                self.links.append(("landing_pdf_link", href))
+            elif href and re.search(r"(?:/full|fulltext|full-text)", href, flags=re.I):
+                self.links.append(("landing_fulltext_link", href))
+        elif tag.casefold() in {"embed", "object"}:
+            media_type = values.get("type", "").casefold()
+            value = values.get("src", "") or values.get("data", "")
+            if value and "pdf" in media_type:
+                self.links.append(("landing_embedded_pdf", value))
+
+
+def is_supplementary_url(url: str) -> bool:
+    """Reject article-page assets that are not the primary report."""
+    path = unquote(urlsplit(url).path).casefold()
+    return any(
+        marker in path
+        for marker in (
+            "/esm/",
+            "moesm",
+            "supplement",
+            "suppinfo",
+            "supporting-information",
+            "reporting-summary",
+            "source-data",
+        )
+    )
+
+
+def fulltext_links_from_html(payload: bytes, base_url: str) -> list[tuple[str, str]]:
+    parser = FullTextLinkParser()
+    parser.feed(payload.decode("utf-8", errors="ignore"))
+    deduped = []
+    seen = set()
+    for source, value in parser.links:
+        url = urljoin(base_url, html.unescape(value)).split("#", 1)[0]
+        if is_supplementary_url(url):
+            continue
+        if url not in seen:
+            seen.add(url)
+            deduped.append((source, url))
+    return deduped[:8]
 
 
 def candidate_urls_from_landing(session: requests.Session, doi: str, attempts: list[dict[str, Any]]) -> list[tuple[str, str]]:
@@ -242,18 +357,25 @@ def candidate_urls_from_landing(session: requests.Session, doi: str, attempts: l
     urls: list[tuple[str, str]] = []
     if looks_like_pdf(payload, content_type):
         return [("doi_landing_pdf", f"https://doi.org/{quote_doi_url(doi)}")]
-    text = payload.decode("utf-8", errors="ignore")
-    for match in re.finditer(r"""href=["']([^"']+(?:\.pdf|/pdf|pdf/[^"']*))["']""", text, flags=re.I):
-        urls.append(("landing_pdf_link", urljoin(f"https://doi.org/{quote(doi)}", match.group(1))))
-    for match in re.finditer(r"""href=["']([^"']+(?:/full|fulltext|full-text)[^"']*)["']""", text, flags=re.I):
-        urls.append(("landing_fulltext_link", urljoin(f"https://doi.org/{quote(doi)}", match.group(1))))
-    return urls[:8]
+    return fulltext_links_from_html(payload, f"https://doi.org/{quote_doi_url(doi)}")
 
 
 def source_urls(record: dict[str, Any], session: requests.Session, email: str, attempts: list[dict[str, Any]]) -> list[tuple[str, str]]:
     doi = normalize_doi(record.get("doi"))
     title = str(record.get("title") or "")
     urls: list[tuple[str, str]] = []
+    match_record = dict(record)
+
+    explicit_urls = []
+    for key in ("url", "pdf_url", "full_text_url"):
+        value = str(record.get(key) or "").strip()
+        if value.startswith(("http://", "https://")):
+            explicit_urls.append((f"record_{key}", value))
+    urls.extend(explicit_urls)
+    for source, value in explicit_urls:
+        probe = fetch_url(session, value, attempts, f"{source}_landing_probe")
+        if probe and payload_kind(probe[0], probe[1]) == "html":
+            urls.extend(fulltext_links_from_html(probe[0], value))
 
     arxiv_id = arxiv_id_from_record(record)
     if arxiv_id:
@@ -268,6 +390,19 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
         urls.append(("medrxiv_html", f"https://www.medrxiv.org/content/{doi_url}.full"))
 
     if doi:
+        crossref_doi = request_json(
+            session,
+            f"https://api.crossref.org/works/{quote_doi_path(doi)}",
+            attempts,
+            "crossref_doi_api",
+        )
+        crossref_message = (crossref_doi or {}).get("message") or {}
+        if crossref_message.get("author"):
+            match_record["authors"] = crossref_message["author"]
+        for link in crossref_message.get("link") or []:
+            if link.get("URL"):
+                urls.append(("crossref_doi_link", link["URL"]))
+
         unpaywall = request_json(
             session,
             f"https://api.unpaywall.org/v2/{quote_doi_path(doi)}?email={quote(email)}",
@@ -335,7 +470,18 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
         )
         if openalex_search:
             for work in openalex_search.get("results") or []:
-                if title_score(title, work.get("title") or work.get("display_name") or "") >= 0.82:
+                candidate = {
+                    "record": match_record,
+                    "id": work.get("id", ""),
+                    "title": work.get("title") or work.get("display_name") or "",
+                    "year": work.get("publication_year"),
+                    "authors": [
+                        ((authorship.get("author") or {}).get("display_name") or "")
+                        for authorship in (work.get("authorships") or [])
+                    ],
+                    "doi": normalize_doi(work.get("doi")),
+                }
+                if record_title_candidate_attempt(attempts, "openalex_title_match", candidate):
                     add_openalex_locations(work, urls, "openalex_title")
                     found_doi = normalize_doi(work.get("doi"))
                     if found_doi and found_doi != doi:
@@ -350,12 +496,13 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
             "https://api.semanticscholar.org/graph/v1/paper/search",
             attempts,
             "semantic_scholar_title_search",
-            params={"query": title, "limit": 5, "fields": "title,externalIds,isOpenAccess,openAccessPdf,url"},
+            params={"query": title, "limit": 5, "fields": "title,year,authors,paperId,externalIds,isOpenAccess,openAccessPdf,url"},
             headers=headers,
         )
         if s2_search:
             for paper in s2_search.get("data") or []:
-                if title_score(title, paper.get("title") or "") >= 0.82:
+                candidate = {"record": match_record, **paper}
+                if record_title_candidate_attempt(attempts, "semantic_scholar_title_match", candidate):
                     pdf = paper.get("openAccessPdf") or {}
                     if pdf.get("url"):
                         urls.append(("semantic_scholar_title_openAccessPdf", pdf["url"]))
@@ -377,7 +524,17 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
         if crossref:
             for item in ((crossref.get("message") or {}).get("items") or []):
                 cr_title = " ".join(item.get("title") or [])
-                if title_score(title, cr_title) >= 0.82:
+                candidate = {
+                    "record": match_record,
+                    "title": cr_title,
+                    "doi": normalize_doi(item.get("DOI")),
+                    "year": next(
+                        (parts[0][0] for key in ("published-print", "published-online", "issued")
+                         if (parts := (item.get(key) or {}).get("date-parts")) and parts[0]), None
+                    ),
+                    "authors": item.get("author") or [],
+                }
+                if record_title_candidate_attempt(attempts, "crossref_title_match", candidate):
                     for link in item.get("link") or []:
                         if link.get("URL"):
                             urls.append(("crossref_title_link", link["URL"]))
@@ -394,7 +551,14 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
         )
         if epmc_title:
             for item in (epmc_title.get("resultList") or {}).get("result") or []:
-                if title_score(title, item.get("title") or "") >= 0.82:
+                candidate = {
+                    "record": match_record,
+                    "title": item.get("title") or "",
+                    "year": item.get("pubYear") or item.get("firstPublicationDate", ""),
+                    "authors": item.get("authorString") or "",
+                    "id": item.get("id") or "",
+                }
+                if record_title_candidate_attempt(attempts, "europepmc_title_match", candidate):
                     pmcid = item.get("pmcid")
                     if pmcid:
                         if not str(pmcid).upper().startswith("PMC"):
@@ -428,7 +592,16 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
                 ns = {"a": "http://www.w3.org/2005/Atom"}
                 for entry in root.findall("a:entry", ns):
                     arxiv_title = (entry.findtext("a:title", default="", namespaces=ns) or "").replace("\n", " ")
-                    if title_score(title, arxiv_title) >= 0.82:
+                    candidate = {
+                        "record": match_record,
+                        "title": arxiv_title,
+                        "year": (entry.findtext("a:published", default="", namespaces=ns) or "")[:4],
+                        "authors": [
+                            author.findtext("a:name", default="", namespaces=ns) or ""
+                            for author in entry.findall("a:author", ns)
+                        ],
+                    }
+                    if record_title_candidate_attempt(attempts, "arxiv_title_match", candidate):
                         entry_id = entry.findtext("a:id", default="", namespaces=ns) or ""
                         match = re.search(r"/abs/([^/]+)$", entry_id)
                         if match:
@@ -449,9 +622,52 @@ def source_urls(record: dict[str, Any], session: requests.Session, email: str, a
     return deduped
 
 
+def reusable_existing_result(out_dir: Path, candidate_id: str) -> dict[str, Any] | None:
+    result_path = out_dir / "download_result.json"
+    if not result_path.is_file():
+        return None
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if str(result.get("candidate_id") or "") != str(candidate_id):
+        return None
+    valid_files = []
+    for item in result.get("files") or []:
+        path = Path(str(item.get("file") or ""))
+        try:
+            payload = path.read_bytes()
+        except OSError:
+            continue
+        if len(payload) != int(item.get("bytes") or -1):
+            continue
+        if hashlib.sha256(payload).hexdigest() != item.get("sha256"):
+            continue
+        kind = payload_kind(payload, str(item.get("content_type") or ""))
+        if kind == "pdf" and len(payload) >= PDF_MIN_BYTES:
+            valid_files.append(item)
+        elif kind == "html" and looks_like_full_text_html(payload):
+            valid_files.append(item)
+        elif kind == "xml" and len(payload) >= HTML_MIN_TEXT_CHARS:
+            valid_files.append(item)
+    if not valid_files:
+        return None
+    result["files"] = valid_files
+    if any(str(row.get("filename", "")).endswith(".pdf") for row in valid_files):
+        result["status"] = "pdf_downloaded"
+    elif any(str(row.get("filename", "")).endswith(".html") for row in valid_files):
+        result["status"] = "html_full_text_downloaded"
+    else:
+        result["status"] = "xml_full_text_downloaded"
+    result["reused_existing"] = True
+    return result
+
+
 def process_record(record: dict[str, Any], out_root: Path, email: str, sleep_seconds: float) -> dict[str, Any]:
     candidate_id = record.get("candidate_id") or f"{record.get('source_run','run')}__{record.get('record_id')}"
     out_dir = out_root / f"{slugify(candidate_id, 40)}__{slugify(record.get('title', ''), 70)}"
+    if existing := reusable_existing_result(out_dir, str(candidate_id)):
+        return existing
     attempts: list[dict[str, Any]] = []
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT.format(email=email)})
@@ -476,8 +692,14 @@ def process_record(record: dict[str, Any], out_root: Path, email: str, sleep_sec
     status = "no_full_text_found"
     if any(f["filename"].endswith(".pdf") for f in files):
         status = "pdf_downloaded"
-    elif files:
-        status = "non_pdf_full_text_downloaded"
+    elif any(f["filename"].endswith(".html") for f in files):
+        status = "html_full_text_downloaded"
+    elif any(f["filename"].endswith(".xml") for f in files):
+        status = "xml_full_text_downloaded"
+    elif technical_attempt_failures(attempts):
+        status = "retrieval_incomplete"
+    elif access_restriction_attempts(attempts):
+        status = "access_restricted"
 
     result = {
         "candidate_id": candidate_id,
@@ -490,6 +712,8 @@ def process_record(record: dict[str, Any], out_root: Path, email: str, sleep_sec
         "folder": str(out_dir),
         "files": files,
         "attempt_count": len(attempts),
+        "technical_failure_count": len(technical_attempt_failures(attempts)),
+        "access_restriction_count": len(access_restriction_attempts(attempts)),
     }
     (out_dir / "download_attempts.jsonl").write_text(
         "".join(json.dumps(a, ensure_ascii=False) + "\n" for a in attempts),
@@ -553,7 +777,10 @@ def main() -> int:
         "limit": args.limit,
         "processed": len(results),
         "pdf_downloaded": sum(1 for r in results if r["status"] == "pdf_downloaded"),
-        "non_pdf_full_text_downloaded": sum(1 for r in results if r["status"] == "non_pdf_full_text_downloaded"),
+        "html_full_text_downloaded": sum(1 for r in results if r["status"] == "html_full_text_downloaded"),
+        "xml_full_text_downloaded": sum(1 for r in results if r["status"] == "xml_full_text_downloaded"),
+        "retrieval_incomplete": sum(1 for r in results if r["status"] == "retrieval_incomplete"),
+        "access_restricted": sum(1 for r in results if r["status"] == "access_restricted"),
         "no_full_text_found": sum(1 for r in results if r["status"] == "no_full_text_found"),
         "skipped_existing": sum(1 for r in results if r["status"] == "skipped_existing"),
         "results": results,
@@ -564,7 +791,10 @@ def main() -> int:
         writer.writeheader()
         for row in results:
             writer.writerow({k: row.get(k, "") for k in writer.fieldnames})
-    print(json.dumps({k: summary[k] for k in ("processed", "pdf_downloaded", "non_pdf_full_text_downloaded", "no_full_text_found")}, ensure_ascii=False))
+    print(json.dumps({k: summary[k] for k in (
+        "processed", "pdf_downloaded", "html_full_text_downloaded", "xml_full_text_downloaded",
+        "retrieval_incomplete", "access_restricted", "no_full_text_found",
+    )}, ensure_ascii=False))
     return 0
 
 

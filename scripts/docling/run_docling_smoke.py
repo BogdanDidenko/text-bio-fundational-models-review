@@ -70,6 +70,13 @@ def slug(text: str, limit: int = 96) -> str:
     return value[:limit] or "document"
 
 
+def artifact_stem(candidate_id: str) -> str:
+    """Keep profile paths readable without making distinct IDs collide after slugging."""
+    readable = slug(candidate_id, 80)
+    digest = hashlib.sha256(candidate_id.encode("utf-8")).hexdigest()[:12]
+    return f"{readable}_{digest}"
+
+
 def pick_pdfs(source: Path, limit: int) -> list[Path]:
     pdfs = sorted(
         [p for p in source.rglob("*.pdf") if p.is_file() and p.stat().st_size > 100_000],
@@ -250,6 +257,13 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=8)
     parser.add_argument("--pdf", action="append", type=Path, default=[])
     parser.add_argument(
+        "--document",
+        action="append",
+        type=Path,
+        default=[],
+        help="PDF or HTML full-text document; preferred over the legacy --pdf option.",
+    )
+    parser.add_argument(
         "--pdf-id",
         action="append",
         default=[],
@@ -257,6 +271,17 @@ def main() -> int:
             "Explicit candidate id for each --pdf, in the same order. "
             "Falls back to deriving ids from paths when omitted."
         ),
+    )
+    parser.add_argument(
+        "--document-id",
+        action="append",
+        default=[],
+        help="Explicit candidate id for each --document.",
+    )
+    parser.add_argument(
+        "--manifest-name",
+        default="docling_smoke_manifest.json",
+        help="Filename written below manifests/; useful for parallel workers.",
     )
     parser.add_argument(
         "--picture-description-backend",
@@ -294,21 +319,38 @@ def main() -> int:
     for name in ["documents", "markdown", "chunks", "figures", "manifests", "logs"]:
         (out / name).mkdir(parents=True, exist_ok=True)
 
-    pdfs = args.pdf or pick_pdfs(args.source, args.limit)
-    if args.pdf_id and len(args.pdf_id) != len(pdfs):
-        raise ValueError("--pdf-id count must match --pdf count")
+    documents = args.document or args.pdf or pick_pdfs(args.source, args.limit)
+    document_ids = args.document_id or args.pdf_id
+    if document_ids and len(document_ids) != len(documents):
+        raise ValueError("document id count must match document count")
+    candidate_ids = [
+        str(document_ids[index]) if document_ids else candidate_id_from_path(document)
+        for index, document in enumerate(documents)
+    ]
+    if not all(candidate_ids) or len(set(candidate_ids)) != len(candidate_ids):
+        raise ValueError("Every Docling document requires a unique nonempty candidate id")
     converter = make_converter(args)
     manifest_rows: list[dict[str, Any]] = []
 
-    for index, pdf in enumerate(pdfs):
-        pdf = pdf.resolve()
-        candidate_id = args.pdf_id[index] if args.pdf_id else candidate_id_from_path(pdf)
+    for index, document in enumerate(documents):
+        document = document.resolve()
+        candidate_id = candidate_ids[index]
+        stem = artifact_stem(candidate_id)
         started = time.time()
         row: dict[str, Any] = {
             "candidate_id": candidate_id,
-            "source_pdf": str(pdf.relative_to(REPO) if pdf.is_relative_to(REPO) else pdf),
-            "pdf_bytes": pdf.stat().st_size,
-            "pdf_sha256": sha256_path(pdf),
+            "artifact_stem": stem,
+            "source_document": str(
+                document.relative_to(REPO) if document.is_relative_to(REPO) else document
+            ),
+            "source_document_kind": document.suffix.lower().lstrip("."),
+            "source_document_bytes": document.stat().st_size,
+            "source_document_sha256": sha256_path(document),
+            "source_pdf": str(
+                document.relative_to(REPO) if document.is_relative_to(REPO) else document
+            ) if document.suffix.lower() == ".pdf" else "",
+            "pdf_bytes": document.stat().st_size if document.suffix.lower() == ".pdf" else 0,
+            "pdf_sha256": sha256_path(document) if document.suffix.lower() == ".pdf" else "",
             "picture_description_backend": args.picture_description_backend,
             "picture_description_model": (
                 args.openai_model
@@ -318,9 +360,8 @@ def main() -> int:
             "status": "started",
         }
         try:
-            result = converter.convert(pdf)
+            result = converter.convert(document)
             doc = result.document
-            stem = slug(candidate_id)
             doc_json = out / "documents" / f"{stem}.docling.json"
             markdown = out / "markdown" / f"{stem}.md"
             chunks = out / "chunks" / f"{stem}.jsonl"
@@ -330,7 +371,8 @@ def main() -> int:
             markdown.write_text(doc.export_to_markdown(), encoding="utf-8")
             chunk_count = 0 if args.skip_chunks else write_chunks(doc, candidate_id, chunks)
             figures = extract_figures(doc, candidate_id, figures_dir)
-            (figures_dir / "figures_manifest.json").write_text(
+            figures_manifest = figures_dir / "figures_manifest.json"
+            figures_manifest.write_text(
                 json.dumps(figures, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
@@ -339,15 +381,18 @@ def main() -> int:
                 {
                     "status": "ok",
                     "docling_json": str(doc_json.relative_to(REPO)),
+                    "docling_json_sha256": sha256_path(doc_json),
                     "markdown": str(markdown.relative_to(REPO)),
+                    "markdown_sha256": sha256_path(markdown),
                     "chunks": (
                         None if args.skip_chunks else str(chunks.relative_to(REPO))
                     ),
                     "chunk_count": chunk_count,
                     "figure_count": len(figures),
                     "figures_manifest": str(
-                        (figures_dir / "figures_manifest.json").relative_to(REPO)
+                        figures_manifest.relative_to(REPO)
                     ),
+                    "figures_manifest_sha256": sha256_path(figures_manifest),
                 }
             )
         except Exception as exc:
@@ -364,7 +409,7 @@ def main() -> int:
         "count": len(manifest_rows),
         "results": manifest_rows,
     }
-    manifest_path = out / "manifests" / "docling_smoke_manifest.json"
+    manifest_path = out / "manifests" / args.manifest_name
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     print(f"manifest={manifest_path}")
     return 0 if all(r["status"] == "ok" for r in manifest_rows) else 1

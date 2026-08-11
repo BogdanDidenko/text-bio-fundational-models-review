@@ -23,17 +23,18 @@ multimodal OR "multi-modal" OR "multi-omic" OR multiomics OR integrative OR "cro
 - **Access**: Open Access only
 - **Document types**: Articles + Conference papers + Preprints
 
-## Databases (7 total)
+## Databases (8 total)
 
 | # | Database | Interface | Query File |
 |---|----------|-----------|------------|
 | 1 | PubMed | NCBI Entrez API | `queries/pubmed.txt` |
 | 2 | Scopus | Elsevier API | `queries/scopus.txt` |
-| 3 | SpringerNature | Meta API v2 + OA API | `queries/springernature.txt` |
-| 4 | arXiv | paper-search-mcp | `queries/arxiv.txt` |
-| 5 | bioRxiv / medRxiv | paper-search-mcp | `queries/biorxiv_medrxiv.txt` |
-| 6 | Google Scholar | paper-search-mcp | `queries/google_scholar.txt` |
-| 7 | Semantic Scholar | S2 Graph API | `queries/semantic_scholar.txt` |
+| 3 | OpenAlex | Works Search API | `queries/openalex.txt` |
+| 4 | SpringerNature | Meta API v2 + OA API | `queries/springernature.txt` |
+| 5 | arXiv | paper-search-mcp | `queries/arxiv.txt` |
+| 6 | bioRxiv / medRxiv | paper-search-mcp | `queries/biorxiv_medrxiv.txt` |
+| 7 | Google Scholar | provider-mediated export | `queries/google_scholar.txt` |
+| 8 | Semantic Scholar | S2 Graph API | `queries/semantic_scholar.txt` |
 
 ## Changes from Initial Draft (v2, 2026-02-03)
 - Added "spatial transcriptomics" to Block A

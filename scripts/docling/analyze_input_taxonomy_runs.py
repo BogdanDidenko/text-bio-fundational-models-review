@@ -90,7 +90,10 @@ def load_fixed_run(root: Path) -> dict[str, dict[str, Any]]:
     for path in sorted(root.glob("**/fixed_candidate_classification.json")):
         payload = read_json(path)
         if payload.get("status") == "ok":
-            found[payload["record_id"]] = payload
+            record_id = payload["record_id"]
+            if record_id in found:
+                raise RuntimeError(f"Duplicate successful fixed classification for {record_id}: {root}")
+            found[record_id] = payload
     return found
 
 
@@ -99,27 +102,24 @@ def load_dense_run(root: Path) -> dict[str, dict[str, Any]]:
     for path in sorted(root.glob("**/taxonomy_extraction_summary.json")):
         payload = read_json(path)
         if payload.get("stage") == "coded" and payload.get("status") == "ok":
-            found[payload["record_id"]] = payload
+            record_id = payload["record_id"]
+            if record_id in found:
+                raise RuntimeError(f"Duplicate successful dense classification for {record_id}: {root}")
+            found[record_id] = payload
     return found
 
 
 def load_adjudication(root: Path) -> dict[str, dict[str, Any]]:
-    grouped: dict[str, list[tuple[Path, dict[str, Any]]]] = defaultdict(list)
+    found = {}
     for path in sorted(root.glob("**/adjudicated_routes.json")):
         payload = read_json(path)
         if payload.get("status") == "ok":
-            grouped[payload["record_id"]].append((path, payload))
-    found = {}
-    for record_id, candidates in grouped.items():
-        candidates.sort(key=lambda item: (item[0].stat().st_mtime_ns, str(item[0])))
-        path, payload = candidates[-1]
-        payload["_selected_artifact_path"] = str(path.resolve().relative_to(ROOT))
-        payload["_selected_artifact_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
-        payload["_alternative_success_artifacts"] = [
-            str(other_path.resolve().relative_to(ROOT))
-            for other_path, _ in candidates[:-1]
-        ]
-        found[record_id] = payload
+            record_id = payload["record_id"]
+            if record_id in found:
+                raise RuntimeError(f"Duplicate successful adjudication for {record_id}: {root}")
+            payload["_selected_artifact_path"] = str(path.resolve().relative_to(ROOT))
+            payload["_selected_artifact_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            found[record_id] = payload
     return found
 
 
@@ -345,18 +345,27 @@ def main() -> int:
     parser.add_argument("--adjudication", type=Path, required=True)
     parser.add_argument("--registry", type=Path, default=DEFAULT_OUTPUT / "study_model_registry.csv")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--expected-records", type=int, default=52)
+    parser.add_argument("--cohort-label", default="52-paper baseline corpus")
+    parser.add_argument("--incremental", action="store_true")
+    parser.add_argument(
+        "--allow-alpha-na",
+        action="store_true",
+        help="Treat alpha as not applicable when a small cohort has no estimable disagreement.",
+    )
     args = parser.parse_args()
     if len(args.direct_run) != 3:
         raise RuntimeError("Expected exactly three --direct-run roots")
     direct_runs = [load_fixed_run(path) for path in args.direct_run]
     dense = load_dense_run(args.dense_run)
     adjudication = load_adjudication(args.adjudication)
+    expected = args.expected_records
     for path, run in zip(args.direct_run, direct_runs):
-        if len(run) != 52:
-            raise RuntimeError(f"Expected 52 records in {path}, found {len(run)}")
-    if len(dense) != 52 or len(adjudication) != 52:
+        if len(run) != expected:
+            raise RuntimeError(f"Expected {expected} records in {path}, found {len(run)}")
+    if len(dense) != expected or len(adjudication) != expected:
         raise RuntimeError(
-            f"Expected 52 dense/adjudicated records, found {len(dense)}/{len(adjudication)}"
+            f"Expected {expected} dense/adjudicated records, found {len(dense)}/{len(adjudication)}"
         )
     with args.registry.open(newline="", encoding="utf-8") as stream:
         registry_rows = list(csv.DictReader(stream))
@@ -367,9 +376,6 @@ def main() -> int:
             "record_id": record_id,
             "selected_artifact": summary["_selected_artifact_path"],
             "selected_artifact_sha256": summary["_selected_artifact_sha256"],
-            "alternative_success_artifacts": json.dumps(
-                summary["_alternative_success_artifacts"], ensure_ascii=False
-            ),
         }
         for record_id, summary in sorted(adjudication.items())
     ]
@@ -461,10 +467,11 @@ def main() -> int:
     metrics["expected_dense_candidate_count"] = expected_dense_count
     metrics["dense_only_accepted_candidate_count"] = len(dense_only)
     metrics["unresolved_dense_candidate_count"] = len(unresolved_dense)
+    alpha = metrics["carrier_family_krippendorff_alpha"]
     acceptance = {
-        "all_direct_runs_52_of_52": all(len(run) == 52 for run in direct_runs),
-        "dense_run_52_of_52": len(dense) == 52,
-        "adjudication_52_of_52": len(adjudication) == 52,
+        "all_direct_runs_complete": all(len(run) == expected for run in direct_runs),
+        "dense_run_complete": len(dense) == expected,
+        "adjudication_complete": len(adjudication) == expected,
         "all_adjudicated_routes_grounded": bool(accepted)
         and all(row["final_grounding_valid"] for row in accepted),
         "all_adjudicated_routes_taxonomy_consistent": all(
@@ -484,15 +491,18 @@ def main() -> int:
             metrics["carrier_family_exact_agreement"] is not None
             and metrics["carrier_family_exact_agreement"] >= 0.90
         ),
-        "krippendorff_alpha_ge_0_80": (
-            metrics["carrier_family_krippendorff_alpha"] is not None
-            and metrics["carrier_family_krippendorff_alpha"] >= 0.80
+        "krippendorff_alpha_ge_0_80_or_not_applicable": (
+            (alpha is not None and alpha >= 0.80)
+            or (alpha is None and args.allow_alpha_na)
         ),
         "every_dense_candidate_accounted": (
             len(dense_dispositions) == expected_dense_count and not unresolved_dense
         ),
     }
     metrics["acceptance"] = acceptance
+    metrics["krippendorff_alpha_applicable"] = alpha is not None
+    metrics["expected_records"] = expected
+    metrics["cohort_label"] = args.cohort_label
     metrics["acceptance_passed"] = all(acceptance.values())
     canonical_rows = [
         row
@@ -500,7 +510,7 @@ def main() -> int:
         if row.get("canonical_record_for_study", "").casefold() == "true"
     ]
     metrics["final_counts"] = {
-        "screening_records": 52,
+        "screening_records": expected,
         "primary_studies": len({row["study_id"] for row in registry_rows}),
         "sensitivity_studies_omniNA_linked": len(
             {row.get("possible_version_group") or row["study_id"] for row in canonical_rows}
@@ -602,7 +612,7 @@ def main() -> int:
         "- Unit for route detection: fixed open-discovery route_ref.",
         "- Unit for carrier agreement: exact carrier-family set assigned to a",
         "  candidate accepted in both compared runs; split routes remain visible.",
-        "- Screening records: 52",
+        f"- Screening records: {expected}",
         f"- Accepted final input routes: {len(accepted)}",
         f"- Minimum pairwise route-detection Jaccard: {metrics['minimum_pairwise_jaccard']:.3f}",
         f"- Carrier-family exact agreement: {metrics['carrier_family_exact_agreement']}",
@@ -627,19 +637,51 @@ def main() -> int:
         "\n".join(report) + "\n", encoding="utf-8"
     )
 
+    inventory_candidate_count = sum(
+        int(summary.get("candidate_count") or 0)
+        for summary in direct_runs[0].values()
+    )
+    if args.incremental:
+        corpus_description = [
+            f"This incremental post-eligibility cohort comprised {expected} newly accepted",
+            "screening records represented by complete VLM-enriched Docling profiles.",
+            "The carrier-family hierarchy and leaf definitions were held fixed at taxonomy v1;",
+            "the update did not re-synthesize or silently revise the baseline taxonomy.",
+            "Exact source-document duplicates inherited the prior study identifier and remained",
+            "explicit in the registry.",
+            "",
+            "Open route discovery used Docling Graph direct extraction over each complete new",
+            "document, including body text, tables, captions, appendices, and native VLM picture",
+            f"descriptions. Its {inventory_candidate_count} candidates formed the fixed inventory",
+            "for this update.",
+        ]
+    else:
+        corpus_description = [
+            "The post-eligibility corpus comprised 52 accepted screening records represented",
+            "by complete VLM-enriched Docling profiles. One exact Cell2Text PDF duplicate was",
+            "retained at the record level but collapsed for study-level reporting. OmniNA",
+            "versions were separate in the primary analysis and linked in sensitivity analysis.",
+            "",
+            "Open route discovery used Docling Graph direct extraction over each complete",
+            "canonical document, including body text, tables, captions, appendices, and VLM",
+            "picture descriptions. The open extractor was not shown the eventual taxonomy.",
+            "Its 583 grounded candidate routes formed a fixed inventory. Three independent",
+            "taxonomy syntheses were reconciled into taxonomy v1 before classification.",
+        ]
+    family_agreement_text = (
+        f"{metrics['carrier_family_exact_agreement']:.3f}"
+        if metrics["carrier_family_exact_agreement"] is not None
+        else "not estimable"
+    )
+    alpha_text = (
+        f"{metrics['carrier_family_krippendorff_alpha']:.3f}"
+        if metrics["carrier_family_krippendorff_alpha"] is not None
+        else "not estimable in this cohort"
+    )
     methods = [
         "# Manuscript-Ready Methods: Post-Eligibility Input-Representation Taxonomy",
         "",
-        "The post-eligibility corpus comprised 52 accepted screening records represented",
-        "by complete VLM-enriched Docling profiles. One exact Cell2Text PDF duplicate was",
-        "retained at the record level but collapsed for study-level reporting. OmniNA",
-        "versions were separate in the primary analysis and linked in sensitivity analysis.",
-        "",
-        "Open route discovery used Docling Graph direct extraction over each complete",
-        "canonical document, including body text, tables, captions, appendices, and VLM",
-        "picture descriptions. The open extractor was not shown the eventual taxonomy.",
-        "Its 583 grounded candidate routes formed a fixed inventory. Three independent",
-        "taxonomy syntheses were reconciled into taxonomy v1 before classification.",
+        *corpus_description,
         "",
         "Each of three repeated classifications received the same fixed per-paper candidate",
         "inventory and complete canonical Markdown. Separate routes represented source",
@@ -672,8 +714,8 @@ def main() -> int:
         f"{len({row['model_id'] for row in accepted})} models and",
         f"{len({row['configuration_id'] for row in accepted})} configurations.",
         f"The minimum pairwise route-detection Jaccard was {metrics['minimum_pairwise_jaccard']:.3f};",
-        f"carrier-family exact agreement was {metrics['carrier_family_exact_agreement']:.3f},",
-        f"and nominal Krippendorff alpha was {metrics['carrier_family_krippendorff_alpha']:.3f}.",
+        f"carrier-family exact agreement was {family_agreement_text},",
+        f"and nominal Krippendorff alpha was {alpha_text}.",
         f"All {len(dense_dispositions)} dense candidates were dispositioned, with",
         f"{len(dense_only)} accepted as dense-only evidence and no unresolved dense candidates.",
         f"{len(output_derived_text_inputs)} output-derived textual objects were retained only where the paper explicitly",

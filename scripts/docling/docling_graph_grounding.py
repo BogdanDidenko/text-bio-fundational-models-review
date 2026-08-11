@@ -97,7 +97,7 @@ def clean_section_text(text: str) -> str:
     return text.strip()
 
 
-def parse_markdown_sections_for_derivation(path: Path) -> list[Section]:
+def parse_markdown_sections_for_derivation(path: Path) -> list[tuple[Section, list[str]]]:
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     headings: list[tuple[int, int, str]] = []
     for idx, line in enumerate(lines):
@@ -110,8 +110,12 @@ def parse_markdown_sections_for_derivation(path: Path) -> list[Section]:
         heading = stripped[hashes:].strip()
         if heading:
             headings.append((idx, hashes, heading))
-    sections: list[Section] = []
+    sections: list[tuple[Section, list[str]]] = []
+    trail: list[tuple[int, str]] = []
     for pos, (start, level, heading) in enumerate(headings):
+        while trail and trail[-1][0] >= level:
+            trail.pop()
+        trail.append((level, heading))
         end = len(lines)
         for next_start, next_level, _ in headings[pos + 1 :]:
             if next_level <= level:
@@ -120,7 +124,10 @@ def parse_markdown_sections_for_derivation(path: Path) -> list[Section]:
         body = clean_section_text("\n".join(lines[start + 1 : end]))
         if body:
             sections.append(
-                Section(level=level, heading=heading, body=body, start_line=start + 1, end_line=end)
+                (
+                    Section(level=level, heading=heading, body=body, start_line=start + 1, end_line=end),
+                    [item_heading for _, item_heading in trail],
+                )
             )
     return sections
 
@@ -171,37 +178,48 @@ def derive_full_section(
 
     sections = parse_markdown_sections_for_derivation(markdown)
     excerpt = chunk_body_excerpt(chunk_text, heading_candidates)
-    best: tuple[int, Section, str] | None = None
-    for depth_from_end, heading in enumerate(reversed(heading_candidates)):
-        target_key = heading_key(heading)
-        if not target_key:
-            continue
-        for section in sections:
-            if heading_key(section.heading) != target_key:
-                continue
-            score = 1000 - depth_from_end * 100
-            matched_by = "heading_path"
-            if evidence_quote and section_contains_text(section, evidence_quote):
-                score += 50
-                matched_by = "heading_path+evidence_quote"
-            elif section_contains_text(section, excerpt):
-                score += 25
-                matched_by = "heading_path+chunk_excerpt"
-            candidate = (score, section, matched_by)
-            if best is None or candidate[0] > best[0]:
-                best = candidate
-        if best is not None:
-            break
-
-    if best is None:
+    target_trail = [heading_key(heading) for heading in heading_candidates]
+    if not all(target_trail):
         return {
-            "status": "heading_not_found",
+            "status": "invalid_heading_path",
             "derivation_source": "docling_markdown_heading_boundary_from_docling_graph_heading_path",
             "source_markdown": rel(markdown),
             "heading_path": heading_candidates,
         }
+    candidates: list[tuple[int, Section, str]] = []
+    for section, section_trail in sections:
+        if [heading_key(heading) for heading in section_trail] != target_trail:
+            continue
+        score = 0
+        matched_by = "exact_heading_path"
+        if evidence_quote and section_contains_text(section, evidence_quote):
+            score += 2
+            matched_by = "exact_heading_path+evidence_quote"
+        elif section_contains_text(section, excerpt):
+            score += 1
+            matched_by = "exact_heading_path+chunk_excerpt"
+        candidates.append((score, section, matched_by))
 
-    _, section, matched_by = best
+    if not candidates:
+        return {
+            "status": "heading_path_not_found",
+            "derivation_source": "docling_markdown_heading_boundary_from_docling_graph_heading_path",
+            "source_markdown": rel(markdown),
+            "heading_path": heading_candidates,
+        }
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    if len(candidates) > 1 and candidates[0][0] == candidates[1][0]:
+        return {
+            "status": "ambiguous_heading_path",
+            "derivation_source": "docling_markdown_heading_boundary_from_docling_graph_heading_path",
+            "source_markdown": rel(markdown),
+            "heading_path": heading_candidates,
+            "matching_sections": [
+                {"line_start": section.start_line, "line_end": section.end_line}
+                for _, section, _ in candidates
+            ],
+        }
+    _, section, matched_by = candidates[0]
     return {
         "status": "ok",
         "derivation_source": "docling_markdown_heading_boundary_from_docling_graph_heading_path",

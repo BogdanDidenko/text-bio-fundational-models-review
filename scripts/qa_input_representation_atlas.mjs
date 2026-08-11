@@ -1,10 +1,12 @@
 import fs from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const baseUrl = process.argv[2] || "http://127.0.0.1:8765/";
+const reportPath = process.argv[3] || "data/input_representation_atlas_crop_crossvalidation_2026-07-12/browser_qa.json";
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.PLAYWRIGHT_CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -72,15 +74,18 @@ async function inspect(viewport, screenshot, mobile = false) {
       overlaps,
       groupFailures,
       modelIncomingFailures,
+      expectedMembershipGroups: atlas.graph.counts.membership_groups,
+      expectedModels: atlas.meta.model_count,
+      expectedCropNodes: atlas.meta.models_with_cropped_figure * 2,
     };
   });
-  if (initial.rootNodes !== 1 || initial.membershipGroupNodes !== 48 || initial.modelNodes !== 111 || initial.uniqueNodeIds !== initial.graphNodes) {
+  if (initial.rootNodes !== 1 || initial.membershipGroupNodes !== initial.expectedMembershipGroups || initial.modelNodes !== initial.expectedModels || initial.uniqueNodeIds !== initial.graphNodes) {
     throw new Error(`Unexpected graph node counts: ${JSON.stringify(initial)}`);
   }
   if (initial.familyNodes !== 5 || initial.subtypeNodes < 15 || initial.subtypeNodes > 30) throw new Error(`Canonical families or mirrored subtype ports are incomplete: ${JSON.stringify(initial)}`);
   if (initial.leftGroups < 1 || initial.rightGroups < 1) throw new Error(`Membership groups were not split across both sides: ${JSON.stringify(initial)}`);
   if (initial.overlaps !== 0 || initial.groupFailures.length || initial.modelIncomingFailures) throw new Error(`Grouped graph topology failed: ${JSON.stringify(initial)}`);
-  if (initial.cropNodes !== 158) throw new Error(`Expected 158 crop viewports for 79 validated figures across graph and index, found ${initial.cropNodes}`);
+  if (initial.cropNodes !== initial.expectedCropNodes) throw new Error(`Expected ${initial.expectedCropNodes} crop viewports across graph and index, found ${initial.cropNodes}`);
   if (initial.pageOverflow > 1) throw new Error(`Page has ${initial.pageOverflow}px horizontal overflow`);
   if (initial.graphBox.width < 300 || initial.graphBox.height < 450) throw new Error("Graph viewport is undersized");
 
@@ -183,7 +188,7 @@ async function inspect(viewport, screenshot, mobile = false) {
     models: document.querySelectorAll("foreignObject.graph-node-model").length,
     edges: document.querySelectorAll("path.graph-edge").length,
   }));
-  if (focused.families !== 1 || focused.subtypes < 1 || focused.groups < 1 || focused.models < 1 || focused.models >= 111) {
+  if (focused.families !== 1 || focused.subtypes < 1 || focused.groups < 1 || focused.models < 1 || focused.models >= initial.expectedModels) {
     throw new Error(`Family focus failed: ${JSON.stringify(focused)}`);
   }
   await page.selectOption("#subtype-filter", "connector_mediated_embedding");
@@ -224,7 +229,7 @@ async function inspect(viewport, screenshot, mobile = false) {
   if (await page.locator("#graph-inspector .evidence-absence").count() !== 1) throw new Error("No-suitable-figure state is not explicit");
 
   await page.locator('.view-tab[data-view="architectures"]').click();
-  if (await page.locator("#architecture-grid .architecture-card").count() !== 111) throw new Error("Model index does not contain 111 cards");
+  if (await page.locator("#architecture-grid .architecture-card").count() !== initial.expectedModels) throw new Error(`Model index does not contain ${initial.expectedModels} cards`);
   await page.locator('.view-tab[data-view="evidence"]').click();
   if (await page.locator("#evidence-rows tr").count() !== 50) throw new Error("Evidence pagination does not expose the first 50 routes");
   await page.locator('.view-tab[data-view="graph"]').click();
@@ -242,8 +247,6 @@ await browser.close();
 
 const result = { status: "ok", desktop, mobile };
 fs.writeFileSync("/tmp/atlas-graph-qa.json", JSON.stringify(result, null, 2));
-fs.writeFileSync(
-  "data/input_representation_atlas_crop_crossvalidation_2026-07-12/browser_qa.json",
-  `${JSON.stringify(result, null, 2)}\n`,
-);
+fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+fs.writeFileSync(reportPath, `${JSON.stringify(result, null, 2)}\n`);
 console.log(JSON.stringify(result));

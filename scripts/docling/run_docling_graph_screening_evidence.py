@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import random
 import sys
@@ -44,6 +45,14 @@ def rel(path: Path | str | None) -> str:
         return str(value.relative_to(REPO))
     except ValueError:
         return str(value)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def read_manifest(path: Path, corpus: str) -> list[dict[str, str]]:
@@ -100,8 +109,11 @@ def load_records(
 
 
 def safe_name(row: dict[str, str]) -> str:
-    candidate = row.get("candidate_id") or row.get("record_id") or "record"
-    return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in candidate)[:160]
+    candidate = str(row.get("candidate_id") or row.get("record_id") or "")
+    if not candidate:
+        raise ValueError("Graph record has no candidate_id or record_id")
+    readable = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in candidate)[:120]
+    return f"{readable}_{hashlib.sha256(candidate.encode('utf-8')).hexdigest()[:12]}"
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -142,6 +154,9 @@ def graph_summary(context: Any) -> dict[str, Any]:
 
 def run_one(row: dict[str, str], args: argparse.Namespace, client: LiteLLMEndpointClient) -> dict[str, Any]:
     source = REPO / row["docling_json"]
+    markdown_path = Path(row["markdown"])
+    if not markdown_path.is_absolute():
+        markdown_path = REPO / markdown_path
     record_out = args.output_dir / safe_name(row)
     started = time.time()
     generation: dict[str, Any] = {"temperature": args.temperature}
@@ -193,7 +208,9 @@ def run_one(row: dict[str, str], args: argparse.Namespace, client: LiteLLMEndpoi
         "title": row.get("title"),
         "doi": row.get("doi"),
         "source_docling_json": rel(source),
+        "source_docling_sha256": sha256_file(source),
         "source_markdown": rel(row.get("markdown")),
+        "source_markdown_sha256": sha256_file(markdown_path),
         "source_markdown_chars": source_markdown_chars(row),
         "output_dir": rel(record_out),
         "elapsed_seconds": elapsed,
@@ -280,6 +297,9 @@ def main() -> int:
         args.shard_index,
         args.shard_count,
     )
+    candidate_ids = [str(row.get("candidate_id") or row.get("record_id") or "") for row in rows]
+    if not all(candidate_ids) or len(set(candidate_ids)) != len(candidate_ids):
+        raise RuntimeError("Selected Graph records must have unique nonempty candidate_id values")
     write_json(
         args.output_dir / "selected_records.json",
         [

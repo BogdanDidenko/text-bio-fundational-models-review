@@ -3,7 +3,7 @@
 This script reproduces the literature search for:
 **"Generative Foundation Models Bridging Text and Biological Data: A Scoping Review"**
 
-It queries 7 academic databases and produces structured JSON exports for each.
+It queries 8 academic databases and produces structured JSON exports for each.
 
 ## Setup
 
@@ -23,12 +23,15 @@ cp api_keys.template.json api_keys.json
 |---|---|---|
 | `ncbi` | https://www.ncbi.nlm.nih.gov/account/settings/ | PubMed |
 | `scopus` | https://dev.elsevier.com/ | Scopus |
+| `openalex` or `OPENALEX_API_KEY` | https://openalex.org/settings/api | OpenAlex |
 | `semantic_scholar` | https://www.semanticscholar.org/product/api#api-key | Semantic Scholar |
 | `springernature_Meta_API` | https://dev.springernature.com/ | SpringerNature (Meta) |
 | `springernature_Open_Access_API` | https://dev.springernature.com/ | SpringerNature (OA) |
+| `serpapi` | https://serpapi.com/google-scholar-api | Provider-mediated Google Scholar capture |
 
 Notes:
-- arXiv, EuropePMC (bioRxiv/medRxiv), and Google Scholar do not require API keys.
+- arXiv and EuropePMC (bioRxiv/medRxiv) do not require API keys. Canonical
+  Google Scholar capture uses the external SerpAPI provider.
 - SpringerNature keys are NOT interchangeable between Meta and OA endpoints.
 
 ## Usage
@@ -48,17 +51,27 @@ Custom output directory:
 python reproduce_search.py --keys api_keys.json --output-dir my_results/
 ```
 
-Use cached Google Scholar results (recommended — see note below):
+Use a provider-mediated, signature-matched Google Scholar capture for an
+incremental canonical run:
 ```bash
 python reproduce_search.py --keys api_keys.json \
-  --gs-fallback data/exports/google_scholar_2026-02-06.json
+  --gs-provider-export data/living_catalog_updates/update_YYYY-MM-DD/00_search/google_scholar_provider_export.json
 ```
+
+Create the contract skeleton with
+`python3 scripts/build_google_scholar_provider_template.py --config <search_config> --provider <provider-name> --pagination-policy <policy> --output <path>`.
+For SerpAPI, use
+`python3 scripts/capture_google_scholar_serpapi.py --config <search_config> --api-keys api_keys.json --output <path>`.
+The legacy `--gs-fallback` option is diagnostic only and is not accepted by the
+incremental configuration.
 
 ## Output
 
 Results are saved to `output/` (default):
 - `pubmed_YYYY-MM-DD.json` — PubMed records
 - `scopus_YYYY-MM-DD.json` — Scopus records
+- `openalex_YYYY-MM-DD.json` — normalized OpenAlex records
+- `openalex_raw_YYYY-MM-DD.json` — native OpenAlex Works records and query membership
 - `semantic_scholar_YYYY-MM-DD.json` — Semantic Scholar records
 - `arxiv_YYYY-MM-DD.json` — arXiv records
 - `biorxiv_medrxiv_YYYY-MM-DD.json` — bioRxiv/medRxiv records
@@ -83,10 +96,44 @@ python3 scripts/reproduce_search.py \
 
 The latest completed update search covers **2026-06-11 to 2026-07-06**.
 
+## Living search-to-atlas updates
+
+The earlier top-up scripts are now connected to the complete post-search review
+workflow by `run_living_review_pipeline.py`. The runner resumes by stage, logs
+commands and hashes, stops at explicit manual gates, classifies newly eligible
+papers with the frozen taxonomy, validates source-figure crops, and stages a
+rebuilt visual atlas before publication.
+
+```bash
+# Show the next interval and all stages without executing them.
+python3 scripts/run_living_review_pipeline.py plan --date-to 2026-08-09
+
+# Verify local binaries, API-key names, environments, and baseline artifacts.
+python3 scripts/run_living_review_pipeline.py preflight --date-to 2026-08-09
+
+# Run or resume the full update; start the local Codex API wrapper as needed.
+python3 scripts/run_living_review_pipeline.py run \
+  --date-to 2026-08-09 \
+  --manage-server
+
+# Publish only after the complete staged run and browser QA succeed.
+python3 scripts/run_living_review_pipeline.py publish \
+  --run-id update_2026-08-09
+```
+
+The living configuration is `config/living_review_pipeline.json`. Immutable run
+artifacts are written under `data/living_catalog_updates/`; the published pointer
+is `data/living_catalog/current.json`. Published state keeps an append-only
+`prisma_update_history` with the date range and fact-table path for every update. See
+[`protocol/living_review_update_pipeline_2026-08-09.md`](../protocol/living_review_update_pipeline_2026-08-09.md)
+for the complete evidence and manual-resolution contract. The historical
+crosswalk is in
+[`analysis/living_review_pipeline_audit_2026-08-09.md`](../analysis/living_review_pipeline_audit_2026-08-09.md).
+
 ## Notes
 
 - **SpringerNature** searches full-text body (title/abstract restriction is premium-only). A mandatory post-retrieval validation step filters records to those matching all 3 concept blocks in the title or abstract. Expect ~98% noise removal.
-- **Google Scholar** has no official API. This script uses the `scholarly` Python library, which scrapes Google Scholar and is aggressively rate-limited (typically after ~4 queries). Use `--gs-fallback` to provide the original search results file. When the live search returns fewer results than the fallback, the cached results are used automatically. The original results from the review search are included at `data/exports/google_scholar_2026-02-06.json`.
+- **Google Scholar** has no official bulk API. Incremental canonical runs require a provider-mediated capture with all configured query pages, raw-response hashes, and a signed query bundle; see `protocol/google_scholar_provider_export_schema.md`. The legacy `scholarly` mode remains diagnostic only. An arbitrary older JSON list is never substituted into a new interval.
 - **Semantic Scholar** uses the `/paper/search/bulk` endpoint (not `/paper/search`, which does not support Boolean queries).
 - **bioRxiv/medRxiv** are searched via EuropePMC API (the native bioRxiv API does not support content search).
 

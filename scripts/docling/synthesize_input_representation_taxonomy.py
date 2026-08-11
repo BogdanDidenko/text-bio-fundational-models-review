@@ -159,7 +159,7 @@ def invoke(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["propose", "adjudicate"], required=True)
+    parser.add_argument("--mode", choices=["inventory", "propose", "adjudicate"], required=True)
     parser.add_argument("--discovery-root", type=Path, required=True)
     parser.add_argument("--proposal", action="append", type=Path, default=[])
     parser.add_argument("--replicate-id", default="r1")
@@ -169,14 +169,29 @@ def main() -> int:
     parser.add_argument("--model", default="openai/gpt-5.4-mini")
     parser.add_argument("--timeout", type=int, default=1800)
     parser.add_argument("--retries", type=int, default=2)
+    parser.add_argument("--expected-records", type=int, default=0)
     args = parser.parse_args()
 
     summaries = discover_summaries(args.discovery_root)
-    if len(summaries) != 52:
-        raise RuntimeError(f"Expected discovery for 52 records, found {len(summaries)}")
+    expected = args.expected_records or len(summaries)
+    if len(summaries) != expected:
+        raise RuntimeError(f"Expected discovery for {expected} records, found {len(summaries)}")
     inventory = route_inventory(summaries)
     if not inventory:
         raise RuntimeError("Discovery inventory is empty")
+    write_json(args.output_dir / "open_route_inventory.json", inventory)
+    if args.mode == "inventory":
+        write_json(
+            args.output_dir / "inventory_metadata.json",
+            {
+                "mode": "inventory",
+                "record_count": len(summaries),
+                "route_count": len(inventory),
+                "discovery_root": str(args.discovery_root),
+            },
+        )
+        print(json.dumps({"records": len(summaries), "routes": len(inventory), "output": str(args.output_dir)}))
+        return 0
     schema = strict_json_schema(TaxonomyProposal.model_json_schema())
     proposals = [read_json(path) for path in args.proposal]
     if args.mode == "adjudicate" and len(proposals) != 3:
@@ -220,7 +235,6 @@ def main() -> int:
             "proposal_paths": [str(path) for path in args.proposal],
         },
     )
-    write_json(args.output_dir / "open_route_inventory.json", inventory)
     print(json.dumps({"records": len(summaries), "routes": len(inventory), "output": str(run_dir)}))
     return 0
 

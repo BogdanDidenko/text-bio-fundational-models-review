@@ -28,6 +28,9 @@ import requests
 from datetime import datetime
 from urllib.parse import quote
 
+from metadata_match import accept_title_candidate
+from reproduce_search import _openalex_abstract
+
 RECORDS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "deduplicated_records.json")
 EXCLUDED_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "excluded_no_abstract.json")
 LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "enrichment_log.json")
@@ -86,13 +89,27 @@ def fetch_abstract_s2_doi(doi, api_key=None):
     return None
 
 
-def fetch_abstract_s2_title(title, api_key=None):
+def fetch_abstract_openalex_doi(doi, api_key=None):
+    """Fetch and reconstruct an abstract from an OpenAlex Work by DOI."""
+    url = f"https://api.openalex.org/works/doi:{quote(doi, safe='')}"
+    params = {"api_key": api_key} if api_key else None
+    r = retry_get(url, params=params)
+    if r is None:
+        return None
+    abstract = _openalex_abstract(r.json().get("abstract_inverted_index"))
+    if len(abstract.strip()) > MIN_ABSTRACT_LEN:
+        return abstract.strip()
+    return None
+
+
+def fetch_abstract_s2_title(record, api_key=None):
     """Fetch abstract from Semantic Scholar by title search."""
     url = "https://api.semanticscholar.org/graph/v1/paper/search"
     headers = {}
     if api_key:
         headers["x-api-key"] = api_key
-    params = {"query": title[:200], "limit": 3, "fields": "title,abstract"}
+    title = str(record.get("title") or "")
+    params = {"query": title[:200], "limit": 5, "fields": "title,abstract,year,authors,paperId"}
 
     r = retry_get(url, headers=headers, params=params)
     if r is None:
@@ -103,25 +120,27 @@ def fetch_abstract_s2_title(title, api_key=None):
     if not papers:
         return None
 
-    # Find best title match
-    title_lower = title.lower().strip()
+    rejections = []
     for p in papers:
-        p_title = (p.get("title") or "").lower().strip()
-        if p_title == title_lower and p.get("abstract"):
-            return p["abstract"].strip()
-
-    # If no exact match, take first result if title is very similar
-    if papers[0].get("abstract") and papers[0].get("title"):
-        p_title = papers[0]["title"].lower().strip()
-        # Simple check: titles share >80% words
-        t_words = set(title_lower.split())
-        p_words = set(p_title.split())
-        if t_words and p_words:
-            overlap = len(t_words & p_words) / max(len(t_words), len(p_words))
-            if overlap > 0.8:
-                return papers[0]["abstract"].strip()
-
-    return None
+        if not p.get("abstract"):
+            continue
+        accepted, status, evidence = accept_title_candidate(record, p)
+        if accepted:
+            return {
+                "accepted": True,
+                "abstract": p["abstract"].strip(),
+                "match": evidence,
+                "match_status": status,
+                "candidate_id": p.get("paperId", ""),
+            }
+        rejections.append(
+            {
+                "candidate_id": p.get("paperId", ""),
+                "reason": status,
+                "evidence": evidence,
+            }
+        )
+    return {"accepted": False, "rejections": rejections}
 
 
 def fetch_abstract_crossref(doi):
@@ -189,22 +208,30 @@ def fetch_abstract_pubmed(pmid, api_key=None):
 def main():
     parser = argparse.ArgumentParser(description="Enrich records with missing abstracts")
     parser.add_argument("--keys", help="Path to api_keys.json")
+    parser.add_argument("--input", default=RECORDS_PATH, help="Input JSON record artifact")
+    parser.add_argument("--output", default=None, help="Output JSON; defaults to overwriting --input")
+    parser.add_argument("--excluded-output", default=EXCLUDED_PATH)
+    parser.add_argument("--log-output", default=LOG_PATH)
     parser.add_argument("--dry-run", action="store_true", help="Report only, don't modify records")
     parser.add_argument("--limit", type=int, default=0, help="Max records to process (0=all)")
     parser.add_argument("--skip-fetch", action="store_true", help="Skip API fetching, only run exclusion step")
     args = parser.parse_args()
+    records_path = args.input
+    output_path = args.output or records_path
 
     # Load API keys
     s2_key = None
     ncbi_key = None
+    openalex_key = None
     if args.keys:
         with open(args.keys) as f:
             keys = json.load(f)
-        s2_key = keys.get("semantic_scholar")
+        s2_key = keys.get("semantic_scholar") or keys.get("S2_API_KEY")
         ncbi_key = keys.get("ncbi")
+        openalex_key = keys.get("openalex") or keys.get("OPENALEX_API_KEY")
 
     # Load records
-    with open(RECORDS_PATH, "r", encoding="utf-8") as f:
+    with open(records_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     records = data["records"]
@@ -214,10 +241,12 @@ def main():
     # Step 1: Fetch missing abstracts from APIs
     # ------------------------------------------------------------------
     log = {
+        "enrichment_version": 2,
         "started": datetime.now().isoformat(),
         "total_records": total,
         "total_missing_before": 0,
         "s2_doi_found": 0,
+        "openalex_doi_found": 0,
         "s2_title_found": 0,
         "crossref_found": 0,
         "pubmed_found": 0,
@@ -230,6 +259,7 @@ def main():
 
     missing = [i for i, r in enumerate(records) if not has_abstract(r)]
     log["total_missing_before"] = len(missing)
+    fetch_list = []
 
     print(f"Total records: {total}")
     print(f"Missing abstracts: {len(missing)}")
@@ -254,6 +284,7 @@ def main():
 
             abstract = None
             source_api = None
+            title_result = None
 
             # Strategy 1: S2 by DOI
             if doi and not abstract:
@@ -263,7 +294,15 @@ def main():
                     log["s2_doi_found"] += 1
                 time.sleep(0.15)
 
-            # Strategy 2: CrossRef by DOI
+            # Strategy 2: OpenAlex by DOI
+            if doi and not abstract:
+                abstract = fetch_abstract_openalex_doi(doi, openalex_key)
+                if abstract:
+                    source_api = "openalex_doi"
+                    log["openalex_doi_found"] += 1
+                time.sleep(0.1)
+
+            # Strategy 3: CrossRef by DOI
             if doi and not abstract:
                 abstract = fetch_abstract_crossref(doi)
                 if abstract:
@@ -271,7 +310,7 @@ def main():
                     log["crossref_found"] += 1
                 time.sleep(0.1)
 
-            # Strategy 3: PubMed by PMID
+            # Strategy 4: PubMed by PMID
             if pmid and not abstract:
                 abstract = fetch_abstract_pubmed(pmid, ncbi_key)
                 if abstract:
@@ -279,10 +318,11 @@ def main():
                     log["pubmed_found"] += 1
                 time.sleep(0.12)
 
-            # Strategy 4: S2 by title (for records without DOI/PMID)
+            # Strategy 5: S2 by title (for records without DOI/PMID)
             if not doi and not pmid and title and not abstract:
-                abstract = fetch_abstract_s2_title(title, s2_key)
-                if abstract:
+                title_result = fetch_abstract_s2_title(rec, s2_key)
+                if title_result and title_result.get("accepted"):
+                    abstract = title_result["abstract"]
                     source_api = "s2_title"
                     log["s2_title_found"] += 1
                 time.sleep(0.15)
@@ -292,21 +332,29 @@ def main():
                 if not args.dry_run:
                     records[rec_idx]["abstract"] = abstract
                     records[rec_idx]["abstract_source"] = source_api
-                log["details"].append({
+                detail = {
                     "cluster_id": rec.get("cluster_id"),
                     "title": title[:100],
                     "doi": doi,
                     "source_api": source_api,
                     "abstract_len": len(abstract),
-                })
+                }
+                if source_api == "s2_title":
+                    detail["title_match"] = title_result["match"]
+                    detail["title_match_status"] = title_result["match_status"]
+                    detail["source_candidate_id"] = title_result["candidate_id"]
+                log["details"].append(detail)
             else:
-                log["details"].append({
+                detail = {
                     "cluster_id": rec.get("cluster_id"),
                     "title": title[:100],
                     "doi": doi,
                     "source_api": None,
                     "abstract_len": 0,
-                })
+                }
+                if title_result and title_result.get("rejections"):
+                    detail["s2_title_search_rejections"] = title_result["rejections"]
+                log["details"].append(detail)
 
         log["enriched"] = enriched_count
 
@@ -318,12 +366,37 @@ def main():
         if fetch_list:
             print(f"  Abstracts found:     {enriched_count} ({enriched_count/len(fetch_list)*100:.1f}%)")
         print(f"    via S2 (DOI):      {log['s2_doi_found']}")
+        print(f"    via OpenAlex DOI:  {log['openalex_doi_found']}")
         print(f"    via CrossRef:      {log['crossref_found']}")
         print(f"    via PubMed:        {log['pubmed_found']}")
         print(f"    via S2 (title):    {log['s2_title_found']}")
     elif args.skip_fetch:
         print("  Skipping API fetch (--skip-fetch)")
     print()
+
+    # A bounded fetch is a diagnostic/probe mode. It must not turn records that
+    # were never attempted into implicit screening exclusions.
+    unattempted_missing = (
+        len(missing) - len(fetch_list)
+        if not args.skip_fetch and args.limit and len(missing) > len(fetch_list)
+        else 0
+    )
+    if unattempted_missing:
+        log.update(
+            {
+                "finished": datetime.now().isoformat(),
+                "status": "incomplete_fetch_limit",
+                "unattempted_missing_abstracts": unattempted_missing,
+            }
+        )
+        with open(args.log_output, "w", encoding="utf-8") as f:
+            json.dump(log, f, ensure_ascii=False, indent=2)
+        print(
+            "ABSTRACT ENRICHMENT INCOMPLETE: "
+            f"{unattempted_missing} missing abstracts were not attempted; "
+            "no screening artifact was written."
+        )
+        return 2
 
     # ------------------------------------------------------------------
     # Step 2: Exclude records without abstract
@@ -348,15 +421,15 @@ def main():
         excluded_output = {
             "metadata": {
                 "created": datetime.now().isoformat(),
-                "reason": "No abstract available after API enrichment (S2, CrossRef, PubMed)",
+                "reason": "No abstract available after API enrichment (S2, OpenAlex, Crossref, PubMed)",
                 "total_excluded": len(excluded_records),
                 "exclusion_code": "EC_NO_ABSTRACT",
             },
             "records": excluded_records,
         }
-        with open(EXCLUDED_PATH, "w", encoding="utf-8") as f:
+        with open(args.excluded_output, "w", encoding="utf-8") as f:
             json.dump(excluded_output, f, ensure_ascii=False, indent=2)
-        print(f"  Excluded: {len(excluded_records)} records → {EXCLUDED_PATH}")
+        print(f"  Excluded: {len(excluded_records)} records → {args.excluded_output}")
 
         # Update main records file
         data["records"] = included_records
@@ -367,6 +440,7 @@ def main():
             "records_for_screening": len(included_records),
             "sources": {
                 "s2_doi": log["s2_doi_found"],
+                "openalex_doi": log["openalex_doi_found"],
                 "crossref": log["crossref_found"],
                 "pubmed": log["pubmed_found"],
                 "s2_title": log["s2_title_found"],
@@ -374,14 +448,36 @@ def main():
         }
         data["metadata"]["total_after_dedup"] = len(included_records)
 
-        with open(RECORDS_PATH, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"  Updated:  {len(included_records)} records → {RECORDS_PATH}")
+        print(f"  Updated:  {len(included_records)} records → {output_path}")
     elif args.dry_run:
         log["excluded_no_abstract"] = len(still_missing)
         log["records_for_screening"] = total - len(still_missing)
         print(f"  [DRY RUN] Would exclude {len(still_missing)} records")
         print(f"  [DRY RUN] Would keep {total - len(still_missing)} records for screening")
+    else:
+        log["records_for_screening"] = len(records)
+        excluded_output = {
+            "metadata": {
+                "created": datetime.now().isoformat(),
+                "reason": "No abstract available after API enrichment (S2, OpenAlex, Crossref, PubMed)",
+                "total_excluded": 0,
+                "exclusion_code": "EC_NO_ABSTRACT",
+            },
+            "records": [],
+        }
+        with open(args.excluded_output, "w", encoding="utf-8") as f:
+            json.dump(excluded_output, f, ensure_ascii=False, indent=2)
+        data.setdefault("metadata", {})["abstract_enrichment"] = {
+            "date": datetime.now().isoformat(),
+            "enriched_count": log["enriched"],
+            "excluded_no_abstract": 0,
+            "records_for_screening": len(records),
+        }
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"  Updated:  {len(records)} records → {output_path}")
 
     # ------------------------------------------------------------------
     # Summary
@@ -399,12 +495,13 @@ def main():
     print()
 
     # Save log
-    with open(LOG_PATH, "w", encoding="utf-8") as f:
+    with open(args.log_output, "w", encoding="utf-8") as f:
         json.dump(log, f, ensure_ascii=False, indent=2)
-    print(f"  Saved: {LOG_PATH}")
+    print(f"  Saved: {args.log_output}")
 
     print("\nDone.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

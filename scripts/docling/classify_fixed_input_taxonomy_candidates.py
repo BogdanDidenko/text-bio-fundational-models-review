@@ -20,6 +20,7 @@ from scripts.docling.docling_graph_litellm_client import (
     LiteLLMEndpointClient,
     strict_json_schema,
 )
+from scripts.docling.profile_artifact_contract import validate_profile_artifacts
 from scripts.docling_graph_templates.input_representation_taxonomy import (
     FixedCandidateClassificationDocument,
 )
@@ -68,6 +69,13 @@ REQUIRED_COMPOSITE_SOURCE_REFS = {
     "full_2026-07-06__rec_000090::route_032",
     "june_update_2026-06-10__rec_000121::route_006",
 }
+
+
+def record_output_name(record_id: str) -> str:
+    if not record_id:
+        raise ValueError("Fixed taxonomy classifier received an empty candidate_id")
+    readable = re.sub(r"[^A-Za-z0-9._-]", "_", record_id)[:120]
+    return f"{readable}_{hashlib.sha256(record_id.encode('utf-8')).hexdigest()[:12]}"
 FROZEN_IDS = {
     "F1": "text_native_token_stream",
     "F2": "discrete_biological_symbol_stream",
@@ -147,8 +155,27 @@ def prompt_for_record(
     prompt_version: str,
 ) -> str:
     v2 = ""
-    if prompt_version == "v2-decision-table":
+    if prompt_version in {"v2-decision-table", "v3-interface-boundary"}:
         anchors = frozen_example_labels(taxonomy, candidates)
+        boundary_examples = ""
+        if prompt_version == "v3-interface-boundary":
+            boundary_examples = """
+
+INTERFACE-BOUNDARY CONTRASTS (prompt v3):
+- Raw images, patches, or slides supplied to the focal model's vision front end remain
+  visual_raster_carrier even when the vision encoder, Q-Former, resampler, or projector
+  subsequently produces dense vectors. The existence of downstream dense activations does
+  not move the route boundary past the documented raster input.
+- Use dense_continuous_carrier when a dedicated biological/modality encoder, projector, or
+  pooling module converts the source into continuous embeddings that are explicitly aligned
+  with or inserted into the generative backbone. An earlier step called "tokenization" does
+  not make the route text-native unless those serialized tokens themselves enter the
+  ordinary language-model tokenizer/interface.
+- Therefore distinguish "image fed to image encoder -> Q-Former" (visual) from "omics data
+  encoded by a dedicated modality encoder -> embedding aligned to an LLM" (dense).
+- model_visible_form_verbatim must name the carrier at this operational interface, not a
+  later hidden activation and not merely the original biological modality.
+"""
         v2 = f"""
 
 DETERMINISTIC CARRIER DECISION TABLE (prompt v2):
@@ -172,6 +199,7 @@ candidate-specific labels are frozen positive examples from the codebook. Treat 
 label as a binding audit anchor unless the complete paper proves the frozen example wrong;
 multiple labels indicate a combined candidate that must be split into those carrier routes:
 {json.dumps(anchors, ensure_ascii=False)}
+{boundary_examples}
 """
     return f"""Classify a fixed, evidence-grounded candidate inventory for one paper.
 
@@ -293,13 +321,14 @@ def invoke(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--canonical-manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--expected-records", type=int, default=0)
     parser.add_argument("--inventory", type=Path, default=DEFAULT_INVENTORY)
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--replicate-id", required=True)
     parser.add_argument(
         "--prompt-version",
-        choices=["v1", "v2-decision-table"],
+        choices=["v1", "v2-decision-table", "v3-interface-boundary"],
         default="v1",
     )
     parser.add_argument("--record-id", action="append", default=[])
@@ -314,9 +343,22 @@ def main() -> int:
 
     with args.canonical_manifest.open(newline="", encoding="utf-8") as stream:
         rows = [row for row in csv.DictReader(stream) if row.get("profile_status") == "complete"]
+    manifest_ids = [str(row.get("candidate_id") or "") for row in rows]
+    if not all(manifest_ids) or len(set(manifest_ids)) != len(manifest_ids):
+        raise RuntimeError("Canonical manifest has duplicate or empty candidate_id")
     inventory = group_inventory(read_json(args.inventory))
-    if len(rows) != 52 or len(inventory) != 52:
-        raise RuntimeError(f"Expected 52 manifest/inventory records, found {len(rows)}/{len(inventory)}")
+    expected = args.expected_records or len(rows)
+    if len(rows) != expected or len(inventory) != expected:
+        raise RuntimeError(
+            f"Expected {expected} manifest/inventory records, found {len(rows)}/{len(inventory)}"
+        )
+    manifest_ids = {row["candidate_id"] for row in rows}
+    if manifest_ids != set(inventory):
+        raise RuntimeError(
+            "Manifest and discovery inventory record IDs differ: "
+            f"missing_inventory={sorted(manifest_ids - set(inventory))}, "
+            f"missing_manifest={sorted(set(inventory) - manifest_ids)}"
+        )
     if args.record_id:
         requested = set(args.record_id)
         rows = [row for row in rows if row["candidate_id"] in requested]
@@ -352,7 +394,8 @@ def main() -> int:
     summaries = []
     for row in rows:
         record_id = row["candidate_id"]
-        markdown = (ROOT / row["markdown"]).read_text(encoding="utf-8")
+        _, markdown_path = validate_profile_artifacts(row)
+        markdown = markdown_path.read_text(encoding="utf-8")
         candidates = inventory[record_id]
         expected = {candidate["route_ref"] for candidate in candidates}
         required_split_refs = {
@@ -361,7 +404,7 @@ def main() -> int:
         prompt = prompt_for_record(
             row, markdown, candidates, taxonomy, schema, args.prompt_version
         )
-        record_dir = args.output_dir / "records" / re.sub(r"[^A-Za-z0-9._-]", "_", record_id)
+        record_dir = args.output_dir / "records" / record_output_name(record_id)
         record_dir.mkdir(parents=True, exist_ok=True)
         (record_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
         started = time.time()

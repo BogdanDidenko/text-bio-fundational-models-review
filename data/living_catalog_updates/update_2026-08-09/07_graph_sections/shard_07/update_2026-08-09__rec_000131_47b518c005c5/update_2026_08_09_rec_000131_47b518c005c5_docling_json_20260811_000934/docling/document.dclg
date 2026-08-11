@@ -1,0 +1,2069 @@
+<doclang version="0.7">
+  <heading>
+    <layer value="furniture"/>
+    CellDuality: Unlocking Biological Reasoning in LLMs with Self-Supervised RLVR - PMC
+  </heading>
+  <text>
+    <href uri="#main-content"/>
+    <layer value="furniture"/>
+    Skip to main content
+  </text>
+  <text>
+    <layer value="furniture"/>
+<![CDATA[Here's how you know]]>  </text>
+  <picture>
+    <layer value="furniture"/>
+    <caption>
+      <href uri="https://www.ncbi.nlm.nih.gov/"/>
+      <layer value="furniture"/>
+      NCBI home page
+    </caption>
+  </picture>
+  <text>
+    <layer value="furniture"/>
+    Search
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Log in
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Primary site navigation
+  </text>
+  <picture>
+    <layer value="furniture"/>
+    <caption>
+      <layer value="furniture"/>
+      Close
+    </caption>
+  </picture>
+  <text>
+    <layer value="furniture"/>
+    Search
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Search NCBI
+  </text>
+  <picture>
+    <layer value="furniture"/>
+    <caption>
+      <layer value="furniture"/>
+      Search
+    </caption>
+  </picture>
+  <text>
+    <layer value="furniture"/>
+    Log in
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Search PMC Full-Text Archive
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Search PMC Full-Text Archive
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Search in PMC
+  </text>
+  <picture>
+    <layer value="furniture"/>
+    <caption>
+      <layer value="furniture"/>
+      Search
+    </caption>
+  </picture>
+  <list>
+    <ldiv/>
+    <href uri="/journals"/>
+    <layer value="furniture"/>
+    Journal List
+    <ldiv/>
+    <href uri="/about/userguide"/>
+    <layer value="furniture"/>
+    User Guide
+  </list>
+  <text>
+    <layer value="furniture"/>
+    <content>As a library, NLM provides access to scientific literature. Inclusion in an NLM database does not imply endorsement of, or agreement with, the contents by NLM or the National Institutes of Health.
+Learn more:</content>
+    <layer value="furniture"/>
+    PMC Disclaimer
+    <layer value="furniture"/>
+    |
+    <layer value="furniture"/>
+    PMC Copyright Notice
+  </text>
+  <picture>
+    <layer value="furniture"/>
+    <caption>
+      <layer value="furniture"/>
+      NIHPA Author Manuscripts logo
+    </caption>
+  </picture>
+  <text>
+    <layer value="furniture"/>
+    Int Conf Learn Represent
+  </text>
+  <text>
+    <layer value="furniture"/>
+    . Author manuscript; available in PMC: 2026 Aug 6.
+  </text>
+  <text>
+    <layer value="furniture"/>
+    <italic>Published in final edited form as:</italic>
+    <layer value="furniture"/>
+    Int Conf Learn Represent. 2026;2026:115272-115283.
+  </text>
+  <heading>CellDuality : Unlocking Biological Reasoning in LLMs with Self-Supervised RLVR</heading>
+Yuhang Chen
+  <superscript>1</superscript>
+,
+Zhen Tan
+  <superscript>2</superscript>
+,
+Ruichen Zhang
+  <superscript>1</superscript>
+,
+Mufan Qiu
+  <superscript>1</superscript>
+,
+Tianlong Chen
+  <superscript>1</superscript>
+  <list>
+    <ldiv/>
+    Author information
+    <ldiv/>
+    Copyright and License information
+  </list>
+PMCID: PMC13441433 NIHMSID: NIHMS2176134 PMID:
+42559559
+  <heading level="2">Abstract</heading>
+Developing generalist large language models (LLMs) capable of complex biological reasoning is a central challenge in computational biology. While existing LLMs excel at predictive tasks like cell type annotation and logically-constrained problems, enabling open-ended and mechanistic reasoning remains a challenge. A promising direction is Reinforcement Learning from Verifiable Rewards (RLVR), which has been shown to significantly enhance complex reasoning in general domains like mathematics and code synthesis. However, its application in biology is hindered, as most biological outcomes are non-verifiable. For example, verifying a generated gene sequence is usually infeasible. In this paper, we introduce
+  <code>CellDuality</code>
+<![CDATA[, a self-supervised framework that enables LLM agents for robust reasoning in single-cell biology. Our framework is built on the principle of complementary task duality, a self-verification process that leverages a bidirectional reasoning loop. First, the model performs a forward reasoning task by predicting a biological outcome (e.g., a cell's response to a drug). Then, in a complementary inverse task, it must reason backward from its own prediction to reconstruct the initial conditions (e.g., the original drug perturbation). The fidelity of this reconstruction serves as an intrinsic reward signal, creating a feedback loop that enforces logical and biological consistency. We use these intrinsic rewards to align the base LLM via reinforcement learning, without requiring ground-truth verification labels. We demonstrate that]]>  
+  <code>CellDuality</code>
+achieves state-of-the-art performance and provides coherent biological explanations across a diverse suite of single-cell reasoning tasks. Critically, on the challenging out-of-distribution perturbation prediction benchmark, our self-supervised approach significantly outperforms the standard fine-tuning baseline and narrows the performance gap to a supervised RLVR baseline. Our work showcases a new path toward scalable training of biological foundation models.
+  <heading level="2">1. Introduction</heading>
+Developing generalist large language models (LLMs) capable of biological reasoning is a central goal of computational biology (
+Fang et al., 2025b
+;
+Istrate et al., 2025
+;
+Lotfollahi et al., 2019
+). This reasoning ability involves inferring complex, mechanistic principles from cellular data (
+Fang et al., 2025b
+;
+Matsumoto et al., 2025
+). This capability is paramount in single-cell biology, where understanding causal chains, such as how a cell responds to a drug, is key to therapeutic discovery (
+Fang et al., 2025a
+). However, achieving robust biological reasoning is fundamentally challenging due to the stochastic nature of cellular systems and the intricate, high-dimensional dependencies between biological entities. This complexity creates a significant hurdle for current methods, especially the foundation models (
+Hao et al., 2024
+;
+Cui et al., 2024
+), which we categorize into three limitations.
+First, most models are optimized for
+  <italic>prediction</italic>
+, not
+  <italic>mechanistic reasoning</italic>
+. Architectures like scGPT (
+Cui et al., 2024
+) and C2S-Scale (
+Rizvi et al., 2025
+) excel at learning correlational patterns for tasks like cell type annotation but are not explicitly trained to generate the coherent, explanatory steps that capture underlying biological pathways. Second, existing reasoning-aware models often operate in
+  <italic>logically-constrained paradigms</italic>
+. For instance, Cell-o1 (
+Fang et al., 2025b
+) models a deductive puzzle-solving process rather than the open-ended, hypothesis-driven inquiry of scientific exploration. Finally, there exists a trade-off between
+  <italic>depth and generality</italic>
+. Specialized models achieve deep reasoning in a single task, while versatile, multi-task agents like InstructCell (
+Fang et al., 2025a
+) currently lack the same level of mechanistic insight. Therefore, developing a framework that takes a step toward deep reasoning across diverse tasks remains an open challenge. Such a framework must achieve generality over two core biological themes: cell identity and cell dynamics.
+<![CDATA[A promising direction is Reinforcement Learning from Verifiable Rewards (RLVR), a paradigm that has successfully enhanced LLMs' general reasoning ability, such as mathematics and code synthesis (]]>  
+Shao et al., 2024
+;
+Rafailov et al., 2023
+;
+Lee et al., 2023
+). However, its application in biology is severely limited because most biological reasoning tasks are inherently non-verifiable. For example, a specific gene sequence output of conditional cell generation has no single correct version for a given cell type, making simple verification infeasible. This data-dependency fundamentally constrains the training of more ambitious, unified models on the open-ended, cause-and-effect scenarios that would foster biological understanding.
+To address this challenge, we introduce
+  <code>CellDuality</code>
+, an agent for open-ended biological reasoning. It operates within a structured framework of four core tasks designed to span the fundamental biological themes of cell identity and cell dynamics (details in
+Sec. 3.1
+). Crucially,
+  <code>CellDuality</code>
+is trained via a self-supervised paradigm inspired by DuPO (
+She et al., 2025
+), built on the principle of
+  <italic>Complementary Task Duality</italic>
+<![CDATA[. This framework leverages a bidirectional reasoning loop to generate its own supervisory signals: first, the model performs a forward reasoning task (e.g., predicting a cell's response to a drug); then, in a complementary inverse task, given generated results and known input conditions, it will reason backward to reconstruct the unknown input conditions. The reward is then determined by directly comparing the reconstructed input with the original. This consistency score becomes the intrinsic reward signal, compelling the model to produce forward predictions that are accurate and logically reversible, without needing ground-truth labels for the predictions themselves.]]>  
+  <text><![CDATA[We implement this principle in a two-stage training paradigm. An initial Supervised Fine-Tuning (SFT) stage on a small, curated set of examples, containing both forward and inverse reasoning traces. This stage serves to cold-start the model, teaching it the language and format of biological reasoning. This is followed by a large-scale, self-supervised Reinforcement Learning (RL) stage, where the model is aligned using these intrinsic rewards on vast unlabeled data. This stage refines the model's ability to produce outputs that are not only stylistically correct but also biologically and logically coherent.]]></text>
+Empirical evaluations demonstrate that
+  <code>CellDuality</code>
+, despite being trained without any ground-truth verification during its RL phase, substantially outperforms its SFT-only counterpart. Critically, on the challenging OOD perturbation benchmark, our self-supervised approach closes 35-56% of the performance gap to a fully-supervised RLVR model that was trained with ground-truth rewards. This showcases the sample efficiency and generalization potential of our framework. Our main contributions are:
+  <list>
+    <ldiv/>
+    We propose a structured framework that organizes complex biological inquiry into four core reasoning tasks spanning both cell identity and cell dynamics. This provides a promising step toward developing and evaluating agents with broader capabilities in single-cell biology.
+    <ldiv/>
+    We introduce the principle of
+    <italic>Complementary Task Duality</italic>
+, a new mechanism for generating annotation-free rewards. This framework incentivizes LLMs to learn the intrinsic mechanistic consistency of biological processes by rewarding the fidelity of a bidirectional reasoning loop, eliminating the need for ground-truth labels during the RL phase.
+    <ldiv/>
+    We show empirically that the generalist model significantly outperforms standard SFT baselines and narrows the performance gap to a fully-supervised oracle model on the challenging out-of-distribution perturbation prediction benchmark.
+  </list>
+  <heading level="2">2. Related Work</heading>
+  <heading level="3">Foundation Models in Single-Cell Biology.</heading>
+Foundation models are revolutionizing single-cell biology by learning representations from massive transcriptomic data (
+Cui et al., 2024
+;
+Theodoris et al., 2023
+). The field has rapidly progressed from models focused on predictive tasks, such as scGPT (
+Cui et al., 2024
+) for annotation and C2S-Scale (
+Rizvi et al., 2025
+) for multi-task generality, to those attempting explicit reasoning. However, these reasoning-aware models often operate in narrow paradigms; for instance, Cell-o1 (
+Fang et al., 2025b
+) frames reasoning as a logically-constrained puzzle, while agentic frameworks like ESCARGOT (
+Matsumoto et al., 2025
+) rely on external knowledge graphs. A key challenge remains in developing a single, generalist agent that can perform open-ended, mechanistic reasoning directly from cellular data. Our work addresses this gap, aiming for the generality of models like InstructCell (
+Fang et al., 2025a
+) but with a training objective that explicitly fosters deep, intrinsic reasoning.
+  <heading level="3">Reinforcement Learning from Verifiable Rewards .</heading>
+Reinforcement learning is increasingly used to refine LLMs beyond standard SFT, with paradigms evolving to reduce reliance on external supervision (
+Ouyang et al., 2022
+;
+Shao et al., 2024
+). A particularly scalable paradigm is Reinforcement Learning from Verifiable Rewards (RLVR), which replaces subjective feedback (
+Bai et al., 2022
+) with objective, ground-truth-based rewards from deterministic verifiers (
+Shao et al., 2024
+<![CDATA[). However, the prerequisite of a verifiable output severely limits RLVR's application in biology, where outcomes are inherently stochastic. Recent work has sought to address this by generating self-supervised rewards through task duality. For instance, the DuPO (]]>  
+She et al., 2025
+) framework introduced a generalized duality for non-invertible tasks, such as mathematical reasoning, by reconstructing input components to create a reward signal. Inspired by DuPO, our work adapts this duality principle to the unique challenges of biology (detailed in
+Sec. 3.2
+). We introduce Complementary Task Duality to generate intrinsic, self-verifiable rewards from the internal consistency of cellular processes, thus extending the RLVR paradigm to the non-verifiable biological domain.
+  <heading level="2">3. Methodology</heading>
+This section delineates the methodology for training our single-cell biological reasoning model. An overview of our entire framework is presented in
+Figure 1
+. We first define the concepts and the task formulation. We then introduce the generalized framework for self-supervision. Finally, we detail our training pipeline: an initial cold start stage, followed by a self-supervised Reinforcement Learning stage that uses our duality principle to enhance the model for deeper reasoning.
+  <picture>
+    <caption><![CDATA[An overview of the CellDuality framework. Single-cell expression profiles are first converted into ranked "Cell Sentences," which are inputs to our task formulation covering four reasoning tasks. A high-quality CoT dataset is generated using a teacher model and Reject Sampling. This dataset is used for a Stage 1 SFT cold start of an LLaMA model. The model is then further aligned in Stage 2 via self-supervised RL (GRPO) on large-scale unlabeled data. The core innovation is our duality-based reward mechanism, which replaces the need for external Ground Truth by rewarding the consistency between a Primal Task and its complementary Dual Task.]]></caption>
+  </picture>
+  <heading level="3">3.1. Preliminaries and Task Formulation</heading>
+We denote the LLM policy as π θ , parameterized by θ . Let 𝒱 be the global vocabulary of all considered gene names. Our work addresses a structured set of four core single-cell reasoning tasks, organized into a 2x2 matrix spanning two fundamental biological themes:
+  <italic>Cell Identity</italic>
+and
+  <italic>Cell Dynamics</italic>
+. The core data structures for these tasks are defined as follows:
+  <list>
+    <ldiv/>
+    <bold>Cell Representation</bold>
+: A cell c = { g 1 , g 2 , ... , g K } is represented as an descending order sequence of its top K expressed genes, where each gene g i ∈ 𝒱 .
+    <ldiv/>
+    <bold>Perturbation</bold>
+: A perturbation p is a structured tuple describing an intervention, e.g., p = { operation , target } , where operation ∈ {knockdown, overexpression} and target ∈ 𝒱 .
+    <ldiv/>
+    <bold>Cell Type and Sensitivity Labels</bold>
+: A cell type t , is a categorical label from a predefined set 𝒯 . Similarly, a drug sensitivity label, s , is a categorical label from a set 𝒮 .
+  </list>
+  <text><![CDATA[All inputs to the LLM are constructed as textual prompts x that combine these components. The model's output is a textual response y , generated autoregressively according to the policy y ∼ π θ ( ⋅ ∣ x ) . A response may include a reasoning trace z and a final answer a , i.e., y = { z , a } .]]></text>
+  <heading level="3">3.2. The Principle of Complementary Task Duality</heading>
+A primary obstacle to applying Reinforcement Learning (RL) to the four tasks defined above is the absence of a scalable reward source. In single-cell biology, obtaining ground-truth signals from experiments is prohibitively expensive and slow. Our work is motivated by a
+  <bold>central question:</bold>
+Can we generate a reliable, intrinsic reward signal directly from the structure of these biological problems themselves, thus enabling RL without external supervision?
+To achieve this, inspired by DuPO (
+She et al., 2025
+), we introduce a self-supervised reward generation framework. Adapting the duality principle from well-structured domains (e.g., mathematics) to biology is non-trivial: biological outputs are inherently stochastic and high-dimensional, requiring the design of domain-specific task formulations, such as conditional gene inpainting (
+Sec. 3.4
+), to produce stable reward signals. The core idea is to reframe a single biological question into a pair of mutually-verifying tasks, a primal task and a complementary dual task. This creates an internal logic loop that the model must satisfy, providing a natural source for an RL reward.
+  <heading level="3">
+    <bold>Definition 3.1 (Complementary Task Duality).</bold>
+  </heading>
+Let the input space 𝒳 of a primal task 𝒯 p be decomposed into disjoint subspaces: 𝒳 k (known components) and 𝒳 u (unknown components), such that 𝒳 = 𝒳 u ∪ 𝒳 u . The
+  <italic>primal task</italic>
+𝒯 p is a mapping from 𝒯 p : 𝒳 → 𝒴 . Its
+  <italic>complementary dual task</italic>
+𝒯 c d is a mapping that leverages the primal output y and the known component x k to reconstruct the unknown component x ^ u :
+  <table>
+    <fcel/>
+    <text>𝒯</text>
+    <text>c</text>
+    <text>d</text>
+    <text>:</text>
+    <text>(</text>
+    <text>y</text>
+    <text>,</text>
+    <text>x</text>
+    <text>k</text>
+    <text>)</text>
+    <text>↦</text>
+    <text>x</text>
+    <text>^</text>
+    <text>u</text>
+    <text>.</text>
+    <nl/>
+  </table>
+Pair ( 𝒯 p , 𝒯 c d ) forms a
+  <italic>generalized dual pair</italic>
+if it satisfies the
+  <italic>complementary consistency principle</italic>
+:
+  <table>
+    <fcel/>
+    <text>∀</text>
+    <text>x</text>
+    <text>∈</text>
+    <text>𝒳</text>
+    <text>,</text>
+    <text>y</text>
+    <text>=</text>
+    <text>𝒯</text>
+    <text>p</text>
+    <text>(</text>
+    <text>x</text>
+    <text>)</text>
+    <text>:</text>
+    <text>d</text>
+    <text>(</text>
+    <text>x</text>
+    <text>u</text>
+    <text>,</text>
+    <text>𝒯</text>
+    <text>c</text>
+    <text>d</text>
+    <text>(</text>
+    <text>y</text>
+    <text>,</text>
+    <text>x</text>
+    <text>k</text>
+    <text>)</text>
+    <text>)</text>
+    <text>≤</text>
+    <text>ϵ</text>
+    <text>,</text>
+    <nl/>
+  </table>
+  <text>where d ( ⋅ , ⋅ ) : 𝒳 u × 𝒳 u is a domain-specific distance metric, and ϵ ≥ 0 is a tolerance threshold.</text>
+  <text><![CDATA[The power of this framework lies in its ability to transform an unsupervised problem into a self-verifying one. The consistency principle defined above provides the mechanism to generate rewards: the fidelity of the dual task's reconstruction, d ( x u , x ^ u ) , serves as a direct, intrinsic measure of the logical and biological coherence of the primal task's output y . This approach elegantly sidesteps the challenges of classical dual learning (irreversibility and asymmetry) by leveraging the known component x k as a contextual anchor, ensuring the dual task is well-posed.]]></text>
+  <heading level="3">3.3. Training Stage 1: Supervised Fine-Tuning for Capability Cold-Start</heading>
+  <text>Before RL Training, we first initialize the base LLM with foundational biological knowledge and reasoning patterns through Supervised Fine-Tuning (SFT). This essential cold-start phase ensures the model can effectively engage with the complex, self-supervised tasks in the subsequent alignment stage. The process involves two key steps: generating a high-quality Chain-of-Thought dataset, and then using it to train the model.</text>
+  <heading level="4">3.3.1. Chain-of-Thought Reasoning Dataset Generation</heading>
+  <text>We construct a comprehensive SFT dataset, 𝒟 SFT , by leveraging powerful teacher models (e.g., GPT-4o, Gemini 2.5 Pro) to generate Chain-of-Thought (CoT) reasoning traces. A critical aspect of our approach is that 𝒟 SFT must equip our model with capabilities for both the primal (forward) reasoning and the complementary dual (inverse) reasoning required in our RL stage. Therefore, we generate and curate distinct data subsets for each direction.</text>
+  <heading level="5">Primal Task SFT Data.</heading>
+  <text>For each of our four core tasks, we generate primal task data. Given an input prompt x i , we prompt a teacher model π teacher to generate N candidate responses { y i , k = ( z i , k , a i , k ) } k = 1 N . We then apply task-specific filtering to select high-quality instances for our primal SFT set, 𝒟 SFT primal .</text>
+  <list>
+    <ldiv/>
+    <bold><![CDATA[For Classification Tasks (Annotation & Sensitivity)]]></bold>
+: We use a strict
+    <italic>Rejection Sampling</italic>
+protocol. A candidate y i , k is accepted if its final answer a i , k exactly matches the ground-truth label a i ∗ . We define an indicator for correctness as ϵ i , k = I ( a i , k = a i ∗ ) . The accepted set for prompt x i is { y i , k ∣ ϵ i , k = 1 } . This ensures all training examples are factually correct.
+    <ldiv/>
+    <bold><![CDATA[For Generative Tasks (Cell & Response Generation)]]></bold>
+: As no single, unique ground-truth sequence exists for these tasks, a simple exact match is infeasible. Instead, we adopt a
+    <italic>Rank-Aware Filtering</italic>
+protocol. For each prompt x i with a corresponding ground-truth cell sequence a i ∗ , the teacher model generates a candidate response ( z i , a i ). The candidate is accepted into 𝒟 SFT only if the generated cell sequence a i demonstrates high fidelity to the ground truth in terms of both gene overlap and expression ranking. We quantify this using our proposed Rank-Weighted Jaccard Similarity metric (
+Eq. 3
+). A candidate is accepted only if its similarity score exceeds a predefined threshold.
+  </list>
+  <heading level="5">Dual Task SFT Data.</heading>
+  <text>To explicitly teach the model the inverse reasoning required for our duality framework, we construct a corresponding dual task SFT set, 𝒟 SFT dual . For each instance in our curated primal set, we formulate its complementary dual problem.</text>
+  <list>
+    <ldiv/>
+    For a primal instance ( x = ( x k , x u ) , y ∗ ), we construct a dual prompt x dual = ( y ∗ , x k ) . The ground-truth answer for this dual task is the original unknown component, y dual ∗ = x u .
+    <ldiv/>
+    For example, for a perturbation response instance where x k = c pre , x u = p , and y ∗ = c post ∗ , the dual SFT sample would be: prompt ( c post ∗ , c pre ) paired with the ground-truth answer p .
+  </list>
+  <text>The teacher model is then prompted to generate CoT reasoning for these dual problems. The final SFT dataset is the union 𝒟 SFT = 𝒟 SFT primal ∩ 𝒟 SFT dual . This hybrid strategy ensures the model is proficient in both forward and inverse reasoning before entering the RL stage.</text>
+  <heading level="4">3.3.2. Supervised Fine-tuning Objective</heading>
+  <text>The model is then trained on 𝒟 SFT by minimizing the standard negative log-likelihood loss ℒ SFT ( θ ) over the complete reasoning trajectories:</text>
+  <table>
+    <fcel/>
+    <text>ℒ</text>
+    <text>SFT</text>
+    <text>(</text>
+    <text>θ</text>
+    <text>)</text>
+    <text>=</text>
+    <text>−</text>
+    <text>E</text>
+    <text>(</text>
+    <text>x</text>
+    <text>i</text>
+    <text>,</text>
+    <text>y</text>
+    <text>i</text>
+    <text>∗</text>
+    <text>)</text>
+    <text>∼</text>
+    <text>𝒟</text>
+    <text>SFT</text>
+    <text>[</text>
+    <text>∑</text>
+    <text>j</text>
+    <text>=</text>
+    <text>1</text>
+    <text>∣</text>
+    <text>y</text>
+    <text>i</text>
+    <text>∗</text>
+    <text>∣</text>
+    <text>log</text>
+    <text>π</text>
+    <text>θ</text>
+    <text>(</text>
+    <text>y</text>
+    <text>i</text>
+    <text>,</text>
+    <text>j</text>
+    <text>∗</text>
+    <text>∣</text>
+    <text>x</text>
+    <text>i</text>
+    <text>,</text>
+    <text>y</text>
+    <text>i</text>
+    <text>,</text>
+    <text><![CDATA[<]]></text>
+    <text>j</text>
+    <text>∗</text>
+    <text>)</text>
+    <text>]</text>
+    <text>.</text>
+    <fcel/>
+    (1)
+    <nl/>
+  </table>
+  <text>The resulting model, π SFT , possesses the baseline capabilities required for the subsequent self-supervised alignment.</text>
+  <heading level="3">3.4. Stage 2: Self-Supervised Duality-Guided Reinforcement Learning</heading>
+  <text>This stage constitutes the core of our self-supervised methodology. We refine the capabilities of the SFT-initialized model, π SFT , by aligning it with the principle of complementary consistency. This is achieved through a Reinforcement Learning (RL) framework that operates on a large, unlabeled dataset 𝒟 RL and is guided by intrinsic rewards, eliminating the need for any ground-truth data.</text>
+  <heading level="4">3.4.1. Self-Supervised Reward Generation</heading>
+  <text>The cornerstone of our alignment stage is the generation of intrinsic rewards derived from the complementary duality principle. For any prompt x = ( x k , u u ) and a model-generated primal output y , we compute a reward by executing the complementary dual task and measuring its reconstruction fidelity. We employ two types of rewards, categorical and sequence-based, tailored to the nature of our core tasks.</text>
+  <heading level="5">Categorical Rewards from Inverse Task Consistency.</heading>
+  <text>For generative tasks such as Perturbation Response Generation and Conditional Cell Generation, the duality provides a clean, categorical reward signal. In both cases, the primal task generates a high-dimensional cell sequence ( c post or c ), and the complementary dual task attempts to reconstruct a categorical input label (the sensitivity s or the cell type t ). The reward is a binary signal based on the exact reconstruction of this label:</text>
+  <table>
+    <fcel/>
+    <text>r</text>
+    <text>(</text>
+    <text>y</text>
+    <text>∣</text>
+    <text>x</text>
+    <text>)</text>
+    <text>=</text>
+    <text>I</text>
+    <text>(</text>
+    <text>x</text>
+    <text>^</text>
+    <text>u</text>
+    <text>=</text>
+    <text>x</text>
+    <text>u</text>
+    <text>)</text>
+    <text>,</text>
+    <fcel/>
+    (2)
+    <nl/>
+  </table>
+  <text>where x u is the original categorical input (e.g., t ) and x ^ u is its reconstruction (e.g., t ^ ). This reward directly measures the logical consistency of the generated output: a biologically plausible cell sequence should unambiguously encode the conditions that generated it.</text>
+  <heading level="5">Continuous Rewards from Conditional Inpainting.</heading>
+  <text><![CDATA[For classification tasks such as Cell Type Annotation and Drug Sensitivity Prediction, where the primal output is a low-information label, we design a reward based on a conditional gene inpainting objective. Here, the input cell sequence is artificially decomposed into an observed part c obs and a hidden part c hid , which serves as the unknown component x u . The dual task is to reconstruct c ^ hid conditioned on both the observed genes c obs and the model's predicted primal label ( t ^ or s ^ ). The reward is a continuous score reflecting the quality of this reconstruction: r ( t ^ ∣ c ) = RWJS ( c hid , c ^ hid ) . The Rank-Weighted Jaccard Similarity (RWJS) extends the standard Jaccard index by weighting each gene by its reciprocal rank, w ( g , c ) = 1 ∕ rank ( g , c ) , so that higher-expressed genes contribute more. For a ground-truth sequence c ∗ and a generated sequence c gen , it is defined as:]]></text>
+  <table>
+    <fcel/>
+    <text>RWJS</text>
+    <text>(</text>
+    <text>c</text>
+    <text>∗</text>
+    <text>,</text>
+    <text>c</text>
+    <text>gen</text>
+    <text>)</text>
+    <text>=</text>
+    <text>∑</text>
+    <text>g</text>
+    <text>∈</text>
+    <text>S</text>
+    <text>∗</text>
+    <text>∩</text>
+    <text>S</text>
+    <text>gen</text>
+    <text>w</text>
+    <text>(</text>
+    <text>g</text>
+    <text>,</text>
+    <text>c</text>
+    <text>∗</text>
+    <text>)</text>
+    <text>+</text>
+    <text>w</text>
+    <text>(</text>
+    <text>g</text>
+    <text>,</text>
+    <text>c</text>
+    <text>gen</text>
+    <text>)</text>
+    <text>2</text>
+    <text>∑</text>
+    <text>g</text>
+    <text>∈</text>
+    <text>S</text>
+    <text>∗</text>
+    <text>w</text>
+    <text>(</text>
+    <text>g</text>
+    <text>,</text>
+    <text>c</text>
+    <text>∗</text>
+    <text>)</text>
+    <text>+</text>
+    <text>∑</text>
+    <text>g</text>
+    <text>∈</text>
+    <text>S</text>
+    <text>gen</text>
+    <text>∖</text>
+    <text>S</text>
+    <text>∗</text>
+    <text>w</text>
+    <text>(</text>
+    <text>g</text>
+    <text>,</text>
+    <text>c</text>
+    <text>gen</text>
+    <text>)</text>
+    <text>,</text>
+    <fcel/>
+    (3)
+    <nl/>
+  </table>
+  <text><![CDATA[where S ∗ = Set ( c ∗ ) and S gen = Set ( c gen ) . RWJS ranges from 0 (no overlap) to 1 (identical), providing a biologically meaningful measure that prioritizes high-expression genes. This reward incentivizes the model to base its classification on a deep understanding of the cell's underlying gene signature, as a correct label should provide the necessary context for accurate gene inpainting.]]></text>
+  <heading level="4">3.4.2. Policy Optimization with GRPO</heading>
+  <text>We optimize the policy π θ to maximize the expected self-supervised reward 𝒥 ( θ ) = E x ∼ 𝒟 RL [ r ( y ∣ x ) ] . We employ Group Relative Policy Optimization (GRPO), a memory-efficient and stable critic-free RL algorithm. The optimization follows an iterative, online process: for each prompt, the current policy π θ generates a group of G candidate responses, each of which is then assigned a self-supervised reward based on its dual-task performance. This group of responses and rewards is then used to update the policy as follows.</text>
+  <heading level="5">Advantage Estimation.</heading>
+  <text><![CDATA[For each prompt, after generating a group of G responses and their corresponding rewards { r k } k = 1 G , we compute the advantage for each candidate. This is achieved by normalizing the rewards relative to the group's performance, which serves as an empirical baseline, thus obviating the need for a separate value function:]]></text>
+  <table>
+    <fcel/>
+    <text>A</text>
+    <text>k</text>
+    <text>=</text>
+    <text>r</text>
+    <text>k</text>
+    <text>−</text>
+    <text>mean</text>
+    <text>(</text>
+    <text>{</text>
+    <text>r</text>
+    <text>j</text>
+    <text>}</text>
+    <text>j</text>
+    <text>=</text>
+    <text>1</text>
+    <text>G</text>
+    <text>)</text>
+    <text>std</text>
+    <text>(</text>
+    <text>{</text>
+    <text>r</text>
+    <text>j</text>
+    <text>}</text>
+    <text>j</text>
+    <text>=</text>
+    <text>1</text>
+    <text>G</text>
+    <text>)</text>
+    <text>+</text>
+    <text>ϵ</text>
+    <text>.</text>
+    <fcel/>
+    (4)
+    <nl/>
+  </table>
+  <heading level="5">Objective Function.</heading>
+  <text>The policy is updated by maximizing the GRPO objective, which includes a clipped surrogate objective to stabilize training and a KL penalty to prevent large deviations from a reference policy π ref (typically the initial SFT model π SFT ):</text>
+  <table>
+    <fcel/>
+    <text>𝒥</text>
+    <text>GRPO</text>
+    <text>(</text>
+    <text>θ</text>
+    <text>)</text>
+    <text>=</text>
+    <text>E</text>
+    <text>[</text>
+    <text>min</text>
+    <text>(</text>
+    <text>ρ</text>
+    <text>t</text>
+    <text>(</text>
+    <text>θ</text>
+    <text>)</text>
+    <text>A</text>
+    <text>t</text>
+    <text>,</text>
+    <text>clip</text>
+    <text>(</text>
+    <text>ρ</text>
+    <text>t</text>
+    <text>(</text>
+    <text>θ</text>
+    <text>)</text>
+    <text>,</text>
+    <text>1</text>
+    <text>−</text>
+    <text>ϵ</text>
+    <text>c</text>
+    <text>,</text>
+    <text>1</text>
+    <text>+</text>
+    <text>ϵ</text>
+    <text>c</text>
+    <text>)</text>
+    <text>A</text>
+    <text>t</text>
+    <text>)</text>
+    <text>−</text>
+    <text>β</text>
+    <text>D</text>
+    <text>KL</text>
+    <text>(</text>
+    <text>π</text>
+    <text>θ</text>
+    <text>∥</text>
+    <text>π</text>
+    <text>ref</text>
+    <text>)</text>
+    <text>]</text>
+    <text>,</text>
+    <fcel/>
+    (5)
+    <nl/>
+  </table>
+  <text><![CDATA[where ρ t ( θ ) = π θ ( y t ∣ x ) ∕ π θ old ( y t ∣ x ) is the probability ratio, A t is the advantage at token t (in our case, A k is applied to all tokens of response k , ϵ c is the clipping ratio, and β is the KL coefficient. This iterative, multi-task training process progressively refines the model's ability to generate biologically coherent and logically consistent responses.]]></text>
+  <heading level="2">4. Experiment</heading>
+  <heading level="3">4.1. Experimental Setup</heading>
+  <heading level="4">Tasks and Datasets.</heading>
+Our evaluation is centered around the four core single-cell reasoning tasks introduced in our framework. To ensure fair and direct comparison with state-of-the-art models, we adopt the exact datasets and train/test splits used in seminal works, including C2S-Scale (
+Rizvi et al., 2025
+) and InstructCell (
+Fang et al., 2025a
+). Our training strategy involves fine-tuning a single base model on a designated primary training set for each task theme, and then evaluating its performance on both in-distribution (ID) and out-of-distribution (OOD) test sets.
+  <list>
+    <ldiv/>
+    <text><![CDATA[Cell Identity Tasks (Annotation & Generation):]]></text>
+    <list>
+      <ldiv/>
+      <bold>Training Dataset:</bold>
+To build a robust multi-task model for cell identity, we construct a mixed training dataset by combining the training splits of four diverse public benchmarks:
+He-2020
+-Liver (
+He et al., 2020
+), Segerstolpe-2016 (
+Segerstolpe et al., 2016
+), Xin-2016 (
+Xin et al., 2016
+), and Human Immune Tissue Dataset (
+Domínguez Conde et al., 2022
+). This mixed dataset serves as the sole source of supervision for our model on all identity tasks.
+      <ldiv/>
+      <bold>ID Test Set:</bold>
+For the cell type annotation task, we use the held-out test splits of the three datasets included in our training mix (He-2020-Liver, Segerstolpe-2016, Xin-2016). For cell generation, we use the held-out test splits of Human Immune Datasets.
+      <ldiv/>
+      <bold>OOD Test Set:</bold>
+We use two datasets entirely unseen during training: Ma-2020 (
+Ma et al., 2020
+) and Bastidas-Ponce-2019 (
+Bastidas-Ponce et al., 2019
+).
+    </list>
+    <ldiv/>
+    <text><![CDATA[Cell Dynamics Tasks (Sensitivity Prediction & Response Generation):]]></text>
+    <list>
+      <ldiv/>
+      <bold>Training Dataset:</bold>
+We construct a comprehensive mixed training dataset by combining three distinct perturbation benchmarks: the L1000 dataset (
+Subramanian et al., 2017
+), which covers two human drug response datasets,
+GSE149383
+(Lung) (
+Aissa et al., 2021
+) and
+GSE117872
+(Oral Cavity) (
+Sharma et al., 2018
+). This diverse dataset, containing examples for both response generation and sensitivity classification, serves as the sole source of supervision for our model on all dynamics-related tasks.
+      <ldiv/>
+      <bold>ID Test Sets:</bold>
+The held-out test splits of the two datasets explicitly included for the classification task:
+GSE149383
+and
+GSE117872
+.
+      <ldiv/>
+      <bold>OOD Test Sets:</bold>
+We use two benchmarks entirely unseen during training. For cross-species classification, we use the complete
+GSE110894
+(Mouse Bone Marrow) dataset (
+Bell et al., 2019
+). For generative causal reasoning, we use the OOD splits of the sci-Plex3 Human Perturbation dataset (
+Srivatsan et al., 2020
+).
+    </list>
+  </list>
+  <heading level="4">Evaluation Metrics.</heading>
+  <list>
+    <ldiv/>
+    For Classification Tasks (Cell Type Annotation, Drug Sensitivity): We report
+    <italic>Accuracy</italic>
+as the primary metric. We also include the
+    <italic>Macro F1-score</italic>
+to account for class imbalance.
+    <ldiv/>
+    For Generative Tasks (Conditional Generation, Perturbation Response): For Perturbation Response Generation, we follow C2S-Scale (
+Rizvi et al., 2025
+) and report distribution-based metrics (scFID and MMD) calculated in a pre-trained embedding space (scGPT (
+Cui et al., 2024
+)) to assess the quality and realism of generated cell populations. For Conditional Cell Generation, we follow Cell2Sentence (
+LeVine et al., 2024
+) and report Gromov-Wasserstein (GW) Distance and k-NN Accuracy. The k-NN classifier is evaluated with multiple neighbor values ( k ∈ { 3 , 5 , 10 , 25 } ).
+  </list>
+  <heading level="4">Baseline Models.</heading>
+We benchmark
+  <code>CellDuality</code>
+against a comprehensive set of state-of-the-art models, with all performance metrics cited directly from the original publications for fair comparison. For classification tasks (Annotation and Sensitivity), we compare against domain-specific foundation models such as
+  <bold>scGPT</bold>
+(
+Cui et al., 2024
+) and
+  <bold>Geneformer</bold>
+(
+Theodoris et al., 2023
+), as well as LLM-based agents like
+  <bold>InstructCell</bold>
+(
+Fang et al., 2025a
+). For generative tasks (Cell and Response Generation), baselines include specialized generative models like
+  <bold>scGen</bold>
+(
+Lotfollahi et al., 2019
+) and
+  <bold>scDiffusion</bold>
+(
+Luo et al., 2024
+), and the powerful LLM-based framework
+  <bold>C2S-Scale</bold>
+(
+Rizvi et al., 2025
+).
+  <heading level="4">Implementation Details.</heading>
+Our
+  <code>CellDuality</code>
+model is based on the Llama-3.2-3B architecture. The SFT stage is conducted for 3 epochs with a learning rate of 1 e − 5 . The subsequent self-supervised RL alignment is performed using GRPO with a group size of G = 8 , a train batch size of 512, a mini-batch size of 32, and is run for 200 optimization steps. All experiments are conducted on 8x A6000 GPUs. All our scores are shown as mean ± std over 5 runs.
+  <heading level="3">4.2. Main Results</heading>
+Across all four reasoning tasks, our self-supervised framework,
+  <code>Cell-Duality</code>
+, demonstrates highly competitive performance against a wide range of state-of-the-art baselines. As detailed in
+Tables 2
+through
+5
+, our multi-task model, trained on mixed datasets, consistently matches or surpasses specialist models that were trained on individual benchmarks. This is particularly evident in the classification tasks (Cell Type Annotation and Drug Sensitivity), where
+  <code>CellDuality</code>
+shows robust generalization to out-of-distribution and even cross-species datasets.
+  <heading level="4">Table 2:</heading>
+  <text>Performance comparison on the Cell Type Annotation task. Baselines are trained on each dataset individually. We report Accuracy (Acc.) and Macro F1-score (F1) for all five benchmarks, differentiating between ID and OOD evaluation for our model.</text>
+  <table>
+    <ched/>
+    Model
+    <ched/>
+    In-Distribution (ID) Evaluation
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <ched/>
+    Out-of-Distribution (OOD) Evaluation
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <nl/>
+    <ucel/>
+    <ched/>
+    He-2020-Liver
+    <lcel/>
+    <ched/>
+    Segerstolpe-2016
+    <lcel/>
+    <ched/>
+    Xin-2016
+    <lcel/>
+    <ched/>
+    Ma-2020
+    <lcel/>
+    <ched/>
+    Bastidas-Ponce-2019
+    <lcel/>
+    <nl/>
+    <ecel/>
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <nl/>
+    <fcel/>
+    scBERT
+    <fcel/>
+    95.28
+    <fcel/>
+    94.08
+    <fcel/>
+    99.52
+    <fcel/>
+    99.64
+    <fcel/>
+    99.25
+    <fcel/>
+    98.79
+    <fcel/>
+    82.92
+    <fcel/>
+    81.73
+    <fcel/>
+    86.67
+    <fcel/>
+    79.60
+    <nl/>
+    <fcel/>
+    scGPT
+    <fcel/>
+    94.88
+    <fcel/>
+    91.75
+    <fcel/>
+    98.09
+    <fcel/>
+    97.82
+    <fcel/>
+    99.10
+    <fcel/>
+    98.40
+    <fcel/>
+    82.84
+    <fcel/>
+    79.40
+    <fcel/>
+    <text>
+      <bold>91.43</bold>
+    </text>
+    <fcel/>
+    87.01
+    <nl/>
+    <fcel/>
+    Geneformer
+    <fcel/>
+    96.06
+    <fcel/>
+    92.57
+    <fcel/>
+    99.52
+    <fcel/>
+    99.49
+    <fcel/>
+    <text>
+      <bold>99.70</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>99.39</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>85.79</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>84.89</bold>
+    </text>
+    <fcel/>
+    88.50
+    <fcel/>
+    83.81
+    <nl/>
+    <fcel/>
+    Cell2Sentence
+    <fcel/>
+    94.88
+    <fcel/>
+    94.42
+    <fcel/>
+    99.52
+    <fcel/>
+    99.64
+    <fcel/>
+    99.35
+    <fcel/>
+    98.77
+    <fcel/>
+    82.40
+    <fcel/>
+    81.05
+    <fcel/>
+    80.59
+    <fcel/>
+    76.82
+    <nl/>
+    <fcel/>
+    InstructCell-instruct
+    <fcel/>
+    96.06
+    <fcel/>
+    95.24
+    <fcel/>
+    <text>
+      <bold>100.00</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>100.00</bold>
+    </text>
+    <fcel/>
+    99.30
+    <fcel/>
+    98.89
+    <fcel/>
+    85.59
+    <fcel/>
+    84.56
+    <fcel/>
+    91.10
+    <fcel/>
+    <text>
+      <bold>88.69</bold>
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+(SFT-only)
+    </text>
+    <fcel/>
+    <text>
+      94.83
+      <subscript>±0.21</subscript>
+    </text>
+    <fcel/>
+    <text>94.67 ±0.18</text>
+    <fcel/>
+    <text>
+      98.76
+      <subscript>±0.08</subscript>
+    </text>
+    <fcel/>
+    <text>
+      98.73
+      <subscript>±0.09</subscript>
+    </text>
+    <fcel/>
+    <text>99.45 ±0.12</text>
+    <fcel/>
+    <text>99.01 ±0.15</text>
+    <fcel/>
+    <text>80.22 ±0.34</text>
+    <fcel/>
+    <text>74.95 ±0.41</text>
+    <fcel/>
+    <text>
+      72.87
+      <subscript>±0.28</subscript>
+    </text>
+    <fcel/>
+    <text>57.24 ±0.33</text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+    </text>
+    <fcel/>
+    <text>
+      <bold>96.34</bold>
+    </text>
+    <text>±0.19</text>
+    <fcel/>
+    <text>
+      <bold>95.41</bold>
+    </text>
+    <text>±0.16</text>
+    <fcel/>
+    <text>99.81</text>
+    <text>±0.07</text>
+    <fcel/>
+    <text>99.78</text>
+    <text>±0.08</text>
+    <fcel/>
+    <text>99.52</text>
+    <text>±0.11</text>
+    <fcel/>
+    <text>99.08</text>
+    <text>±0.13</text>
+    <fcel/>
+    <text>
+      82.03
+      <subscript>±0.32</subscript>
+    </text>
+    <fcel/>
+    <text>
+      81.78
+      <subscript>±0.39</subscript>
+    </text>
+    <fcel/>
+    <text>88.45 ±0.26</text>
+    <fcel/>
+    <text>
+      78.12
+      <subscript>±0.31</subscript>
+    </text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T2"/>
+    Open in a new tab
+  </text>
+  <heading level="4">Table 5:</heading>
+Performance on Conditional Cell Generation on the Human Immune dataset (InDistribution). Baseline results are cited from Cell2Sentence (
+LeVine et al., 2024
+). k-NN Accuracy is reported for multiple values of k.
+  <table>
+    <ched/>
+    Model
+    <ched/>
+    k-NN Accuracy (%) ↑
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <ched/>
+    GW Distance (↓)
+    <nl/>
+    <ucel/>
+    <ched/>
+    k=3
+    <ched/>
+    k=5
+    <ched/>
+    k=10
+    <ched/>
+    k=25
+    <ucel/>
+    <nl/>
+    <fcel/>
+    scVI
+    <fcel/>
+    <text>
+      24.36
+      <subscript>±0.0062</subscript>
+    </text>
+    <fcel/>
+    <text>24.00 ±0.0064</text>
+    <fcel/>
+    <text>
+      24.25
+      <subscript>±0.0034</subscript>
+    </text>
+    <fcel/>
+    <text>
+      23.48
+      <subscript>±0.0032</subscript>
+    </text>
+    <fcel/>
+    <text>
+      302.13
+      <subscript>±0.9338</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    scGen
+    <fcel/>
+    <text>
+      23.76
+      <subscript>±0.0112</subscript>
+    </text>
+    <fcel/>
+    <text>
+      23.30
+      <subscript>±0.0093</subscript>
+    </text>
+    <fcel/>
+    <text>23.77 ±0.0053</text>
+    <fcel/>
+    <text>
+      23.35
+      <subscript>±0.0041</subscript>
+    </text>
+    <fcel/>
+    <text>
+      315.95
+      <subscript>±1.2431</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    scDiffusion
+    <fcel/>
+    <text>23.35 ±0.0125</text>
+    <fcel/>
+    <text>22.88 ±0.0111</text>
+    <fcel/>
+    <text>23.68 ±0.0067</text>
+    <fcel/>
+    <text>23.06 ±0.0049</text>
+    <fcel/>
+    <text>72.02 ±0.3937</text>
+    <nl/>
+    <fcel/>
+    scGPT
+    <fcel/>
+    <text>18.38 ±0.0086</text>
+    <fcel/>
+    <text>17.88 ±0.0169</text>
+    <fcel/>
+    <text>18.11 ±0.0149</text>
+    <fcel/>
+    <text>18.82 ±0.0071</text>
+    <fcel/>
+    <text>
+      2989.81
+      <subscript>±4.9229</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    Cell2Sentence-160M
+    <fcel/>
+    <text>25.88</text>
+    <text>±0.0061</text>
+    <fcel/>
+    <text>25.65</text>
+    <text>±0.0060</text>
+    <fcel/>
+    <text>
+      <bold>27.46</bold>
+    </text>
+    <text>±0.0073</text>
+    <fcel/>
+    <text>
+      <bold>27.15</bold>
+    </text>
+    <text>±0.0070</text>
+    <fcel/>
+    <text>
+      <bold>54.30</bold>
+    </text>
+    <text>±0.3410</text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+(SFT-only)
+    </text>
+    <fcel/>
+    <text>24.92 ±0.0058</text>
+    <fcel/>
+    <text>24.71 ±0.0055</text>
+    <fcel/>
+    <text>25.83 ±0.0062</text>
+    <fcel/>
+    <text>25.49 ±0.0059</text>
+    <fcel/>
+    <text>63.87 ±0.0421</text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+    </text>
+    <fcel/>
+    <text>
+      <bold>26.34</bold>
+    </text>
+    <text>±0.0056</text>
+    <fcel/>
+    <text>
+      <bold>25.92</bold>
+    </text>
+    <text>±0.0053</text>
+    <fcel/>
+    <text>26.21</text>
+    <text>±0.0060</text>
+    <fcel/>
+    <text>25.98</text>
+    <text>±0.0057</text>
+    <fcel/>
+    <text>61.45</text>
+    <text>±0.0408</text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T5"/>
+    Open in a new tab
+  </text>
+  <text>The most significant impact of our self-supervised approach is observed in the generative tasks requiring deep mechanistic reasoning. For Perturbation Response Generation, the duality-guided RL stage provides a substantial performance boost over the already strong SFT baseline. Critically, our self-supervised model successfully narrows the performance gap to a fully-supervised oracle that requires ground-truth labels for alignment, proving the efficacy of our annotation-free strategy. While our model also demonstrates strong performance on Conditional Cell Generation by outperforming most classical and deep learning-based generative models, its primary strength lies in its ability to learn the intrinsic, mechanistic consistency of biological processes, showcasing a new path toward scalable and robust scientific reasoning agents. The central value of our self-supervised approach lies in eliminating the dependence on expensive, often unavailable ground-truth labels during the RL alignment phase. Our framework achieves competitive performance without any such supervision, providing a practical and scalable path to strong reasoning capabilities in data-scarce biological domains.</text>
+  <heading level="3">4.3. Ablation Study</heading>
+  <heading level="4">Self-Supervised vs. Ground-Truth Supervised RL</heading>
+To rigorously quantify the efficacy of our self-supervised alignment strategy, we conduct a head-to-head comparison against a standard supervised RL approach. We evaluate three key models on their respective in-distribution test sets: (1) the SFT-only baseline, (2) a supervised RL oracle trained with ground-truth rewards, and (3) our self-supervised
+  <code>CellDuality</code>
+model. As shown in
+Table 6
+<![CDATA[, our self-supervised RL approach consistently and significantly boosts performance over the SFT-only baseline across all tasks. Critically, our annotation-free method substantially narrows the performance gap to the fully-supervised oracle, and even surpasses the oracle's Macro F1-score on the He-2020-Liver annotation task, suggesting it learns more robust decision boundaries.]]>  
+  <heading level="5">Table 6:</heading>
+Core ablation study comparing Self-Supervised RL against a Ground-Truth Supervised oracle. All models are initialized from the same SFT checkpoint and evaluated on their respective
+  <bold>in-distribution (ID)</bold>
+test sets.
+  <table>
+    <ched/>
+    Method Configuration
+    <ched/>
+    He-2020-Liver
+    <lcel/>
+    <ched/>
+    <text>GSE149383
+(Lung)
+</text>
+    <lcel/>
+    <ched/>
+    sci-Plex3
+    <lcel/>
+    <nl/>
+    <ucel/>
+    <ched/>
+    Acc. (↑)
+    <ched/>
+    F1 (↑)
+    <ched/>
+    Acc. (↑)
+    <ched/>
+    F1 (↑)
+    <ched/>
+    scFID (↓)
+    <ched/>
+    MMD (↓)
+    <nl/>
+    <fcel/>
+    Llama-3.2-3B-Instruct
+    <fcel/>
+    <text>22.45 ±1.23</text>
+    <fcel/>
+    <text>52.82 ±1.45</text>
+    <fcel/>
+    <text>
+      29.67
+      <subscript>±0.89</subscript>
+    </text>
+    <fcel/>
+    <text>61.34 ±1.12</text>
+    <fcel/>
+    -
+    <fcel/>
+    -
+    <nl/>
+    <fcel/>
+    SFT-only
+    <fcel/>
+    <text>
+      95.83
+      <subscript>±0.21</subscript>
+    </text>
+    <fcel/>
+    <text>
+      94.67
+      <subscript>±0.18</subscript>
+    </text>
+    <fcel/>
+    <text>
+      98.91
+      <subscript>±0.15</subscript>
+    </text>
+    <fcel/>
+    <text>
+      98.89
+      <subscript>±0.16</subscript>
+    </text>
+    <fcel/>
+    <text>
+      0.045
+      <subscript>±0.003</subscript>
+    </text>
+    <fcel/>
+    <text>
+      0.028
+      <subscript>±0.002</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    RL with Ground-Truth
+    <fcel/>
+    <text>
+      <bold>97.21</bold>
+    </text>
+    <text>±0.16</text>
+    <fcel/>
+    <text>94.85</text>
+    <text>
+      <subscript>±0.14</subscript>
+    </text>
+    <fcel/>
+    <text>
+      <bold>99.34</bold>
+    </text>
+    <text>±0.12</text>
+    <fcel/>
+    <text>
+      <bold>99.31</bold>
+    </text>
+    <text>±0.13</text>
+    <fcel/>
+    <text>
+      <bold>0.025</bold>
+    </text>
+    <text>
+      <subscript>±0.001</subscript>
+    </text>
+    <fcel/>
+    <text>
+      <bold>0.012</bold>
+    </text>
+    <text>
+      <subscript>±0.001</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <bold>Ours (Self-Supervised RL)</bold>
+    </text>
+    <fcel/>
+    <text>96.34</text>
+    <text>±0.19</text>
+    <fcel/>
+    <text>
+      <bold>95.41</bold>
+    </text>
+    <text>±0.16</text>
+    <fcel/>
+    <text>99.12</text>
+    <text>±0.13</text>
+    <fcel/>
+    <text>99.10</text>
+    <text>
+      <subscript>±0.14</subscript>
+    </text>
+    <fcel/>
+    <text>0.038</text>
+    <text>
+      <subscript>±0.002</subscript>
+    </text>
+    <fcel/>
+    <text>0.019</text>
+    <text>
+      <subscript>±0.001</subscript>
+    </text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T6"/>
+    Open in a new tab
+  </text>
+  <heading level="2">5. Conclusion</heading>
+We introduced
+  <code>CellDuality</code>
+, an agent that learns complex biological reasoning through a novel self-supervised framework. Our core contribution, the principle of complementary task duality, enables reinforcement learning alignment on non-verifiable single-cell tasks by generating intrinsic rewards from a bidirectional reasoning loop. Trained via our sample-efficient, two-stage paradigm,
+  <code>CellDuality</code>
+achieves state-of-the-art performance across four distinct reasoning tasks, providing coherent biological explanations. Critically, our self-supervised approach demonstrates its efficacy by narrowing the performance gap to a supervised RLVR baseline. This work presents a promising step toward scalable foundation models in biology, offering a new paradigm that learns to reason from the intrinsic logical structure of scientific problems, rather than from external labels.
+  <heading level="3">Limitations</heading>
+  <text>Our framework is validated on four representative transcriptomic tasks and has not yet been extended to other omics modalities such as ATAC-seq or proteomics. The cell sentence representation discards absolute expression magnitudes, trading encoding precision for compatibility with off-the-shelf LLMs. While our duality-based reward enforces logical consistency, it does not guarantee biological correctness. Mutually consistent yet biologically implausible predictions remain possible, and direct interpretability evaluation at the pathway level is left for future work. The RL gains are most pronounced for generative tasks and comparatively modest for classification tasks where SFT alone already achieves strong performance. Finally, our experiments use a 3B-parameter model, which may limit reasoning depth. Exploring the scaling behavior of our approach is an important future direction.</text>
+  <picture>
+    <caption>The plots show the moving average of (a) the categorical accuracy-based reward for generative tasks and (b) the continuous RWJS-based reward for classification tasks.</caption>
+  </picture>
+  <heading level="2">Table 1:</heading>
+  <text>Task Formulation for Single-Cell Reasoning.</text>
+  <table>
+    <ched/>
+    Theme
+    <ched/>
+    Classification Tasks
+    <ched/>
+    Generative Tasks
+    <nl/>
+    <fcel/>
+    <text>
+      <bold>Cell Identity</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>Cell Type Annotation</bold>
+(Input: Cell, Output: Label)
+    </text>
+    <fcel/>
+    <text>
+      <bold>Conditional Cell Generation</bold>
+(Input: Label, Output: Cell)
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <bold>Cell Dynamics</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>Drug Sensitivity Prediction</bold>
+(Input: Cell + Drug, Output: Label)
+    </text>
+    <fcel/>
+    <text>
+      <bold>Perturbation Response Generation</bold>
+(Input: Cell + Drug, Output: New Cell)
+    </text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T1"/>
+    Open in a new tab
+  </text>
+  <heading level="2">Table 3:</heading>
+  <text>Performance comparison on the Drug Sensitivity Classification task. Baselines are trained on each dataset individually. We report Accuracy (Acc.) and Macro F1-score (F1).</text>
+  <table>
+    <ched/>
+    Model
+    <ched/>
+    In-Distribution (ID) Evaluation
+    <lcel/>
+    <lcel/>
+    <lcel/>
+    <ched/>
+    Out-of-Distribution (OOD) Evaluation
+    <lcel/>
+    <nl/>
+    <ucel/>
+    <ched/>
+    <text>GSE149383
+(Human Lung)
+</text>
+    <lcel/>
+    <ched/>
+    <text>GSE117872
+(Human Oral)
+</text>
+    <lcel/>
+    <ched/>
+    <text>GSE110894
+(Mouse Bone)
+</text>
+    <lcel/>
+    <nl/>
+    <ecel/>
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <ched/>
+    Acc. (%)
+    <ched/>
+    F1 (%)
+    <nl/>
+    <fcel/>
+    scBERT
+    <fcel/>
+    <text>
+      <bold>99.56</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>99.56</bold>
+    </text>
+    <fcel/>
+    95.42
+    <fcel/>
+    96.01
+    <fcel/>
+    95.80
+    <fcel/>
+    95.79
+    <nl/>
+    <fcel/>
+    scGPT
+    <fcel/>
+    97.79
+    <fcel/>
+    97.79
+    <fcel/>
+    82.44
+    <fcel/>
+    84.76
+    <fcel/>
+    95.80
+    <fcel/>
+    95.79
+    <nl/>
+    <fcel/>
+    Geneformer
+    <fcel/>
+    98.23
+    <fcel/>
+    98.23
+    <fcel/>
+    94.66
+    <fcel/>
+    95.27
+    <fcel/>
+    93.01
+    <fcel/>
+    92.91
+    <nl/>
+    <fcel/>
+    Cell2Sentence
+    <fcel/>
+    93.36
+    <fcel/>
+    93.36
+    <fcel/>
+    90.84
+    <fcel/>
+    90.72
+    <fcel/>
+    95.10
+    <fcel/>
+    95.08
+    <nl/>
+    <fcel/>
+    InstructCell-instruct
+    <fcel/>
+    97.35
+    <fcel/>
+    97.34
+    <fcel/>
+    <text>
+      <bold>100.00</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>100.00</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>97.20</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>97.19</bold>
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+(SFT-only)
+    </text>
+    <fcel/>
+    <text>98.91 ±0.15</text>
+    <fcel/>
+    <text>98.89 ±0.16</text>
+    <fcel/>
+    <text>
+      96.78
+      <subscript>±0.22</subscript>
+    </text>
+    <fcel/>
+    <text>97.12 ±0.19</text>
+    <fcel/>
+    <text>96.45</text>
+    <text>±0.18</text>
+    <fcel/>
+    <text>96.42</text>
+    <text>
+      <subscript>±0.20</subscript>
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+    </text>
+    <fcel/>
+    <text>99.12</text>
+    <text>±0.13</text>
+    <fcel/>
+    <text>99.10</text>
+    <text>±0.14</text>
+    <fcel/>
+    <text>97.23</text>
+    <text>±0.20</text>
+    <fcel/>
+    <text>97.58</text>
+    <text>
+      <subscript>±0.17</subscript>
+    </text>
+    <fcel/>
+    <text>
+      96.12
+      <subscript>±0.21</subscript>
+    </text>
+    <fcel/>
+    <text>
+      96.08
+      <subscript>±0.23</subscript>
+    </text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T3"/>
+    Open in a new tab
+  </text>
+  <heading level="2">Table 4:</heading>
+  <text>Performance on Perturbation Response Generation (sci-Plex3 benchmark). Our model was trained on a separate perturbation dataset, while baselines were trained on the in-distribution splits of sci-Plex3. Lower scores are better for distribution-based metrics.</text>
+  <table>
+    <ched/>
+    Model
+    <ched/>
+    Supervision Type
+    <ched/>
+    scFID (↓L)
+    <ched/>
+    MMD (↓)
+    <ched/>
+    Wasserstein (↓)
+    <nl/>
+    <fcel/>
+    scGen
+    <fcel/>
+    Supervised
+    <fcel/>
+    0.95
+    <fcel/>
+    1.05
+    <fcel/>
+    0.98
+    <nl/>
+    <fcel/>
+    CellOT
+    <fcel/>
+    Supervised
+    <fcel/>
+    0.88
+    <fcel/>
+    1.03
+    <fcel/>
+    0.95
+    <nl/>
+    <fcel/>
+    scGPT
+    <fcel/>
+    Supervised
+    <fcel/>
+    0.29
+    <fcel/>
+    0.42
+    <fcel/>
+    0.54
+    <nl/>
+    <fcel/>
+    C2S-Scale 1B (SFT)
+    <fcel/>
+    Supervised
+    <fcel/>
+    <text>
+      <bold>0.02</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>0.01</bold>
+    </text>
+    <fcel/>
+    0.21
+    <nl/>
+    <fcel/>
+    C2S-Scale (GRPO w/ GT)
+    <fcel/>
+    <text>
+      <bold>Ground-Truth RL</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>0.02</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>0.01</bold>
+    </text>
+    <fcel/>
+    <text>
+      <bold>0.21</bold>
+    </text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+(SFT-only)
+    </text>
+    <fcel/>
+    Supervised
+    <fcel/>
+    <text>
+      0.045
+      <subscript>±0.003</subscript>
+    </text>
+    <fcel/>
+    <text>
+      0.028
+      <subscript>±0.002</subscript>
+    </text>
+    <fcel/>
+    <text>0.267 ±0.012</text>
+    <nl/>
+    <fcel/>
+    <text>
+      <code>CellDuality</code>
+    </text>
+    <fcel/>
+    <text>
+      <bold>Self-Supervised</bold>
+    </text>
+    <fcel/>
+    <text>0.038</text>
+    <text>
+      <subscript>±0.002</subscript>
+    </text>
+    <fcel/>
+    <text>0.019</text>
+    <text>
+      <subscript>±0.001</subscript>
+    </text>
+    <fcel/>
+    <text>0.245</text>
+    <text>±0.011</text>
+    <nl/>
+  </table>
+  <text>
+    <href uri="table/T4"/>
+    Open in a new tab
+  </text>
+  <heading level="2">Acknowledgements</heading>
+  <text>This research was partially funded by the National Institutes of Health (NIH) under award 1R01EB03710101. The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official policies, either expressed or implied, of the NIH. This research was also partially supported by the Amazon Research Award.</text>
+  <heading level="2">Footnotes</heading>
+  <text>The Use of Large Language Models</text>
+  <text><![CDATA[We utilized Google's Gemini Pro 2.5 as a writing assistant in the preparation of this manuscript. Its function was strictly limited to language refinement tasks, such as enhancing clarity, correcting grammar, and rephrasing sentences to improve readability within an academic context. All scientific content, including the core ideas, experimental design, and interpretation of results, was generated exclusively by the human authors.]]></text>
+  <heading level="2">References</heading>
+  <list class="ordered">
+    <ldiv/>
+    Aissa Alexandre F, Islam Abul BMMK, Ariss Majd M, Go Cammille C, Rader Alexandra E, Conrardy Ryan D, Gajda Alexa M, Rubio-Perez Carlota, Valyi-Nagy Klara, Pasquinelli Mary, et al. Single-cell transcriptional changes associated with drug tolerance and response to combination therapies in cancer. Nature communications, 12(1):1628, 2021. [
+Google Scholar
+]
+    <ldiv/>
+    Bai Yuntao, Kadavath Saurav, Kundu Sandipan, Askell Amanda, Kernion Jackson, Jones Andy, Chen Anna, Goldie Anna, Mirhoseini Azalia, McKinnon Cameron, et al. Constitutional ai: Harmlessness from ai feedback. arXiv preprint arXiv:2212.08073, 2022. [
+Google Scholar
+]
+    <ldiv/>
+    Bastidas-Ponce Aimée, Tritschler Sophie, Dony Leander, Scheibner Katharina, Tarquis-Medina Marta, Salinno Ciro, Schirge Silvia, Burtscher Ingo, Böttcher Anika, Theis Fabian J, et al. Comprehensive single cell mrna profiling reveals a detailed roadmap for pancreatic endocrinogenesis. Development, 146(12):dev173849, 2019. [
+DOI
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Bell Charles C, Fennell Katie A, Chan Yih-Chih, Rambow Florian, Yeung Miriam M, Vassiliadis Dane, Lara Luis, Yeh Paul, Martelotto Luciano G, Rogiers Aljosja, et al. Targeting enhancer switching overcomes non-genetic drug resistance in acute myeloid leukaemia. Nature communications, 10(1):2723, 2019. [
+Google Scholar
+]
+    <ldiv/>
+    Cui Haotian, Wang Chloe, Maan Hassaan, Pang Kuan, Luo Fengning, Duan Nan, and Wang Bo. scgpt: toward building a foundation model for single-cell multi-omics using generative ai. Nature Methods, pp. 1-11, 2024. [
+DOI
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Domínguez Conde C, Xu Chao, Jarvis Louie B, Rainbow Daniel B, Wells Sara B, Gomes Tamir, Howlett SK, Suchanek O, Polanski K, King HW, et al. Cross-tissue immune cell analysis reveals tissue-specific features in humans. Science, 376(6594):eabl5197, 2022. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Fang Yin, Deng Xinle, Liu Kangwei, Zhang Ningyu, Qian Jingyang, Yang Penghui, Fan Xiaohui, and Chen Huajun. A multi-modal ai copilot for single-cell analysis with instruction following. arXiv preprint arXiv:2501.08187, 2025a. [
+Google Scholar
+]
+    <ldiv/>
+    Fang Yin, Jin Qiao, Xiong Guangzhi, Jin Bowen, Zhong Xianrui, Ouyang Siru, Zhang Aidong, Han Jiawei, and Lu Zhiyong. Cell-o1: Training llms to solve single-cell reasoning puzzles with reinforcement learning. arXiv preprint arXiv:2506.02911, 2025b. [
+Google Scholar
+]
+    <ldiv/>
+    Hao Minsheng, Gong Jing, Zeng Xin, Liu Chiming, Guo Yucheng, Cheng Xingyi, Wang Taifeng, Ma Jianzhu, Zhang Xuegong, and Song Le. Large-scale foundation model on single-cell transcriptomics. Nature Methods, pp. 1-11, 2024. [
+DOI
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    He Shuai, Wang Lin-He, Liu Yang, Li Yi-Qi, Chen Hai-Tian, Xu Jing-Hong, Peng Wan, Lin Guo-Wang, Wei Pan-Pan, Li Bo, et al. Single-cell transcriptome profiling of an adult human cell atlas of 15 major organs. Genome biology, 21:1-34, 2020. [
+Google Scholar
+]
+    <ldiv/>
+    Istrate Ana-Maria, Milletari Fausto, Castrotorres Fabrizio, Tomczak Jakub M, Torkar Michaela, Li Donghui, and Karaletsos Theofanis. rbio1-training scientific reasoning llms with biological world models as soft verifiers. bioRxiv, pp. 2025-08, 2025. [
+Google Scholar
+]
+    <ldiv/>
+    Lee Harrison, Phatale Samrat, Mansoor Hassan, Lu Kellie Ren, Mesnard Thomas, Ferret Johan, Bishop Colton, Hall Ethan, Carbune Victor, and Rastogi Abhinav. Rlaif: Scaling reinforcement learning from human feedback with ai feedback. 2023. [
+Google Scholar
+]
+    <ldiv/>
+    LeVine Daniel, Rizvi Syed Asad, Lévy Sacha, Pallikkavaliyaveetil Nazreen, Zhang David, Chen Xingyu, Ghadermarzi Sina, Wu Ruiming, Zheng Zihe, Vrkic Ivan, Zhong Anna, Raskin Daphne, Han Insu, de Oliveira Fonseca Antonio Henrique, Caro Josue Ortega, Karbasi Amin, Dhodapkar Rahul Madhav, and van Dijk David. Cell2sentence: Teaching large language models the language of biology. In ICML.
+OpenReview.net
+, 2024. [
+Google Scholar
+]
+    <ldiv/>
+    Lotfollahi Mohammad, Alexander Wolf F, and Theis Fabian J. scgen predicts single-cell perturbation responses. Nature methods, 16(8):715-721, 2019. [
+DOI
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Luo Erpai, Hao Minsheng, Wei Lei, and Zhang Xuegong. scdiffusion: conditional generation of high-quality single-cell data using diffusion model. Bioinformatics, 40(9):btae518, 2024. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Ma Sai, Zhang Bing, LaFave Lindsay M, Earl Andrew S, Chiang Zachary, Hu Yan, Ding Jiarui, Brack Alison, Kartha Vinay K, Tay Tristan, et al. Chromatin potential identified by shared single-cell profiling of rna and chromatin. Cell, 183(4):1103-1116, 2020. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Matsumoto Nicholas, Choi Hyunjun, Moran Jay, Hernandez Miguel E, Venkatesan Mythreye, Li Xi, Chang Jui-Hsuan, Wang Paul, and Moore Jason H. Escargot: an ai agent leveraging large language models, dynamic graph of thoughts, and biomedical knowledge graphs for enhanced reasoning. Bioinformatics, 41(2):btaf031, 2025. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Ouyang Long, Wu Jeffrey, Jiang Xu, Almeida Diogo, Wainwright Carroll L., Mishkin Pamela, Zhang Chong, Agarwal Sandhini, Slama Katarina, Ray Alex, Schulman John, Hilton Jacob, Kelton Fraser, Miller Luke, Simens Maddie, Askell Amanda, Welinder Peter, Christiano Paul F., Leike Jan, and Lowe Ryan. Training language models to follow instructions with human feedback. In NeurIPS, 2022. [
+Google Scholar
+]
+    <ldiv/>
+    Rafailov Rafael, Sharma Archit, Mitchell Eric, Manning Christopher D, Ermon Stefano, and Finn Chelsea. Direct preference optimization: Your language model is secretly a reward model. Advances in neural information processing systems, 36:53728-53741, 2023. [
+Google Scholar
+]
+    <ldiv/>
+    Rizvi Syed Asad, Levine Daniel, Patel Aakash, Zhang Shiyang, Wang Eric, He Sizhuang, Zhang David, Tang Cerise, Lyu Zhuoyang, Darji Rayyan, et al. Scaling large language models for nextgeneration single-cell analysis. bioRxiv, pp. 2025-04, 2025. [
+Google Scholar
+]
+    <ldiv/>
+    Segerstolpe Åsa, Palasantza Athanasia, Eliasson Pernilla, Andersson Eva-Marie, Andréasson Anne-Christine, Sun Xiaoyan, Picelli Simone, Sabirsh Alan, Clausen Maryam, Bjursell Magnus K, et al. Single-cell transcriptome profiling of human pancreatic islets in health and type 2 diabetes. Cell metabolism, 24(4):593-607, 2016. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Shao Zhihong, Wang Peiyi, Zhu Qihao, Xu Runxin, Song Junxiao, Bi Xiao, Zhang Haowei, Zhang Mingchuan, Li YK, Wu Yang, et al. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300, 2024. [
+Google Scholar
+]
+    <ldiv/>
+    Sharma Ankur, Cao Elaine Yiqun, Kumar Vibhor, Zhang Xiaoqian, Leong Hui Sun, Wong Angeline Mei Lin, Ramakrishnan Neeraja, Hakimullah Muhammad, Vivian Teo Hui Min, Chong Fui Teen, et al. Longitudinal single-cell rna sequencing of patient-derived primary cells reveals drug-induced infidelity in stem cell hierarchy. Nature communications, 9(1):4931, 2018. [
+Google Scholar
+]
+    <ldiv/>
+    She Shuaijie, Bao Yu, Lu Yu, Xu Lu, Li Tao, Zhu Wenhao, Huang Shujian, Cheng Shanbo, Lu Lu, and Wang Yuxuan. Dupo: Enabling reliable llm self-verification via dual preference optimization. arXiv preprint arXiv:2508.14460, 2025. [
+Google Scholar
+]
+    <ldiv/>
+    Srivatsan Sanjay R, McFaline-Figueroa José L, Ramani Vijay, Saunders Lauren, Cao Junyue, Packer Jonathan, Pliner Hannah A, Jackson Dana L, Daza Riza M, Christiansen Lena, et al. Massively multiplex chemical transcriptomics at single-cell resolution. Science, 367(6473):45-51, 2020. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Subramanian Aravind, Narayan Rajiv, Corsello Steven M, Peck David D, Natoli Ted E, Lu Xiaodong, Gould Joshua, Davis John F, Tubelli Andrew A, Asiedu Jacob K, et al. A next generation connectivity map: L1000 platform and the first 1,000,000 profiles. Cell, 171(6):1437-1452, 2017. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Theodoris Christina V, Xiao Ling, Chopra Anant, Chaffin Mark D, Al Sayed Zeina R, Hill Matthew C, Mantineo Helene, Brydon Elizabeth M, Zeng Zexian, Liu X Shirley, et al. Transfer learning enables predictions in network biology. Nature, 618(7965):616-624, 2023. [
+DOI
+] [
+PMC free article
+] [
+PubMed
+] [
+Google Scholar
+]
+    <ldiv/>
+    Xin Yurong, Kim Jinrang, Okamoto Haruka, Ni Min, Wei Yi, Adler Christina, Murphy Andrew J, Yancopoulos George D, Lin Calvin, and Gromada Jesper. Rna sequencing of single human islet cells reveals type 2 diabetes genes. Cell metabolism, 24(4):608-615, 2016. [
+DOI
+] [
+PubMed
+] [
+Google Scholar
+]
+  </list>
+  <picture>
+    <caption>Close</caption>
+  </picture>
+  <heading level="2">ACTIONS</heading>
+  <list>
+    <ldiv/>
+    <text>
+      <href uri="pdf/nihms-2176134.pdf"/>
+      PDF (635.7 KB)
+    </text>
+    <picture>
+      <caption>
+        <href uri="pdf/nihms-2176134.pdf"/>
+        Download PDF icon
+      </caption>
+    </picture>
+    <ldiv/>
+    <text>Cite</text>
+    <picture>
+      <caption>Cite icon</caption>
+    </picture>
+    <ldiv/>
+    Collections
+    <ldiv/>
+    <text>Permalink</text>
+    <picture>
+      <caption>Permalink icon</caption>
+    </picture>
+  </list>
+  <heading level="2">RESOURCES</heading>
+  <heading level="3">Similar articles</heading>
+  <heading level="3">Cited by other articles</heading>
+  <heading level="3">Links to NCBI Databases</heading>
+  <text>
+    <layer value="furniture"/>
+    Follow NCBI
+  </text>
+  <text>
+    <layer value="furniture"/>
+    NCBI on X (formerly known as Twitter)
+    <layer value="furniture"/>
+    NCBI on Facebook
+    <layer value="furniture"/>
+    NCBI on LinkedIn
+    <layer value="furniture"/>
+    NCBI on GitHub
+    <layer value="furniture"/>
+    NCBI RSS feed
+  </text>
+  <text>
+    <layer value="furniture"/>
+    Connect with NLM
+  </text>
+  <text>
+    <layer value="furniture"/>
+    NLM on X (formerly known as Twitter)
+    <layer value="furniture"/>
+    NLM on Facebook
+    <layer value="furniture"/>
+    NLM on YouTube
+  </text>
+  <text>
+    <href uri="https://www.google.com/maps/place/8600+Rockville+Pike,+Bethesda,+MD+20894/%4038.9959508,%20%20%20%20%20%20%20%20%20%20%20%20-77.101021,17z/data%3D!3m1!4b1!4m5!3m4!1s0x89b7c95e25765ddb%3A0x19156f88b27635b8!8m2!3d38.9959508!%20%20%20%20%20%20%20%20%20%20%20%204d-77.0988323"/>
+    <layer value="furniture"/>
+    <content>National Library of Medicine
+8600 Rockville Pike
+Bethesda, MD 20894</content>
+  </text>
+  <list>
+    <ldiv/>
+    <href uri="https://www.nlm.nih.gov/web_policies.html"/>
+    <layer value="furniture"/>
+    Web Policies
+    <ldiv/>
+    <href uri="https://www.nih.gov/institutes-nih/nih-office-director/office-communications-public-liaison/freedom-information-act-office"/>
+    <layer value="furniture"/>
+    FOIA
+    <ldiv/>
+    <href uri="https://www.hhs.gov/vulnerability-disclosure-policy/index.html"/>
+    <layer value="furniture"/>
+    HHS Vulnerability Disclosure
+  </list>
+  <list>
+    <ldiv/>
+    <href uri="https://support.nlm.nih.gov/"/>
+    <layer value="furniture"/>
+    Help
+    <ldiv/>
+    <href uri="https://www.nlm.nih.gov/accessibility.html"/>
+    <layer value="furniture"/>
+    Accessibility
+    <ldiv/>
+    <href uri="https://www.nlm.nih.gov/careers/careers.html"/>
+    <layer value="furniture"/>
+    Careers
+  </list>
+  <list>
+    <ldiv/>
+    <href uri="https://www.nlm.nih.gov/"/>
+    <layer value="furniture"/>
+    NLM
+    <ldiv/>
+    <href uri="https://www.nih.gov/"/>
+    <layer value="furniture"/>
+    NIH
+    <ldiv/>
+    <href uri="https://www.hhs.gov/"/>
+    <layer value="furniture"/>
+    HHS
+    <ldiv/>
+    <href uri="https://www.usa.gov/"/>
+    <layer value="furniture"/>
+    USA.gov
+  </list>
+  <text>Back to Top</text>
+  <picture>
+    <caption>back to top icon</caption>
+  </picture>
+</doclang>

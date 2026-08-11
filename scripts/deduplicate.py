@@ -36,14 +36,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_EXPORTS_DIR = os.path.join(SCRIPT_DIR, "..", "data", "exports")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "..", "data")
 
-DB_NAMES = ["pubmed", "scopus", "semantic_scholar", "arxiv", "biorxiv_medrxiv",
+DB_NAMES = ["pubmed", "scopus", "openalex", "semantic_scholar", "arxiv", "biorxiv_medrxiv",
             "springernature", "google_scholar"]
 
 
-def build_export_files(exports_dir, search_date):
+def build_export_files(exports_dir, search_date, expected_databases=None):
     """Build the export file mapping for a given date."""
     files = {}
-    for db in DB_NAMES:
+    for db in expected_databases or DB_NAMES:
         filename = f"{db}_{search_date}.json"
         path = os.path.join(exports_dir, filename)
         if os.path.exists(path):
@@ -59,10 +59,50 @@ def build_export_files(exports_dir, search_date):
             print(f"  NOTE: {path} not found, skipping {db}")
     return files
 
+
+def validate_search_contract(summary_path, exports_dir, export_files):
+    """Refuse partial or count-inconsistent search packages at the boundary."""
+    with open(summary_path, "r", encoding="utf-8") as stream:
+        summary = json.load(stream)
+    if not summary.get("complete", False):
+        incomplete = ", ".join(summary.get("incomplete_databases", [])) or "unknown"
+        raise RuntimeError(f"Search summary is incomplete: {incomplete}")
+
+    requested = set(summary.get("requested_databases", []))
+    exported = set(export_files)
+    if requested != exported:
+        raise RuntimeError(
+            "Search/export mismatch; missing="
+            + ",".join(sorted(requested - exported))
+            + "; unexpected="
+            + ",".join(sorted(exported - requested))
+        )
+
+    summary_counts = summary.get("results_per_database", {})
+    for db_name, filename in export_files.items():
+        path = os.path.join(exports_dir, filename)
+        with open(path, "r", encoding="utf-8") as stream:
+            payload = json.load(stream)
+        if not isinstance(payload, dict):
+            raise RuntimeError(
+                f"{db_name} export lacks the versioned wrapper and execution status"
+            )
+        if not payload.get("execution", {}).get("complete", False):
+            raise RuntimeError(f"{db_name} export declares an incomplete execution")
+        records = payload.get("records", [])
+        if len(records) != summary_counts.get(db_name):
+            raise RuntimeError(
+                f"{db_name} count mismatch: export={len(records)} "
+                f"summary={summary_counts.get(db_name)}"
+            )
+    return summary
+
 # Preprint DOI prefixes
 PREPRINT_DOI_PREFIXES = (
     "10.1101/",       # bioRxiv / medRxiv
     "10.48550/arxiv", # arXiv
+    "10.21203/rs.",   # Research Square posted-content
+    "10.64898/",      # openRxiv (including bioRxiv) posted-content
 )
 
 
@@ -160,11 +200,16 @@ def load_records(db_name: str, filename: str, exports_dir: str) -> list[dict]:
             "venue": (r.get("venue") or r.get("journal") or r.get("publicationName") or "").strip(),
             "date": (r.get("date") or r.get("publicationDate") or "").strip(),
             "url": (r.get("url") or r.get("open_access_pdf") or "").strip(),
+            "search_date_status": (r.get("search_date_status") or "unreported").strip(),
+            "query_id": str(r.get("found_by_query") or r.get("query_id") or "").strip(),
         }
 
         # For Scopus: extract scopus_id
         if db_name == "scopus":
             rec["scopus_id"] = (r.get("scopus_id") or "").strip()
+
+        if db_name == "openalex":
+            rec["openalex_id"] = (r.get("openalex_id") or "").strip()
 
         # For EuropePMC: extract epmc_id
         if db_name == "biorxiv_medrxiv":
@@ -206,6 +251,7 @@ class DeduplicationEngine:
 
         # Log: list of (record_summary, action, reason, cluster_id)
         self.log: list[dict] = []
+        self.review_queue: list[dict] = []
 
     def _new_cluster(self, record: dict) -> int:
         cid = self.next_cluster_id
@@ -262,6 +308,29 @@ class DeduplicationEngine:
         if record["title_normalized"]:
             cid = self.title_index.get(record["title_normalized"])
             if cid is not None:
+                incoming_doi = record["doi_normalized"]
+                existing_dois = {
+                    row["doi_normalized"]
+                    for row in self.clusters[cid]
+                    if row["doi_normalized"]
+                }
+                if incoming_doi and existing_dois and incoming_doi not in existing_dois:
+                    is_version_pair = all(
+                        is_preprint_doi(incoming_doi) != is_preprint_doi(value)
+                        for value in existing_dois
+                    )
+                    if is_version_pair:
+                        return cid, "Exact title match: preprint/published version link"
+                    self.review_queue.append({
+                        "reason": "exact title but conflicting non-preprint DOIs",
+                        "incoming_source": record["source_db"],
+                        "incoming_title": record["title_original"],
+                        "incoming_doi": incoming_doi,
+                        "existing_cluster_id": cid,
+                        "existing_dois": sorted(existing_dois),
+                        "automatic_action": "kept_separate",
+                    })
+                    return None, ""
                 return cid, f"Exact title match"
 
         return None, ""
@@ -325,11 +394,12 @@ class DeduplicationEngine:
         DB_PRIORITY = {
             "pubmed": 1,
             "scopus": 2,
-            "semantic_scholar": 3,
-            "biorxiv_medrxiv": 4,
-            "springernature": 5,
-            "arxiv": 6,
-            "google_scholar": 7,
+            "openalex": 3,
+            "semantic_scholar": 4,
+            "biorxiv_medrxiv": 5,
+            "springernature": 6,
+            "arxiv": 7,
+            "google_scholar": 8,
         }
 
         results = []
@@ -354,10 +424,30 @@ class DeduplicationEngine:
                     best_abstract = max(all_abstracts, key=len)
 
             # Collect all source databases and IDs
-            sources = list(set(r["source_db"] for r in records))
-            all_dois = list(set(r["doi_original"] for r in records if r["doi_original"]))
-            all_pmids = list(set(r["pmid"] for r in records if r["pmid"]))
-            all_arxiv_ids = list(set(r["arxiv_id_original"] for r in records if r["arxiv_id_original"]))
+            sources = sorted(set(r["source_db"] for r in records))
+            all_dois = sorted(
+                set(r["doi_original"] for r in records if r["doi_original"]),
+                key=normalize_doi,
+            )
+            all_pmids = sorted(set(r["pmid"] for r in records if r["pmid"]))
+            all_arxiv_ids = sorted(
+                set(r["arxiv_id_original"] for r in records if r["arxiv_id_original"]),
+                key=normalize_arxiv_id,
+            )
+            date_statuses = sorted(set(r["search_date_status"] for r in records))
+            source_query_ids = {
+                source: sorted(
+                    set(
+                        r["query_id"]
+                        for r in records
+                        if r["source_db"] == source and r["query_id"]
+                    )
+                )
+                for source in sources
+            }
+            source_query_ids = {
+                source: values for source, values in source_query_ids.items() if values
+            }
 
             # Check preprint→published
             preprint_dois = [d for d in all_dois if is_preprint_doi(d)]
@@ -381,6 +471,12 @@ class DeduplicationEngine:
                 "n_sources": len(sources),
                 "all_dois": all_dois,
                 "duplicate_count": len(records),
+                "search_date_statuses": date_statuses,
+                "has_uncertain_search_date": any(
+                    status.startswith("unknown") or status == "unreported"
+                    for status in date_statuses
+                ),
+                "source_query_ids": source_query_ids,
             }
             results.append(result)
 
@@ -397,11 +493,19 @@ def main():
     parser = argparse.ArgumentParser(description="Deduplicate systematic review search results")
     parser.add_argument("--exports-dir", default=DEFAULT_EXPORTS_DIR,
                         help="Directory with database export JSON files")
+    parser.add_argument("--output-dir", default=OUTPUT_DIR,
+                        help="Directory for deduplicated records, logs, and statistics")
     parser.add_argument("--date", default=None,
                         help="Search date suffix for filenames (e.g. 2026-02-15). Auto-detected if omitted.")
+    parser.add_argument(
+        "--search-summary",
+        default=None,
+        help="Fail-closed search summary used to validate source completeness and counts.",
+    )
     args = parser.parse_args()
 
     exports_dir = os.path.abspath(args.exports_dir)
+    output_dir = os.path.abspath(args.output_dir)
 
     # Auto-detect date from files in exports_dir if not specified
     search_date = args.date
@@ -414,7 +518,15 @@ def main():
             search_date = datetime.now().strftime("%Y-%m-%d")
         print(f"  Auto-detected search date: {search_date}")
 
-    export_files = build_export_files(exports_dir, search_date)
+    expected_databases = None
+    if args.search_summary:
+        with open(args.search_summary, "r", encoding="utf-8") as stream:
+            expected_databases = json.load(stream).get("requested_databases", [])
+    export_files = build_export_files(exports_dir, search_date, expected_databases)
+    if args.search_summary:
+        validate_search_contract(
+            os.path.abspath(args.search_summary), exports_dir, export_files
+        )
 
     print("=" * 60)
     print("DEDUPLICATION OF SYSTEMATIC REVIEW SEARCH RESULTS")
@@ -443,7 +555,7 @@ def main():
     # Add records in a deterministic order.
     # We add databases with best metadata first, so the "representative"
     # record is more likely to come from PubMed/Scopus when metadata is tied.
-    db_order = ["pubmed", "scopus", "semantic_scholar", "biorxiv_medrxiv",
+    db_order = ["pubmed", "scopus", "openalex", "semantic_scholar", "biorxiv_medrxiv",
                 "springernature", "arxiv", "google_scholar"]
 
     for db_name in db_order:
@@ -477,7 +589,8 @@ def main():
     print("=" * 60)
     print(f"  Records before dedup : {total_raw:,}")
     print(f"  Unique records       : {n_unique:,}")
-    print(f"  Duplicates removed   : {n_duplicates:,} ({n_duplicates/total_raw*100:.1f}%)")
+    duplicate_rate = n_duplicates / total_raw * 100 if total_raw else 0.0
+    print(f"  Duplicates removed   : {n_duplicates:,} ({duplicate_rate:.1f}%)")
     print()
     print("  Merge reasons:")
     for reason, count in sorted(merge_reasons.items(), key=lambda x: -x[1]):
@@ -512,10 +625,10 @@ def main():
     print()
 
     # Save outputs
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     # 1. Deduplicated records
-    out_path = os.path.join(OUTPUT_DIR, "deduplicated_records.json")
+    out_path = os.path.join(output_dir, "deduplicated_records.json")
     output = {
         "metadata": {
             "created": datetime.now().isoformat(),
@@ -524,6 +637,9 @@ def main():
             "total_after_dedup": n_unique,
             "duplicates_removed": n_duplicates,
             "source_files": export_files,
+            "validated_search_summary": (
+                os.path.abspath(args.search_summary) if args.search_summary else None
+            ),
         },
         "records": deduplicated,
     }
@@ -532,7 +648,7 @@ def main():
     print(f"  Saved: {out_path}")
 
     # 2. Deduplication log (CSV)
-    log_path = os.path.join(OUTPUT_DIR, "deduplication_log.csv")
+    log_path = os.path.join(output_dir, "deduplication_log.csv")
     with open(log_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "action", "reason", "cluster_id", "source_db", "title", "doi",
@@ -543,22 +659,38 @@ def main():
     print(f"  Saved: {log_path}")
 
     # 3. Statistics JSON
-    stats_path = os.path.join(OUTPUT_DIR, "deduplication_stats.json")
+    stats_path = os.path.join(output_dir, "deduplication_stats.json")
     stats = {
         "created": datetime.now().isoformat(),
         "records_per_database": db_counts,
         "total_before_dedup": total_raw,
         "total_after_dedup": n_unique,
         "duplicates_removed": n_duplicates,
-        "duplicate_rate": round(n_duplicates / total_raw * 100, 1),
+        "duplicate_rate": round(duplicate_rate, 1),
         "merge_reasons": dict(merge_reasons),
         "preprint_to_published_links": len(preprint_links),
         "preprint_links": preprint_links,
+        "identifier_conflicts_kept_separate": len(engine.review_queue),
         "source_distribution": {str(k): v for k, v in sorted(source_distribution.items())},
     }
     with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, ensure_ascii=False, indent=2)
     print(f"  Saved: {stats_path}")
+
+    # 4. Identifier conflicts that were deliberately not auto-merged.
+    review_path = os.path.join(output_dir, "deduplication_review_queue.json")
+    with open(review_path, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "created": datetime.now().isoformat(),
+                "count": len(engine.review_queue),
+                "records": engine.review_queue,
+            },
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+    print(f"  Saved: {review_path}")
 
     print()
     print("Done.")
