@@ -2071,6 +2071,65 @@ class OrchestratorTests(unittest.TestCase):
                 issues = pipeline.stage_validation_issues("search", repository_checkout=True)
             self.assertIn(f"missing declared artifact: {expected['path']}", issues)
 
+    def test_live_verifier_retries_an_individual_asset_connection_reset(self) -> None:
+        import requests
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            args.url = "https://example.test/catalog"
+            args.expected_commit = "commit-under-test"
+            args.check_assets = True
+            args.record_completion = False
+            atlas_root = Path(config["atlas_output"])
+            atlas_json = atlas_root / "data/atlas.json"
+            atlas_json.parent.mkdir(parents=True)
+            atlas_json.write_text(
+                json.dumps(
+                    {
+                        "meta": {
+                            "generated_from": "snapshot",
+                            "record_count": 1,
+                            "study_count": 1,
+                            "model_count": 1,
+                            "configuration_count": 1,
+                            "route_count": 1,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            asset = atlas_root / "assets/figure.png"
+            asset.parent.mkdir(parents=True)
+            asset.write_bytes(b"figure")
+            tree = atlas_tree_manifest(atlas_root)
+            deployment = json.dumps(
+                {"commit": args.expected_commit, "atlas_tree": tree}
+            ).encode()
+            payloads = {
+                "data/atlas.json": atlas_json.read_bytes(),
+                "data/deployment.json": deployment,
+                "assets/figure.png": asset.read_bytes(),
+            }
+            attempts: dict[str, int] = {}
+
+            def response_for(url: str, **unused: object) -> Mock:
+                path = url.split("/catalog/", 1)[1].split("?", 1)[0]
+                attempts[path] = attempts.get(path, 0) + 1
+                if path == "assets/figure.png" and attempts[path] == 1:
+                    raise requests.ConnectionError("transient reset")
+                response = Mock()
+                response.content = payloads[path]
+                response.raise_for_status.return_value = None
+                return response
+
+            pipeline = Pipeline(args, config)
+            with patch("requests.get", side_effect=response_for), patch(
+                "run_living_review_pipeline.time.sleep"
+            ), patch("builtins.print"):
+                self.assertEqual(pipeline.verify_live(), 0)
+            self.assertEqual(attempts["assets/figure.png"], 2)
+
     def test_reconcile_adopts_valid_supplemental_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

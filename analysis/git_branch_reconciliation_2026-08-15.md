@@ -48,7 +48,7 @@ both files while joining the July commit history through merge commit
 - `git diff --check` passed.
 - Python compilation of the living-review runner and taxonomy audit passed.
 - the taxonomy audit reproduced byte-for-byte.
-- `.venv-docling/bin/python tests/test_living_review_pipeline.py` passed all 90
+- `.venv-docling/bin/python tests/test_living_review_pipeline.py` passed all 91
   tests.
 - `python3 scripts/run_living_review_pipeline.py doctor` reported `healthy:
   true`, a published cursor through 2026-08-09, and the 55-record/109-model/
@@ -59,6 +59,9 @@ both files while joining the July commit history through merge commit
   semantics: only untracked, ignored files whose path, byte count, and SHA-256
   agree in both the stage inventory and committed run-level artifact ledger may
   be absent. The complete local archive remains subject to strict `doctor`.
+- The Pages verifier retries each individual asset after a transient connection
+  reset, while still requiring exact bytes, commit identity, tree hash, and
+  per-file SHA-256 for a successful deployment.
 
 ## Scope boundary
 

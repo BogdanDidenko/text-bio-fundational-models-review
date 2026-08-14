@@ -2849,11 +2849,19 @@ class Pipeline:
 
         def fetch(path: str) -> bytes:
             encoded = urllib.parse.quote(path, safe="/")
-            response = requests.get(
-                f"{base_url}/{encoded}?verify={cache_token}", timeout=60, headers=headers
-            )
-            response.raise_for_status()
-            return response.content
+            url = f"{base_url}/{encoded}?verify={cache_token}"
+            last_error: Exception | None = None
+            for attempt in range(1, 5):
+                try:
+                    response = requests.get(url, timeout=60, headers=headers)
+                    response.raise_for_status()
+                    return response.content
+                except requests.RequestException as exc:
+                    last_error = exc
+                    if attempt < 4:
+                        time.sleep(attempt)
+            assert last_error is not None
+            raise last_error
 
         url = f"{base_url}/data/atlas.json"
         remote_bytes = fetch("data/atlas.json")
