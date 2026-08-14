@@ -12,7 +12,12 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 3. Search execution | Done | 7 databases, 4 rounds |
 | 4. Deduplication | Done | `scripts/deduplicate.py` |
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
-| 6. Title/Abstract screening | **In progress** | 4,027 master records; June and July top-up batches prepared separately for Codex screening |
+| 6. Title/Abstract screening | Done / living | Frozen role-separated Codex pipeline with retained per-role logs |
+| 7. Full-text section screening | Done / living | Docling + Docling Graph selected-section pipeline |
+| 8. Input-route taxonomy and atlas | Done / living | 55 records, 109 models, 586 grounded routes through 2026-08-09 |
+
+For the next update, start with the canonical operational runbook:
+[`protocol/LIVING_REVIEW_RUNBOOK.md`](protocol/LIVING_REVIEW_RUNBOOK.md).
 
 ## Minimal LatteReview Runtime
 

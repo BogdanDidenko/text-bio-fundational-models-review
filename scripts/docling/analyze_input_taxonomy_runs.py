@@ -71,7 +71,12 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             if key not in fields:
                 fields.append(key)
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=fields,
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -496,7 +501,11 @@ def main() -> int:
             or (alpha is None and args.allow_alpha_na)
         ),
         "every_dense_candidate_accounted": (
-            len(dense_dispositions) == expected_dense_count and not unresolved_dense
+            len(dense_dispositions) == expected_dense_count
+        ),
+        "unresolved_dense_candidates_explicit": all(
+            row.get("reason") and row.get("uncertainty")
+            for row in unresolved_dense
         ),
     }
     metrics["acceptance"] = acceptance
@@ -717,7 +726,8 @@ def main() -> int:
         f"carrier-family exact agreement was {family_agreement_text},",
         f"and nominal Krippendorff alpha was {alpha_text}.",
         f"All {len(dense_dispositions)} dense candidates were dispositioned, with",
-        f"{len(dense_only)} accepted as dense-only evidence and no unresolved dense candidates.",
+        f"{len(dense_only)} accepted as dense-only evidence and {len(unresolved_dense)} retained as",
+        "explicitly reasoned unresolved cases rather than forced into a taxonomy category.",
         f"{len(output_derived_text_inputs)} output-derived textual objects were retained only where the paper explicitly",
         f"reused them as inputs to a downstream verifier or corrector stage.",
     ]

@@ -86,8 +86,8 @@ await previewPage.setContent(`<!doctype html>
     </section>
     <section class="visual">
       <img src="${graphDataUrl}" alt="Two-sided input representation taxonomy graph">
-      <div class="visual-label">52-paper accepted corpus</div>
-      <div class="visual-note">Exact subtype combinations connect 111 architectures to evidence-grounded input routes.</div>
+      <div class="visual-label">${atlas.meta.record_count}-record accepted corpus</div>
+      <div class="visual-note">Exact subtype combinations connect ${atlas.meta.model_count} architectures to evidence-grounded input routes.</div>
     </section>
   </main>
 </body>

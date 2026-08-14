@@ -25,11 +25,15 @@ The repository includes a SerpAPI collector that creates the same contract
 directly and resumes from already hashed raw pages:
 
 ```bash
-python3 scripts/capture_google_scholar_serpapi.py \
-  --config data/living_catalog_updates/update_2026-08-09/00_search/search_config.json \
-  --api-keys api_keys.json \
-  --output data/living_catalog_updates/update_2026-08-09/00_search/google_scholar_provider_export.json
+python3 scripts/run_living_review_pipeline.py scholar-capture \
+  --date-to 2026-08-09
+python3 scripts/run_living_review_pipeline.py scholar-validate \
+  --date-to 2026-08-09
 ```
+
+These operator commands build or verify the dated search config, run the
+lower-level `capture_google_scholar_serpapi.py` collector, and validate the
+complete bundle before `preflight` permits the search stage.
 
 Store the credential as `serpapi` in ignored `api_keys.json`. The collector uses
 the configured `as_ylo`/`as_yhi` year bounds, follows every provider-returned

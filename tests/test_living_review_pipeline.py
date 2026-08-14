@@ -49,9 +49,14 @@ from run_codex_screening_pipeline import (
 from run_living_review_pipeline import (
     ManualGate,
     Pipeline,
+    atlas_tree_manifest,
     date_precision_rollup,
+    rel,
+    retrieved_candidate_subset,
     retrieval_disposition_table,
 )
+from merge_supplemental_recall_records import merge_records, validate_declaration
+from prepare_full_cohort_taxonomy_rerun import rerun_commands
 from run_incremental_atlas_crop_pipeline import (
     contact_sheet_font,
     load_figures_by_record,
@@ -78,6 +83,7 @@ from classify_fixed_input_taxonomy_candidates import prompt_for_record
 from profile_artifact_contract import validate_profile_artifacts
 from reproduce_search import (
     classify_interval_date,
+    search_springernature,
     filter_interval_records,
     main as reproduce_search_main,
     retry_request,
@@ -93,7 +99,34 @@ from capture_google_scholar_serpapi import normalize_result, scrub_secret
 
 
 class SearchConfigTests(unittest.TestCase):
-    def test_atlas_collection_date_is_derived_from_canonical_record_id(self) -> None:
+    def test_springer_two_block_near_miss_enters_explicit_recall_stratum(self) -> None:
+        config = {
+            "databases": {
+                "springernature": {
+                    "query": "query",
+                    "date_filter": "datefrom:2026-08-10 dateto:2026-08-12",
+                    "minimum_validation_blocks": 2,
+                    "validation_patterns": {
+                        "block_a": "biology",
+                        "block_b": "language model",
+                        "block_c": "generative",
+                    },
+                }
+            }
+        }
+        records = [
+            {"doi": "10.1/a", "title": "Biology language model", "abstract": "generative"},
+            {"doi": "10.1/b", "title": "Language model", "abstract": "generative"},
+            {"doi": "10.1/c", "title": "Biology only", "abstract": ""},
+        ]
+        with patch("reproduce_search._sn_paginated_search", return_value=(records, {"complete": True})):
+            result, _ = search_springernature(config, {"springernature_Meta_API": "key"})
+        self.assertEqual(result["validation_stratum_counts"]["primary_3_of_3"], 1)
+        self.assertEqual(result["validation_stratum_counts"]["recall_2_of_3"], 1)
+        self.assertEqual(result["validation_stratum_counts"]["rejected_0_or_1_of_3"], 1)
+        self.assertEqual(result["records"][1]["search_validation_stratum"], "recall_2_of_3")
+
+    def test_atlas_review_iteration_is_derived_from_canonical_record_id(self) -> None:
         self.assertEqual(
             collection_metadata("update_2026-08-09__manual_recall_xunzi"),
             {"batch_id": "update_2026-08-09", "date": "2026-08-09"},
@@ -390,7 +423,22 @@ class SearchConfigTests(unittest.TestCase):
             retrieval["disposition_counts"],
             {"pdf_retrieved": 1, "html_full_text_retrieved": 1, "not_retrieved": 1},
         )
+        self.assertTrue(all(row["terminal_retrieval_evidence"] for row in retrieval["rows"]))
+        self.assertFalse(any(row["manual_gate_required"] for row in retrieval["rows"]))
         self.assertEqual(retrieval["docling_missing_by_retrieval_disposition"], {"not_retrieved": 1})
+
+    def test_only_candidates_with_supported_payloads_enter_docling_screening(self) -> None:
+        candidates = [
+            {"candidate_id": "a", "title": "Retrieved"},
+            {"candidate_id": "b", "title": "Not retrieved"},
+        ]
+        subset = retrieved_candidate_subset(
+            candidates,
+            [{"candidate_id": "a", "path": "paper.pdf", "kind": "pdf"}],
+        )
+        self.assertEqual(subset, [candidates[0]])
+        with self.assertRaises(RuntimeError):
+            retrieved_candidate_subset(candidates, [{"candidate_id": "unknown"}])
 
     def test_snapshot_requires_one_verified_evidence_row_per_route(self) -> None:
         route = {"route_id": "route_1", "record_id": "r1", "final_grounding_valid": True}
@@ -1760,6 +1808,109 @@ class OrchestratorTests(unittest.TestCase):
             manual.write_text('{"records": []}\n', encoding="utf-8")
             self.assertFalse(pipeline.stage_is_complete("fulltext-download"))
 
+    def test_supplemental_recall_is_a_hashed_prepare_records_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            artifact = pipeline.paths.records / "result.json"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text('{"records": []}\n', encoding="utf-8")
+            pipeline.mark("prepare-records", "complete", [artifact])
+            declaration = pipeline.paths.records / "supplemental_recall_records.json"
+            declaration.write_text(
+                '{"schema_version":1,"declarations":[]}\n', encoding="utf-8"
+            )
+            self.assertFalse(pipeline.stage_is_complete("prepare-records"))
+
+    def test_absent_new_optional_input_preserves_legacy_stage_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            artifact = pipeline.paths.records / "result.json"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text('{"records": []}\n', encoding="utf-8")
+            pipeline.mark("prepare-records", "complete", [artifact])
+            fingerprints = pipeline.manifest["stages"]["prepare-records"][
+                "human_input_fingerprints"
+            ]
+            pipeline.manifest["stages"]["prepare-records"]["human_input_fingerprints"] = [
+                row
+                for row in fingerprints
+                if not row["path"].endswith("supplemental_recall_records.json")
+            ]
+            self.assertTrue(pipeline.stage_is_complete("prepare-records"))
+
+    def test_release_tree_excludes_its_self_describing_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "data").mkdir()
+            (root / "index.html").write_text("atlas", encoding="utf-8")
+            (root / "data/atlas.json").write_text("{}", encoding="utf-8")
+            (root / "data/deployment.json").write_text("changing", encoding="utf-8")
+            first = atlas_tree_manifest(root)
+            (root / "data/deployment.json").write_text("changed again", encoding="utf-8")
+            second = atlas_tree_manifest(root)
+            self.assertEqual(first["manifest_sha256"], second["manifest_sha256"])
+            self.assertEqual(first["file_count"], 2)
+
+    def test_release_manifest_and_remote_verifier_check_commit_tree_and_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            state = {
+                "schema_version": 1,
+                "search_end": "2026-07-06",
+                "master_record_files": [],
+                "taxonomy_root": str(root / "taxonomy"),
+                "docling_corpus_roots": [],
+                "crop_ledger": str(root / "crops.json"),
+                "atlas_output": str(root / "atlas"),
+                "last_run_id": "update_test",
+            }
+            Path(config["living_state"]).write_text(json.dumps(state), encoding="utf-8")
+            atlas = Path(config["atlas_output"])
+            (atlas / "data").mkdir(parents=True)
+            (atlas / "index.html").write_text("atlas", encoding="utf-8")
+            (atlas / "data/atlas.json").write_text(
+                json.dumps(
+                    {
+                        "meta": {
+                            "generated_from": str(root / "taxonomy"),
+                            "record_count": 1,
+                            "study_count": 1,
+                            "model_count": 1,
+                            "configuration_count": 1,
+                            "route_count": 1,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            pipeline = Pipeline(args, config)
+            pipeline.args.commit = "commit-sha"
+            with patch("builtins.print"):
+                self.assertEqual(pipeline.release_manifest(), 0)
+
+            class Response:
+                def __init__(self, content: bytes):
+                    self.content = content
+
+                def raise_for_status(self) -> None:
+                    return None
+
+            def fake_get(url: str, **_: object) -> Response:
+                requested = url.split("https://atlas.test/", 1)[1].split("?", 1)[0]
+                return Response((atlas / requested).read_bytes())
+
+            pipeline.args.url = "https://atlas.test"
+            pipeline.args.expected_commit = "commit-sha"
+            pipeline.args.check_assets = True
+            pipeline.args.record_completion = False
+            with patch("requests.get", side_effect=fake_get), patch("builtins.print"):
+                self.assertEqual(pipeline.verify_live(), 0)
+
     def test_zero_eligible_taxonomy_classification_writes_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1852,6 +2003,86 @@ class OrchestratorTests(unittest.TestCase):
             pipeline.manifest["stages"] = {"report": {"status": "complete"}}
             with self.assertRaisesRegex(RuntimeError, "stage closure"):
                 pipeline.publish()
+
+    def test_doctor_reports_missing_state_and_atlas_divergence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            atlas_data = Path(config["atlas_output"]) / "data/atlas.json"
+            atlas_data.parent.mkdir(parents=True)
+            atlas_data.write_text(
+                json.dumps(
+                    {
+                        "meta": {
+                            "generated_from": "new_snapshot",
+                            "record_count": 55,
+                            "model_count": 117,
+                            "route_count": 519,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            pipeline = Pipeline(args, config)
+            with patch("builtins.print") as output:
+                self.assertEqual(pipeline.doctor(), 2)
+            payload = json.loads(output.call_args.args[0])
+            self.assertEqual(
+                {issue["code"] for issue in payload["issues"]},
+                {"MISSING_LIVING_STATE", "ATLAS_STATE_DIVERGENCE"},
+            )
+
+    def test_reconcile_adopts_valid_supplemental_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            args.snapshot_root = str(root / "snapshot")
+            args.atlas_root = str(root / "atlas")
+            args.reason = "Documented recall correction"
+            supplement = root / "supplement.json"
+            supplement.write_text('{"records": [{"record_id": "r3"}]}', encoding="utf-8")
+            args.supplemental_record_file = [str(supplement)]
+            pipeline = Pipeline(args, config)
+
+            main_records = pipeline.paths.records / "new_records_after_cross_dedup_crossref_checked.json"
+            main_records.parent.mkdir(parents=True)
+            main_records.write_text('{"records": [{"record_id": "r1"}]}', encoding="utf-8")
+            primary_facts = pipeline.paths.report / "prisma_update_facts.json"
+            primary_facts.parent.mkdir(parents=True)
+            primary_facts.write_text('{"accepted_records": 2}', encoding="utf-8")
+            corpus = root / "corpus"
+            corpus.mkdir()
+            snapshot = Path(args.snapshot_root)
+            snapshot.mkdir()
+            (snapshot / "crop_ledger.json").write_text("[]", encoding="utf-8")
+            counts = {"records": 55, "studies": 54, "models": 117, "configurations": 400, "routes": 519}
+            (snapshot / "snapshot_manifest.json").write_text(
+                json.dumps({**counts, "corpus_roots": [str(corpus)]}), encoding="utf-8"
+            )
+            atlas_data = Path(args.atlas_root) / "data/atlas.json"
+            atlas_data.parent.mkdir(parents=True)
+            atlas_data.write_text(
+                json.dumps(
+                    {
+                        "meta": {
+                            "generated_from": rel(snapshot),
+                            "record_count": 55,
+                            "study_count": 54,
+                            "model_count": 117,
+                            "configuration_count": 400,
+                            "route_count": 519,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(pipeline, "stage_is_complete", return_value=True), patch("builtins.print"):
+                self.assertEqual(pipeline.reconcile(), 0)
+            state = json.loads(Path(config["living_state"]).read_text())
+            self.assertEqual(state["search_end"], "2026-08-09")
+            self.assertEqual(state["taxonomy_root"], rel(snapshot))
+            self.assertIn(rel(supplement), state["master_record_files"])
+            self.assertEqual(pipeline.manifest["publication_mode"], "supplemental_recall_reconciliation")
 
     def test_pipeline_recovers_interrupted_atlas_publication_before_loading_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1948,6 +2179,79 @@ class OrchestratorTests(unittest.TestCase):
             self.assertTrue(
                 (pipeline.paths.docling_vlm / "accepted_without_pdf.json").is_file()
             )
+
+
+class SupplementalRecallTests(unittest.TestCase):
+    def test_declared_record_enters_before_cumulative_dedup(self) -> None:
+        declarations = validate_declaration(
+            {
+                "schema_version": 1,
+                "declarations": [
+                    {
+                        "record": {
+                            "title": "New AI biologist",
+                            "doi": "10.1000/new",
+                            "url": "https://example.test/new",
+                        },
+                        "reason": "Recall correction",
+                        "source_url": "https://example.test/new",
+                        "resolver": "operator",
+                        "declared_at": "2026-08-12T00:00:00+00:00",
+                    }
+                ],
+            }
+        )
+        merged, audit = merge_records(
+            [{"cluster_id": "1", "title": "Existing", "doi": "10.1000/old"}],
+            declarations,
+        )
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(audit[0]["disposition"], "added_before_cumulative_deduplication")
+        self.assertEqual(merged[1]["supplemental_recall"]["resolver"], "operator")
+
+    def test_existing_within_update_record_is_not_duplicated(self) -> None:
+        declaration = {
+            "record": {"title": "Existing", "doi": "10.1000/old"},
+            "reason": "Recall correction",
+            "source_url": "https://example.test/old",
+            "resolver": "operator",
+            "declared_at": "2026-08-12T00:00:00+00:00",
+        }
+        merged, audit = merge_records(
+            [{"cluster_id": "1", "title": "Existing", "doi": "10.1000/old"}],
+            [declaration],
+        )
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(audit[0]["disposition"], "already_present_in_within_update_cohort")
+
+
+class FullCohortTaxonomyRerunTests(unittest.TestCase):
+    def test_generated_commands_cover_complete_repeated_annotation_topology(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commands = rerun_commands(
+                root / "canonical.csv",
+                root / "rerun",
+                root / "frozen_taxonomy",
+                {
+                    "docling_python": ".venv-docling/bin/python",
+                    "models": {"graph": "openai/gpt-5.4-mini"},
+                    "openai_compatible_endpoint": "http://127.0.0.1:8765/v1",
+                    "openai_compatible_port": 8765,
+                    "graph_workers": 4,
+                    "taxonomy_adjudication_timeout_seconds": 3600,
+                },
+                55,
+            )
+        script = "\n".join(commands)
+        self.assertIn("mkdir -p", script)
+        self.assertIn("/health", script)
+        self.assertIn("full_cohort_open_r1", script)
+        for replicate in ("r1", "r2", "r3"):
+            self.assertIn(f"--replicate-id {replicate}", script)
+        self.assertIn("--extraction-contract dense", script)
+        self.assertIn("adjudicate_input_taxonomy.py", script)
+        self.assertIn("--expected-records 55", script)
 
 
 if __name__ == "__main__":

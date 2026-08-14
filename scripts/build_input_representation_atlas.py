@@ -200,7 +200,7 @@ def slug(value: str) -> str:
 
 
 def collection_metadata(record_id: str) -> dict[str, str]:
-    """Recover the immutable collection batch encoded in canonical record IDs."""
+    """Recover the immutable review iteration encoded in canonical record IDs."""
     batch_id = record_id.split("__", 1)[0]
     match = re.search(r"(\d{4}-\d{2}-\d{2})$", batch_id)
     if not match:
@@ -457,6 +457,7 @@ def main() -> int:
                 "record_id": record_id,
                 "collection_batch_id": collection["batch_id"],
                 "collection_date": collection["date"],
+                "review_iteration": collection["date"],
                 "study_id": first["study_id"],
                 "paper_title": first["title"],
                 "doi": record.get("doi") or "",
@@ -517,8 +518,10 @@ def main() -> int:
         ]
         collection_batches.append(
             {
+                "iteration_id": f"review_iteration_{collection_date}",
                 "date": collection_date,
                 "record_count": len(batch_record_ids),
+                "record_ids": sorted(batch_record_ids),
                 "model_count": len(batch_architectures),
                 "route_count": sum(item["route_count"] for item in batch_architectures),
             }
@@ -705,6 +708,8 @@ def main() -> int:
             },
         },
         "filter_values": {
+            "review_iterations": collection_batches,
+            # Backward-compatible alias for previously published atlas clients.
             "collection_batches": collection_batches,
             "modalities": sorted({route["source_modality_normalized"] for route in routes}),
             "lifecycle_phases": sorted({route["lifecycle_phase"] for route in routes}),
@@ -733,6 +738,7 @@ def main() -> int:
             ),
             "family_route_counts": dict(family_counts),
             "subtype_route_counts": dict(subtype_counts),
+            "review_iterations": collection_batches,
             "collection_batches": collection_batches,
         },
     )

@@ -56,7 +56,7 @@ by `config/living_review_pipeline.json`. A run is stored below
 
 | Stage | Main input | Main output and rule |
 |---|---|---|
-| `search` | Latest dated search config | Exact exports and summary for all eight enabled sources. Concept blocks are unchanged; v3.2 corrects Scopus wildcard syntax and only dates move between update runs. |
+| `search` | Latest dated search config | Exact exports and summary for all eight enabled sources. SpringerNature records matching all three title/abstract concept blocks form the primary stratum; 2/3 near-misses form a labeled recall stratum. |
 | `deduplicate` | Eight exports | Conservative within-update DOI -> PMID -> arXiv ID -> normalized-title clusters. |
 | `prepare-records` | Update clusters + cumulative master | Records absent from every published interval; DOI-less titles receive a logged Crossref duplicate audit. |
 | `enrich-abstracts` | New records | Missing and short abstracts are enriched; remaining abstracts shorter than the declared threshold are separately excluded. Title-search fallbacks require independent metadata corroboration. |
@@ -83,6 +83,16 @@ the versioned living-search template and changes only date clauses for PubMed,
 Scopus, OpenAlex, Semantic Scholar, arXiv, Europe PMC bioRxiv/medRxiv,
 SpringerNature, and Google Scholar. `scripts/reproduce_search.py` writes the
 actual query, filters, execution time, and result counts for each source.
+
+Beginning with living template v3.3, SpringerNature post-retrieval validation
+retains a separate 2/3-block recall stratum in addition to the primary 3/3
+stratum. The publisher query searches broader metadata/full text, so 0/3 and
+1/3 records remain rejected; 2/3 records receive the same deduplication and
+role-separated abstract screening as primary records. Each retained record
+stores the matched blocks and stratum. This general recall safeguard was added
+after XunZi used the domain phrase `AI biologist` without the prior biological
+title/abstract vocabulary; it replaces reliance on adding one regex term at a
+time.
 
 Living-search template v3.2 makes one syntax-only correction to the Scopus
 translation: the unsupported quoted wildcard `"pre-train*"` is represented as
@@ -139,6 +149,11 @@ captured the Scholar query across 13 hashed raw pages and ended with
 `no_next_page`. The earlier seven-query capture (714 Scholar records) remains an
 immutable diagnostic comparison. All eight source executions and both
 SpringerNature interfaces completed.
+
+The first-class operator commands `scholar-capture` and `scholar-validate`
+prepare the dated config, invoke the provider collector, and bind the query
+signature, raw page hashes, pagination termination, and normalized count before
+the ordinary `search` stage can complete.
 
 Within-update deduplication produced 514 clusters after 125 identifier or
 exact-title merges; six identical-title rows with conflicting non-preprint DOIs
@@ -240,6 +255,17 @@ The `missing_documents` count is reported separately as a Docling-input
 availability overlap by retrieval disposition; it is not a second PRISMA branch
 and is never added to the retrieval total.
 
+The same partition is written immediately after consolidation as
+`05_fulltext/fulltext_retrieval_dispositions.json`. Every row distinguishes
+terminal retrieval evidence from a blocking technical/XML state and retains
+attempt counts, payload hashes, and its attempt-ledger location. The status
+mapping is versioned in `protocol/fulltext_retrieval_disposition_schema.md`.
+All candidates remain in that retrieval denominator, while only candidates with
+a validated supported PDF or full-article HTML enter the explicit
+`retrieved_fulltext_candidates.json` subset used by Docling and section
+screening. Thus a terminal not-retrieved report is retained in PRISMA without
+requiring a fictitious profile or a screening decision unsupported by full text.
+
 DOI, PMID/PMC, and arXiv-derived locations are identifier-based. Locations
 obtained through a title search are followed only after the same conservative
 title-plus-corroboration check used in abstract recovery: compatible year or an
@@ -311,6 +337,16 @@ alpha cannot be estimated, taxonomy acceptance fails; the remedy is an
 adequately powered version-consistent rerun, not an implicit pass or mixing
 outputs across prompt/schema versions.
 
+The `taxonomy-rerun-preflight` command prepares a complete-catalog rerun in a
+separate immutable directory. It checks every current native profile manifest,
+the intended 55-record denominator, and writes the exact sharded discovery,
+three direct classifications, dense audit, adjudication, and analysis commands.
+After laptop migration the recovered 52-record baseline lacks native Docling
+JSON. The preflight therefore also creates a no-truncation VLM regeneration
+config from the recovered PDFs and reports 28 exact historical PDF hashes versus
+24 valid version/hash-different sources. Classification stays blocked until all
+55 native profiles form one canonical manifest.
+
 ## Figure crops and atlas publication
 
 For each newly observed model, every Docling-extracted source-paper figure appears
@@ -359,6 +395,8 @@ uv venv --python 3.12 .venv-docling
 uv pip install --python .venv-docling/bin/python -r scripts/docling/requirements-docling.txt
 
 python3 scripts/run_living_review_pipeline.py plan --date-to 2026-08-09
+python3 scripts/run_living_review_pipeline.py scholar-capture --date-to 2026-08-09
+python3 scripts/run_living_review_pipeline.py scholar-validate --date-to 2026-08-09
 python3 scripts/run_living_review_pipeline.py preflight --date-to 2026-08-09
 python3 scripts/run_living_review_pipeline.py preflight --date-to 2026-08-09 --through-stage search
 python3 scripts/run_living_review_pipeline.py run --date-to 2026-08-09 --manage-server
@@ -389,6 +427,19 @@ before any public directory or state change. A later runner invocation detects a
 unfinished journal and restores the previous atlas and living-state pointer before
 loading the run. The journal is deleted only after both atlas promotion and
 state/manifest finalization succeed.
+
+A missed record found before publication enters through
+`register-supplemental`. It is merged before cumulative deduplication and
+invalidates that stage and every downstream stage; no screening, retrieval,
+eligibility, or taxonomy rule is bypassed. Post-publication recall corrections
+remain an explicit reconciliation mode with a separate immutable ledger.
+
+GitHub Pages adds a deployment manifest containing `GITHUB_SHA`, state and
+atlas hashes, and a SHA-256 manifest of every deployable file.
+`verify-live --expected-commit ... --check-assets` checks commit identity, exact
+`atlas.json` bytes, tree identity, and every remote file hash. Completion and
+incident records are stored outside stage-owned artifacts under
+`data/living_catalog/releases/<run_id>/`.
 
 For example, after declaring additional manually retrieved reports:
 

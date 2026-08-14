@@ -1,0 +1,1764 @@
+Act as a blinded fourth annotator for input-representation routes.
+
+Reconcile three anonymized repeated classifications against the complete canonical paper,
+the original grounded discovery inventory, and an independent dense Docling Graph coverage
+pass. Return the final source-to-model input routes, not one label per paper.
+
+Rules:
+- Every discovery route_ref must appear either in input_routes.source_candidate_refs or
+  excluded_candidates.candidate_ref, exactly once at the decision level. A ref may support
+  several split routes, but cannot also be excluded.
+- Every eligible dense candidate_ref shown below must receive one
+  dense_candidate_dispositions entry. Ineligible dense candidates were already excluded by
+  logged objective grounding/taxonomy/input-status gates and are not shown to you.
+- Every final route starts from exactly one source object and one lifecycle
+  phase/configuration. Split multimodal or hybrid candidates into their independent routes.
+- Accept only actual model inputs or paired alignment inputs. Explicitly exclude targets,
+  outputs, baselines, ablations, evaluation-only datasets, duplicates, and non-routes.
+- Use only frozen family/subtype pairs; never use other_evidence_grounded.
+- Classify the first model-facing carrier before routine embedding/encoder processing.
+- Every final evidence_quote must be one contiguous verbatim passage in the canonical paper.
+  Prefer a quote already present in a cited discovery or dense candidate.
+- VLM descriptions may locate evidence but cannot alone establish a route.
+- Link dense evidence to an accepted route when it confirms the same route. Use
+  accepted_as_dense_only_route only for a valid route absent from all fixed classifications.
+- Preserve unresolved ambiguity explicitly; do not force an unsupported route.
+
+Return only strict-schema JSON:
+{"$defs": {"DenseCandidateDisposition": {"additionalProperties": false, "description": "Explicit coverage-audit disposition for one dense Graph candidate.", "properties": {"candidate_ref": {"title": "Candidate Ref", "type": "string"}, "decision": {"enum": ["supports_accepted_route", "accepted_as_dense_only_route", "exclude_duplicate", "exclude_training_only_target", "exclude_generated_output", "exclude_baseline_or_ablation", "exclude_not_a_source_to_model_route", "exclude_figure_only", "exclude_ungrounded_or_taxonomy_invalid", "unresolved"], "title": "Decision", "type": "string"}, "linked_route_labels": {"items": {"type": "string"}, "title": "Linked Route Labels", "type": "array"}, "reason": {"title": "Reason", "type": "string"}, "uncertainty": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Uncertainty"}}, "required": ["candidate_ref", "decision", "linked_route_labels", "reason", "uncertainty"], "title": "DenseCandidateDisposition", "type": "object"}, "ExcludedRouteCandidate": {"additionalProperties": false, "description": "A fixed discovery candidate explicitly excluded from accepted input routes.", "properties": {"candidate_ref": {"title": "Candidate Ref", "type": "string"}, "decision": {"enum": ["exclude_training_only_target", "exclude_generated_output", "exclude_baseline_only", "exclude_ablation_only", "exclude_not_a_source_to_model_route", "exclude_duplicate_candidate", "uncertain"], "title": "Decision", "type": "string"}, "reason": {"title": "Reason", "type": "string"}, "evidence_quote": {"title": "Evidence Quote", "type": "string"}, "uncertainty": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Uncertainty"}}, "required": ["candidate_ref", "decision", "reason", "evidence_quote", "uncertainty"], "title": "ExcludedRouteCandidate", "type": "object"}, "FinalAdjudicatedInputRoute": {"additionalProperties": false, "description": "Final route grounded in discovery and/or dense Graph evidence.", "properties": {"route_label": {"title": "Route Label", "type": "string"}, "model_name": {"title": "Model Name", "type": "string"}, "lifecycle_phase": {"enum": ["pretraining", "fine_tuning", "inference", "evaluation", "unclear"], "title": "Lifecycle Phase", "type": "string"}, "task_or_configuration_verbatim": {"title": "Task Or Configuration Verbatim", "type": "string"}, "source_object_verbatim": {"title": "Source Object Verbatim", "type": "string"}, "source_object_normalized": {"title": "Source Object Normalized", "type": "string"}, "source_modality_normalized": {"title": "Source Modality Normalized", "type": "string"}, "transformation_chain_verbatim": {"items": {"type": "string"}, "title": "Transformation Chain Verbatim", "type": "array"}, "transformation_chain_normalized": {"items": {"type": "string"}, "title": "Transformation Chain Normalized", "type": "array"}, "model_visible_form_verbatim": {"title": "Model Visible Form Verbatim", "type": "string"}, "carrier_family": {"description": "Frozen v1 model-visible carrier. text_native_token_stream covers ordinary language tokens, structured prompts, and deterministic biological text serializations; discrete_biological_symbol_stream covers native biological tokens, aligned structural tracks, and learned VQ/RVQ/codebook IDs; dense_continuous_carrier covers projected, virtual-token, connector-mediated, or pooled embeddings; visual_raster_carrier covers pixels, slides, patches, and visual case contexts; geometric_or_diffusion_state_carrier covers noisy states, coordinates/backbones/shapes, and structural constraints. Classify the first model-facing carrier before routine embedding lookup or encoder processing. Do not relabel tokenizer tokens, biological symbols, or pixels as dense merely because the model subsequently embeds or encodes them.", "enum": ["text_native_token_stream", "discrete_biological_symbol_stream", "dense_continuous_carrier", "visual_raster_carrier", "geometric_or_diffusion_state_carrier", "other_evidence_grounded"], "title": "Carrier Family", "type": "string"}, "carrier_subtype": {"description": "Subtype must belong to carrier_family exactly as defined in the frozen taxonomy_codebook.md. Learned quantized IDs must not be coded as native biological tokens or continuous embeddings. Deterministically serialized cell/gene/profile text belongs to the text-native serialization subtype.", "enum": ["plain_language_prompt_or_question", "structured_biological_prompt_or_task_scaffold", "serialized_biological_context_or_ordered_profile", "native_biological_token_stream", "multi_track_structural_symbol_stream", "learned_quantized_id_or_codebook_token", "direct_projected_embedding", "virtual_token_prefix", "connector_mediated_embedding", "pooled_or_aggregated_embedding", "raw_slide_or_patch_input", "patch_context_or_case_level_visual_reasoning", "noisy_diffusion_state", "coordinate_backbone_or_shape_conditioning", "symbolic_structural_constraint", "other_evidence_grounded"], "title": "Carrier Subtype", "type": "string"}, "insertion_or_fusion_verbatim": {"title": "Insertion Or Fusion Verbatim", "type": "string"}, "fusion_topology": {"enum": ["tokenizer_sequence", "concatenation", "prefix", "placeholder_replacement", "interleaving", "cross_attention", "query_bottleneck", "shared_latent_alignment", "encoder_decoder", "side_or_generative_conditioning", "retrieval_or_tool_context", "other_explicit", "unclear"], "title": "Fusion Topology", "type": "string"}, "text_role": {"enum": ["biological_payload", "semantic_annotation", "instruction_or_query", "modality_or_task_selector", "metadata_or_context", "paired_alignment_supervision", "training_target", "generated_output", "no_text_on_this_route", "unclear"], "title": "Text Role", "type": "string"}, "input_status": {"enum": ["actual_model_input", "paired_alignment_input", "training_only_target", "generated_output", "baseline_only", "ablation_only", "unclear"], "title": "Input Status", "type": "string"}, "evidence_quote": {"description": "One short contiguous verbatim quote supporting this route. Never concatenate separate sentences or summarize.", "title": "Evidence Quote", "type": "string"}, "section_heading": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Section Heading"}, "supporting_figure_or_table": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Supporting Figure Or Table"}, "evidence_status": {"enum": ["explicit_text", "text_plus_figure", "figure_only", "inferred"], "title": "Evidence Status", "type": "string"}, "uncertainty": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Uncertainty"}, "source_candidate_refs": {"description": "Discovery route_ref values supporting this route. A combined discovery candidate may support several split source-to-model routes; duplicated discovery candidates may be merged into one final route.", "items": {"type": "string"}, "title": "Source Candidate Refs", "type": "array"}, "dense_candidate_refs": {"description": "Dense coverage candidate refs supporting this route. At least one source candidate ref or dense candidate ref must support every final route.", "items": {"type": "string"}, "title": "Dense Candidate Refs", "type": "array"}}, "required": ["route_label", "model_name", "lifecycle_phase", "task_or_configuration_verbatim", "source_object_verbatim", "source_object_normalized", "source_modality_normalized", "transformation_chain_verbatim", "transformation_chain_normalized", "model_visible_form_verbatim", "carrier_family", "carrier_subtype", "insertion_or_fusion_verbatim", "fusion_topology", "text_role", "input_status", "evidence_quote", "section_heading", "supporting_figure_or_table", "evidence_status", "uncertainty", "source_candidate_refs", "dense_candidate_refs"], "title": "FinalAdjudicatedInputRoute", "type": "object"}}, "additionalProperties": false, "description": "Blinded final reconciliation with complete candidate accounting.", "properties": {"taxonomy_version": {"const": "input-representation-taxonomy-v1.2-adjudicated", "title": "Taxonomy Version", "type": "string"}, "title": {"title": "Title", "type": "string"}, "doi": {"anyOf": [{"type": "string"}, {"type": "null"}], "title": "Doi"}, "input_routes": {"items": {"$ref": "#/$defs/FinalAdjudicatedInputRoute"}, "title": "Input Routes", "type": "array"}, "excluded_candidates": {"items": {"$ref": "#/$defs/ExcludedRouteCandidate"}, "title": "Excluded Candidates", "type": "array"}, "dense_candidate_dispositions": {"items": {"$ref": "#/$defs/DenseCandidateDisposition"}, "title": "Dense Candidate Dispositions", "type": "array"}}, "required": ["taxonomy_version", "title", "doi", "input_routes", "excluded_candidates", "dense_candidate_dispositions"], "title": "FinalAdjudicatedTaxonomyDocument", "type": "object"}
+
+Frozen taxonomy:
+{"taxonomy_version": "input-representation-taxonomy-v1", "status": "frozen_after_three_independent_syntheses_and_llm_adjudication", "title": "Frozen model-visible representation taxonomy for biological generative routes", "classification_unit": "One grounded route: a single source object carried through its transformation chain to the model-visible carrier consumed by the model.", "organizing_principle": "Partition routes by the model-visible carrier mechanism. Biological modality, lifecycle phase, text role, and fusion topology are orthogonal dimensions; they do not decide the family unless they change the carrier that reaches the model.", "families": [{"family_id": "F1", "name": "Text-native token streams", "definition": "Routes whose visible carrier is ordinary text tokens, including free-form prompts, structured task scaffolds, and serialized biological context rendered as text. The biologic content is carried by language tokens rather than dense vectors, images, or geometric states.", "structural_criterion": "The generative backbone consumes standard text tokens, even when the text is biologically specialized or template-driven.", "leaves": [{"leaf_id": "F1.L1", "name": "Plain language prompts and questions", "definition": "Natural-language prompts, questions, instructions, or conversational turns that reach the model as ordinary text without a specialized biological serialization step.", "include_when": ["The visible carrier is plain prose, a question, or an instruction.", "The route does not require a domain-specific serializer before model intake."], "exclude_when": ["The source is first converted into a gene list, cell sentence, ranked profile, or other biological serialization.", "The visible carrier is a dense embedding, an image, or a diffusion state."], "positive_route_refs": ["full_2026-07-06__rec_000086::route_003", "full_2026-07-06__rec_000086::route_006", "full_2026-07-06__rec_000827::route_004", "full_2026-07-06__rec_000090::route_032", "full_2026-07-06__rec_000090::route_015", "full_2026-07-06__rec_000950::route_010", "full_2026-07-06__rec_000771::route_002"], "counterexample_route_refs": ["full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F1.L2", "name": "Structured biological prompts and task scaffolds", "definition": "Text prompts that encode explicit biological slots, metadata fields, retrieval directives, benchmark scaffolds, or relation-context prompts.", "include_when": ["The text contains explicit biological fields, slots, or template-like task structure.", "The prompt functions as a structured control frame rather than free-form conversation."], "exclude_when": ["The input is only plain conversational text with no task scaffolding.", "The carrier is a biological sentence serialization or a dense embedding prefix."], "positive_route_refs": ["full_2026-07-06__rec_000086::route_010", "full_2026-07-06__rec_000086::route_012", "full_2026-07-06__rec_000086::route_015", "full_2026-07-06__rec_000090::route_021", "full_2026-07-06__rec_000090::route_022", "full_2026-07-06__rec_000090::route_023", "full_2026-07-06__rec_000090::route_024", "full_2026-07-06__rec_000090::route_025", "full_2026-07-06__rec_000090::route_033", "full_2026-07-06__rec_000090::route_034", "full_2026-07-06__rec_000090::route_035"], "counterexample_route_refs": ["full_2026-07-06__rec_000827::route_004", "full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_002"]}, {"leaf_id": "F1.L3", "name": "Serialized biological context and ordered profiles", "definition": "Text-token sequences produced by serializing cells, genes, neighborhoods, ranked profiles, or multi-cell contexts into language-like sentences or ordered lists before model intake.", "include_when": ["The route converts biological objects into cell sentences, spatial sentences, gene lists, ranked expression profiles, or comparable serialized text.", "The visible carrier is a textual summary of biological context, often across multiple nearby entities or samples."], "exclude_when": ["The route is a simple question or instruction with no biological serialization.", "The route is a fixed slot template rather than a serialized biological narrative.", "The carrier is a dense vector, image, or diffusion state."], "positive_route_refs": ["full_2026-07-06__rec_000063::route_001", "full_2026-07-06__rec_000063::route_002", "full_2026-07-06__rec_000063::route_003", "full_2026-07-06__rec_000063::route_004", "full_2026-07-06__rec_000063::route_005", "full_2026-07-06__rec_000063::route_006", "full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000090::route_002", "full_2026-07-06__rec_000090::route_003", "full_2026-07-06__rec_000090::route_004", "full_2026-07-06__rec_000090::route_005", "full_2026-07-06__rec_000090::route_006", "full_2026-07-06__rec_000090::route_007", "full_2026-07-06__rec_000090::route_008", "full_2026-07-06__rec_000090::route_009", "full_2026-07-06__rec_000090::route_010", "full_2026-07-06__rec_000090::route_011", "full_2026-07-06__rec_000090::route_012", "full_2026-07-06__rec_000090::route_013", "full_2026-07-06__rec_000090::route_014", "full_2026-07-06__rec_000090::route_016", "full_2026-07-06__rec_000090::route_017", "full_2026-07-06__rec_000090::route_018", "full_2026-07-06__rec_000090::route_019", "full_2026-07-06__rec_000090::route_020", "full_2026-07-06__rec_000090::route_028", "full_2026-07-06__rec_000090::route_029", "full_2026-07-06__rec_000090::route_030", "full_2026-07-06__rec_000090::route_031", "full_2026-07-06__rec_000827::route_005", "full_2026-07-06__rec_000827::route_006", "full_2026-07-06__rec_000827::route_007"], "counterexample_route_refs": ["full_2026-07-06__rec_000827::route_004", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000121::route_003"]}]}, {"family_id": "F2", "name": "Discrete biological symbol streams", "definition": "Routes whose biological source is represented as a discrete symbol stream native to or added to the tokenizer, rather than as prose text or dense embeddings. This includes biological BPE streams, multi-track structural alphabets, and learned quantized codebook IDs.", "structural_criterion": "The model-visible carrier is a tokenized biological sequence or structured biological symbol stream.", "leaves": [{"leaf_id": "F2.L1", "name": "Native biological token streams", "definition": "DNA, RNA, or protein corpora rendered as discrete biological tokens through an extended tokenizer or chunking protocol.", "include_when": ["The route uses tokenized DNA, RNA, protein, or comparable biological sequence corpora.", "The visible form is a chunked biological token stream rather than a prose prompt or embedding."], "exclude_when": ["The route is an ordinary text prompt or instruction.", "The route is a dense embedding prefix or an image patch input."], "positive_route_refs": ["june_update_2026-06-10__rec_000350::route_001", "june_update_2026-06-10__rec_000350::route_002", "june_update_2026-06-10__rec_000350::route_003"], "counterexample_route_refs": ["full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F2.L2", "name": "Multi-track structural symbol streams", "definition": "A token stream that explicitly preserves multiple structural tracks or aligned alphabets, such as sequence plus secondary-structure or tertiary-structure tracks.", "include_when": ["The route preserves several aligned structural tracks in one discrete token stream.", "The visible carrier is a structured symbolic alphabet, not an embedding."], "exclude_when": ["The route is a single-track tokenized corpus.", "The route is a continuous prefix, image patch, or diffusion state."], "positive_route_refs": ["june_update_2026-06-10__rec_000350::route_005", "june_update_2026-06-10__rec_000350::route_006"], "counterexample_route_refs": ["june_update_2026-06-10__rec_000350::route_001", "full_2026-07-06__rec_000950::route_002", "full_2026-07-06__rec_000086::route_002", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F2.L3", "name": "Learned quantized IDs and codebook tokens", "definition": "Routes whose biological content is rendered as learned discrete IDs from VQ, RVQ, or codebook-style tokenizers. These are discrete symbols, not continuous embeddings and not native tokenizer words.", "include_when": ["The route uses VQ, RVQ, or codebook IDs as model-visible inputs.", "The discrete IDs are embedded into the LLM vocabulary or otherwise treated as symbol tokens.", "The route is not just a continuous latent prefix."], "exclude_when": ["The route is a continuous embedding or resampler output.", "The route is ordinary prose text or a native biological token corpus."], "positive_route_refs": ["june_update_2026-06-10__rec_000121::route_003", "june_update_2026-06-10__rec_000121::route_004", "june_update_2026-06-10__rec_000121::route_006"], "counterexample_route_refs": ["full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000350::route_001"]}]}, {"family_id": "F3", "name": "Dense continuous carriers", "definition": "Routes whose model-visible form is a learned dense vector, soft-token block, prefix embedding, resampled latent, or similar continuous carrier inserted into a generative backbone. The biological source is encoded rather than discretely tokenized.", "structural_criterion": "The source is converted into continuous embeddings, soft tokens, or learned latent blocks before reaching the generator.", "leaves": [{"leaf_id": "F3.L1", "name": "Direct projected embeddings", "definition": "A continuous embedding projected from a biological encoder into the language or multimodal backbone, typically via a linear layer, projector, or latent-space mapping.", "include_when": ["The route explicitly projects biological inputs into an embedding space or unified latent space.", "The visible carrier is a dense vector block rather than text tokens or image patches."], "exclude_when": ["The carrier is a fixed prefix block of learned virtual tokens.", "The carrier is an image patch sequence or a discrete biological token stream.", "The carrier is a diffusion state or geometric constraint."], "positive_route_refs": ["full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000086::route_004", "full_2026-07-06__rec_000086::route_005", "full_2026-07-06__rec_000086::route_007", "full_2026-07-06__rec_000086::route_008", "full_2026-07-06__rec_000086::route_009", "full_2026-07-06__rec_000086::route_013", "full_2026-07-06__rec_000827::route_010", "full_2026-07-06__rec_000827::route_011", "full_2026-07-06__rec_000827::route_012", "full_2026-07-06__rec_000827::route_013", "june_update_2026-06-10__rec_000248::route_003", "june_update_2026-06-10__rec_000248::route_005", "june_update_2026-06-10__rec_000248::route_009"], "counterexample_route_refs": ["full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000950::route_001", "full_2026-07-06__rec_000827::route_004", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F3.L2", "name": "Virtual-token prefixes", "definition": "A fixed-length block of learned virtual tokens or multimodal prefix tokens that stands in for the biological source before being concatenated or inserted into the backbone.", "include_when": ["The route uses a fixed prefix, placeholder-bearing virtual-token block, or multimodal prefix.", "The biological source is not passed as ordinary text but as a learned prefix-like embedding bundle."], "exclude_when": ["The route uses direct projection into a latent space without a dedicated prefix block.", "The carrier is a pooled embedding, an image patch set, or a diffusion state."], "positive_route_refs": ["june_update_2026-06-10__rec_000148::route_001", "june_update_2026-06-10__rec_000148::route_003", "june_update_2026-06-10__rec_000148::route_005", "june_update_2026-06-10__rec_000148::route_006", "june_update_2026-06-10__rec_000148::route_008", "june_update_2026-06-10__rec_000148::route_010", "june_update_2026-06-10__rec_000148::route_017", "june_update_2026-06-10__rec_000148::route_018", "june_update_2026-06-10__rec_000152::route_001", "june_update_2026-06-10__rec_000152::route_002", "june_update_2026-06-10__rec_000152::route_004", "june_update_2026-06-10__rec_000152::route_005", "june_update_2026-06-10__rec_000152::route_006", "june_update_2026-06-10__rec_000152::route_008", "june_update_2026-06-10__rec_000152::route_009", "june_update_2026-06-10__rec_000152::route_010"], "counterexample_route_refs": ["full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000950::route_002", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F3.L3", "name": "Connector-mediated embeddings", "definition": "A dense carrier that reaches the backbone through a learned connector such as cross-attention, a resampler, a query-former, an adapter layer, or a query connector.", "include_when": ["The route explicitly uses cross-attention, a resampler, a query-former, a query connector, or an adapter.", "The biological content is converted to dense tokens before fusion with the backbone."], "exclude_when": ["The route is a fixed virtual-token prefix.", "The route is a direct embedding projection without a separate mediator.", "The route is a raw image or a discrete biological token stream."], "positive_route_refs": ["full_2026-07-06__rec_000771::route_001", "full_2026-07-06__rec_000771::route_003", "full_2026-07-06__rec_000827::route_001", "full_2026-07-06__rec_000827::route_002", "full_2026-07-06__rec_000827::route_003", "full_2026-07-06__rec_000827::route_004", "full_2026-07-06__rec_000827::route_008", "full_2026-07-06__rec_000827::route_009", "june_update_2026-06-10__rec_000248::route_001", "june_update_2026-06-10__rec_000248::route_002", "june_update_2026-06-10__rec_000248::route_004", "june_update_2026-06-10__rec_000248::route_006"], "counterexample_route_refs": ["full_2026-07-06__rec_000090::route_001", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F3.L4", "name": "Pooled or aggregated embeddings", "definition": "A continuous carrier formed by aggregating multiple inputs into one embedding before model intake, such as averaging selected-cell embeddings or similar pooling operations.", "include_when": ["The route compresses multiple biological items into one embedding before downstream use.", "The visible form is a pooled representation rather than a single-source projection."], "exclude_when": ["The route keeps separate tokens for each instance in the prompt.", "The route uses raw images, discrete tokens, or a diffusion state."], "positive_route_refs": ["full_2026-07-06__rec_000827::route_003"], "counterexample_route_refs": ["full_2026-07-06__rec_000827::route_001", "full_2026-07-06__rec_000090::route_014", "full_2026-07-06__rec_000950::route_002", "june_update_2026-06-10__rec_000121::route_004"]}]}, {"family_id": "F4", "name": "Visual raster carriers", "definition": "Routes whose visible carrier is an image, patch grid, slide tile, or other rasterized visual carrier processed by a vision encoder or equivalent visual front end.", "structural_criterion": "The source is presented as pixels, patches, or visual tokens rather than language tokens or dense embeddings alone.", "leaves": [{"leaf_id": "F4.L1", "name": "Raw slide or patch input", "definition": "A histology or similar biomedical image presented directly as a raster image, patch, or patch set to a vision encoder.", "include_when": ["The route starts from a raw image patch or whole-slide image.", "The visible carrier is an image tensor or patch grid."], "exclude_when": ["The route is a projected embedding or text prompt.", "The route is a diffusion state or discrete biological token stream."], "positive_route_refs": ["full_2026-07-06__rec_000060::route_002", "full_2026-07-06__rec_000060::route_003", "june_update_2026-06-10__rec_000148::route_001", "june_update_2026-06-10__rec_000148::route_003", "june_update_2026-06-10__rec_000148::route_005", "june_update_2026-06-10__rec_000148::route_006", "june_update_2026-06-10__rec_000148::route_007", "june_update_2026-06-10__rec_000148::route_008", "june_update_2026-06-10__rec_000148::route_009", "june_update_2026-06-10__rec_000148::route_010", "june_update_2026-06-10__rec_000148::route_011", "june_update_2026-06-10__rec_000148::route_013", "june_update_2026-06-10__rec_000148::route_016", "june_update_2026-06-10__rec_000148::route_018", "june_update_2026-06-10__rec_000152::route_001", "june_update_2026-06-10__rec_000152::route_002"], "counterexample_route_refs": ["full_2026-07-06__rec_000827::route_008", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_001", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F4.L2", "name": "Patch-context or case-level visual reasoning", "definition": "A visual route where multiple patches or registered sections are combined into a case-level image context before prediction or reasoning.", "include_when": ["The route uses neighboring patches, serial sections, or case-level visual context.", "The visible carrier is still visual, but the unit is a patch set or contextualized slide view."], "exclude_when": ["The route uses only a single raw patch without contextual aggregation.", "The route is text-only or embedding-only."], "positive_route_refs": ["june_update_2026-06-10__rec_000148::route_015", "june_update_2026-06-10__rec_000148::route_017", "june_update_2026-06-10__rec_000152::route_004", "june_update_2026-06-10__rec_000152::route_005", "june_update_2026-06-10__rec_000152::route_006", "june_update_2026-06-10__rec_000152::route_007", "june_update_2026-06-10__rec_000152::route_008"], "counterexample_route_refs": ["full_2026-07-06__rec_000060::route_002", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000950::route_002", "june_update_2026-06-10__rec_000121::route_003"]}]}, {"family_id": "F5", "name": "Geometric and diffusion-state carriers", "definition": "Routes whose model-visible form is a geometric constraint, coordinate state, or noisy latent state used by a diffusion or structure-generation model. These routes are structurally distinct from ordinary embeddings because the carrier is organized by geometry or diffusion time.", "structural_criterion": "The model-visible carrier is a coordinate, constraint object, or time-indexed noisy latent state rather than a token sequence or patch grid.", "leaves": [{"leaf_id": "F5.L1", "name": "Noisy diffusion state", "definition": "A time-indexed noisy latent state or training state used directly in a diffusion process.", "include_when": ["The route exposes noisy coordinates or another diffusion-time latent state to the model.", "The carrier is part of forward or reverse diffusion dynamics."], "exclude_when": ["The route is a static coordinate constraint or a text prompt.", "The route is an image, token stream, or dense embedding prefix."], "positive_route_refs": ["full_2026-07-06__rec_000950::route_001", "full_2026-07-06__rec_000950::route_011"], "counterexample_route_refs": ["full_2026-07-06__rec_000950::route_002", "full_2026-07-06__rec_000086::route_002", "full_2026-07-06__rec_000090::route_001", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F5.L2", "name": "Coordinate, backbone, or shape conditioning", "definition": "A geometric conditioning route in which the model receives coordinates, backbones, substructures, or point-cloud-derived geometry as the visible carrier.", "include_when": ["The route conditions on backbone coordinates, substructures, or point clouds.", "The model-visible form is geometric rather than textual."], "exclude_when": ["The route is an abstract symbolic label or a free-form text prompt.", "The route is a noisy diffusion state rather than a stable geometric condition."], "positive_route_refs": ["full_2026-07-06__rec_000950::route_002", "full_2026-07-06__rec_000950::route_004", "full_2026-07-06__rec_000950::route_005", "full_2026-07-06__rec_000950::route_006", "full_2026-07-06__rec_000950::route_007"], "counterexample_route_refs": ["full_2026-07-06__rec_000950::route_001", "full_2026-07-06__rec_000950::route_011", "full_2026-07-06__rec_000086::route_003", "june_update_2026-06-10__rec_000121::route_003"]}, {"leaf_id": "F5.L3", "name": "Symbolic structural constraints", "definition": "A non-textual or lightly symbolic structural condition such as symmetry, class labels, or other geometry-level control signals supplied to the generator.", "include_when": ["The route conditions generation with symbolic structural labels or abstract geometry constraints.", "The carrier is a constraint signal rather than a language prompt or a dense embedding."], "exclude_when": ["The route is a free-form natural-language caption or question.", "The route is a coordinate/backbone carrier or noisy diffusion state."], "positive_route_refs": ["full_2026-07-06__rec_000950::route_003", "full_2026-07-06__rec_000950::route_008"], "counterexample_route_refs": ["full_2026-07-06__rec_000950::route_002", "full_2026-07-06__rec_000950::route_001", "full_2026-07-06__rec_000086::route_010", "june_update_2026-06-10__rec_000121::route_003"]}]}], "orthogonal_dimensions": [{"dimension_id": "D1", "name": "Biological modality", "definition": "The underlying source domain, treated separately from carrier mechanism because the same modality can be serialized, embedded, rasterized, or diffused.", "values": ["text", "DNA", "RNA", "protein/peptide", "small molecule", "histology/slide image", "spatial omics", "multi-omic composite", "graph/network", "mixed"]}, {"dimension_id": "D2", "name": "Lifecycle phase", "definition": "The stage at which the route is used. This prevents training-only targets, generated outputs, baselines, and inference inputs from being conflated.", "values": ["pretraining", "continued pretraining", "instruction tuning", "supervised fine-tuning", "parameter-efficient fine-tuning", "fine-tuning", "inference", "evaluation", "generation", "training"]}, {"dimension_id": "D3", "name": "Text role / route status", "definition": "The role played by text or symbolic material in the route, independent of the representation mechanism.", "values": ["actual model input", "paired training input", "training input", "training-only target", "generated output", "baseline input", "auxiliary prompt input", "conditioning input", "inference input", "evaluation input", "not used"]}, {"dimension_id": "D4", "name": "Fusion topology", "definition": "How the carrier is inserted into or combined with the generative model. This is orthogonal to the carrier type itself.", "values": ["direct prompt insertion", "prompt prefix", "concatenation into unified prompt", "projection into latent space", "cross-attention", "resampler", "adapter", "retrieval connector", "decoder conditioning", "classification head", "diffusion conditioner", "prompt template", "placeholder insertion", "postprocessing"]}, {"dimension_id": "D5", "name": "Source-to-carrier transformation", "definition": "The dominant transformation applied to the source object before it becomes model-visible.", "values": ["none/direct", "serialization", "tokenization", "projection", "rasterization", "aggregation", "diffusion/noise process", "structural constraint", "prompt templating"]}], "category_errors_prevented": ["Collapsing free-form text prompts, serialized biological sentences, and dense embeddings into one broad bucket.", "Treating biological sequence tokenization as if it were ordinary prose.", "Treating images or slide patches as if they were just another embedding prefix.", "Treating diffusion-time noisy states as if they were static coordinate embeddings.", "Folding training-only targets, generated outputs, baselines, and actual inputs into the same class.", "Using biological source modality as the primary axis when the visible carrier mechanism is the relevant structural criterion.", "Collapsing learned VQ/RVQ/codebook IDs into continuous embeddings or native tokenizer text."], "unresolved_questions": ["A few routes combine a prompt with a dense biological carrier; this frozen taxonomy classifies them by the carrier that actually reaches the model and keeps prompt status orthogonal, but some future corpora may need an explicit secondary annotation for the auxiliary prompt.", "Some biological text routes sit near the boundary between structured prompts and serialized biological context; the current split keeps slot-filled task scaffolds separate from sentence-like cell or gene serializations.", "If future corpora add more codebook-based or RVQ-style routes, the learned-quantized-ID leaf may need further subdivision by whether the discrete IDs are used as input symbols, conditioning codes, or reconstruction targets."]}
+
+Record:
+{"record_id": "june_update_2026-06-10__rec_000133", "title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "doi": "10.64898/2026.04.22.720063"}
+
+Grounded discovery inventory:
+[{"route_ref": "june_update_2026-06-10__rec_000133::route_001", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_1540b5f712720737", "route_label": "Gene-associated corpus pretraining", "model_name": "GenNA", "lifecycle_phase_verbatim": "pretraining", "task_or_configuration_verbatim": "multimodal nucleotide pretraining corpus", "source_object_verbatim": "GenBank-formatted genomic DNA and RNA annotation files", "transformation_chain_verbatim": ["collect all available GenBank-formatted genomic DNA and RNA annotation files from the NCBI RefSeq database", "restrict the corpus to gene-associated regions with explicit annotations", "parse GenBank records", "extract molecule type, source species, gene name, natural-language functional descriptions, and structured annotations"], "model_visible_form_verbatim": "unified training samples", "insertion_or_fusion_verbatim": "written together with the corresponding underlying nucleotide sequences into unified training samples", "text_role_verbatim": "conditioning input", "input_status_verbatim": "training input", "evidence_quote": "gene-associated regions", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [11], "doc_item_refs": ["#/texts/384", "#/texts/385", "#/texts/386", "#/texts/387", "#/texts/388", "#/texts/389", "#/texts/390", "#/texts/391"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_002", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_7adfdae4f97f4e2e", "route_label": "Unconditional self-guided generation", "model_name": "GenNA", "lifecycle_phase_verbatim": "inference", "task_or_configuration_verbatim": "unconditional self-guided generation", "source_object_verbatim": "the modality label (Genomic DNA or RNA)", "transformation_chain_verbatim": ["provide only the modality label as the initial input", "autoregressively generate the complete metadata fields", "generate species, gene name, functional annotation, and the corresponding nucleotide sequence"], "model_visible_form_verbatim": "the modality label", "insertion_or_fusion_verbatim": "as the initial input", "text_role_verbatim": "actual input", "input_status_verbatim": "actual model input", "evidence_quote": "modality label", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [16, 32], "doc_item_refs": ["#/texts/577", "#/texts/578", "#/texts/579", "#/texts/580", "#/texts/581", "#/texts/582", "#/texts/583", "#/texts/584"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_003", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_ce7a189320e4ec0f", "route_label": "Species-specific generation", "model_name": "GenNA", "lifecycle_phase_verbatim": "inference", "task_or_configuration_verbatim": "species-specific generation", "source_object_verbatim": "species name", "transformation_chain_verbatim": ["use the unified prompt template", "prompt the model with a species name", "generate nucleotide sequences from six representative model organisms"], "model_visible_form_verbatim": "unified prompt template: [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>", "insertion_or_fusion_verbatim": "prompt prefix", "text_role_verbatim": "actual input", "input_status_verbatim": "actual model input", "evidence_quote": "six representative model organisms", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [28, 29, 30, 34], "doc_item_refs": ["#/pictures/2", "#/texts/818", "#/texts/819", "#/texts/821", "#/texts/822", "#/texts/823", "#/texts/824", "#/texts/825"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_004", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": false, "picture_only_provenance": false, "id": "InputRouteDiscovery_95679e5b55b8a861", "route_label": "tRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase_verbatim": "inference", "task_or_configuration_verbatim": "61 tRNA prompt categories with different anti-codon", "source_object_verbatim": "tRNA Name", "transformation_chain_verbatim": ["construct inputs using the tRNA prompt template", "generate candidate tRNA sequences", "evaluate generated sequences with tRNAscan-SE"], "model_visible_form_verbatim": "Genomic DNA, [tRNA Name]<seq>", "insertion_or_fusion_verbatim": "prompt template", "text_role_verbatim": "actual input", "input_status_verbatim": "actual model input", "evidence_quote": "tRNA prompt categories", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [15, 16], "doc_item_refs": ["#/texts/540", "#/texts/541", "#/texts/542", "#/texts/543", "#/texts/544", "#/texts/545", "#/texts/546", "#/texts/547"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_005", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": false, "picture_only_provenance": false, "id": "InputRouteDiscovery_799b496c19404203", "route_label": "rRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase_verbatim": "inference", "task_or_configuration_verbatim": "different classes of ribosomal RNAs (rRNAs), including 5S, 5.8S, 18S, and 28S rRNAs", "source_object_verbatim": "rRNA Name", "transformation_chain_verbatim": ["construct inputs using the rRNA prompt template", "generate candidate rRNA sequences", "align generated sequences to Rfam covariance models using cmsearch"], "model_visible_form_verbatim": "RNA, [rRNA Name]<seq>", "insertion_or_fusion_verbatim": "prompt template", "text_role_verbatim": "actual input", "input_status_verbatim": "actual model input", "evidence_quote": "RNA, [rRNA Name]<seq>", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [15, 16], "doc_item_refs": ["#/texts/540", "#/texts/541", "#/texts/542", "#/texts/543", "#/texts/544", "#/texts/545", "#/texts/546", "#/texts/547"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_006", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": false, "picture_only_provenance": false, "id": "InputRouteDiscovery_baba000d668974b4", "route_label": "Histone-targeted generation", "model_name": "GenNA", "lifecycle_phase_verbatim": "inference", "task_or_configuration_verbatim": "five major histone classes, H1, H2A, H2B, H3, and H4", "source_object_verbatim": "histone family", "transformation_chain_verbatim": ["construct inputs using the histone prompt template", "generate RNA sequences encoding histone classes", "translate generated sequences and compare physicochemical properties"], "model_visible_form_verbatim": "RNA, [histone]<seq>", "insertion_or_fusion_verbatim": "prompt template", "text_role_verbatim": "actual input", "input_status_verbatim": "actual model input", "evidence_quote": "RNA, [histone]<seq>", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [8, 9], "doc_item_refs": ["#/texts/302", "#/texts/303", "#/texts/304", "#/texts/305", "#/texts/306", "#/texts/307", "#/texts/308", "#/texts/309"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_007", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_4afc8c9d8cfe2cca", "route_label": "Sequence-function consistency evaluation", "model_name": "GenNA", "lifecycle_phase_verbatim": "evaluation", "task_or_configuration_verbatim": "matched and mismatched sequence-function pairings", "source_object_verbatim": "real gene sample nucleotide sequence", "transformation_chain_verbatim": ["hold the underlying nucleotide sequence fixed", "systematically replace the functional-annotation component of the prompt", "compute conditional perplexity for matched and mismatched pairings"], "model_visible_form_verbatim": "nucleotide sequence and functional-annotation prompt", "insertion_or_fusion_verbatim": "combined into input prompts", "text_role_verbatim": "conditioning prompt", "input_status_verbatim": "evaluation input", "evidence_quote": "functional-annotation component", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [14, 15], "doc_item_refs": ["#/texts/505", "#/texts/506", "#/texts/507", "#/texts/508", "#/texts/509", "#/texts/510", "#/texts/511", "#/texts/512"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_008", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_62659f0bf575b478", "route_label": "Species-label perturbation evaluation", "model_name": "GenNA", "lifecycle_phase_verbatim": "evaluation", "task_or_configuration_verbatim": "incorrect species prompts", "source_object_verbatim": "RNA sequence of the ppap2d gene", "transformation_chain_verbatim": ["keep the sequence unchanged", "replace the original species prompt with labels from highly divergent species", "perform all pairwise species-label substitutions and measure the induced perplexity change"], "model_visible_form_verbatim": "species prompt", "insertion_or_fusion_verbatim": "prompt prefix", "text_role_verbatim": "conditioning prompt", "input_status_verbatim": "evaluation input", "evidence_quote": "species prompt", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [6], "doc_item_refs": ["#/texts/190", "#/texts/191", "#/texts/192", "#/texts/193", "#/texts/194", "#/texts/195", "#/texts/196", "#/texts/197"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_009", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": false, "picture_only_provenance": false, "id": "InputRouteDiscovery_0cfaefafd55459ef", "route_label": "In silico mutation scanning", "model_name": "GenNA", "lifecycle_phase_verbatim": "evaluation", "task_or_configuration_verbatim": "in-silico mutation pipeline", "source_object_verbatim": "wild-type protein-coding gene sequences", "transformation_chain_verbatim": ["select protein-coding genes from the validation set", "introduce single-nucleotide substitutions and single-base deletions at each position in untranslated regions and coding sequence", "classify CDS mutations as synonymous, missense, nonsense, stop-loss, or frameshift"], "model_visible_form_verbatim": "mutant and wild-type sequence inputs", "insertion_or_fusion_verbatim": "sequence evaluation input", "text_role_verbatim": "evaluation input", "input_status_verbatim": "evaluation input", "evidence_quote": "single-nucleotide substitutions", "section_heading": null, "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [14], "doc_item_refs": ["#/texts/487", "#/texts/488", "#/texts/489", "#/texts/490", "#/texts/491", "#/texts/492", "#/texts/493", "#/texts/494"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_010", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_cd8c9e95578baa9a", "route_label": "Dynamic information-masking pretraining", "model_name": "GenNA", "lifecycle_phase_verbatim": "pretraining", "task_or_configuration_verbatim": "dynamic information-masking strategy during the later stage of training", "source_object_verbatim": "training inputs with species identifier or gene identifier in the prompt", "transformation_chain_verbatim": ["randomly removed the species identifier or gene identifier in the prompt", "applied with probability 0.5 during the later stage of training"], "model_visible_form_verbatim": "prompt with the species/gene identifier removed", "insertion_or_fusion_verbatim": "prompt masking", "text_role_verbatim": "training input", "input_status_verbatim": "training input", "evidence_quote": "randomly removed with probability 0.5", "section_heading": "Pretraining protocol", "supporting_figure_or_table": null, "uncertainty": null, "grounding": {"pages": [12, 13], "doc_item_refs": ["#/texts/448", "#/texts/449", "#/texts/450", "#/texts/451", "#/texts/452", "#/texts/453", "#/texts/454", "#/texts/455"], "provenance_match": "verbatim"}}, {"route_ref": "june_update_2026-06-10__rec_000133::route_011", "record_id": "june_update_2026-06-10__rec_000133", "paper_title": "GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations", "grounding_valid": true, "picture_only_provenance": false, "id": "InputRouteDiscovery_1f78d4e1ebf575ec", "route_label": "Species-conditioned embedding extraction", "model_name": "GenNA", "lifecycle_phase_verbatim": "evaluation", "task_or_configuration_verbatim": "Model embedding and phylogenetic representation analysis", "source_object_verbatim": "standardized prompts of the form 'Genomic DNA, [Species Name]<seq>' or 'RNA, [Species Name]<seq>'", "transformation_chain_verbatim": ["captured the hidden states from layer 18 of the 36-layer Transformer decoder", "mean pooling was applied across the sequence dimension, excluding padding tokens", "visualized using t-SNE"], "model_visible_form_verbatim": "hidden states from layer 18", "insertion_or_fusion_verbatim": "intermediate-layer representation extraction", "text_role_verbatim": "conditioning prompt", "input_status_verbatim": "evaluation input", "evidence_quote": "captured the hidden states from layer 18", "section_heading": "Model embedding and phylogenetic representation analysis", "supporting_figure_or_table": "Fig. 2g", "uncertainty": null, "grounding": {"pages": [14, 15], "doc_item_refs": ["#/texts/505", "#/texts/506", "#/texts/507", "#/texts/508", "#/texts/509", "#/texts/510", "#/texts/511", "#/texts/512"], "provenance_match": "verbatim"}}]
+
+Anonymized repeated classifications:
+[{"set_id": "C", "input_routes": [{"route_label": "Gene-associated genomic DNA pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "multimodal nucleotide pretraining corpus", "source_object_verbatim": "GenBank-formatted genomic DNA annotation files", "model_visible_form_verbatim": "underlying nucleotide sequences together with structured annotations", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "unified training samples", "section_heading": "Pretraining corpus construction", "uncertainty": "Split from a combined DNA/RNA corpus description; this route isolates the genomic-DNA half.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_001"]}, {"route_label": "Gene-associated RNA pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "multimodal nucleotide pretraining corpus", "source_object_verbatim": "GenBank-formatted RNA annotation files", "model_visible_form_verbatim": "underlying nucleotide sequences together with structured annotations", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "unified training samples", "section_heading": "Pretraining corpus construction", "uncertainty": "Split from a combined DNA/RNA corpus description; this route isolates the RNA half.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_001"]}, {"route_label": "Unconditional self-guided generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "unconditional self-guided generation", "source_object_verbatim": "the modality label (Genomic DNA or RNA)", "model_visible_form_verbatim": "the modality label", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "the model received only the modality label", "section_heading": "Unconditional self-generation and semantic fidelity analysis", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_002"]}, {"route_label": "Species-specific generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "species-specific generation", "source_object_verbatim": "species name", "model_visible_form_verbatim": "unified prompt template: [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "six representative model organisms", "section_heading": "Species-specific genome feature evaluation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_003"]}, {"route_label": "tRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "61 tRNA prompt categories with different anti-codon", "source_object_verbatim": "tRNA Name", "model_visible_form_verbatim": "Genomic DNA, [tRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "Genomic DNA, [tRNA Name]<seq>", "section_heading": "tRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_004"]}, {"route_label": "rRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "different classes of ribosomal RNAs (rRNAs), including 5S, 5.8S, 18S, and 28S rRNAs", "source_object_verbatim": "rRNA Name", "model_visible_form_verbatim": "RNA, [rRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "RNA, [rRNA Name]<seq>", "section_heading": "rRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_005"]}, {"route_label": "Histone-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "five major histone classes, H1, H2A, H2B, H3, and H4", "source_object_verbatim": "histone family", "model_visible_form_verbatim": "RNA, [histone]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "RNA, [histone]<seq>", "section_heading": "Histone generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_006"]}, {"route_label": "Sequence-function semantic consistency evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "matched and mismatched sequence-function pairings", "source_object_verbatim": "real gene sample nucleotide sequence", "model_visible_form_verbatim": "nucleotide sequence and functional-annotation prompt", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "concatenation", "input_status": "actual_model_input", "evidence_quote": "functional-annotation component of the prompt", "section_heading": "Sequence-function semantic consistency evaluation", "uncertainty": "The visible carrier is a paired sequence-plus-annotation text prompt, so I classify it as text-native serialized biological context.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_007"]}, {"route_label": "Species-label perturbation evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "incorrect species prompts", "source_object_verbatim": "RNA sequence of the ppap2d gene", "model_visible_form_verbatim": "species prompt", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "replacing the original species prompt", "section_heading": "Capturing evolutionary constraints and phylogenetic representations", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_008"]}, {"route_label": "In silico mutation scanning", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "in-silico mutation pipeline", "source_object_verbatim": "wild-type protein-coding gene sequences", "model_visible_form_verbatim": "mutant and wild-type sequence inputs", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "single-nucleotide substitutions and single-base deletions", "section_heading": "In silico mutation scanning", "uncertainty": "The route is evaluation-based and uses perturbed sequence inputs; I classify the visible carrier as serialized sequence text rather than a separate biological token stream.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_009"]}, {"route_label": "Prompt-masked pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "dynamic information-masking strategy during the later stage of training", "source_object_verbatim": "training inputs with species identifier or gene identifier in the prompt", "model_visible_form_verbatim": "prompt with the species/gene identifier removed", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "other_explicit", "input_status": "actual_model_input", "evidence_quote": "randomly removed with probability 0.5", "section_heading": "Pretraining protocol", "uncertainty": "The paper describes this as a training-time prompt-masking scheme; I treat it as an actual pretraining input because the model still consumes the masked prompt.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_010"]}], "excluded_candidates": [{"candidate_ref": "june_update_2026-06-10__rec_000133::route_011", "decision": "exclude_not_a_source_to_model_route", "reason": "This is an intermediate representation analysis step, not a route where a source object is fed as input to the model. The paper extracts hidden states from layer 18 instead of defining a source-to-model input route.", "evidence_quote": "captured the hidden states from layer 18", "uncertainty": null}], "unverified_quote_routes": ["tRNA-targeted generation", "rRNA-targeted generation", "Histone-targeted generation", "In silico mutation scanning"]}, {"set_id": "A", "input_routes": [{"route_label": "Gene-associated corpus pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "multimodal nucleotide pretraining corpus", "source_object_verbatim": "GenBank-formatted genomic DNA and RNA annotation files", "model_visible_form_verbatim": "unified training samples", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "unified training samples", "section_heading": "Pretraining corpus construction", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_001"]}, {"route_label": "Dynamic information-masking pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "dynamic information-masking strategy during the later stage of training", "source_object_verbatim": "training inputs with species identifier or gene identifier in the prompt", "model_visible_form_verbatim": "prompt with the species/gene identifier removed", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "randomly removed", "section_heading": "Pretraining protocol", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_010"]}, {"route_label": "Unconditional self-guided generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "unconditional self-guided generation", "source_object_verbatim": "the modality label (Genomic DNA or RNA)", "model_visible_form_verbatim": "the modality label", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "modality label", "section_heading": "Unconditional self-generation and semantic fidelity analysis", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_002"]}, {"route_label": "Species-specific generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "species-specific generation", "source_object_verbatim": "species name", "model_visible_form_verbatim": "unified prompt template: [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "species name", "section_heading": "Species-specific genome feature evaluation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_003"]}, {"route_label": "tRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "61 tRNA prompt categories with different anti-codon", "source_object_verbatim": "tRNA Name", "model_visible_form_verbatim": "Genomic DNA, [tRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "tRNA prompt categories", "section_heading": "tRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_004"]}, {"route_label": "rRNA-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "different classes of ribosomal RNAs (rRNAs), including 5S, 5.8S, 18S, and 28S rRNAs", "source_object_verbatim": "rRNA Name", "model_visible_form_verbatim": "RNA, [rRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "rRNA Name", "section_heading": "rRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_005"]}, {"route_label": "Histone-targeted generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "five major histone classes, H1, H2A, H2B, H3, and H4", "source_object_verbatim": "histone family", "model_visible_form_verbatim": "RNA, [histone]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "histone family", "section_heading": "Histone generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_006"]}, {"route_label": "Sequence-function consistency evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "matched and mismatched sequence-function pairings", "source_object_verbatim": "real gene sample nucleotide sequence", "model_visible_form_verbatim": "nucleotide sequence and functional-annotation prompt", "carrier_family": "discrete_biological_symbol_stream", "carrier_subtype": "native_biological_token_stream", "fusion_topology": "concatenation", "input_status": "actual_model_input", "evidence_quote": "functional-annotation component", "section_heading": "Sequence-function semantic consistency evaluation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_007"]}, {"route_label": "Species-label perturbation evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "incorrect species prompts", "source_object_verbatim": "RNA sequence of the ppap2d gene", "model_visible_form_verbatim": "species prompt", "carrier_family": "discrete_biological_symbol_stream", "carrier_subtype": "native_biological_token_stream", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "species prompt", "section_heading": "Capturing evolutionary constraints and phylogenetic representations", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_008"]}, {"route_label": "In silico mutation scanning", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "in-silico mutation pipeline", "source_object_verbatim": "wild-type protein-coding gene sequences", "model_visible_form_verbatim": "mutant and wild-type sequence inputs", "carrier_family": "discrete_biological_symbol_stream", "carrier_subtype": "native_biological_token_stream", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "single-nucleotide substitutions", "section_heading": "In silico mutation scanning", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_009"]}], "excluded_candidates": [{"candidate_ref": "june_update_2026-06-10__rec_000133::route_011", "decision": "exclude_not_a_source_to_model_route", "reason": "This is an intermediate-representation extraction analysis, not a source-to-model input route consumed by the model as an input carrier.", "evidence_quote": "hidden states", "uncertainty": null}], "unverified_quote_routes": ["tRNA-targeted generation", "In silico mutation scanning"]}, {"set_id": "B", "input_routes": [{"route_label": "Pretraining corpus serialization", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "multimodal nucleotide pretraining corpus", "source_object_verbatim": "GenBank-formatted genomic DNA and RNA annotation files", "model_visible_form_verbatim": "unified training samples", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "wrote these structured annotations together with the corresponding underlying nucleotide sequences into unified training samples", "section_heading": "Pretraining corpus construction", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_001"]}, {"route_label": "Modality-label self-generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "unconditional self-guided generation", "source_object_verbatim": "the modality label (Genomic DNA or RNA)", "model_visible_form_verbatim": "the modality label", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "the model received only the modality label", "section_heading": "Autoregressive sequence generation framework and decoding strategy", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_002"]}, {"route_label": "Species-conditioned generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "species-specific generation", "source_object_verbatim": "species name", "model_visible_form_verbatim": "unified prompt template: [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "prompt the model with a species name", "section_heading": "Autoregressive sequence generation framework and decoding strategy", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_003"]}, {"route_label": "tRNA prompt generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "61 tRNA prompt categories with different anti-codon", "source_object_verbatim": "tRNA Name", "model_visible_form_verbatim": "Genomic DNA, [tRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "constructed inputs using the format 'Genomic DNA, [tRNA Name]<seq>'", "section_heading": "tRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_004"]}, {"route_label": "rRNA prompt generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "different classes of ribosomal RNAs (rRNAs), including 5S, 5.8S, 18S, and 28S rRNAs", "source_object_verbatim": "rRNA Name", "model_visible_form_verbatim": "RNA, [rRNA Name]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "Inputs were constructed using the template 'RNA, [rRNA Name]<seq>'", "section_heading": "rRNA generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_005"]}, {"route_label": "Histone-family prompt generation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "five major histone classes, H1, H2A, H2B, H3, and H4", "source_object_verbatim": "histone family", "model_visible_form_verbatim": "RNA, [histone]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "Inputs were constructed using the template 'RNA, [histone]<seq>'", "section_heading": "Histone generation", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_006"]}, {"route_label": "Sequence-function pair evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "matched and mismatched sequence-function pairings", "source_object_verbatim": "real gene sample nucleotide sequence", "model_visible_form_verbatim": "nucleotide sequence and functional-annotation prompt", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "fusion_topology": "concatenation", "input_status": "actual_model_input", "evidence_quote": "the functional-annotation component of the prompt was systematically replaced", "section_heading": "Sequence-function semantic consistency evaluation", "uncertainty": "The candidate describes an evaluation setup rather than a standalone production-use conditioning route, but the model does consume the prompt+sequence input.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_007"]}, {"route_label": "Species-label perturbation evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "incorrect species prompts", "source_object_verbatim": "RNA sequence of the ppap2d gene", "model_visible_form_verbatim": "species prompt", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "prefix", "input_status": "actual_model_input", "evidence_quote": "replacing the original species prompt with labels", "section_heading": "Capturing evolutionary constraints and phylogenetic representations", "uncertainty": "The route is an evaluation perturbation over a fixed sequence, so the prompt is the operative carrier even though the candidate names the RNA sequence as the source object.", "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_008"]}, {"route_label": "In silico mutation scanning", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "in-silico mutation pipeline", "source_object_verbatim": "wild-type protein-coding gene sequences", "model_visible_form_verbatim": "mutant and wild-type sequence inputs", "carrier_family": "discrete_biological_symbol_stream", "carrier_subtype": "native_biological_token_stream", "fusion_topology": "tokenizer_sequence", "input_status": "actual_model_input", "evidence_quote": "introduced single-nucleotide substitutions and single-base deletions", "section_heading": "In silico mutation scanning", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_009"]}, {"route_label": "Dynamic prompt masking during pretraining", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "dynamic information-masking strategy during the later stage of training", "source_object_verbatim": "training inputs with species identifier or gene identifier in the prompt", "model_visible_form_verbatim": "prompt with the species/gene identifier removed", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "fusion_topology": "placeholder_replacement", "input_status": "actual_model_input", "evidence_quote": "randomly removed with probability 0.5", "section_heading": "Pretraining protocol", "uncertainty": null, "source_candidate_refs": ["june_update_2026-06-10__rec_000133::route_010"]}], "excluded_candidates": [{"candidate_ref": "june_update_2026-06-10__rec_000133::route_011", "decision": "exclude_not_a_source_to_model_route", "reason": "This candidate extracts and analyzes intermediate hidden states from layer 18, so it is representation analysis rather than a source-to-model input route.", "evidence_quote": "captured the hidden states from layer 18", "uncertainty": null}], "unverified_quote_routes": ["Species-conditioned generation", "tRNA prompt generation", "rRNA prompt generation", "Histone-family prompt generation", "In silico mutation scanning"]}]
+
+Dense coverage candidates:
+[{"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0002", "route": {"id": "TaxonomyCodedRoute_3db259d0d785b5ba", "route_label": "Pretraining protocol", "model_name": "GenNA", "lifecycle_phase": "pretraining", "task_or_configuration_verbatim": "causal language modeling (CLM)", "source_object_verbatim": "preceding context", "source_object_normalized": "preceding token context", "source_modality_normalized": "token sequence", "transformation_chain_verbatim": ["input token sequence", "preceding context", "next token prediction"], "transformation_chain_normalized": ["input token sequence", "preceding context", "next token prediction"], "model_visible_form_verbatim": "an input token sequence", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "insertion_or_fusion_verbatim": "prediction of the next token conditioned on the preceding context", "fusion_topology": "tokenizer_sequence", "text_role": "biological_payload", "input_status": "actual_model_input", "evidence_quote": "The training objective was causal language modeling (CLM), i.e., prediction of the next token conditioned on the preceding context", "section_heading": "Pretraining protocol", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": null}, "grounding": {"grounding_valid": true, "pages": [12, 13], "doc_item_refs": ["#/texts/448", "#/texts/449", "#/texts/450", "#/texts/451", "#/texts/452", "#/texts/453", "#/texts/454", "#/texts/455"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}, {"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0003", "route": {"id": "TaxonomyCodedRoute_c868267ba1d9f03d", "route_label": "Evaluation of embeddings and inference metrics", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "perplexity (PPL)", "source_object_verbatim": "an input token sequence", "source_object_normalized": "input token sequence", "source_modality_normalized": "token sequence", "transformation_chain_verbatim": ["the prompt and the sequence under evaluation", "average perplexity", "average negative log-likelihood"], "transformation_chain_normalized": ["prompt plus sequence under evaluation", "average perplexity", "average negative log-likelihood"], "model_visible_form_verbatim": "an input token sequence", "carrier_family": "text_native_token_stream", "carrier_subtype": "serialized_biological_context_or_ordered_profile", "insertion_or_fusion_verbatim": "formed by the prompt and the sequence under evaluation", "fusion_topology": "tokenizer_sequence", "text_role": "metadata_or_context", "input_status": "actual_model_input", "evidence_quote": "perplexity (PPL) was used as the core metric", "section_heading": "Evaluation of embeddings and inference metrics", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": null}, "grounding": {"grounding_valid": true, "pages": [13, 14], "doc_item_refs": ["#/texts/470", "#/texts/471", "#/texts/472", "#/texts/473", "#/texts/474", "#/texts/475", "#/texts/476", "#/texts/477"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}, {"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0005", "route": {"id": "TaxonomyCodedRoute_b335ef7df52d7c86", "route_label": "Sequence-function semantic consistency evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "for each sequence in the collection, we combined it with every annotation to form input prompts and computed the corresponding conditional perplexity", "source_object_verbatim": "a nucleotide sequence and its corresponding native functional annotation", "source_object_normalized": "nucleotide sequence paired with native functional annotation", "source_modality_normalized": "nucleotide sequence plus natural-language functional annotation", "transformation_chain_verbatim": ["underlying nucleotide sequence was held fixed", "functional-annotation component of the prompt was systematically replaced", "computed the corresponding conditional perplexity"], "transformation_chain_normalized": ["hold nucleotide sequence fixed", "replace functional annotation in prompt", "compute conditional perplexity"], "model_visible_form_verbatim": "nucleotide sequence and its corresponding native functional annotation", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "insertion_or_fusion_verbatim": "the functional-annotation component of the prompt was systematically replaced", "fusion_topology": "placeholder_replacement", "text_role": "paired_alignment_supervision", "input_status": "paired_alignment_input", "evidence_quote": "the functional-annotation component of the prompt was systematically replaced", "section_heading": "Sequence-function semantic consistency evaluation", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": null}, "grounding": {"grounding_valid": true, "pages": [14, 15, 16], "doc_item_refs": ["#/texts/505", "#/texts/506", "#/texts/507", "#/texts/508", "#/texts/509", "#/texts/510", "#/texts/511", "#/texts/512"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}, {"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0006", "route": {"id": "TaxonomyCodedRoute_bbae40eb0f51b22d", "route_label": "Model embedding and phylogenetic representation analysis", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "we extracted continuous hidden representations from intermediate layers of the pretrained model", "source_object_verbatim": "standardized prompts of the form 'Genomic DNA, [Species Name]<seq>' or 'RNA, [Species Name]<seq>'", "source_object_normalized": "species-conditioned genomic DNA or RNA prompt with sequence", "source_modality_normalized": "text-serialized biological sequence plus species label", "transformation_chain_verbatim": ["captured the hidden states from layer 18 of the 36-layer Transformer decoder", "Mean pooling was applied across the sequence dimension, excluding padding tokens", "These embeddings were visualized using t-distributed stochastic neighbor embedding (t-SNE)", "the model's conditional sensitivity to changes in species labels using PPL perturbation"], "transformation_chain_normalized": ["extract hidden states from layer 18", "mean-pool across sequence dimension excluding padding", "visualize embeddings with t-SNE", "perturb species labels and evaluate conditional sensitivity"], "model_visible_form_verbatim": "'Genomic DNA, [Species Name]<seq>' or 'RNA, [Species Name]<seq>'", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "insertion_or_fusion_verbatim": "captured the hidden states from layer 18 of the 36-layer Transformer decoder", "fusion_topology": "prefix", "text_role": "metadata_or_context", "input_status": "actual_model_input", "evidence_quote": "captured the hidden states from layer 18", "section_heading": "Model embedding and phylogenetic representation analysis", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": "Lifecycle phase could also be interpreted as inference because the model is only being run forward for representation extraction."}, "grounding": {"grounding_valid": true, "pages": [14, 15], "doc_item_refs": ["#/texts/505", "#/texts/506", "#/texts/507", "#/texts/508", "#/texts/509", "#/texts/510", "#/texts/511", "#/texts/512"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}, {"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0007", "route": {"id": "TaxonomyCodedRoute_0b9a1b9d39f6f68d", "route_label": "Sequence generation and validation", "model_name": "GenNA", "lifecycle_phase": "inference", "task_or_configuration_verbatim": "To enable conditional de novo generation, GenNA used a unified prompt template as the input prefix", "source_object_verbatim": "a unified prompt template as the input prefix", "source_object_normalized": "conditional generation prompt template", "source_modality_normalized": "text-serialized biological prompt", "transformation_chain_verbatim": ["used a unified prompt template as the input prefix", "species name and gene symbol could be optionally provided depending on the task"], "transformation_chain_normalized": ["use prompt prefix for conditional generation", "optionally include species name and gene symbol"], "model_visible_form_verbatim": "[Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "insertion_or_fusion_verbatim": "used a unified prompt template as the input prefix", "fusion_topology": "prefix", "text_role": "instruction_or_query", "input_status": "actual_model_input", "evidence_quote": "used a unified prompt template as the input prefix", "section_heading": "Sequence generation and validation", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": null}, "grounding": {"grounding_valid": true, "pages": [15, 16], "doc_item_refs": ["#/texts/540", "#/texts/541", "#/texts/542", "#/texts/543", "#/texts/544", "#/texts/545", "#/texts/546", "#/texts/547"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}, {"candidate_ref": "dense::june_update_2026-06-10__rec_000133::0010", "route": {"id": "TaxonomyCodedRoute_b773e9a4c8c205ec", "route_label": "Species-specific genome feature evaluation", "model_name": "GenNA", "lifecycle_phase": "evaluation", "task_or_configuration_verbatim": "For the species-specific generation task, we selected six model eukaryotes as conditioning species. Without explicitly constraining gene function, we generated 2,000 RNA sequences for each species.", "source_object_verbatim": "Homo sapiens, Danio rerio, Drosophila melanogaster, Arabidopsis thaliana, Zea mays, and Saccharomyces cerevisiae", "source_object_normalized": "conditioning species list", "source_modality_normalized": "text", "transformation_chain_verbatim": [], "transformation_chain_normalized": [], "model_visible_form_verbatim": "Homo sapiens, Danio rerio, Drosophila melanogaster, Arabidopsis thaliana, Zea mays, and Saccharomyces cerevisiae", "carrier_family": "text_native_token_stream", "carrier_subtype": "structured_biological_prompt_or_task_scaffold", "insertion_or_fusion_verbatim": "selected six model eukaryotes as conditioning species", "fusion_topology": "prefix", "text_role": "metadata_or_context", "input_status": "actual_model_input", "evidence_quote": "we selected six model eukaryotes as conditioning species:", "section_heading": "Species-specific genome feature evaluation", "supporting_figure_or_table": null, "evidence_status": "explicit_text", "uncertainty": null}, "grounding": {"grounding_valid": true, "pages": [16, 17], "doc_item_refs": ["#/texts/592", "#/texts/593", "#/texts/594", "#/texts/595", "#/texts/596", "#/texts/597", "#/texts/598", "#/texts/599"], "provenance_match": "verbatim", "picture_only_provenance": false, "taxonomy_consistent": true}}]
+
+Complete canonical Docling Markdown:
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+1
+
+2
+
+## GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations
+
+3
+
+4
+
+5
+
+Yi Shen 1, # , Guangshuo Cao 2, # , Jianghong Wu 3 , Dijun Chen 2 , Cong Feng 1, * and Ming Chen 1, 4, 5, *
+
+- 1 Department of Bioinformatics, College of Life Sciences, Zhejiang University, Hangzhou 310058, China
+- 2 State Key Laboratory of Pharmaceutical Biotechnology, School of Life Sciences, Nanjing University, Nanjing 6 210023, China 7
+- 3 College of Animal Science and Technology, Inner Mongolia Minzu University, Tongliao 028000, China 8
+- 4 Zhejiang Key Laboratory of Multi-omics Precision Diagnosis and Treatment of Liver Diseases, Department of 9 General Surgery, Sir Run-Run Shaw Hospital, Zhejiang University School of Medicine, 310016 Hangzhou, China 10
+
+11
+
+12
+
+- 5 State Key Laboratory of Vegetation Structure , Function and Construction, College of Life Sciences, Zhejiang University, Hangzhou, 310058
+
+13
+
+14
+
+15
+
+16
+
+17
+
+18
+
+19
+
+20
+
+21
+
+22
+
+23
+
+24
+
+25
+
+26
+
+27
+
+28
+
+29
+
+30
+
+- # These authors contributed equally to this work.
+* Correspondence: ventson@zju.edu.cn (Cong Feng)
+* Correspondence: mchen@zju.edu.cn (Ming Chen)
+
+### Abstract
+
+Deciphering  the  mapping  between  linear  biomolecular  sequences  and  complex  biological  functions remains a central challenge in genomics. Although existing generative nucleotide language models have made substantial progress  in  modeling  sequence  distributions,  they  generally  lack  explicit  access  to high-level biological semantics, limiting their ability to support semantics-guided conditional generation. To  address  this  limitation,  we  present  GenNA,  a  generative  nucleotide  foundation  model  guided  by natural-language  annotations.  GenNA  is  pretrained  on  a  multimodal  nucleotide-text  corpus  spanning 2,221  eukaryotic  species  and  comprising approximately  416  billion  characters,  and  learns the relationships  between  sequence  patterns  and  functional  annotations  within  a  unified  autoregressive framework.  Systematic  evaluations show  that,  even  without  explicit  supervision  from  biological  rules, GenNA yields distinguishable perplexity scores in response to semantic mismatches between sequences and functional annotations, to different mutation types, and to perturbations of species labels. Moreover, across a range of natural-language-guided nucleotide generation tasks, the model produces sequences consistent with both target semantics and species context. Overall, GenNA provides a unified framework available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+31
+
+32
+
+for natural-language-guided nucleotide modeling and conditional generation, and offers a feasible route toward integrating high-level functional descriptions with low-level sequence design.
+
+33
+
+34
+
+35
+
+36
+
+37
+
+38
+
+39
+
+40
+
+41
+
+42
+
+43
+
+44
+
+45
+
+46
+
+47
+
+48
+
+49
+
+50
+
+51
+
+52
+
+53
+
+54
+
+55
+
+56
+
+57
+
+58
+
+59
+
+60
+
+61
+
+62
+
+63
+
+64
+
+65
+
+66
+
+### Main
+
+Understanding how nucleotide sequences encode complex biological functions has long been a central question  in  genomics  and  synthetic  biology 1 .  In  recent  years,  the  rapid  development  of  foundation models  for  protein  and  nucleic  acid  sequence  modeling  has  transformed  the  view  that  biological sequences  can  be  treated  as  a  learnable  language  from  a  conceptual  analogy  into  an  operational computational paradigm 2 .  In  the  protein  domain  in  particular,  large-scale  self-supervised learning has shown that models can acquire representations associated with structure, fitness, and function purely from sequence statistics 3,4 . This progress has, in turn, directly motivated the extension of language-modeling approaches to DNA and RNA sequences.
+
+Nucleotide  foundation  models  have  advanced  along  several  related  but  distinct  trajectories.  For nucleotide  sequence  representation  and  prediction,  encoder-based  models  such  as  DNABERT 5 and Nucleotide Transformer 6 have  been  followed  by  longer-context  and  sequence-to-function  frameworks including  DNABERT-2 7 ,  GENA-LM 8 ,  AlphaGenome 9 and  Nucleotide  Transformer  v3 10 ,  collectively showing that large-scale pretraining can capture regulatory, mutational and cross-species signals across increasingly long genomic  contexts.  For  sequence  generation,  autoregressive  models  such  as GenSLMs 11 , DNAGPT 12 and HyenaDNA 13 , followed by later genome-scale models including megaDNA 14 , Evo 15 ,  Evo 2 16 ,  GENErator 17 and ATGC-Gen 18 ,  have demonstrated that nucleotide sequences can be modeled and designed directly within generative frameworks.
+
+However,  the  explicit  use  of  natural-language  annotations  as  the  primary  conditioning  signal  for nucleotide  sequence  generation  remains  comparatively  underexplored.  Previous  approaches  rely  on structured  labels  or  predefined  attributes,  whose  limited  expressivity  struggles  to  capture  complex, context-dependent  biological  functions.  In  contrast,  natural  language  provides  a  vastly  more  flexible representation, more suitable for expressing human intent. In the absence of effective mechanisms to integrate such  rich and heterogeneous information,  most generative models rely mainly on sequence prefixes, local context, or specific structured attributes for conditional modeling. Even OmniNA 19 , despite jointly modeling nucleotide sequences and textual annotations, mainly emphasizes sequence-to-annotation  generation  and  sequence  understanding  rather  than  annotation-conditioned sequence design.
+
+Against  this  backdrop,  we  present  GenNA,  a  generative  nucleotide  foundation  model  guided  by natural-language  annotations.  GenNA  adopts  a  decoder-only  Transformer  architecture 20,21 configured with reference to Qwen3 22 , using a custom cross-modal BPE vocabulary 23 , and is pretrained on a unified nucleotide-text-structure-label corpus spanning 2,221 eukaryotic species and approximately 416 billion characters.  Unlike existing  models  that  are centered  primarily  on  a  single  sequence modality  or  only available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint weakly  structured  conditions,  GenNA  is  explicitly  designed  to  incorporate  natural-language  functional 67 annotations,  species  context,  and  gene-related  metadata  into  the  autoregressive  modeling  process, 68 enabling biological semantics to directly inform nucleotide sequence modeling and generation. 69
+
+We further show that this multimodal training strategy enables the model to learn nucleotide sequence 70 patterns while capturing the relationships among sequence features, functional semantics and species 71 context. Without introducing explicit supervision from biological rules, GenNA exhibits higher perplexity to 72 sequence-function mismatches, different mutation types, and perturbations of species labels. In addition, 73 it  supports controllable  nucleotide  generation  under  natural-language  guidance, ranging  from  general 74 open-ended scenarios to highly constrained tasks. Overall, GenNA fills a critical gap between sequence 75 modeling  and  semantics-driven  design  in  current  nucleotide  foundation  models,  providing  a  unified 76 framework for natural-language-guided nucleotide understanding and generation. 77
+
+78
+
+79
+
+80
+
+81
+
+82
+
+83
+
+84
+
+85
+
+86
+
+87
+
+88
+
+89
+
+90
+
+91
+
+92
+
+93
+
+94
+
+95
+
+96
+
+97
+
+98
+
+99
+
+100
+
+101
+
+### Results
+
+##### Architecture and pretraining of the GenNA foundation model
+
+GenNA  is  a decoder-only generative foundation model  for nucleotide sequences.  Its network configuration  follows  the  Qwen3  Transformer 22 design  paradigm,  and  the  model  was  pretrained  from scratch using a custom cross-modal vocabulary, resulting in approximately 3.6 billion parameters (Fig. 1a). Unlike nucleotide models that are primarily based on masked language modeling 24 , GenNA adopts an autoregressive framework to enable direct sequence generation. Building on this framework, GenNA incorporates natural-language prompts at the beginning of the sequence to provide biological information. This  design  extends  the  conditioning  space  of  autoregressive  generation  by  incorporating  high-level biological semantics, including species identity, gene names and functional annotations, alongside local sequence context.
+
+The pretraining data were derived from the NCBI RefSeq database 25 . After curation, we constructed a multimodal corpus covering 2,221 eukaryotic species and totaling approximately 416 billion characters (Fig.  1b-d  and  Supplementary  Table  1).  In  addition  to  nucleotide  sequences  from  gene-associated regions,  the  corpus  incorporates  natural-language  functional  metadata  and  XML-style  structured annotations  (Supplementary  Table  2).  To  handle  this  heterogeneous  data  type,  we  further  trained  a unified  cross-modal  BPE  tokenizer 23 ,  allowing  frequent  functional  phrases,  tag  fragments,  and  local nucleotide patterns to be mapped into a shared discrete token space (Fig. 1e-h). This facilitates the joint modeling of sequence patterns, functional semantics and structural boundary information within a unified representation space.
+
+During training, we used a causal language modeling objective 20 , in which the model predicts the next token conditioned on the preceding context. GenNA was pretrained from scratch on a computing cluster composed  of  multiple  NVIDIA  A800  GPUs,  with  a  maximum  context  length  of  4,096  tokens, available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint corresponding to roughly 20,000 raw characters. This context window is sufficient to cover the full context 102 of a substantial fraction of real genes together with their associated annotations. 103
+
+104
+
+105
+
+106
+
+107
+
+For  reproducibility,  we  relased  the  model  weights,  training  code,  and  inference  code,  together  with Python scripts for processing full-format GenBank files and constructing aligned training corpora from standard GenBank records 26 .  In  addition,  we  provide  a  smaller  0.36B parameters version to facilitate efficient experimentation and development in resource-constrained settings.
+
+108
+
+109
+
+110
+
+111
+
+112
+
+113
+
+114
+
+115
+
+116
+
+117
+
+118
+
+119
+
+120
+
+121
+
+122
+
+123
+
+124
+
+125
+
+126
+
+127
+
+128
+
+129
+
+130
+
+131
+
+132
+
+133
+
+134
+
+135
+
+136
+
+##### GenNA internalizes sequence-function relationships
+
+The pretraining corpus contains a large number of paired nucleotide sequences and natural-language functional annotations, suggesting that the model may capture relationships between sequence patterns and functional semantics. To evaluate whether GenNA is genuinely sensitive to the consistency between sequences  and  their  functional  annotations,  we  first  assessed  its  response  to  sequence-function mismatches  using  perplexity  (PPL)  and  then  examined  attention  scores  in  intermediate  Transformer layers to assess how natural-language prompts contribute to autoregressive nucleotide generation.
+
+While keeping the underlying nucleotide sequence completely unchanged, we systematically replaced the  functional  annotation  in  the  input  prompt.  The  results  showed  that,  when  the  natural-language functional  annotation  was  mismatched  with  the  corresponding  sequence,  the  model's  average  PPL increased substantially  (Fig.  2a,b).  In  addition,  gene-annotation swapping  across  15  genes  from  four families produced a structured Δ PPL pattern, suggesting that the model captures family-level functional relatedness (Supplementary Fig. 4).This elevated uncertainty in response to semantically inconsistent inputs  indicates  that  GenNA  does  not  rely  solely  on  local  nucleotide  context  but  instead  jointly incorporates functional-semantic information provided by the prompt.
+
+To further investigate this phenomenon at the level of internal representations, we analyzed the token level attention scores in Transformer layer 18 27 . Using the Spodoptera litura glutaminase liver isoform, mitochondrial isoform X1 for example, we observed that even when the generation position was distant from the prompt region, the model continued to attend to functional annotations and structural labels throughout the generation process (Fig. 2c). Across 100 randomly sampled sequences, we observed that during coding sequence (CDS) generation, prompt tokens accounted for an average of 64.4% of the attention weight, whereas relatively less attention was assigned to the upstream 5' UTR (Fig. 2d). This pattern  is  consistent  with  the  interpretation  that  prompt  tokens  continue  to  provide  conditioning constraints throughout the generation process. Prompt ablation further supported the interpretation that functional annotation provides the dominant semantic signal (Supplementary Fig. 3).
+
+Taken  together,  these  results  indicate  that  GenNA  captures  relationships  between  natural-language functional annotations and nucleotide sequences. Functional prompts are therefore not merely superficial auxiliary  information  in  the  input,  but  actively  participate  in  both  the  probabilistic  evaluation  and  the available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+137
+
+138
+
+139
+
+140
+
+141
+
+142
+
+143
+
+144
+
+145
+
+146
+
+147
+
+148
+
+149
+
+150
+
+151
+
+152
+
+153
+
+154
+
+155
+
+156
+
+157
+
+158
+
+159
+
+160
+
+161
+
+162
+
+163
+
+164
+
+165
+
+166
+
+167
+
+168
+
+169
+
+170
+
+generation of the entire conditioned sample.
+
+##### Zero-shot prediction of mutation effects
+
+To  evaluate  the  sensitivity  of  GenNA  to  single-nucleotide  perturbations  in  functional  sequences,  we performed in silico mutational scanning on protein-coding genes and compared the perplexity changes induced by different mutation types (Fig. 2e,f). Within the evaluation framework used in this study, Δ PPL can  be  interpreted  as  the  model's  response  how  far  a  mutated  sequence  deviates  from  the  natural distribution 28,29 . It therefore provides a useful proxy for comparing the relative impact of different classes of perturbations on the model's internal assessment of sequence function.
+
+Δ These  results  show  that,  even  without  any  task-specific  fine-tuning  on  variant  data,  GenNA  displays discriminative responses to different classes of mutations solely as a result of large-scale pretraining, consistent with findings in other genomic foundation models 6 . The Δ PPL used here reflects changes in model likelihood induced by perturbations that deviate from the learned distribution of natural sequences, and is therefore treated as a quantitative proxy for mutation-induced deviations in sequence likelihood rather than a direct experimental measurement of phenotypic effects. Nevertheless, the emergence of this stratified pattern in the absence of population-level variation data from the same species suggests that  cross-species  pretraining  can  endow  the  model  with  sensitivity  to  coding  constraints  and  local sequence abnormalities.
+
+The results revealed a clearly stratified pattern across mutation categories. In general, single-nucleotide mutations occurring in non-coding regions (such as 3 ′ and 5 ′ UTR substitutions or deletions), as well as synonymous substitutions  within  the  coding sequence (CDS), caused only  modest changes  in Δ PPL (median values ranging from -0.015 to 0.076). This suggests that the model is relatively tolerant of local perturbations that do not alter the encoded product (Fig. 2e). By contrast, when a mutation changed the amino acid composition or disrupted the reading frame, the model exhibited a much stronger rejection signal. The median Δ PPL associated with missense mutations (0.291) was approximately four-fold higher than that of synonymous mutations (0.076), indicating that the model can distinguish simple nucleotide substitutions from coding changes that are more likely to affect the protein product. For more disruptive mutation types, the increase in perplexity was even more pronounced. Nonsense mutations introducing premature stop codons resulted in a substantial median Δ PPL of 1.732. Stop-loss mutations disrupting the  original  termination  codon  also  showed  comparable  increases  (median Δ PPL  =  1.558),  while single-base deletions causing frameshifts produced the strongest overall effect by a wide margin (median PPL = 5.411) (Fig. 2e,f). This overall trend is highly consistent with the degree to which coding-region integrity is compromised.
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+##### Capturing evolutionary constraints and phylogenetic representations 171
+
+- To investigate whether GenNA has learned deeper statistical features associated with species context, 172
+- we  systematically  analyzed  its  intermediate-layer  representations  and  its  conditional  sensitivity  to 173
+- perturbations in species labels. Although the pretraining corpus explicitly provides only shallow species 174
+- labels, such as genus and species epithets, rather than a complete hierarchical taxonomy, the model 175
+- may  still  implicitly  acquire  a  degree  of  species-similarity  structure  by  modeling  differences  among 176
+- homologous sequences across species 30 . 177
+
+178
+
+179
+
+180
+
+181
+
+182
+
+183
+
+- In the absence of any explicit taxonomic supervision, we extracted hidden states from an intermediate Transformer  layer  (layer  18)  and  visualized  sequence  representations  from  different  species  using t-SNE 31 . The resulting embeddings were not randomly dispersed, but instead showed partially separable clustering  patterns  according  to  broad  biological  groups,  such  as  fungi,  plants,  invertebrates,  and vertebrates.  In  addition,  the  model  formed  relatively  well-defined  subspaces  for  the  two  molecular modalities,  DNA  and  RNA  (Fig.  2g),  indicating  that  GenNA  distinguishes  not  only  between  molecular
+
+184
+
+185
+
+186
+
+187
+
+188
+
+189
+
+190
+
+191
+
+192
+
+193
+
+194
+
+195
+
+196
+
+197
+
+198
+
+199
+
+200
+
+201
+
+202
+
+203
+
+204
+
+modalities but also differences associated with species context.
+
+We next  quantified  the  model's  sensitivity  to  species  specificity  by  measuring  the Δ PPL  induced  by incorrect species prompts. We hypothesized that, if the model captures species-associated sequence features,  then  an  incorrect species  label  should  not  behave  as  uninformative  noise;  rather,  it  should conflict  with  the  underlying  sequence  patterns  and  thereby  produce  a  detectable  perturbation  in  the probability assigned to the entire conditioned input. Using the RNA sequence of the ppap2d gene from the  great  blue-spotted  mudskipper  ( Boleophthalmus  pectinirostris )  as  an  example,  we  found  that replacing  the  original  species  prompt  with  labels  from  highly  divergent  species,  such  as  human  or Arabidopsis thaliana, led to a clear increase in average PPL (Fig. 2h).
+
+To  assess  the  generality  of  this  phenomenon,  we  further  selected  10  representative  species  and calculated the average Δ PPL produced by all pairwise species-label substitutions, thereby constructing a Δ PPL matrix. This matrix displayed a relatively clear diagonal-consistent structure: in general, the greater the  difference  between  two  species,  the  larger  the Δ PPL  induced  by  an  incorrect  label  (Fig.  2i). Hierarchical clustering based on this Δ PPL matrix produced a topology that showed broad agreement with  reference  phylogenetic  relationships  across  several  major  branches,  including  a  reasonable separation  of  fishes,  birds,  and  mammals  within  vertebrates  (Fig.  2j).  However,  some  deviations remained for more distantly related taxa; for example, in the learned representation space, the model tended to place Saccharomyces cerevisiae closer to Chlamydomonas reinhardtii. Overall, these results suggest that what GenNA learns is better characterized as a phylogeny-related structure of statistical similarity rather than as a strict reconstruction of evolutionary relationships 32 .
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+205
+
+206
+
+207
+
+208
+
+209
+
+210
+
+211
+
+212
+
+213
+
+214
+
+215
+
+216
+
+217
+
+218
+
+219
+
+220
+
+221
+
+222
+
+223
+
+224
+
+225
+
+226
+
+227
+
+228
+
+229
+
+230
+
+231
+
+232
+
+233
+
+234
+
+235
+
+236
+
+237
+
+238
+
+##### Broad and meaningful sequence generation
+
+One  of  the  central  goals  of  GenNA  is  to  enable  conditional  nucleotide  generation  guided  by natural-language annotations. To evaluate whether the generated outputs are not only formally plausible but  also  consistent  with  the  underlying  biological  context  in  both  semantic  and  statistical  terms,  we systematically analyzed model behavior across multiple generation settings (Fig. 3a).
+
+We first evaluated unconditional generation under highly minimal conditions. In this setting, all explicit constraints were removed, and the model was provided only with a modality tag (Genomic DNA or RNA). It was then required to autoregressively generate the complete metadata fields, including species, gene name, and functional  annotation,  followed  by  the  corresponding  nucleotide  sequence.  For  generated mRNA sequences, we extracted the CDS regions and translated them into protein sequences, which were then aligned against existing databases using BLASTP 33 . We subsequently used Sentence-Transformers 34 to evaluate the semantic consistency between the model-generated functional annotations and the annotations associated with the top database hits. Sequence-logo analysis of these unconditionally generated mRNAs further recovered a Kozak-like translation-initiation context, which is a meaningful  local  sequence  grammar  (Supplementary Fig.  5).  The  results  showed  that  the  generated annotations remained well aligned with the corresponding generated sequences at the semantic level (Fig. 3b).
+
+We  next  evaluated  species-specific  generation  to  investigate  whether  the  model  could  leverage species-specific  properties  to guide sequence  generation. Without  imposing  any  explicit constraint  on gene function, we prompted the model to generate nucleotide sequences from six representative model organisms:  human (Homo  sapiens) ,  zebrafish (Danio  rerio) , fruit fly (Drosophila  melanogaster) , Arabidopsis  thaliana ,  yeast (Saccharomyces  cerevisiae) ,  and  maize (Zea  mays) . In addition to preserving semantic self-consistency (Fig. 3c), GenNA successfully reproduced species-specific features in  the  generated  sequences  (Fig.  3d-g).  For  example,  the  GC-content  distributions  of  the  generated sequences were broadly consistent with those of the corresponding reference genomes, and the model captured systematic differences across species ranging from relatively low-GC to high-GC backgrounds. Similar trends were also observed for GC3, codon-usage bias, and amino acid frequency.
+
+In addition, we observed that the generated distributions were more concentrated than the corresponding natural reference distributions, exhibiting a degree of distribution sharpening. In fruit fly and maize, for example, the generated sequences tended to cluster more strongly around the most representative GC ranges  of  each  species,  whereas  coverage  of  the  long-tail  regions  in  the  natural  distributions  was relatively limited (Fig. 3e). This pattern suggests that, under the current sampling configuration, GenNA preferentially generates typical samples that conform to the dominant modes of the training distribution
+
+while still underrepresenting low-frequency tail variation 35,36 . Overall, these results indicate that GenNA
+
+239
+
+240
+
+241
+
+242
+
+243
+
+244
+
+245
+
+246
+
+247
+
+248
+
+249
+
+250
+
+251
+
+252
+
+253
+
+254
+
+255
+
+256
+
+257
+
+258
+
+259
+
+260
+
+261
+
+262
+
+263
+
+264
+
+265
+
+266
+
+267
+
+268
+
+269
+
+can generate sequences that are not only consistent with its self-generated functional annotations but also preserve species-specific statistical features.
+
+##### Controllable generation of nucleotide sequences
+
+To further assess GenNA's capacity for controllable generation, we performed natural-language-guided targeted generation experiments on non-coding RNAs with structural constraints (tRNAs and rRNAs), as well  as  on  protein-coding  genes  whose  translated  products  exhibit  family-specific  physicochemical properties  (histones).  The  model  was  provided  the  prompt  specifying  the  generation  target  and  was required to generate the corresponding nucleotide sequence (Fig. 3a).
+
+For  tRNAs,  we  generated  a  total  of  30,500  candidate  sequences  from  prompts  covering  61  distinct anticodons  and  evaluated  them  systematically  using  tRNAscan-SE 37 .  The  results  showed  that  most generated  sequences  achieved  relatively  high  Cove  scores,  indicating  broad  consistency  with  the secondary-structure  constraints  of  natural  tRNAs  (Fig.  4a).  Further  analysis  revealed  that,  when generating tRNAs for specific amino acids, the model spontaneously adopted multiple anticodon-recognition strategies consistent with natural systems, including wobble pairing 38 (Fig. 4b). In addition, the model reproduced the relatively longer sequence characteristics of tRNA-Leu and tRNA-Ser, which possess a long variable arm (Type II tRNA) 39 (Fig. 4c). For rRNAs, we generated four classes of sequences, 5S, 5.8S, 18S, and 28S, and aligned them to Rfam covariance models 40 using cmsearch from the Infernal suite 41 .  The resulting bit-score distributions were overall close to those of real rRNA reference sets (Fig. 4d), suggesting that the long-chain rRNAs  generated  by  the  model are
+
+probabilistically compatible with natural family-level structural models.
+
+For protein-coding genes, we further generated sequences corresponding to five major histone classes, H1, H2A, H2B, H3, and H4,  and analyzed the distributions of their translated products
+
+in molecular-weight  (MW) and  isoelectric-point  (pI) space.  The  results  showed  that  GenNA  was  able  to recapitulate  the  principal distribution  patterns of  different  histone  families  in  physicochemical-property space  (Fig.  4e).  For  example,  the  generated  H1  sequences  generally  retained  the  trends  of  higher molecular weight and stronger basicity 42 , whereas generated H3 and H4 samples remained more tightly
+
+clustered.  T ogether  with  the  ProGen2  perplexity  evaluation 43 (Fig.  4f),  these  results  indicate  that  the generated coding sequences preserve biophysical profiles similar to those of natural histone families.
+
+Sampling parameters had a substantial influence on the generated distributions. Using H1 as an example, under lower-temperature and more conservative sampling settings, the generated sequences exhibited a available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+270
+
+271
+
+272
+
+273
+
+274
+
+275
+
+276
+
+277
+
+more concentrated, spike-like distribution in features such as length and GC content. As the temperature increased and the sampling threshold was relaxed, the coverage of generated samples in physicochemical-property space expanded markedly, and the resulting continuous distributions became closer to those of the natural reference set (Fig. 4e,h and Supplementary Fig. 6). Overall, these results suggest  that  GenNA captures  multilevel  biological  features  ranging  from  RNA  secondary  structure  to protein  physicochemical  properties,  while  also  exhibiting  a  degree  of  controllability  at  inference  time through autoregressive sampling parameters. By adjusting prompts and sampling settings, the model can switch between more conservative targeted generation and more open-ended sequence exploration.
+
+278
+
+279
+
+280
+
+281
+
+282
+
+283
+
+284
+
+285
+
+286
+
+287
+
+288
+
+289
+
+290
+
+291
+
+292
+
+293
+
+294
+
+295
+
+296
+
+297
+
+298
+
+299
+
+300
+
+301
+
+302
+
+303
+
+304
+
+### Discussion
+
+In this study, we introduced GenNA, a generative large language model for nucleotide sequences guided by natural-language annotations. Unlike prior approaches that are primarily designed to model a single sequence modality, GenNA employs a dedicated cross-modal BPE vocabulary and joint pretraining on large-scale eukaryotic genomic and transcriptomic corpora to establish associations between functional semantics and sequence syntax within a unified autoregressive framework. Our results show that this training strategy not only enables the model to capture the intrinsic patterns of nucleotide sequences themselves, but also allows it to leverage natural-language functional annotations and species context for consistency evaluation and conditional generation over entire conditioned inputs.
+
+GenNA  exhibits  several  notable  emergent  properties  at  multiple  levels.  First,  in  in  silico  mutational scanning, the model shows a stratified perplexity response across synonymous, missense, nonsense, and  frameshift  mutations,  with  more  disruptive  variants  generally  associated  with  larger Δ PPL.  This pattern suggests that the model has learned statistical features related to genetic-code degeneracy and coding-sequence  integrity.  Second,  even  without  explicit  supervision  from  a  taxonomic  tree,  both  the intermediate-layer representations of GenNA and the Δ PPL matrix derived from species-label swapping reveal a degree of species-associated structure, indicating that cross-species pretraining may enable the model to capture phylogeny-related latent similarities 30 .  Furthermore, in the tRNA generation task, the model spontaneously reproduces wobble-pairing behavior consistent with natural systems, suggesting that cross-modal training may influence not only local sequence continuation but also the internalization of higher-order biological constraints.
+
+Taken  together,  these  findings  support  a  broader  conclusion:  for  nucleotide  foundation  models, introducing natural-language annotations as explicit conditioning inputs not only improves the model's ability  to exploit  sequence-function pairings, but also provides a more natural interface for generating candidate sequences from high-level biological intentions. At the same time, it is important to emphasize that  many  of  the  evaluations  in  this  study  are  still  based  primarily  on  computational  proxy  metrics, including  PPL  over  entire  conditioned  inputs,  perplexity  from  external  models,  covariance-model available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint matching scores, and distributions of physicochemical properties. Accordingly, these results are better 305 interpreted as evidence that the model has learned probabilistic constraints and structural compatibilities 306 consistent with natural biological sequences, rather than as direct confirmation of true biological function, 307 experimental phenotype, or in vivo feasibility. 308
+
+309
+
+310
+
+311
+
+312
+
+313
+
+314
+
+315
+
+Despite the encouraging performance of GenNA across multiple tasks, several limitations remain. First, due to computational constraints, we have not yet systematically explored how scaling laws affect the upper  bound  of  model  performance 44 .  Second,  in  sequence-generation  tasks,  we  observed  that  the generated distributions are often more concentrated than those of real natural genomes; that is, they exhibit distribution sharpening. This behavior may be related to truncation of low-probability tail regions by top-p sampling during autoregressive decoding 35 , and it suggests that more refined sampling-calibration strategies ought to be explored in future work to better recover the diversity present
+
+316
+
+317
+
+318
+
+319
+
+320
+
+321
+
+322
+
+323
+
+324
+
+325
+
+326
+
+327
+
+328
+
+329
+
+330
+
+331
+
+332
+
+333
+
+334
+
+335
+
+336
+
+337
+
+in natural sequence distributions.
+
+In  addition,  there  remains  room  for  improvement  in  both  tokenization  strategy  and  context  length. Although the 6,000-token BPE vocabulary used here provides a reasonable trade-off between sequence compression and the capture of biological motifs, it may still lose part of the local information required in settings  that  demand  single-nucleotide  resolution,  such  as  highly  fine-grained  mutational  analyses  of cis-regulatory elements. Future work could explore hierarchical tokenization, mixed-granularity modeling, or longer-context architectures to improve the joint modeling of ultralong-range regulatory relationships and  fine-scale  local  variation.  Another  important  limitation  is  that  all  generated  results  in  this  study currently lack systematic wet-lab validation. Consequently, whether in terms of the structural compatibility of  generated  tRNAs/rRNAs  or  the  plausibility  of  histone-coding  sequences,  further  experimental verification will still be required.
+
+Looking ahead, we plan to further extend the applicability of GenNA to more complex downstream tasks through parameter-efficient fine-tuning (PEFT), such as LoRA 45 . Within such a framework, GenNA could potentially serve both as a conditional sequence generator and as a zero-shot or few-shot discriminator, supporting tasks such as candidate-sequence design in synthetic biology and variant prioritization. As training  data  continue  to  expand,  particularly  through  the  incorporation  of  more  functional  assays, population-variation data, and multi-omics annotations, cross-modal nucleotide foundation models such as  GenNA  may  provide  an  increasingly  tight  link  between  biological  sequence  understanding  and sequence design.
+
+### Methods
+
+##### Pretraining corpus construction
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+To construct the multimodal nucleotide pretraining corpus, we collected all available 338 GenBank-formatted 26 genomic  DNA  and  RNA  annotation  files  for  eukaryotic  species  from  the  NCBI 339 RefSeq database 25 .  Because intergenic and other non-gene regions often contain abundant repetitive 340 and  low-complexity  sequence,  and  a  genomic  language-modeling  study  reported  better  downstream 341 performance when  training was concentrated on annotated gene regions rather than mixed 342 whole-genome sequence 17 ,  we primarily restricted the corpus to gene-associated regions with explicit 343 annotations. 344
+
+345
+
+346
+
+347
+
+348
+
+349
+
+350
+
+351
+
+We used Biopython 46 to parse GenBank records automatically. For each valid record, we extracted the molecule  type  (genomic  DNA  or  RNA),  source  species,  gene  name,  and  natural-language  functional descriptions from the product and note fields. For hierarchical structures such as mRNA, CDS, ncRNA, and regulatory elements, we organized the annotations using custom XML-style tags so as to preserve the original structural boundaries and semantic cues as much as possible, and wrote these structured annotations  together  with  the  corresponding  underlying  nucleotide  sequences  into  unified  training samples.
+
+352
+
+353
+
+354
+
+355
+
+356
+
+357
+
+358
+
+359
+
+360
+
+361
+
+362
+
+363
+
+364
+
+365
+
+366
+
+367
+
+During  construction  of  genomic  DNA  samples,  to  introduce  limited  local  neighborhood  context  while preserving the core annotated region, we randomly extended the target annotated segment by 0-100 bp upstream and downstream; extensions were truncated when they reached the physical boundary of the corresponding contig. After cleaning and reorganization, the final corpus comprised approximately 24.7 million samples and approximately 416 billion characters in total. To improve context utilization and GPU memory efficiency during Transformer pretraining, we further applied a sequence-packing strategy during
+
+preprocessing, concatenating multiple samples into long input sequences of nearly 20,000 characters 47 .
+
+##### Cross-modal BPE tokenizer
+
+Because the pretraining corpus simultaneously contained continuous nucleotide sequences, natural-language functional annotations, and XML-style structural tags, the model required a tokenization strategy  capable  of  handling  multiple  symbol  types  in  a  unified  manner.  Traditional  nucleotide  k-mer tokenization is suitable for pure sequence modeling but cannot readily encode natural-language phrases or hierarchical tags 5,6 . By contrast, character-level encoding is more general but substantially increases input token length, thereby reducing the computational efficiency of long-context training 48 .
+
+On  the  basis  of  these  considerations,  we  used  byte-pair  encoding  (BPE) 23 to  construct  a  unified cross-modal  tokenizer.  We  randomly  sampled  10,000  records  from  the  pretraining  corpus  as  the 368 tokenizer training set and trained a dedicated vocabulary of 6,000 tokens. This vocabulary size provided 369 a balance between local nucleotide-pattern resolution and overall compression efficiency: it preserved 370 sensitivity to short nucleotide fragments  and  local  variation, while  compressing  high-frequency 371 natural-language functional phrases, common XML tag fragments, and recurrent sequence motifs into 372 more stable discrete units. 373
+
+374
+
+375
+
+376
+
+377
+
+During unsupervised BPE merging, high-frequency co-occurrence patterns from different modalities were mapped into a shared token space. This design enabled the model to process sequence syntax, textual semantics, and structural boundary  information jointly  within  a  common  input  representation,  thereby providing a unified foundation for subsequent causal language modeling.
+
+378
+
+379
+
+380
+
+381
+
+382
+
+383
+
+384
+
+385
+
+386
+
+387
+
+388
+
+389
+
+390
+
+391
+
+392
+
+393
+
+394
+
+395
+
+396
+
+397
+
+398
+
+##### Model architecture and configuration
+
+GenNA used a decoder-only Transformer architecture. Its core network configuration was based on the
+
+Qwen3-4B design paradigm 22 , but the model was reinitialized and pretrained from scratch for the present cross-modal nucleotide modeling task. Because we used a custom cross-modal BPE vocabulary rather than  the  original  Qwen3  vocabulary,  the  model  parameters  were  not  transferred  from  existing checkpoints;  instead,  the  model  underwent  full  pretraining  under  the  new  vocabulary  system  and multimodal nucleotide corpus.
+
+The model comprised 36 Transformer decoder blocks with a hidden size of 2,560. The attention module used grouped query attention (GQA) 49 ,  with 32 query heads and 8 key/value heads. Rotary positional embeddings  (RoPE) 50 were  used  for  positional  encoding,  the  feed-forward  network  employed  the SwiGLU activation function 51 , and layer normalization used RMSNorm 52 in a pre-norm configuration.
+
+Under this configuration and the 6,000-token vocabulary, the model contained approximately 3.6 billion parameters in total. This architecture was designed to maintain strong long-range modeling capability together with reasonable training and inference efficiency, while accommodating inputs that combined nucleotide sequences, natural-language prompts, and structured tags.
+
+##### Pretraining protocol
+
+Pretraining was carried out on a computing cluster of five NVIDIA A800 GPUs (80 GB memory each). The training objective was causal language modeling (CLM), i.e., prediction of the next token conditioned
+
+on the preceding context 20 .  For an input token sequence g1876 g3404 g4666g1876 g2869 , g1876 g2870 , … , g1876 g3021 g4667 of  length g1846 ,  the objective available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+- can be written as: 399
+
+g1
+
+- preceding tokens. 401
+
+<!-- formula-not-decoded -->
+
+g1
+
+- where g1842g4666g1876 g3047 g1508 g1876 g3407g3047 g4667 denotes the conditional probability assigned by the model to the g1872 -th token given the 400
+- The  optimizer  was  AdamW 53 ,  with g2010 g2869 g3404 0.9, g2010 g2870 g3404 0.95 , and g2019 g3050g3032g3036g3034 g3035g3047  g3031g3032 g3030g3028g3052 g3404 0.1 .  The  learning-rate 402
+- schedule  combined  linear  warmup  with  cosine  annealing 54 .  During  the  first  5,000  update  steps,  the 403
+- learning  rate  increased  linearly  from  0  to 2 g3400 10 g2879g2872 ;  it  then  decayed  gradually  according  to  a  cosine 404
+
+CLM
+
+- schedule  to  10%  of  the  peak  value  over  the  remainder  of  training.  With  gradient  accumulation,  the 405
+- effective  global  batch  size  was  stabilized  at  60.  Training  ran  for  400,000  steps  in  total  and  required 406
+- approximately 3 months of computation. 407
+- To  reduce  the  model's  tendency  to  rely  mechanically on  specific explicit  prompt items,  such as  Latin 408
+- species  names  or  fixed  gene  symbols,  and  to  increase  its  dependence  on  more  general  contextual 409
+- statistical patterns, we introduced a dynamic information-masking strategy the during the later stage of 410
+- training. During construction of training inputs, the species identifier or gene identifier in the prompt was 411
+- randomly removed with probability 0.5. 412
+
+413
+
+##### Evaluation of embeddings and inference metrics 414
+
+- Within  the  evaluation  framework  of  this  study,  perplexity  (PPL)  was  used  as  the  core  metric  for 415
+- quantifying the model's overall uncertainty with respect to an input sample. For an input token sequence 416
+- g1850 g3404 g4666g1876 g2869 , g1876 g2870 , … , g1876 g3021 g4667 formed by the prompt and the sequence under evaluation, the average perplexity was 417
+
+g1
+
+<!-- formula-not-decoded -->
+
+- This definition is equivalent to the exponential transform of the average negative log-likelihood over the 419
+- entire input sequence: 420
+- where 421
+- is the mean cross-entropy loss over the full input token sequence. 422
+
+423
+
+- defined as: 418
+
+CE
+
+<!-- formula-not-decoded -->
+
+g1
+
+<!-- formula-not-decoded -->
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+##### In silico mutation scanning 424
+
+- To  evaluate  the  model's  sensitivity  to  local sequence  perturbations  systematically,  we  established  an 425
+- in-silico mutation pipeline based on protein-coding genes from the validation set. We randomly selected 426
+- 100 protein-coding genes with lengths between 200 and 3,000 bp from an independent validation set as 427
+- the  wild-type  sequence  collection ( g1845 g3050g3047 ).  For  each  gene,  we  exhaustively  introduced  single-nucleotide 428
+- substitutions and single-base deletions at each position in the untranslated regions (5 UTR and 3 UTR) 429
+- and coding sequence (CDS). 430
+- According to the standard genetic code for nuclear protein-coding genes, simulated mutations in the CDS 431
+- were  further  classified  as  synonymous,  missense,  nonsense,  and  stop-loss  mutations 55 .  Single-base 432
+- deletions occurring within the CDS that altered the reading-frame phase were classified separately as 433
+- frameshift  mutations.  The  perturbation  caused  by  each  mutation  was  quantified  by  the  perplexity 434
+- difference between the mutant sequence ( g1845 g3040g3048g3047 g4667 and the wild-type sequence g4666g1845 g2933g2930 g4667 : 435
+
+<!-- formula-not-decoded -->
+
+- A positive PPL indicated that the model regarded the mutant sequence as further removed from the 436
+- natural distribution it had learned than the corresponding wild-type sequence. We therefore used PPL 437
+- as a proxy for the degree of abnormality and to compare the relative magnitude of perturbations induced 438
+- by different mutation classes 28 . 439
+
+440
+
+##### Sequence-function semantic consistency evaluation 441
+
+442
+
+- 443
+- 444
+
+445
+
+446
+
+447
+
+448
+
+449
+
+450
+
+451
+
+452
+
+453
+
+454
+
+Δ
+
+To  evaluate  the  model's cross-modal  alignment  between  natural-language  functional  descriptions  and nucleotide  sequences, we constructed a validation set containing g1840 real  gene  samples,  where  each sample consisted of a nucleotide sequence g1845 g3036 and its corresponding native functional annotation g1827 g3036 . In this  experiment,  the  underlying  nucleotide  sequence  was  held  fixed,  while  the  functional-annotation component of the prompt was systematically replaced, thereby generating inputs with either matched or mismatched sequence-function pairings.
+
+Δ
+
+Specifically,  for  each sequence g1845 g3036 in  the  collection,  we  combined it with  every annotation g1827 g3037 to  form input  prompts  and computed the corresponding conditional perplexity. The resulting evaluations were divided into two groups: the matched group ( g1861 g3404 g1862 g4667 in which each sequence was paired with its original annotation,  and  the  mismatched  group g4666 g1861 g3405 g1862 ),  in  which  the  annotation  was  replaced.  These comparisons were used to assess the direct influence of semantic constraints on the probability assigned to nucleotide sequences.
+
+′
+
+′
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+- Model embedding and phylogenetic representation analysis 455
+- To determine whether GenNA internalizes species-specific signatures, we extracted continuous hidden 456
+- representations  from  intermediate  layers  of  the  pretrained  model.  Specifically,  we  used  standardized 457
+- prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;' and 458
+- captured the hidden states from layer 18 of the 36-layer Transformer decoder. Mean pooling was applied 459
+- across  the  sequence  dimension,  excluding  padding  tokens,  to  obtain  a  fixed-dimensional  global 460
+- embedding  for  each  sequence.  These  embeddings  were  visualized  using  t-distributed  stochastic 461
+- neighbor embedding (t-SNE) 31 , with perplexity = 30 and maximum iterations = 1,000. 462
+- We  further  assessed  the  model's  conditional  sensitivity  to  changes  in  species  labels  using  PPL 463
+- perturbation. Ten representative species spanning the major eukaryotic lineages were selected. For any 464
+- species pair g4666g1861, g1862g4667 , the species label in the prompt was replaced with that of species g1862 , while the rest of 465
+- corresponding average PPL was defined as: 467
+- the  input  was  kept  unchanged,  and  the  target  sequence  from  species g1861 was  then  evaluated.  The 466
+
+Δ
+
+<!-- formula-not-decoded -->
+
+- constructed with the correct  and substituted species  labels, respectively.  The  resulting 10 g3400 10 PPL 469
+- where g1850 g3036 denotes the target sequence from species g1861 , and g1829 g3036 and g1829 g3037 denote the conditioning prompts 468
+- matrix  was  subjected  to  hierarchical  clustering  using  Ward's  minimum-variance  method 56 ,  and  the 470
+- resulting topology was compared with a reference phylogenetic tree 57 . 471
+
+472
+
+- Sequence generation and validation 473
+- Autoregressive sequence generation framework and decoding strategy 474
+
+Δ
+
+- To enable conditional de novo generation, GenNA used a unified prompt template as the input prefix: 475
+- [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]&lt;seq&gt; 476
+- where the species name and gene symbol could be optionally provided depending on the task. Given a 477
+- conditional probability: 479
+- prefix C,  the  model autoregressively  generated a target token  sequence g1851 g3404 g4666 g1877 g2869 , g1877 g2870 , … , g1877 g3021 g4667 ,  with  joint 478
+
+g1
+
+<!-- formula-not-decoded -->
+
+- At each step, the model first produced a logits vector g1878 g3047 , which was converted to a probability distribution 480
+- by  softmax.  T o control  the  smoothness  of  the  sampling  distribution,  temperature  scaling  was  applied 481
+- during inference: 482
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+<!-- formula-not-decoded -->
+
+- where g2028 is the temperature parameter. When g2028 g3407 1 , the distribution becomes sharper and sampling is 483
+- outputs are typically more diverse. 485
+- biased toward higher-probability tokens; when g2028 g3408 1 , the distribution becomes flatter and the generated 484
+- After  temperature  scaling,  nucleus  sampling  (top-p  sampling)  was  applied 35 . Specifically,  token 486
+- satisfying a cumulative probability of at least g1868 was selected: 488
+- probabilities  at  the  current  step  were  sorted  in  descending  order,  and  the  smallest  candidate  set g1848 g3043 487
+
+<!-- formula-not-decoded -->
+
+- Sampling  was  then  performed  only  within  this  candidate  set.  T o  suppress  repetitive  fragments,  a 489
+- repetition penalty was applied to previously generated tokens, and repeated n-grams of length g1866 were 490
+- disallowed.  Unless  otherwise  specified,  the  following  decoding  parameters  were  used  throughout: 491
+
+492
+
+temperature = 0.7, top-p = 0.8, repetition penalty = 1.3
+
+58
+
+,  and no-repeat n-gram size = 5. Generation
+
+- ended when the model emitted the terminator &lt;eos&gt; or reached the predefined maximum token length. 493
+
+494
+
+##### Unconditional self-generation and semantic fidelity analysis 495
+
+- In the unconditional self-guided generation task, the model received only the modality label (Genomic 496
+- DNA or RNA) as the initial input and autoregressively generated the complete metadata fields, including 497
+- species, gene name, functional annotation, and the subsequent nucleotide sequence. We generated a 498
+- total of 10,000 samples. 499
+- To approximate the consistency between generated sequences and their self-generated annotations at 500
+- the protein level, we extracted the CDS region enclosed by the &lt;cds&gt;&lt;/cds&gt; tags from each generated 501
+- mRNA sequence and translated it into an amino acid sequence. These translated sequences were then 502
+- aligned against the UniProt database 59 using BLASTP 33 , and the functional annotations associated with 503
+- the  top  five  hits  ranked  by  bit  score  were  retained.  We  further  used  a  pretrained  semantic  model, 504
+- Sentence-Transformers (all-MiniLM-L6-v2) 60 , to compute the cosine similarity between the 505
+
+506
+
+model-generated annotation and the BLASTP-hit annotations as an approximate measure of semantic
+
+- consistency 34 . 507
+
+508
+
+##### Species-specific genome feature evaluation 509
+
+- For  the  species-specific  generation  task,  we  selected  six  model  eukaryotes  as  conditioning  species: 510
+- Homo sapiens, Danio rerio, Drosophila melanogaster, Arabidopsis thaliana, Zea  mays , and 511
+- Saccharomyces  cerevisiae .  Without  explicitly  constraining  gene  function,  we  generated  2,000  RNA 512
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+- sequences for each species. 513
+- In  addition  to  using  the  same  annotation-consistency  analysis  as  in  the  unconditional  generation 514
+- experiment, we extracted the CDS regions from the generated mRNA sequences and compared them 515
+- with  species-specific  reference  CDS  statistics  from  the  Codon  Statistics  Database 61 .  The  evaluation 516
+- metrics  included  the  global  GC-content  distribution,  GC  content  at  the  third  codon  position  (GC3), 517
+- codon-usage bias, and amino acid usage frequency. These statistics were used to assess whether the 518
+- model could reproduce species-associated compositional features during conditional generation. 519
+
+520
+
+##### tRNA generation 521
+
+- We  conducted  targeted  generation  experiments  for  transfer  RNAs  (tRNAs).  For  61  tRNA  prompt 522
+- categories  with  different  anti-codon,  we  constructed  inputs  using  the  format 'Genomic DNA, [tRNA 523
+- Name]&lt;seq&gt;' , for example, 'Genomic  DNA,  trnaA-AGC,  trna-Ala&lt;seq&gt;' . Under each prompt condition, 524
+- 500 samples were generated, yielding a total of 30,500 candidate sequences. 525
+
+526
+
+The generated sequences were evaluated using tRNAscan-SE v2.0 with the default eukaryotic setting
+
+527
+
+528
+
+529
+
+530
+
+531
+
+- 37
+- (-E).  The  reported  Cove  score  was  recorded  as  an  indicator  of  secondary-structure  plausibility.  We additionally parsed the anticodon and isotype annotations returned by the tool to assess category-level consistency between the generated sequences and the target tRNA classes.
+
+##### rRNA generation
+
+- We evaluated the model's ability to generate different classes of ribosomal RNAs (rRNAs), including 5S, 532 5.8S, 18S, and 28S rRNAs. Inputs were constructed using the template 'RNA,  [rRNA  Name]&lt;seq&gt;' , for 533 example, 'RNA, 18S ribosomal RNA&lt;seq&gt;' .  For each rRNA class, 1,000 candidate sequences were 534 generated. In parallel,  we  extracted  real rRNA sequences  of  the corresponding classes  from  RefSeq 535 eukaryotic GenBank annotation files to construct natural reference sets for comparison. 536
+
+537
+
+538
+
+539
+
+540
+
+541
+
+542
+
+To evaluate the consistency of the generated sequences with natural rRNA family structural models, we aligned the generated sequences against the corresponding covariance models in the Rfam database 40 using cmsearch from the Infernal package 41 . The returned alignment scores were used as approximate indicators of structural compatibility. The same procedure was applied to the real rRNA reference sets, allowing comparison between generated and natural sequences in terms of their family-model matching distributions.
+
+543
+
+##### Histone generation 544
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+- We used the histone family as a representative task to evaluate the model's ability to generate coding 545 sequences for specific protein families conditionally. Inputs were constructed using the template 'RNA, 546 [histone]&lt;seq&gt;',  where  [histone]  was  specified  as  H1,  H2A,  H2B,  H3,  or  H4,  corresponding  to  RNA 547 sequences encoding  the  respective  histone  classes.  In  parallel,  we  extracted  the  corresponding  real 548 histone-coding sequences, including variants such as H3.1, from RefSeq eukaryotic GenBank annotation 549 files to construct natural reference sets for subsequent comparison. 550
+
+551
+
+552
+
+553
+
+554
+
+555
+
+To  examine  the  effect  of  sampling  hyperparameters  on  the  generated  distributions,  we  used  four progressively increasing combinations of temperature and nucleus-sampling threshold: (0.55, 0.7), (0.7, 0.8),  (0.85,  0.9),  and  (1.0,  0.95).  In  all  experiments,  the  repetition  penalty  was  fixed  at  1.3  and  the no-repeat n-gram size at 5. For each histone class and each sampling-parameter combination, the model generated 1,000 candidate RNA sequences.
+
+556
+
+557
+
+558
+
+559
+
+560
+
+561
+
+562
+
+563
+
+564
+
+565
+
+566
+
+567
+
+568
+
+569
+
+570
+
+571
+
+572
+
+573
+
+574
+
+575
+
+576
+
+The generated RNA sequences were translated into amino acid sequences to compare with the natural histone sets. Comparison metrics included protein sequence length, molecular weight (MW), theoretical isoelectric point (pI), and amino acid composition, which were computed using the ProteinAnalysis class  in  Biopython's Bio.SeqUtils.ProtParam module 46 .  These  metrics  were  used  to  assess  how closely the generated sequences approximated the distributional properties of natural histone proteins.
+
+### Data availability
+
+The  nucleotide  sequence  data  used  for  pretraining  were  retrieved  from  the  NCBI  RefSeq  database (https://ftp.ncbi.nlm.nih.gov/genomes/refseq/) 25 .  Python  scripts  used  to  parse  the  full-format  GenBank files and systematically reconstruct the aligned pretraining corpus are available in our GitHub repository (https://github.com/DrBlackZJU/GenNA).
+
+For  downstream  validation  and  sequence  analysis,  several  public  databases  were  utilized:  protein sequences for alignment and semantic consistency evaluation were obtained from UniProt (https://www.uniprot.org/) 59 ;  covariance  models  for  evaluating  the  structural  plausibility  of  generated rRNAs  were  sourced  from  the  Rfam  database  (https://rfam.org/) 40 ;  reference  species-specific  CDS statistics, including GC content and codon usage bias, were derived from the Codon Statistics Database (http://codonstatsdb.unr.edu/) 61 . The generated sequences for all evaluated tasks (including unconditional  generation,  species-specific  generation,  tRNAs,  rRNAs,  and  histones)  are  provided  in Supplementary Data 1.
+
+### Code availability
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+- The GenNA source code, including scripts for pretraining, generation, and further analysis, is available on 577
+- GitHub (https://github.com/DrBlackZJU/GenNA). Model weights are publicly available on Hugging Face 578
+- (https://huggingface.co/DrBlack/GenNA). 579
+
+#### References 580
+
+- 1 Crick, F. Central Dogma of Molecular Biology. Nature 227 , 561-563 (1970). 581
+- 2 Consens,  M.  E. et  al. Transformers  and  genome  language  models. Nat.  Mach.  Intell. 7 , 582 346-362 (2025). 583
+- 3 Rao,  R.,  Meier,  J.,  Sercu,  T.,  Ovchinnikov,  S.  &amp;  Rives,  A.  Transformer  protein  language 584
+- models  are unsupervised structure learners. In International Conference  on Learning 585 Representations (ICLR, 2021). 586
+- 4 Rives, A. et al. Biological structure and function emerge from scaling unsupervised learning to 587 250 million protein sequences. Proc. Natl. Acad. Sci. U.S.A. 118 , e2016239118 (2021). 588
+- 5 Ji,  Y .,  Zhou,  Z.,  Liu,  H.  &amp;  Davuluri,  R.  V .  DNABERT:  pre-trained  Bidirectional  Encoder 589 Representations from Transformers model for DNA-language in genome. Bioinformatics 37 , 590 2112-2120 (2021). 591
+- 6 Dalla-Torre,  H. et  al. Nucleotide  Transformer:  building  and  evaluating  robust  foundation 592 models for human genomics. Nat. Methods 22 , 287-297 (2025). 593
+- 7 Zhou, Z. et al. DNABERT-2: Efficient Foundation Model and Benchmark For Multi-Species 594 Genomes. In International Conference on Learning Representations (ICLR, 2024). 595
+- 8 Fishman, V. et  al. GENA-LM: a family of open-source foundational DNA language models 596 for long sequences. Nucleic Acids Res. 53 , gkae1310 (2025). 597
+- 9 Avsec, Ž. et al. Advancing regulatory variant effect prediction with AlphaGenome. Nature 649 , 598 1206-1218 (2026). 599
+- 10 Boshar, S. et al. A foundational model for joint sequence-function multi-species modeling at 600
+
+601
+
+scale for long-range genomic prediction.
+
+Preprint at
+
+- https://www.biorxiv.org/content/10.64898/2025.12.22.695963v1 (2025). 602
+- 11 Zvyagin,  M. et al. GenSLMs:  Genome-scale language models reveal  SARS-CoV-2 603 evolutionary dynamics. Int. J. High Perform. Comput. Appl. 37 , 683-705 (2023). 604
+- 12 Zhang,  D. et  al. DNAGPT:  A  Generalized  Pretrained  Tool  for  Multiple  DNA  Sequence 605
+- Analysis Tasks.  Preprint  at  https://www.biorxiv.org/content/10.1101/2023.07.11.548628v1 606 (2023). 607
+- 13 Nguyen, E. et  al. HyenaDNA: Long-range genomic sequence modeling at single nucleotide 608 resolution. In Advances in Neural Information Processing Systems (NeurIPS, 2023). 609
+- 14 Shao, B. &amp;  Yan,  J. A  long-context language  model  for  deciphering  and generating 610 bacteriophage genomes. Nat. Commun. 15 , 9392 (2024). 611
+- 15 Nguyen, E. et al. Sequence modeling and design from molecular to genome scale with Evo. 612 Science 386 , eado9336 (2024). 613
+- 16 Brixi, G. et al. Genome modelling and design across all domains of life with Evo 2. Nature 614 (2026). 615
+- 17 Wu, W. et al. GENERator: A Long-Context Generative Genomic Foundation Model. Preprint 616 at https://doi.org/10.48550/arXiv.2502.07272 (2025). 617
+- 18 Su, X. et al. Language Models for Controllable DNA Sequence Design. Trans. Mach. Learn. 618 Res. (2025). 619
+- 19 Shen, X. et al. A foundation model for nucleotide sequences. Nucleic Acids Res. 54 , gkag083 620 (2026). 621
+- 20 Radford, A., Narasimhan, K., Salimans, T. &amp; Sutskever, I. Improving language understanding 622
+- by generative pre-training. OpenAI (2018). 623
+
+- 21 Vaswani, A. et al. Attention Is All You Need. In Advances in Neural Information Processing 624
+- Systems (NeurIPS, 2017). 625
+- 22 Yang, A. et al. Qwen3 Technical Report. Preprint at https://arxiv.org/abs/2505.09388 (2025). 626
+- 23 Sennrich,  R.,  Haddow,  B.  &amp;  Birch,  A.  Neural  Machine  Translation  of  Rare  Words  with 627
+- Subword Units. In Annual Meeting of the Association for Computational Linguistics (ACL, 628 2016). 629
+- 24 Devlin, J., Chang, M.-W., Lee, K. &amp; Toutanova, K. BERT: Pre-training of Deep Bidirectional 630
+- Transformers for Language Understanding. In 631
+- Conference of the North American Chapter of
+- the Association for Computational Linguistics (NAACL, 2019). 632
+- 25 O'Leary,  N.  A. et  al. Reference  sequence  (RefSeq)  database  at  NCBI:  current  status, 633
+- taxonomic expansion, and functional annotation. Nucleic Acids Res. 44 , D733-D745 (2015). 634
+- 26 Sayers, E. W. et al. GenBank 2025 update. Nucleic Acids Res. 53 , D56-D61 (2025). 635
+- 27 Clark,  K.,  Khandelwal,  U.,  Levy,  O.  &amp;  Manning,  C.  D.  What  Does  BERT  Look  at?  An 636
+- 637
+- 638
+- Analysis  of  BERT's  Attention.  In BlackboxNLP  Workshop  on  Analyzing  and  Interpreting Neural Networks for NLP (BlackboxNLP, 2019).
+- 28 Benegas,  G.,  Batra,  S.  S.  &amp;  Song,  Y .  S.  DNA  language  models  are powerful  predictors  of 639 genome-wide variant effects. Proc. Natl. Acad. Sci. U.S.A. 120 , e2311219120 (2023). 640
+
+641
+
+29
+
+Meier, J.
+
+et  al.
+
+Language models enable zero-shot prediction of the effects of mutations on
+
+- protein function. In Advances in Neural Information Processing Systems (NeurIPS, 2021). 642
+- 30 Karollus, A. et al. Species-aware DNA language models capture regulatory elements and their 643 evolution. Genome Biology 25 , 83 (2024). 644
+- 31 Van  der  Maaten,  L.  &amp;  Hinton,  G.  Visualizing  data  using  t-SNE. J.  Mach.  Learn.  Res. 9 , 645 2579--2605 (2008). 646
+- 32 Tule,  S.,  Foley,  G.  &amp;  Bodén,  M.  Do  protein  language  models  learn  phylogeny? Brief. 647 Bioinformatics 26 , bbaf047 (2025). 648
+- 33 Altschul,  S.  F.,  Gish,  W.,  Miller, W.,  Myers,  E.  W.  &amp;  Lipman,  D.  J. Basic  local  alignment 649 search tool. J. Mol. Biol. 215 , 403-410 (1990). 650
+- 34 Reimers, N. &amp; Gurevych, I. Sentence-BERT: Sentence Embeddings using Siamese 651 BERT-Networks.  In Conference  on  Empirical  Methods  in  Natural  Language  Processing 652 (EMNLP, 2019). 653
+- 35 Holtzman,  A.,  Buys,  J.,  Du,  L.,  Forbes,  M.  &amp;  Choi,  Y .  The  Curious  Case  of  Neural  Text 654 Degeneration. In International Conference on Learning Representations (ICLR, 2020). 655
+- 36 Wiher,  G.,  Meister,  C.  &amp;  Cotterell,  R.  On  Decoding  Strategies  for  Neural  Text  Generators. 656 Trans. Assoc. Comput. Linguist. 10 , 997-1012 (2022). 657
+- 37 Chan, P. P., Lin, B. Y ., Mak, A. J. &amp; Lowe, T. M. tRNAscan-SE 2.0: improved detection and 658
+- functional classification of transfer RNA genes. Nucleic Acids Res. 49 , 9077-9096 (2021). 659
+- 38 Crick, F. H. C. Codon-anticodon pairing: The wobble hypothesis. J. Mol. Biol. 19 , 548-555 660 (1966). 661
+- 39 Giegé, R. &amp; Eriani, G. The tRNA identity landscape for aminoacylation and beyond. Nucleic 662 Acids Res. 51 , 1528-1570 (2023). 663
+- 40 Kalvari, I. et al. Rfam 14: expanded coverage of metagenomic, viral and microRNA families. 664
+- Nucleic Acids Res. 49 , D192-D200 (2021). 665
+- 41 Nawrocki,  E.  P.  &amp;  Eddy,  S.  R.  Infernal  1.1:  100-fold  faster  RNA  homology  searches. 666
+- Bioinformatics 29 , 2933-2935 (2013). 667
+
+- 42 Hergeth, S. P. &amp; Schneider, R. The H1 linker histones: multifunctional proteins beyond the 668 nucleosomal core particle. EMBO Rep. 16 , 1439-1453 (2015). 669
+- 43 Nijkamp, E., Ruffolo, J. A., Weinstein, E. N., Naik, N. &amp; Madani, A. ProGen2: Exploring the 670 boundaries of protein language models. Cell Syst. 14 , 968-978.e963 (2023). 671
+- 44 Kaplan, J. et al. Scaling Laws for Neural Language Models. Preprint at 672 https://arxiv.org/abs/2001.08361 (2020). 673
+- 45 Hu,  E.  J. et  al. LoRA:  Low-Rank  Adaptation  of  Large  Language  Models.  In International 674 Conference on Learning Representations (ICLR, 2022). 675
+- 46 Cock,  P.  J.  A. et  al. Biopython:  freely  available  Python  tools  for  computational  molecular 676 biology and bioinformatics. Bioinformatics 25 , 1422-1423 (2009). 677
+- 47 Krell,  M.  M.,  Kosec,  M.,  Perez,  S.  P.,  Iyer,  M.  &amp;  Fitzgibbon,  A.  W.  Efficient  Sequence 678 Packing without Cross-contamination: Accelerating Large Language Models without 679 Impacting Performance. Preprint at https://arxiv.org/abs/2107.02027 (2022). 680
+- 48 Lindsey,  L.  M. et  al. The  impact  of  tokenizer  selection  in  genomic  language  models. 681 Bioinformatics 41 , btaf456 (2025). 682
+- 49 Ainslie, J. et al. GQA:  Training  Generalized  Multi-Query  Transformer  Models  from 683 Multi-Head Checkpoints. In Conference  on Empirical  Methods in Natural  Language 684 685
+- Processing (EMNLP, 2023).
+- 50 Su, J. et al. RoFormer: Enhanced transformer with Rotary Position Embedding. 686 Neurocomputing 568 , 127063 (2024). 687
+- 51 Shazeer, N. GLU Variants Improve Transformer. Preprint at https://arxiv.org/abs/2002.05202 688 (2020). 689
+- 52 Zhang, B. &amp; Sennrich,  R.  Root Mean  Square Layer Normalization.  In Advances  in  Neural 690 Information Processing Systems (NeurIPS, 2019). 691
+- 53 Loshchilov,  I.  &amp;  Hutter,  F.  Decoupled  Weight  Decay  Regularization.  In International 692 Conference on Learning Representations (ICLR, 2019). 693
+- 54 Loshchilov,  I.  &amp;  Hutter,  F.  SGDR:  Stochastic  Gradient  Descent  with  Warm  Restarts.  In 694 International Conference on Learning Representations (ICLR, 2017). 695
+
+696
+
+55
+
+Cunningham, F., Moore, B., Ruiz-Schultz, N., Ritchie, G. R. S. &amp; Eilbeck, K. Improving the
+
+697
+
+Sequence Ontology terminology for genomic variant annotation.
+
+- (2015). 698
+- 56 Ward, J. H. Hierarchical Grouping to Optimize an Objective Function. J. Am. Stat. Assoc. 58 , 699 236-244 (1963). 700
+- 57 Kumar, S. et al. TimeTree 5: An Expanded Resource for Species Divergence Times. Mol. Biol. 701 Evol. 39 (2022). 702
+
+703
+
+58
+
+Shirish  Keskar,  N.,  McCann,  B.,  V arshney,  L.  R.,  Xiong,  C.  &amp;  Socher,  R.  CTRL:  A
+
+- Conditional Transformer Language Model for Controllable Generation. Preprint at 704 https://arxiv.org/abs/1909.05858 (2019). 705
+- 59 Consortium, T. U. UniProt: the Universal Protein Knowledgebase in 2025. Nucleic Acids Res. 706 53 , D609-D617 (2024). 707
+
+708
+
+60
+
+Wang, W.
+
+et al.
+
+MiniLM: Deep Self-Attention Distillation for Task-Agnostic Compression of
+
+- Pre-Trained Transformers. In Advances in Neural Information Processing Systems (NeurIPS, 709 2020). 710
+- 61 Subramanian, K., Payne, B., Feyertag, F. &amp; Alvarez-Ponce, D. The Codon Statistics Database: 711
+
+J. Biomed. Semantics
+
+6
+
+, 32
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+A Database of Codon Usage Bias. Mol. Biol. Evol. 39 (2022). 712 713 714
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+#### Acknowledgements 715
+
+This work was supported by the National Natural Science Foundation of China 716 [32270709,32570787,32300532];  the  National  Key  Research  and  Development  Program  of  China 717 [2023YFE0112300]; the 151 Talent Project, and Science and Technology Innovation Leader of Zhejiang 718 Province [2022R52035]; and Jiangsu Collaborative Innovation Center for Modern Crop Production and 719 Collaborative Innovation Center for Modern Crop Production co-sponsored by province and ministry. 720
+
+721
+
+722
+
+723
+
+724
+
+725
+
+726
+
+727
+
+728
+
+729
+
+### Author contributions
+
+M.C. and  C.F. supervised  the  study.  Y .S.  designed  the study,  collected  data,  trained  the  model,  and performed further analysis with support from G.C. and J.W. Y .S. wrote the manuscript with input from G.C. and D.C. All authors reviewed and approved the submitted manuscript.
+
+### Additional information
+
+Competing interests:
+
+The authors declare no competing interests.
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+730
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel scientific figure labeled `a` through `h`, apparently describing an RNA/tokenization/modeling workflow and dataset statistics.
+
+Visible content:
+- Panel `a`: Schematic pipeline starting from an NCBI FASTA/GenBank source, genome/transcript sequence data, RNA-related categories, and a large vocabulary/tokenizer component. It appears to show biological sequence inputs being processed into a model-ready representation.
+- Panel `b`: Pie chart splitting a dataset or sequence collection into two categories, with visible proportions around `73.1%` and `26.9%`.
+- Panel `c`: Overlaid histogram/distribution plot of sequence length, with two colored groups and a long-tailed length distribution.
+- Panel `d`: Two pie charts showing category composition. The left chart includes a large green segment around `51.1%`; the right chart includes a green segment around `43.5%`. Labels are small but appear to represent biological RNA or sequence categories.
+- Panel `e`: Diagram of tokenization from a “Multimodal Input Sequence” into a “BPE Token Sequence” and then “Token IDs.” It explicitly shows nucleotide/RNA-like text input and a byte-pair encoding tokenizer mapping tokens to numeric IDs.
+- Panel `f`: Donut chart titled around “Vocabulary 6000,” showing token-type composition with a legend listing token types and counts.
+- Panel `g`: Bar chart showing coverage or percentage by token length/order, decreasing from the first token class to later classes.
+- Panel `h`: Scatter/line plot comparing token counts or similar values between two methods/sets; blue and red points/lines lie close to the diagonal, suggesting high agreement/correlation.
+
+Biological source objects visible or implied:
+- RNA or nucleotide sequences.
+- FASTA/GenBank records.
+- RNA-related categories or structural/task labels.
+- Tokenized biological sequence vocabulary.
+
+Transformations/model interfaces:
+- Biological sequence input is transformed through BPE tokenization.
+- Tokens are mapped to integer token IDs.
+- The resulting representation appears intended for a genomic/RNA foundation model or language model interface.
+
+Findings shown:
+- Dataset/category proportions are summarized by pie charts.
+- Sequence lengths are long-tailed.
+- Vocabulary composition is broken down by token types.
+- Token coverage decreases with token class/rank/length.
+- Token count comparison shows near-diagonal agreement between two tokenization/counting schemes.
+
+731
+
+732
+
+733
+
+734
+
+735
+
+736
+
+737
+
+738
+
+739
+
+740
+
+741
+
+Fig. 1: Architecture design and multimodal pretraining corpus of the GenNA foundation model
+
+a ,  Overview  of  the  GenNA  pretraining  pipeline,  illustrating  the  integration  of  multimodal  nucleotide sequences and natural-language annotations via a decoder-only Transformer. b , Proportion of genomic DNA and RNA in the pretraining corpus. c , Density distribution of sequence character lengths for DNA and  RNA. d ,  Taxonomic  distribution  of  the  pretraining  corpus  across  major  eukaryotic  lineages, measured by sequence count (left) and total character count (right). e ,  Schematic of the cross-modal BPE  tokenization  process  mapping  multimodal  sequence  and  text  inputs  to  unified  token  IDs. f , Composition  of  the  6,000-token  BPE  vocabulary  categorized  by  token  type  and  k-mer  length. g , Sequence  coverage  rates  achieved  by  different  k-mer  lengths  within  the  vocabulary.  h,  Correlation between  character  count  and  token  count,  demonstrating  sequence  compression  efficiency.  The  red dashed line represents the linear fit (Pearson's ).
+
+742
+
+743
+
+744
+
+745
+
+Fig. 2: GenNA internalizes sequence-function mappings and evolutionary constraints
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel biological data figure labeled **a-j**. The figure appears to analyze **mRNA sequence regions**, **protein levels**, and **translation-related features** across cell or sample types.
+
+Visible content:
+
+- **Panel a:** Heatmap comparing **protein levels** between “initial one-symbol” and “predicted one-symbol” groupings. Rows and columns are labeled with sequence-like or codon-related categories. Color scale runs from dark purple/blue to yellow, indicating low to high values.
+- **Panel b:** Boxplot comparing **waterfall** and **microarray** measurements, with y-axis labeled as an mRNA log ratio or expression-related quantity.
+- **Panel c:** Triangular contact/interaction-style heatmap over an **mRNA sequence**, annotated with regions including **5' UTR**, **CDS**, and **3' UTR**. A teal rectangle marks the **CDS** region. Color bar indicates interaction or similarity strength.
+- **Panel d:** Boxplots showing **attention ratio** across gene regions: **5' UTR**, **CDS**, and **3' UTR**. Legend lists attention-on categories such as **prefix**, **tag**, **5' UTR**, **CDS**, and **3' UTR**.
+- **Panel e:** Horizontal bar/boxplot-style feature contribution plot labeled with **delta protein** or protein change relative to wild type. Features include **CDS distance**, **CDS skewness**, **CDS stop loss**, and UTR-related terms.
+- **Panel f:** Two heatmaps aligned to sequence position. Left shows attention or contribution across full mRNA regions labeled **5' UTR**, **CDS (coding sequence)**, and **3' UTR**. Right zooms near a **start codon**, marked by a red vertical box and text “Start Codon.”
+- **Panel g:** Two t-SNE scatterplots. Left separates **medication type** or class into two color groups. Right shows clusters colored by **language/species-like labels** or categories, with a legend of multiple groups.
+- **Panel h:** Horizontal bar chart of frequency values for biological or functional categories; top bar is highlighted red, remaining bars blue/gray.
+- **Panel i:** Heatmap comparing **targeted small molecules** or perturbation classes against **human tissue/cell-type** categories, with color scale indicating protein change or fold change.
+- **Panel j:** Two phylogenetic/tree diagrams comparing **translated mRNA/RNA length** and **tree based on gene/TSS or codon-type metric**, with branches colored green and orange.
+
+Biological source objects visible or implied: **mRNA sequences**, **5' UTR**, **coding sequence/CDS**, **3' UTR**, **start codon**, protein expression/protein levels, sequence-derived features, tissue or cell-type categories, and species/organism-like groupings.
+
+Transformations/model interfaces visible: heatmaps, attention-ratio summaries, feature-contribution plots, sequence-position attribution maps, dimensionality reduction using **t-SNE**, boxplots, bar charts, and phylogenetic/tree comparisons.
+
+Likely findings shown visually: sequence regions, especially the **CDS** and start-codon-proximal positions, appear to contribute strongly to predicted protein-level changes; attention/contribution differs by transcript region; sequence-derived features and biological groupings separate samples in heatmaps and t-SNE space.
+
+a , Perplexity (PPL) heatmap evaluating the alignment between real nucleotide sequences and provided gene anntotation prompts ( genes). Warmer colors indicate higher PPL. b , Perplexity for matched available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint versus  mismatched  sequence-function  pairs. c ,  Token-to-token  self-attention  map  extracted  from 746 Transformer Layer 18 during autoregressive sequence generation. d , Dynamic attention ratio allocated to 747 prompt tags versus upstream sequence components during the generation of the 5 ′ UTR, CDS, and 3 ′ 748 UTR ( g1866 g3404  100 sequences). e , Zero-shot in silico variant effect prediction across different mutation types 749 in  protein-coding  genes  ( g1866  g3404  100 sequences). Δ PPL represents the difference in perplexity between 750 mutant  and  wild-type  sequences. f ,  High-resolution Δ PPL  landscape  along  a  representative  coding 751 sequence. g ,  t-SNE  visualization  of  intermediate-layer  sequence  embeddings,  colored  by  taxonomic 752 group  (left) and  molecule  type  (right). h ,  Baseline  perplexity  for  native  sequences  across  10 753 representative species. i , Δ PPL matrix induced by species prompt swapping. j , Topological comparison 754 between the hierarchical clustering tree derived from GenNA's pairwise Δ PPL (left) and the biological 755 reference phylogenetic tree (right). 756
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel scientific figure about biological sequence generation and evaluation.
+
+Visible content:
+
+- Panel **a**: Workflow schematic with three rows labeled **Unconditional Generation**, **Species-specific Generation**, and **Downstream Task Generation**. Columns are **Prompt**, **Generated Metadata**, and **Generated Sequence**. Prompts include examples such as RNA, Homo sapiens, and histone H1 with special tokens. Generated outputs show metadata text followed by RNA/protein-like generated sequences with colored highlighted segments and special tokens.
+
+- Panels **b** and **c**: Scatter plots comparing semantic similarity against sequence quality scores. Points are colored in a viridis-like gradient, with marginal histograms on top and right. Panel b reports a **Spearman ρ ≈ 0.32** and **macro similarity ≈ 0.72**. Panel c reports **Spearman ρ ≈ 0.43** and **mean similarity ≈ 0.70**. X axes appear to be model/sequence-quality scores; y axes are semantic similarity.
+
+- Panel **d**: Density plots comparing **Real Genomes** and **Generated Sequences**. Two subplots show distributions for **CDS GC3 content (%)** and **CDS GC content (%)**. Generated sequences are shown in orange and real genomes in dark blue/gray, with generated distributions shifted higher.
+
+- Panel **e**: Boxplots comparing **generated** versus **real genome** values across organisms: **Human**, **Zebrafish**, **Fruit fly**, **Arabidopsis**, **Yeast**, and **Maize**. Metrics shown include **CDS U/C content (%)** and **CDS GC3 content (%)**. Yellow star markers indicate real-genome values overlaid on generated distributions.
+
+- Panel **f**: Circular/radar-style plots for the same organisms: **Human**, **Zebrafish**, **Fruit fly**, **Arabidopsis**, **Yeast**, and **Maize**. Each compares **Real** versus **Generated** profiles using organism-specific colors.
+
+- Panel **g**: Bar charts comparing amino-acid frequencies between **generated** and **real genome** sequences for **Human**, **Zebrafish**, **Fruit fly**, **Arabidopsis**, **Yeast**, and **Maize**. X axes list amino-acid one-letter codes; y axes are frequency.
+
+Biological source objects visible: RNA sequences, coding sequences/CDS, genomes, protein or amino-acid sequences, and species-specific genomes from human, zebrafish, fruit fly, Arabidopsis, yeast, and maize.
+
+Overall visible finding: generated biological sequences are evaluated against real genomes using semantic similarity, sequence-quality scores, GC/GC3 composition, codon or nucleotide-content distributions, circular composition profiles, and amino-acid frequency comparisons.
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint
+
+##### Fig. 3: Large-scale unconditional and species-specific sequence generation 758
+
+a ,  Schematic  of  the  three  different  generation paradigms:  unconditional  self-guided  generation, 759 species-specific  generation,  and  downstream  task-directed  generation. b , c ,  Cross-modal  semantic 760 consistency of generated sequences from unconditional and species-specific generation tasks. Scatter 761 plots  show  cosine  similarity  between  generated  text  metadata  and  BLASTP-derived  functional 762 annotations, with horizontal dashed lines indicating the high-confidence threshold (0.8). Marginal plots 763 show data density. d ,  Probability density distributions of CDS GC content (top) and CDS GC3 content 764 (bottom)  for  sequences  generated  by  GenNA  versus  real  gene  sequences  of  fruit  fly (Drosophila 765 melanogaster) . e , Comparison  of CDS  GC  (top)  and  CDS  GC3  (bottom)  content  across  six 766 representative eukaryotic model organisms. f , Radar charts comparing synonymous codon usage bias 767 between real reference sequences (dashed black lines) and generated sequences (solid colored lines). g , 768 Global amino acid frequencies of real and generated sequences across 6 model organisms. 769
+
+770
+
+771
+
+772
+
+773
+
+774
+
+775
+
+776
+
+777
+
+Fig. 4: Controllable generation of structured non-coding RNAs and protein-coding sequences
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel scientific figure labeled **a-h**, showing analyses of generated biological macromolecular/RNA sequence or structure outputs compared with natural/reference data.
+
+Visible content:
+
+- **Panel a:** Scatter/strip plot of **gRNA-miRNA-seq score**, grouped by categories including **Exact match**, **wobble pairing**, **isoacceptor**, **Incorrect isotype**, and likely **No detection**. Horizontal reference lines are shown. Points are color-coded by category.
+- **Panel b:** Stacked bar chart showing **percentage (%)** outcomes across amino-acid/tRNA-like labels. Legend categories include **Exact match**, **Wobble pairing**, **Isoacceptor**, **Incorrect isotype**, and **No detection**.
+- **Panel c:** Histogram/density plot of **sequence length (%)**, comparing **Class II (all tRNAs)** vs **Class I (tRNAs)** or similar class labels.
+- **Panel d:** Violin plots comparing **Real** vs **Generated** distributions for internal bit scores across RNA families: **5S**, **5.8S**, **16S**, and **28S**.
+- **Panel e:** Multiple scatter plots of **Isoelectric Point (pI)** vs **Molecular Weight (kDa)** for **natural sequences** and generated sequences under different **temperature / Top-p** sampling settings. Points are colored by **histone type**, with labels such as **H1**, **H2A**, **H2B**, **H3**, and **H4**.
+- **Panel f:** Boxplots of **ProGen2 perplexity** grouped by **histone type**, comparing natural sequences and generated outputs under several sampling conditions.
+- **Panel g:** Predicted protein/disordered-region visualization with labeled **N-term**, **C-term**, **Intrinsic Disordered Regions**, and **Globular Domain**. A confidence color scale labeled **pLDDT confidence** ranges roughly from low red/orange to high blue.
+- **Panel h:** Four circular/radial structural or sequence maps comparing **Natural Sequence** and **Generated** traces under different temperature/top-p sampling settings.
+
+Biological source objects visible or implied: **tRNAs or tRNA-like sequences**, **ribosomal RNA families 5S/5.8S/16S/28S**, and **histone proteins H1/H2A/H2B/H3/H4**.
+
+Transformations/model interfaces visible: comparison of **real/natural vs generated sequences**, generated under different **sampling parameters** such as **temperature** and **Top-p**.
+
+Likely findings shown visually: generated sequences are being evaluated against natural biological sequences by matching class, sequence length, covariance/internal bit score distributions, protein physicochemical properties, perplexity, predicted structure confidence, disorder regions, and circular structural/sequence representations.
+
+a ,  Distribution  of  tRNAscan-SE  Cove  scores  for  generated  tRNAs,  categorized  by  anticodon  pairing behavior.  Solid  horizontal  lines  represent  medians. b ,  Proportion  of  anticodon  pairing  strategies spontaneously  adopted  by the  model  when  generating tRNAs for specific  amino  acids. c ,  Sequence length distribution for generated Class II (Leu/Ser) and Class I (others) tRNAs. d , Infernal bit scores for natural and generated ribosomal RNAs (5S, 5.8S, 18S, 28S). e , Physicochemical landscape (isoelectric available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this preprint point and molecular weight) of natural core histones and GenNA-generated histones across 778 incrementally increasing sampling temperatures and top-p thresholds. f , ProGen2 perplexity scores for 779 natural and generated sequences across five histone types. g , Schematic of the 3D spatial domains of a 780 histone, highlighting intrinsic disordered regions (IDRs). The structure is colored by AlphaFold2 pLDDT 781 confidence score (blue indicates high confidence; warm colors indicate low confidence). h , Radar charts 782 showing amino acid composition preferences of natural and generated histones modulated by different 783 sampling parameters. 784
+
+785
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+The image is a multi-panel scientific figure labeled **a–h** describing a multimodal nucleotide sequence foundation model and tokenizer analysis.
+
+Panel **a** shows a workflow for **multi-modal nucleotide sequences**. Inputs include **NCBI RefSeq GenBank files** with plasmids/genomes/chromosomes, plus hybrid nucleotide language materials: **genomic DNA and RNA**, **natural language annotations**, and **XML structural tags**. These are processed by a **cross-modal BPE tokenizer** with **6,000 vocabulary size** and used to train a **GenNA Foundation Model**, described as a **Qwen3 decoder-only transformer with 3.6B parameters**. The model interface is shown for causal language modeling / next-token prediction over mixed biological and annotation tokens. Output capabilities include sequence-function alignment, understanding biological rules, zero-shot variant effect prediction, species-specific genomic fingerprints, latent-space clustering, phylogenetic tree reconstruction, unconditional self-guided generation, targeted ncRNA generation, and protein-coding sequence generation.
+
+Panel **b** is a pie chart showing source composition: **RNA 73.1%** and **genomic DNA 26.9%**.
+
+Panel **c** is a length distribution histogram comparing **genomic DNA** and **RNA** sequence lengths in characters. Both distributions are concentrated at shorter lengths with a long tail extending toward 20,000 characters.
+
+Panel **d** contains two taxonomic composition pie charts. Visible groups include **plant**, **invertebrate**, **vertebrate mammalian**, **vertebrate other**, **fungi**, and **protozoa**, with vertebrate other and plant comprising large portions.
+
+Panel **e** illustrates cross-modal BPE tokenization of a multimodal input sequence containing a tRNA annotation and nucleotide sequence, e.g. `...tRNA-Glu<seq>ATAC<gene><tRNA>TATTT...`. The sequence is transformed into a **BPE token sequence**, then mapped into **token IDs**.
+
+Panel **f** is a donut chart of tokenizer vocabulary composition for **vocabulary 6000**, broken down by token type and count. It includes nucleotide k-mers from **1-mer** through **9-mer and above**, plus **N-containing kmers** and **non-nucleotide** tokens. The largest visible segment is **7-mer**, followed by **8-mer** and **6-mer** categories.
+
+Panel **g** is a bar chart of **coverage by k-mer length**, showing decreasing coverage as k-mer length increases. Bars are labeled for k=1 through k=8 with percentages, including **100.0%** for 1-mers and lower coverage for longer k-mers.
+
+Panel **h** is a scatter plot comparing **character count** and **token count**, with a fitted line. The relationship is highly linear, with visible annotation approximately **Fit: y = 0.199x** and **r = 0.999**.
+
+available under a CC-BY 4.0 International license. (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. bioRxiv preprint doi: https://doi.org/10.64898/2026.04.22.720063; this version posted April 24, 2026. The copyright holder for this
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel scientific figure about a genomics or sequence model evaluated on gene symbols, nucleotide regions, mutations, molecule types, species, and phylogenetic structure.
+
+Visible panels:
+
+- **a**: Heatmap comparing “Real Gene Symbol” rows against “Provided Gene Symbol (Prompt)” columns. Gene symbols include ALKBH7, CPNE1, LYRM9, NAA16, PEX10, PNILPR1, RXFP3, SPSB3, TFAP2B. Colorbar is “Perplexity (Log Scale).” Diagonal entries are low/dark, off-diagonal entries are higher/yellow-green, indicating lower perplexity when the prompt gene symbol matches the real gene.
+- **b**: Boxplot of perplexity on log scale comparing “Matched” vs “Mismatched.” Mismatched prompts have much higher perplexity than matched prompts.
+- **c**: Triangular attention matrix labeled by token index query/key. Regions are annotated as 5' UTR, CDS, and 3' UTR, with an “Attention Weight” colorbar. Shows attention structure across sequence regions.
+- **d**: Boxplots of “Attention Ratio” by current generating region: 5' UTR, CDS, and 3' UTR. Legend “Attention On” includes Prompt, Tag, 5' UTR, CDS, and 3' UTR. Indicates attention is concentrated on different context regions depending on the region being generated.
+- **e**: Horizontal boxplots of Δ Perplexity (Mut - WT) for mutation classes: CDS Deletion, CDS Nonsense, CDS Stop-Loss, CDS Missense, CDS Synonymous, 3' UTR Substitution, 5' UTR Substitution, 3' UTR Deletion, 5' UTR Deletion. Coding-disruptive mutations show larger positive Δ perplexity.
+- **f**: Two mutation-position heatmaps. Rows are mutated bases A, C, G, T, and DEL. Columns are nucleotide positions. Top annotations mark 5' UTR, CDS, and 3' UTR. Colorbar is Δ Perplexity (Mut - WT). Deletions in CDS show strong positive effects; a zoomed heatmap highlights the start codon region.
+- **g**: Two t-SNE scatterplots. Left colored by molecule type, DNA vs RNA. Right colored by species groups: fungi, invertebrate, plant, protozoa, vertebrate mammalian, vertebrate other. Shows clustering by molecule type and taxonomic grouping.
+- **h**: Horizontal bar chart of perplexity by species/source object. Includes Saccharomyces cerevisiae, Arabidopsis thaliana, Drosophila melanogaster, Homo sapiens, and other species. Values vary substantially by species.
+- **i**: Heatmap of Δ Perplexity / penalty for true species label versus provided species label prompt. Species include Homo sapiens, Mus musculus, Gallus gallus, Danio rerio, Drosophila melanogaster, Caenorhabditis elegans, Arabidopsis thaliana, Oryza sativa Japonica Group, Chlamydomonas reinhardtii, and Saccharomyces cerevisiae.
+- **j**: Two phylogenetic/tree diagrams: “Tree based on PPL Penalty” and “Tree based on Ground Truth.” Compares model-derived sequence-distance structure with biological taxonomy.
+
+Biological source objects: nucleotide sequences with annotated 5' UTR, CDS/coding sequence, and 3' UTR regions; gene symbols; mutation classes; species labels across animals, plants, fungi, and other eukaryotes.
+
+Transformations/model interfaces shown: prompted gene-symbol and species-label conditioning, perplexity measurement, mutation perturbation Δ perplexity, attention maps/attention ratios, t-SNE embeddings, and tree reconstruction from perplexity penalty.
+
+Main visible findings: matched biological prompts reduce perplexity; coding-region disruptive mutations increase perplexity most; attention differs by generated sequence region; learned representations cluster by molecule type/species; perplexity penalties recover some taxonomic structure.
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel biological sequence generation figure.
+
+Panel **a**: Schematic workflow with three rows:
+- **Unconditional Generation**: prompt box `RNA,` leads to generated metadata such as “RNA, entelurus aequoreus, tripartite motif-containing protein 16 <seq>”, then to generated sequence containing tokens like `<seq><gene>` and nucleotide text.
+- **Species-specific Generation**: prompt `RNA, Homo sapiens,` leads to generated human metadata for `cdc42bpa, serine/threonine-protein kinase mrck alpha isoform 1 <seq>`, then generated sequence.
+- **Downstream Task Generation**: prompt `RNA, histone H1<seq>` directly leads to generated sequence with `<gene>`, `<cds>`, and nucleotide sequence tokens.
+
+Panels **b** and **c**: Scatterplots comparing generated sequences by:
+- x-axis: **BLAST Bit Score (Sequence Quality)**
+- y-axis: **Semantic Similarity**
+- marginal histograms on top and right
+- colored point clouds with trend curves
+- annotations:
+  - panel b: Spearman rho = 0.32, mean similarity = 0.79
+  - panel c: Spearman rho = 0.43, mean similarity = 0.70
+
+Panel **d**: Density plots comparing **Real Genome** and **Generated Sequences** distributions:
+- top: **CDS GC Content (%)**
+- bottom: **CDS GC3 Content (%)**
+Generated sequences appear shifted toward higher GC and GC3 content than real genome distributions.
+
+Panel **e**: Boxplots comparing generated CDS nucleotide composition across species, with star markers for real genome values:
+- species: Human, Zebrafish, Fruit Fly, Arabidopsis, Yeast, Maize
+- top y-axis: **CDS GC Content (%)**
+- bottom y-axis: **CDS GC3 Content (%)**
+
+Panel **f**: Polar/radar-style codon usage plots for:
+- Human
+- Zebrafish
+- Fruit Fly
+- Arabidopsis
+- Yeast
+- Maize  
+Each compares real genome codon patterns against generated sequence patterns.
+
+Panel **g**: Amino acid frequency bar charts for the same six species:
+- Human, Zebrafish, Fruit Fly, Arabidopsis, Yeast, Maize
+- x-axis lists amino acid one-letter codes
+- y-axis: **Frequency**
+- legend compares **Generated** vs **Real Genome**
+
+Visible biological source objects include RNA sequences, coding sequences, genes, codons, amino acid frequencies, GC/GC3 content, and species-specific genomes from human, zebrafish, fruit fly, Arabidopsis, yeast, and maize.
+
+The figure appears to evaluate a generative biological sequence model by comparing generated RNA/CDS outputs with real genomes using BLAST sequence quality, semantic similarity, nucleotide composition, codon usage, and amino acid frequency. A bioRxiv preprint watermark overlays the middle of the image.
+
+<!-- image -->
+
+SCIENTIFIC_FIGURE
+
+Multi-panel biological/computational figure with panels labeled **a-h**.
+
+Panel descriptions:
+- **a**: Violin/scatter distributions of **NHAlignES score (bits)** for tRNA-related categories: **Exact match**, **Wobble pairing**, **Isoacceptor**, and **Incorrect isotype**. A horizontal reference line is shown around 70 bits.
+- **b**: Stacked bar chart by amino acid/isotype labels from **Gln** through **Phe**, showing percentages of categories: **Exact match**, **Wobble pairing**, **Isoacceptor**, **Incorrect isotype**, and **No detection**.
+- **c**: Histogram/density plot of **sequence length (nt)** comparing **Class II (Leu/Ser)** and **Class I (Others)**.
+- **d**: Violin plots comparing **Real** vs **Generated** sequences for internal bit scores across rRNA-like groups labeled **5S**, **5.8S**, **18S**, and **28S**.
+- **e**: Scatter plots of protein **Isoelectric Point (pI)** versus **Molecular Weight (kDa)**. Columns compare **Natural Sequences** and generated sequence settings: **Temperature 0.55 Top-p 0.7**, **Temperature 0.7 Top-p 0.8**, **Temperature 0.85 Top-p 0.9**, and **Temperature 1.0 Top-p 0.95**. Points are colored by histone type: **H1, H2A, H2B, H3, H4**.
+- **f**: Boxplots of **ProtGen2 Perplexity** across histone types **H1, H2A, H2B, H3, H4**, comparing natural sequences and generated sequences under the same temperature/top-p settings.
+- **g**: Protein structure visualization colored by **pLDDT confidence** scale from 40 to 100. Labels identify **N-term**, **C-term**, **Intrinsic Disordered Regions**, and **Globular Domain**.
+- **h**: Four polar/radar-style codon-frequency or codon-distribution plots comparing **Natural Sequence** with generated sequences under different temperature/top-p settings.
+
+Biological source objects visible:
+- tRNA/isotype categories and amino-acid labels.
+- rRNA categories: 5S, 5.8S, 18S, 28S.
+- Histone protein classes: H1, H2A, H2B, H3, H4.
+- Protein structural regions including disordered termini and globular domain.
+
+Model/interface elements:
+- Generated sequence settings controlled by **temperature** and **top-p** sampling.
+- Evaluation metrics include alignment/internal bit scores, sequence length, molecular weight, isoelectric point, ProtGen2 perplexity, pLDDT confidence, and codon distribution.
+
+Visible findings:
+- Exact matches generally show high NHAlignES scores compared with incorrect isotypes.
+- Generated rRNA-like sequences are compared directly against real sequences by internal bit score.
+- Generated histone-like sequences shift in molecular-weight/pI space as temperature/top-p increase.
+- Higher temperature/top-p settings appear to broaden generated sequence distributions.
+- Protein structure panel shows a compact globular domain with long low-confidence/disordered terminal regions.

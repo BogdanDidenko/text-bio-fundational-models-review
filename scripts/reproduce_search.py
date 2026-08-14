@@ -1302,27 +1302,52 @@ def search_springernature(config, keys):
     block_b = re.compile(validation["block_b"], re.IGNORECASE)
     block_c = re.compile(validation["block_c"], re.IGNORECASE)
 
+    minimum_blocks = int(sn_config.get("minimum_validation_blocks", 3))
+    if minimum_blocks not in {2, 3}:
+        raise ValueError("springernature.minimum_validation_blocks must be 2 or 3")
     filtered = []
+    validation_counts = {"primary_3_of_3": 0, "recall_2_of_3": 0, "rejected_0_or_1_of_3": 0}
     for rec in raw_records:
         abstract = rec.get("abstract", "")
         if isinstance(abstract, dict):
             abstract = str(abstract)
         text = f"{rec.get('title', '')} {abstract}"
-        if block_a.search(text) and block_b.search(text) and block_c.search(text):
-            filtered.append(rec)
+        matches = {
+            "biological_scope": bool(block_a.search(text)),
+            "model_scope": bool(block_b.search(text)),
+            "text_generative_scope": bool(block_c.search(text)),
+        }
+        match_count = sum(matches.values())
+        if match_count >= minimum_blocks:
+            stratum = "primary_3_of_3" if match_count == 3 else "recall_2_of_3"
+            validation_counts[stratum] += 1
+            filtered.append(
+                {
+                    **rec,
+                    "search_validation_stratum": stratum,
+                    "search_validation_matched_blocks": matches,
+                }
+            )
+        else:
+            validation_counts["rejected_0_or_1_of_3"] += 1
 
-    log(f"  SpringerNature: {raw_count} raw -> {len(filtered)} after title/abstract validation")
+    log(
+        f"  SpringerNature: {raw_count} raw -> {len(filtered)} after title/abstract validation "
+        f"(minimum {minimum_blocks}/3 blocks; strata={validation_counts})"
+    )
 
     return {
         "database": "SpringerNature",
         "search_date": datetime.now().strftime("%Y-%m-%d"),
         "query": query,
         "date_filter": date_filter,
-        "filters": f"{date_filter}, post-retrieval validation (3 concept blocks in title/abstract)",
+        "filters": f"{date_filter}, post-retrieval validation (minimum {minimum_blocks}/3 concept blocks in title/abstract)",
         "total_raw": raw_count,
         "total_validated": len(filtered),
         "records_fetched": len(filtered),
         "records": filtered,
+        "minimum_validation_blocks": minimum_blocks,
+        "validation_stratum_counts": validation_counts,
         "raw_records_file": "springernature_raw",
         "interface_execution": interface_execution,
         "execution": (

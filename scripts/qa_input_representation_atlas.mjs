@@ -149,8 +149,16 @@ async function inspect(viewport, screenshot, mobile = false) {
   const chatCell = await page.evaluate(async () => {
     const atlas = await (await fetch("data/atlas.json")).json();
     const model = atlas.architectures.find((item) => item.model_name === "CHATCELL");
+    if (!model) throw new Error("CHATCELL is missing from the current atlas cohort");
     const group = atlas.graph.nodes.find((item) => item.type === "membership_group" && item.group_id === model.membership_group_id);
-    return { modelId: model.model_id, groupId: model.membership_group_id, groupModelCount: group.model_count };
+    return {
+      modelId: model.model_id,
+      groupId: model.membership_group_id,
+      groupModelCount: group.model_count,
+      subtypeCount: group.subtype_ids.length,
+      routeCount: model.route_count,
+      familyCount: group.family_ids.length,
+    };
   });
   await page.locator(`foreignObject[data-node-id="model::${chatCell.modelId}"]`).dispatchEvent("click");
   const chatCellPaths = await page.evaluate(() => ({
@@ -158,7 +166,9 @@ async function inspect(viewport, screenshot, mobile = false) {
     scope: document.querySelector("#graph-inspector .model-path-summary > p")?.textContent?.trim(),
     chips: [...document.querySelectorAll("#graph-inspector [data-inspector-subtype-path]")].map((item) => item.textContent.replace(/\s+/g, " ").trim()),
   }));
-  if (chatCellPaths.chips.length !== 3 || !chatCellPaths.heading?.includes("3 subtype paths · 7 routes") || chatCellPaths.scope !== "All subtype paths remain within F1.") {
+  const expectedPathHeading = `${chatCell.subtypeCount} subtype paths · ${chatCell.routeCount} routes`;
+  const expectedPathScope = chatCell.familyCount === 1 ? "All subtype paths remain within F1." : null;
+  if (chatCellPaths.chips.length !== chatCell.subtypeCount || !chatCellPaths.heading?.includes(expectedPathHeading) || (expectedPathScope && chatCellPaths.scope !== expectedPathScope)) {
     throw new Error(`CHATCELL graph-path explanation is incomplete: ${JSON.stringify(chatCellPaths)}`);
   }
   await page.locator(`foreignObject[data-node-id="group::${chatCell.groupId}"]`).dispatchEvent("click");
@@ -167,7 +177,7 @@ async function inspect(viewport, screenshot, mobile = false) {
     subtypeRows: document.querySelectorAll("#graph-inspector .membership-path-row").length,
     modelRows: document.querySelectorAll("#graph-inspector [data-inspector-model]").length,
   }));
-  if (chatCellGroup.subtypeRows !== 3 || chatCellGroup.modelRows !== chatCell.groupModelCount) {
+  if (chatCellGroup.subtypeRows !== chatCell.subtypeCount || chatCellGroup.modelRows !== chatCell.groupModelCount) {
     throw new Error(`CHATCELL exact membership group is incomplete: ${JSON.stringify({ chatCell, chatCellGroup })}`);
   }
   await page.locator("#graph-inspector .membership-group-inspector h3").click();
@@ -213,7 +223,7 @@ async function inspect(viewport, screenshot, mobile = false) {
 
   const latestBatchContract = await page.evaluate(async () => {
     const atlas = await (await fetch("data/atlas.json")).json();
-    const batch = atlas.filter_values.collection_batches[0];
+    const batch = atlas.filter_values.review_iterations[0];
     return {
       ...batch,
       modelNames: atlas.architectures
@@ -226,13 +236,15 @@ async function inspect(viewport, screenshot, mobile = false) {
   await page.waitForTimeout(700);
   const latestBatch = await page.evaluate(() => ({
     selected: document.querySelector("#collection-filter")?.value,
+    filterLabel: document.querySelector(".collection-field > span")?.textContent?.trim(),
     modelNames: [...document.querySelectorAll("foreignObject.graph-node-model strong[title]")].map((node) => node.textContent.trim()),
+    recordIds: [...new Set([...document.querySelectorAll("#architecture-grid .architecture-card")].map((node) => node.dataset.recordId))].sort(),
     cardCount: document.querySelectorAll("#architecture-grid .architecture-card").length,
     evidenceCount: Number(document.querySelector("#evidence-result-count")?.textContent?.match(/^\d+/)?.[0] || 0),
   }));
   const actualModelNames = [...latestBatch.modelNames].sort();
-  if (latestBatch.selected !== latestBatchContract.date || latestBatch.cardCount !== latestBatchContract.model_count || latestBatch.evidenceCount !== latestBatchContract.route_count || JSON.stringify(actualModelNames) !== JSON.stringify(latestBatchContract.modelNames)) {
-    throw new Error(`Latest collection-batch filter failed: ${JSON.stringify({ latestBatchContract, latestBatch })}`);
+  if (latestBatch.filterLabel !== "Review iteration" || latestBatch.selected !== latestBatchContract.date || latestBatch.cardCount !== latestBatchContract.model_count || latestBatch.evidenceCount !== latestBatchContract.route_count || JSON.stringify(latestBatch.recordIds) !== JSON.stringify(latestBatchContract.record_ids) || JSON.stringify(actualModelNames) !== JSON.stringify(latestBatchContract.modelNames)) {
+    throw new Error(`Latest review-iteration filter failed: ${JSON.stringify({ latestBatchContract, latestBatch })}`);
   }
   latestBatch.contract = latestBatchContract;
   if (!mobile) {

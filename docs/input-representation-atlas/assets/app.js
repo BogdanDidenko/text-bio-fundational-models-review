@@ -175,8 +175,9 @@ function populateFilters() {
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value.replaceAll("_", " "))}</option>`).join(""));
   $("#modality-filter").insertAdjacentHTML("beforeend", state.atlas.filter_values.modalities
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join(""));
-  $("#collection-filter").insertAdjacentHTML("beforeend", state.atlas.filter_values.collection_batches
-    .map((batch) => `<option value="${escapeHtml(batch.date)}">${escapeHtml(batch.date)} · ${batch.record_count} ${batch.record_count === 1 ? "record" : "records"} · ${batch.model_count} models</option>`).join(""));
+  const reviewIterations = state.atlas.filter_values.review_iterations || state.atlas.filter_values.collection_batches;
+  $("#collection-filter").insertAdjacentHTML("beforeend", reviewIterations
+    .map((iteration) => `<option value="${escapeHtml(iteration.date)}">${escapeHtml(iteration.date)} · ${iteration.record_count} ${iteration.record_count === 1 ? "record" : "records"}</option>`).join(""));
 }
 
 function syncFilterControls() {
@@ -639,7 +640,7 @@ function modelInspector(architecture) {
     : `Paths span ${architecture.families.length} carrier families.`;
   return `<div class="inspector-scroll">
     <div class="inspector-title"><p class="section-kicker">Model node</p><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p></div>
-    <div class="chip-row">${familyChips}<span class="collection-chip"><i data-lucide="calendar-days"></i>Collected ${escapeHtml(architecture.collection_date)}</span></div>
+    <div class="chip-row">${familyChips}<span class="collection-chip"><i data-lucide="calendar-days"></i>Added in ${escapeHtml(architecture.review_iteration || architecture.collection_date)}</span></div>
     <div class="model-path-summary">
       <div class="model-path-heading"><strong>Graph paths</strong><span>${architecture.subtypes.length} subtype ${architecture.subtypes.length === 1 ? "path" : "paths"} · ${architecture.route_count} routes</span></div>
       <p>${escapeHtml(pathScope)}</p>
@@ -729,9 +730,9 @@ function membershipGroupInspector(group) {
 function architectureCard(architecture) {
   const example = architecture.illustrative_examples[0];
   const family = familyMeta(example.family_id);
-  return `<button class="architecture-card" type="button" data-open-model="${escapeHtml(architecture.model_id)}" style="--family-color:${family.color}">
+  return `<button class="architecture-card" type="button" data-open-model="${escapeHtml(architecture.model_id)}" data-record-id="${escapeHtml(architecture.record_id)}" style="--family-color:${family.color}">
     <div class="architecture-card-media"><div><span>Original-paper crop</span>${cropMarkup(architecture, "card")}</div><div class="card-example"><span>Illustrative input</span><code>${escapeHtml(shorten(example.example_input, 74))}</code><small>${escapeHtml(shorten(example.example_carrier, 74))}</small></div></div>
-    <div class="architecture-card-body"><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p><div><span class="collection-tag"><i data-lucide="calendar-days"></i>${escapeHtml(architecture.collection_date)}</span><span>${architecture.route_count} routes</span><span>${architecture.subtypes.length} subtypes</span><span>${architecture.figure ? `Fig. ${architecture.figure.figure_index}` : "Text evidence only"}</span></div></div>
+    <div class="architecture-card-body"><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p><div><span class="collection-tag"><i data-lucide="calendar-days"></i>${escapeHtml(architecture.review_iteration || architecture.collection_date)}</span><span>${architecture.route_count} routes</span><span>${architecture.subtypes.length} subtypes</span><span>${architecture.figure ? `Fig. ${architecture.figure.figure_index}` : "Text evidence only"}</span></div></div>
   </button>`;
 }
 

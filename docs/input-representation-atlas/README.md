@@ -8,11 +8,11 @@ explicit taxonomic graph:
 The graph contains:
 
 - one taxonomy root, five carrier families, and 15 operational subtypes;
-- 51 exact subtype-membership groups;
-- 117 unique model nodes;
-- 400 lifecycle/task configurations and 519 grounded input routes;
-- 85 validated model-specific original-paper crops;
-- 32 explicit `no_suitable_figure` cases where the papers had text evidence
+- 47 exact subtype-membership groups;
+- 109 unique model nodes;
+- 468 lifecycle/task configurations and 586 grounded input routes;
+- 98 validated model-specific original-paper crops;
+- 11 explicit `no_suitable_figure` cases where the papers had text evidence
   but no figure that responsibly illustrated the input route.
 
 Each model node separates two visual roles:
@@ -30,42 +30,32 @@ the left and right to balance the graph without duplicating groups or models. A
 focused model exposes the complete grounded route inventory with source object,
 transformation chain, model-visible form, quote, heading, and pages.
 
-Each model also carries the collection date encoded by its canonical record ID.
-The **Collection batch** filter can isolate a living-review update, including the
-latest `2026-08-09` batch, across the graph, model index, and evidence table.
+Each model also carries the review iteration encoded by its canonical record ID.
+The **Review iteration** filter isolates the exact records added in a living-review
+update, including the latest `2026-08-09` iteration, across the graph, model
+index, and evidence table. The atlas contract retains the complete `record_id`
+list, model count, and route count for every selectable iteration.
 
 ## Rebuild
 
 ```bash
 .venv-docling/bin/python scripts/build_input_representation_atlas.py \
-  --taxonomy-root data/living_catalog_updates/update_2026-08-09/14_snapshot_55_records_2026-08-11 \
-  --crop-ledger data/living_catalog_updates/update_2026-08-09/14_snapshot_55_records_2026-08-11/crop_ledger.json \
+  --taxonomy-root data/living_catalog/taxonomy_rerun_preflight_2026-08-12/snapshot_full_55 \
+  --crop-ledger data/living_catalog/taxonomy_rerun_preflight_2026-08-12/snapshot_full_55/crop_ledger.json \
   --output-dir docs/input-representation-atlas \
-  --corpus-root data/docling_include_vlm_52_2026-07-10_nolimits \
+  --prior-atlas-root docs/input-representation-atlas \
+  --corpus-root data/living_catalog/taxonomy_rerun_preflight_2026-08-12/baseline_vlm_profiles \
   --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm/profiles \
   --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm_manual_recall_xunzi_2026-08-11/profiles
 ```
 
-The complete logged crop-validation command sequence is documented in
-`CROP_CROSSVALIDATION.md`; the deterministic site build consumes only its frozen
-ledger.
+The full-cohort run method, retained logs, acceptance metrics, profile hashes,
+crop dispositions, and immutable snapshot are documented under
+`data/living_catalog/taxonomy_rerun_preflight_2026-08-12/`. The deterministic
+site build consumes only the frozen snapshot and crop ledger; it makes no LLM
+calls.
 
-The canonical cross-validated crop ledger is:
-
-`data/input_representation_atlas_crop_crossvalidation_2026-07-12/final_crossvalidated_crop_ledger.json`
-
-Its audit report and complete method description are:
-
-- `data/input_representation_atlas_crop_crossvalidation_2026-07-12/crossvalidation_final_report.json`
-- `data/input_representation_atlas_crop_crossvalidation_2026-07-12/CROP_CROSSVALIDATION.md`
-
-All Codex subagent prompts, structured responses, stdout events, stderr, schemas,
-commands, timestamps, and retry metadata are retained under:
-
-`data/input_representation_atlas_crop_crossvalidation_2026-07-12/subagents/`
-
-No LLM call occurs during the deterministic site build. Integrity results are
-written to `data/build_report.json`.
+Build integrity results are written to `data/build_report.json`.
 
 ## Social preview
 

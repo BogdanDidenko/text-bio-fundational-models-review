@@ -16,6 +16,7 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -74,6 +75,29 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def atlas_tree_manifest(root: Path) -> dict[str, Any]:
+    """Hash every deployable atlas file except the self-describing release manifest."""
+    excluded = {(root / "data/deployment.json").resolve()}
+    files = []
+    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+        if path.resolve() in excluded:
+            continue
+        files.append(
+            {
+                "path": str(path.relative_to(root)),
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+            }
+        )
+    canonical = json.dumps(files, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return {
+        "file_count": len(files),
+        "total_bytes": sum(row["bytes"] for row in files),
+        "manifest_sha256": hashlib.sha256(canonical).hexdigest(),
+        "files": files,
+    }
 
 
 def rel(path: Path) -> str:
@@ -187,7 +211,29 @@ def retrieval_disposition_table(
         status = str(result.get("status") or "")
         if status not in category_by_status:
             raise RuntimeError(f"Unknown download status for {candidate_id}: {status}")
-        rows.append({"candidate_id": candidate_id, "download_status": status, "disposition": category_by_status[status]})
+        rows.append(
+            {
+                "candidate_id": candidate_id,
+                "download_status": status,
+                "disposition": category_by_status[status],
+                "terminal_retrieval_evidence": status
+                in {
+                    "pdf_downloaded",
+                    "html_full_text_downloaded",
+                    "non_pdf_full_text_downloaded",
+                    "access_restricted",
+                    "no_full_text_found",
+                    "skipped_existing",
+                },
+                "manual_gate_required": status
+                in {"retrieval_incomplete", "xml_full_text_downloaded"},
+                "attempt_count": int(result.get("attempt_count") or 0),
+                "technical_failure_count": int(result.get("technical_failure_count") or 0),
+                "access_restriction_count": int(result.get("access_restriction_count") or 0),
+                "retrieved_files": result.get("files") or [],
+                "attempt_ledger": str(result.get("folder") or ""),
+            }
+        )
     missing_ids = {
         str(row.get("candidate_id") or row.get("record_id") or "") for row in missing_documents
     }
@@ -209,6 +255,27 @@ def retrieval_disposition_table(
         "docling_missing_count": len(missing_ids),
         "docling_missing_by_retrieval_disposition": missing_by_disposition,
     }
+
+
+def retrieved_candidate_subset(
+    candidates: list[dict[str, Any]], documents: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Select the one-to-one candidate subset with validated Docling inputs."""
+    candidate_index = {
+        str(row.get("candidate_id") or row.get("record_id") or ""): row
+        for row in candidates
+    }
+    if "" in candidate_index or len(candidate_index) != len(candidates):
+        raise RuntimeError("Full-text candidates have duplicate or empty candidate_id")
+    document_ids = [
+        str(row.get("candidate_id") or row.get("record_id") or "") for row in documents
+    ]
+    if not all(document_ids) or len(set(document_ids)) != len(document_ids):
+        raise RuntimeError("Docling config has duplicate or empty candidate_id")
+    unknown = sorted(set(document_ids) - set(candidate_index))
+    if unknown:
+        raise RuntimeError(f"Docling config contains unknown full-text candidates: {unknown}")
+    return [candidate_index[candidate_id] for candidate_id in document_ids]
 
 
 @dataclass
@@ -305,8 +372,16 @@ class Paths:
         return self.fulltext / "fulltext_download_manifest.json"
 
     @property
+    def retrieval_dispositions(self) -> Path:
+        return self.fulltext / "fulltext_retrieval_dispositions.json"
+
+    @property
     def no_vlm_manifest(self) -> Path:
         return self.docling_screen / "profiles/manifests/canonical_docling_profile_manifest.csv"
+
+    @property
+    def retrieved_fulltext_candidates(self) -> Path:
+        return self.docling_screen / "retrieved_fulltext_candidates.json"
 
     @property
     def section_screening_input(self) -> Path:
@@ -453,7 +528,10 @@ class Pipeline:
     def human_input_paths(self, stage: str) -> list[Path]:
         return {
             "search": [self.paths.search / "google_scholar_provider_export.json"],
-            "prepare-records": [self.paths.records / "manual_cross_dedup_resolutions.json"],
+            "prepare-records": [
+                self.paths.records / "manual_cross_dedup_resolutions.json",
+                self.paths.records / "supplemental_recall_records.json",
+            ],
             "fulltext-download": [self.paths.fulltext / "manual_fulltexts.json"],
             "fulltext-screening": [self.paths.section_input / "manual_section_overrides.json"],
             "eligibility-resolution": [self.paths.eligibility / "manual_resolution.csv"],
@@ -503,6 +581,7 @@ class Pipeline:
                 self.paths.fulltext / "manual_fulltexts.json",
                 self.paths.fulltext / "manual_fulltexts.template.json",
                 self.paths.fulltext / "retrieval_manual_gate.json",
+                self.paths.retrieval_dispositions,
             ],
             "docling-screening": [self.paths.docling_screen],
             "graph-sections": [
@@ -562,29 +641,45 @@ class Pipeline:
         )
         return inventory
 
-    def stage_is_complete(self, stage: str) -> bool:
+    def stage_validation_issues(self, stage: str) -> list[str]:
         row = self.manifest["stages"].get(stage, {})
         if row.get("status") not in {"complete", "skipped_no_new_records"}:
-            return False
-        if row.get("human_input_fingerprints", []) != self.human_input_fingerprints(stage):
-            return False
+            return [f"status={row.get('status', 'not_started')}"]
+        issues: list[str] = []
+        expected_inputs = row.get("human_input_fingerprints", [])
+        expected_paths = {item.get("path") for item in expected_inputs}
+        observed_inputs = [
+            item
+            for item in self.human_input_fingerprints(stage)
+            if item.get("present") or item.get("path") in expected_paths
+        ]
+        if expected_inputs != observed_inputs:
+            issues.append("human input fingerprints changed")
         for artifact in row.get("artifacts", []):
             path = resolve(artifact["path"])
-            if not path.exists() or sha256(path) != artifact["sha256"]:
-                return False
+            if not path.exists():
+                issues.append(f"missing declared artifact: {artifact['path']}")
+            elif sha256(path) != artifact["sha256"]:
+                issues.append(f"changed declared artifact: {artifact['path']}")
         inventory_path = row.get("artifact_inventory")
         if inventory_path:
             resolved_inventory = resolve(inventory_path)
-            if not resolved_inventory.exists() or sha256(resolved_inventory) != row.get(
-                "artifact_inventory_sha256"
-            ):
-                return False
-            inventory = read_json(resolved_inventory)
-            for artifact in inventory.get("files", []):
-                path = resolve(artifact["path"])
-                if not path.exists() or sha256(path) != artifact["sha256"]:
-                    return False
-        return True
+            if not resolved_inventory.exists():
+                issues.append(f"missing artifact inventory: {inventory_path}")
+            elif sha256(resolved_inventory) != row.get("artifact_inventory_sha256"):
+                issues.append(f"changed artifact inventory: {inventory_path}")
+            else:
+                inventory = read_json(resolved_inventory)
+                for artifact in inventory.get("files", []):
+                    path = resolve(artifact["path"])
+                    if not path.exists():
+                        issues.append(f"missing inventoried file: {artifact['path']}")
+                    elif sha256(path) != artifact["sha256"]:
+                        issues.append(f"changed inventoried file: {artifact['path']}")
+        return issues
+
+    def stage_is_complete(self, stage: str) -> bool:
+        return not self.stage_validation_issues(stage)
 
     def run_command(
         self,
@@ -724,6 +819,214 @@ class Pipeline:
         config = read_json(self.paths.search_config)
         return [name for name, value in config["databases"].items() if value.get("enabled")]
 
+    def ensure_search_config(self) -> None:
+        if self.paths.search_config.is_file():
+            config = read_json(self.paths.search_config)
+            metadata = config.get("metadata") or {}
+            if metadata.get("date_from") != self.date_from or metadata.get("date_to") != self.date_to:
+                raise RuntimeError("Existing search config does not match the run interval")
+            return
+        self.begin_log_attempt("search-provider")
+        self.run_command(
+            "search-provider",
+            "build-config",
+            [
+                self.python(),
+                "scripts/build_search_update_config.py",
+                "--template",
+                str(resolve(self.config["search_config_template"])),
+                "--date-from",
+                self.date_from,
+                "--date-to",
+                self.date_to,
+                "--output",
+                str(self.paths.search_config),
+            ],
+        )
+
+    def scholar_validate(self) -> int:
+        self.ensure_search_config()
+        export = self.paths.search / "google_scholar_provider_export.json"
+        if not export.is_file():
+            raise RuntimeError(
+                f"Google Scholar provider export is missing: {export}. Run scholar-capture first."
+            )
+        from reproduce_search import load_google_scholar_provider_export
+
+        validated = load_google_scholar_provider_export(read_json(self.paths.search_config), export)
+        validation = {
+            "schema_version": 1,
+            "validated_at": now_iso(),
+            "run_id": self.run_id,
+            "date_from": self.date_from,
+            "date_to": self.date_to,
+            "provider_export": self.artifact(export),
+            "query_signature": validated["query_signature"],
+            "query_count": len(validated["query_execution"]),
+            "records_fetched": validated["records_fetched"],
+            "raw_response_count": len(validated["raw_response_manifest"]),
+            "execution": validated["execution"],
+        }
+        output = self.paths.search / "google_scholar_validation.json"
+        if not self.manifest.get("published"):
+            write_json(output, validation)
+            validation["validation_artifact"] = rel(output)
+        else:
+            validation["validation_artifact"] = "read_only_validation_of_published_run"
+        print(json.dumps(validation, ensure_ascii=False, indent=2))
+        return 0
+
+    def scholar_capture(self) -> int:
+        if self.manifest.get("published"):
+            raise RuntimeError("A published run's search evidence is immutable")
+        self.ensure_search_config()
+        keys = resolve(self.config["api_keys_file"])
+        if not keys.is_file():
+            raise RuntimeError(f"Missing ignored API key file: {keys}")
+        self.begin_log_attempt("search-provider")
+        self.run_command(
+            "search-provider",
+            "serpapi-capture",
+            [
+                self.python(),
+                "scripts/capture_google_scholar_serpapi.py",
+                "--config",
+                str(self.paths.search_config),
+                "--api-keys",
+                str(keys),
+                "--output",
+                str(self.paths.search / "google_scholar_provider_export.json"),
+                "--retries",
+                str(self.args.retries),
+                "--delay",
+                str(self.args.delay),
+            ],
+        )
+        return self.scholar_validate()
+
+    def register_supplemental(self) -> int:
+        if self.manifest.get("published"):
+            raise RuntimeError(
+                "Cannot mutate a published run. Record a post-publication correction and use "
+                "the reconciliation path instead."
+            )
+        source = resolve(self.args.record_file)
+        if not source.is_file():
+            raise RuntimeError(f"Supplemental source record file is missing: {source}")
+        payload = read_json(source)
+        if isinstance(payload, dict) and isinstance(payload.get("records"), list):
+            records = payload["records"]
+        elif isinstance(payload, list):
+            records = payload
+        elif isinstance(payload, dict):
+            records = [payload]
+        else:
+            raise RuntimeError("Supplemental record file must contain a record or records list")
+        if not records:
+            raise RuntimeError("Supplemental record file is empty")
+        declared_at = self.args.declared_at or now_iso()
+        declarations = []
+        for record in records:
+            title = str(record.get("title") or record.get("title_original") or "").strip()
+            source_url = str(self.args.source_url or record.get("url") or "").strip()
+            if not title or not source_url:
+                raise RuntimeError("Every supplemental record requires a title and source URL")
+            declarations.append(
+                {
+                    "record": record,
+                    "reason": self.args.reason,
+                    "source_url": source_url,
+                    "resolver": self.args.resolver,
+                    "declared_at": declared_at,
+                    "source_artifact": self.artifact(source),
+                }
+            )
+        target = self.paths.records / "supplemental_recall_records.json"
+        existing = read_json(target) if target.is_file() else {
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "date_from": self.date_from,
+            "date_to": self.date_to,
+            "declarations": [],
+        }
+        existing["declarations"].extend(declarations)
+        existing["updated"] = now_iso()
+        write_json(target, existing)
+        self.invalidate_from(
+            "prepare-records",
+            include_stage=True,
+            reason="A declared supplemental recall record entered before cumulative deduplication.",
+        )
+        self.save_manifest()
+        result = {
+            "registered": len(declarations),
+            "target": rel(target),
+            "resume_command": (
+                f"python3 scripts/run_living_review_pipeline.py run --run-id {self.run_id} "
+                "--from-stage prepare-records --manage-server"
+            ),
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    def taxonomy_rerun_preflight(self) -> int:
+        command = [
+            self.python(),
+            "scripts/prepare_full_cohort_taxonomy_rerun.py",
+            "--state",
+            str(resolve(self.config["living_state"])),
+            "--pipeline-config",
+            str(self.args.config),
+            "--output-dir",
+            str(resolve(self.args.output_dir)),
+        ]
+        return subprocess.run(command, cwd=ROOT).returncode
+
+    def release_manifest(self) -> int:
+        atlas_root = resolve(self.config["atlas_output"])
+        if not (atlas_root / "data/atlas.json").is_file():
+            raise RuntimeError(f"Atlas is incomplete: {atlas_root}")
+        tree = atlas_tree_manifest(atlas_root)
+        payload = {
+            "schema_version": 1,
+            "created": now_iso(),
+            "commit": self.args.commit,
+            "run_id": self.current.get("last_run_id"),
+            "living_state": self.artifact(resolve(self.config["living_state"])),
+            "atlas_json": self.artifact(atlas_root / "data/atlas.json"),
+            "atlas_tree": tree,
+        }
+        output = atlas_root / "data/deployment.json"
+        write_json(output, payload)
+        print(json.dumps({**payload, "atlas_tree": {key: value for key, value in tree.items() if key != "files"}}, ensure_ascii=False, indent=2))
+        return 0
+
+    def record_incident(self) -> int:
+        root = resolve(
+            self.config.get("release_records_root", "data/living_catalog/releases")
+        ) / self.run_id / "incidents"
+        root.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
+        output = root / f"{timestamp}.json"
+        payload = {
+            "schema_version": 1,
+            "created": now_iso(),
+            "run_id": self.run_id,
+            "phase": self.args.phase,
+            "summary": self.args.summary,
+            "commit": self.args.commit or "",
+            "workflow_run_id": self.args.workflow_run_id or "",
+            "recovery_commit": self.args.recovery_commit or "",
+            "operator": self.args.operator,
+            "run_manifest": self.artifact(self.manifest_path) if self.manifest_path.is_file() else None,
+            "living_state": self.artifact(resolve(self.config["living_state"]))
+            if resolve(self.config["living_state"]).is_file()
+            else None,
+        }
+        write_json(output, payload)
+        print(json.dumps({"incident": rel(output), **payload}, ensure_ascii=False, indent=2))
+        return 0
+
     def stage_search(self) -> list[Path]:
         self.paths.search.mkdir(parents=True, exist_ok=True)
         completion_gate = self.paths.search / "search_completion_gate.json"
@@ -810,9 +1113,30 @@ class Pipeline:
         ]
 
     def stage_prepare_records(self) -> list[Path]:
+        update_records = self.paths.dedup / "deduplicated_records.json"
+        supplemental = self.paths.records / "supplemental_recall_records.json"
+        supplemental_audit = self.paths.records / "supplemental_recall_merge_audit.json"
+        if supplemental.is_file():
+            update_records = self.paths.records / "deduplicated_records_with_supplemental.json"
+            self.run_command(
+                "prepare-records",
+                "merge-supplemental-recall",
+                [
+                    self.python(),
+                    "scripts/merge_supplemental_recall_records.py",
+                    "--canonical",
+                    str(self.paths.dedup / "deduplicated_records.json"),
+                    "--declarations",
+                    str(supplemental),
+                    "--output",
+                    str(update_records),
+                    "--audit-output",
+                    str(supplemental_audit),
+                ],
+            )
         command = [
             self.python(), "scripts/prepare_incremental_records.py",
-            "--update-records", str(self.paths.dedup / "deduplicated_records.json"),
+            "--update-records", str(update_records),
             "--output-dir", str(self.paths.records), "--run-id", self.run_id,
         ]
         for path in self.current["master_record_files"]:
@@ -852,13 +1176,16 @@ class Pipeline:
                     f"Complete {manual_resolutions} from {template}."
                 ) from exc
             raise
-        return [
+        outputs = [
             self.paths.records / "new_records_after_cross_dedup_crossref_checked.json",
             self.paths.records / "cross_dedup_stats.json",
             self.paths.records / "cross_dedup_review_queue.json",
             self.paths.records / "crossref_duplicate_audit.json",
             self.paths.records / "crossref_checked_stats.json",
         ]
+        if supplemental.is_file():
+            outputs.extend([update_records, supplemental_audit])
+        return outputs
 
     def stage_enrich_abstracts(self) -> list[Path]:
         source = self.paths.records / "new_records_after_cross_dedup_crossref_checked.json"
@@ -994,7 +1321,17 @@ class Pipeline:
             write_json(self.paths.download_manifest, {"created": now_iso(), "processed": 0, "results": []})
             template = self.paths.fulltext / "manual_fulltexts.template.json"
             write_json(template, {"records": []})
-            return [self.paths.download_manifest, template]
+            write_json(
+                self.paths.retrieval_dispositions,
+                {
+                    "schema_version": 1,
+                    "created": now_iso(),
+                    "candidate_count": 0,
+                    "disposition_counts": {},
+                    "rows": [],
+                },
+            )
+            return [self.paths.download_manifest, template, self.paths.retrieval_dispositions]
         workers = min(count, int(self.config["download_workers"]))
         batch_size = math.ceil(count / workers)
         commands = []
@@ -1026,6 +1363,28 @@ class Pipeline:
         consolidate.extend(["--output", str(self.paths.download_manifest)])
         self.run_command("fulltext-download", "consolidate", consolidate)
         consolidated = read_json(self.paths.download_manifest)
+        candidates = records_from(self.paths.fulltext_candidates)
+        retrieval = retrieval_disposition_table(candidates, consolidated, [])
+        write_json(
+            self.paths.retrieval_dispositions,
+            {
+                "schema_version": 1,
+                "created": now_iso(),
+                "candidate_count": retrieval["candidate_count"],
+                "disposition_counts": retrieval["disposition_counts"],
+                "rows": retrieval["rows"],
+                "definitions": {
+                    "terminal_retrieval_evidence": (
+                        "A validated payload was retrieved or the complete attempt ledger supports "
+                        "a terminal not-retrieved/access-restricted disposition."
+                    ),
+                    "manual_gate_required": (
+                        "The attempt ended in a transport/provider failure or unsupported XML-only "
+                        "payload and cannot be interpreted as negative retrieval evidence."
+                    ),
+                },
+            },
+        )
         template = self.paths.fulltext / "manual_fulltexts.template.json"
         write_json(
             template,
@@ -1033,13 +1392,14 @@ class Pipeline:
                 "records": [
                     {
                         "candidate_id": row.get("candidate_id"),
+                        "current_status": row.get("status"),
                         "file": "",
                         "source_url": "",
                         "retriever": "",
                         "retrieved_at": "",
                     }
                     for row in consolidated.get("results", [])
-                    if row.get("status") != "pdf_downloaded"
+                    if row.get("status") not in {"pdf_downloaded", "skipped_existing"}
                 ]
             },
         )
@@ -1066,7 +1426,7 @@ class Pipeline:
                 f"PDF/HTML declaration in {self.paths.fulltext / 'manual_fulltexts.json'}. "
                 f"See {gate}."
             )
-        return [self.paths.download_manifest, template]
+        return [self.paths.download_manifest, template, self.paths.retrieval_dispositions]
 
     def build_docling_config(self, stage: str, records: Path, profile_root: Path, vlm: bool) -> Path:
         config_path = profile_root.parent / "run_config.json"
@@ -1154,13 +1514,30 @@ class Pipeline:
         self.reset_generated_path(profile_root)
         config_path = self.build_docling_config("docling-screening", self.paths.fulltext_candidates, profile_root, False)
         documents = read_json(config_path).get("documents", [])
+        retrieved = retrieved_candidate_subset(
+            records_from(self.paths.fulltext_candidates), documents
+        )
+        write_json(
+            self.paths.retrieved_fulltext_candidates,
+            {
+                "schema_version": 1,
+                "created": now_iso(),
+                "fulltext_candidate_count": record_count(self.paths.fulltext_candidates),
+                "retrieved_supported_count": len(retrieved),
+                "records": retrieved,
+            },
+        )
         if not documents:
             self.paths.no_vlm_manifest.parent.mkdir(parents=True, exist_ok=True)
             self.paths.no_vlm_manifest.write_text(
                 "candidate_id,source_record_id,title,doi,profile_status,docling_json,markdown,source_document\n",
                 encoding="utf-8",
             )
-            return [self.paths.no_vlm_manifest, self.paths.docling_screen / "missing_documents.json"]
+            return [
+                self.paths.no_vlm_manifest,
+                self.paths.docling_screen / "missing_documents.json",
+                self.paths.retrieved_fulltext_candidates,
+            ]
         self.run_command(
             "docling-screening", "convert",
             [self.docling_python(), "scripts/docling/run_docling_from_config.py", "--config", str(config_path)],
@@ -1169,7 +1546,11 @@ class Pipeline:
             "docling-screening", "manifest",
             [self.python(), "scripts/docling/build_canonical_vlm_profile_manifest.py", "--profile-root", str(profile_root), "--expected-records", str(len(documents))],
         )
-        return [self.paths.no_vlm_manifest, self.paths.docling_screen / "missing_documents.json"]
+        return [
+            self.paths.no_vlm_manifest,
+            self.paths.docling_screen / "missing_documents.json",
+            self.paths.retrieved_fulltext_candidates,
+        ]
 
     def sharded_commands(
         self,
@@ -1230,7 +1611,7 @@ class Pipeline:
             [
                 self.python(), "scripts/docling/build_docling_graph_pipeline_input.py",
                 "--graph-output", str(self.paths.graph_sections),
-                "--base-records", str(self.paths.fulltext_candidates),
+                "--base-records", str(self.paths.retrieved_fulltext_candidates),
                 "--expected-profile-manifest", str(self.paths.no_vlm_manifest),
                 "--output-dir", str(self.paths.section_input), "--require-both-targets",
                 "--screening-fields-only",
@@ -1290,7 +1671,7 @@ class Pipeline:
                 [
                     self.python(), "scripts/build_living_review_cohorts.py", "apply-section-overrides",
                     "--input", str(self.paths.section_screening_input),
-                    "--source-records", str(self.paths.fulltext_candidates),
+                    "--source-records", str(self.paths.retrieved_fulltext_candidates),
                     "--run-metadata", str(metadata_path), "--overrides", str(overrides),
                     "--profile-manifest", str(self.paths.no_vlm_manifest),
                     "--output", str(merged),
@@ -1323,7 +1704,7 @@ class Pipeline:
             self.python(), "scripts/build_living_review_cohorts.py", "accepted-records",
             "--screening-results", str(self.paths.fulltext_screening / "final_screening_results.json"),
             "--screening-input", str(self.paths.fulltext_screening / "input_records.json"),
-            "--source-records", str(self.paths.fulltext_candidates),
+            "--source-records", str(self.paths.retrieved_fulltext_candidates),
             "--profile-manifest", str(self.paths.no_vlm_manifest),
             "--output", str(self.paths.accepted_records),
             "--excluded-output", str(self.paths.eligibility / "excluded_records.json"),
@@ -1696,7 +2077,18 @@ class Pipeline:
         with retrieval_csv_path.open("w", newline="", encoding="utf-8") as stream:
             writer = csv.DictWriter(
                 stream,
-                fieldnames=["candidate_id", "download_status", "disposition"],
+                fieldnames=[
+                    "candidate_id",
+                    "download_status",
+                    "disposition",
+                    "terminal_retrieval_evidence",
+                    "manual_gate_required",
+                    "attempt_count",
+                    "technical_failure_count",
+                    "access_restriction_count",
+                    "attempt_ledger",
+                ],
+                extrasaction="ignore",
             )
             writer.writeheader()
             writer.writerows(retrieval["rows"])
@@ -2016,6 +2408,448 @@ class Pipeline:
         print(json.dumps(state, ensure_ascii=False, indent=2))
         return 0
 
+    def doctor(self) -> int:
+        """Report control-plane drift and the exact next safe operation."""
+        state_path = resolve(self.config["living_state"])
+        atlas_root = resolve(self.config["atlas_output"])
+        atlas_data = atlas_root / "data/atlas.json"
+        atlas_meta: dict[str, Any] = {}
+        if atlas_data.is_file():
+            payload = read_json(atlas_data)
+            atlas_meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
+
+        manifests = list(resolve(self.config["updates_root"]).glob("update_*/run_manifest.json"))
+        published_manifest = self.current.get("last_run_manifest") if state_path.is_file() else None
+        if published_manifest and resolve(published_manifest).is_file():
+            latest = read_json(resolve(published_manifest))
+        else:
+            payloads = [read_json(path) for path in manifests]
+            latest = max(
+                payloads,
+                key=lambda row: (str(row.get("date_to") or ""), str(row.get("updated") or "")),
+                default=None,
+            )
+        selected = self.manifest if self.manifest_path.is_file() else latest
+        stage_rows: list[dict[str, Any]] = []
+        first_blocking_stage: str | None = None
+        if selected:
+            selected_run_id = str(selected.get("run_id") or "")
+            selected_path = resolve(self.config["updates_root"]) / selected_run_id / "run_manifest.json"
+            selected_pipeline = self
+            if selected_path != self.manifest_path and selected_path.is_file():
+                probe_args = argparse.Namespace(**vars(self.args))
+                probe_args.run_id = selected_run_id
+                probe_args.date_from = None
+                probe_args.date_to = None
+                selected_pipeline = Pipeline(probe_args, self.config)
+            acknowledged_mutations: set[str] = set()
+            reconciliation_ref = selected.get("publication_reconciliation")
+            if reconciliation_ref and resolve(reconciliation_ref).is_file():
+                reconciliation = read_json(resolve(reconciliation_ref))
+                acknowledged_mutations = set(
+                    reconciliation.get("acknowledged_post_run_mutations", {})
+                )
+            for stage in STAGES:
+                row = selected.get("stages", {}).get(stage, {})
+                declared = row.get("status", "not_started")
+                valid = selected_pipeline.stage_is_complete(stage) if row else False
+                effective = declared if declared not in {"complete", "skipped_no_new_records"} or valid else "invalidated"
+                if effective == "invalidated" and stage in acknowledged_mutations:
+                    effective = "acknowledged_post_run_mutation"
+                validation_issues = selected_pipeline.stage_validation_issues(stage) if row else []
+                stage_rows.append(
+                    {
+                        "stage": stage,
+                        "declared_status": declared,
+                        "status": effective,
+                        "note": row.get("note", ""),
+                        "validation_issues": validation_issues,
+                    }
+                )
+                if first_blocking_stage is None and effective not in {
+                    "complete",
+                    "skipped_no_new_records",
+                    "acknowledged_post_run_mutation",
+                }:
+                    first_blocking_stage = stage
+
+        issues: list[dict[str, str]] = []
+        actions: list[str] = []
+        if not state_path.is_file():
+            issues.append(
+                {
+                    "severity": "critical",
+                    "code": "MISSING_LIVING_STATE",
+                    "detail": f"{rel(state_path)} is absent; planning falls back to {self.config['baseline_search_end']}.",
+                }
+            )
+        declared_complete = bool(stage_rows) and all(
+            row["declared_status"] in {"complete", "skipped_no_new_records"}
+            for row in stage_rows
+        )
+        if latest and not latest.get("published") and declared_complete:
+            issues.append(
+                {
+                    "severity": "critical",
+                    "code": "COMPLETE_RUN_UNPUBLISHED" if first_blocking_stage is None else "COMPLETED_RUN_HAS_POSTRUN_MUTATIONS",
+                    "detail": (
+                        f"{latest['run_id']} completed all stages but is not represented as published."
+                        if first_blocking_stage is None
+                        else f"{latest['run_id']} was completed, then one or more stage-owned files changed."
+                    ),
+                }
+            )
+        if selected and selected.get("published") and first_blocking_stage:
+            issues.append(
+                {
+                    "severity": "critical",
+                    "code": "PUBLISHED_RUN_HAS_UNACKNOWLEDGED_MUTATIONS",
+                    "detail": (
+                        f"Published run {selected['run_id']} has a hash-invalid or incomplete "
+                        f"stage beginning at {first_blocking_stage}."
+                    ),
+                }
+            )
+        atlas_snapshot = str(atlas_meta.get("generated_from") or "")
+        state_snapshot = str(self.current.get("taxonomy_root") or "")
+        if atlas_snapshot and atlas_snapshot != state_snapshot:
+            issues.append(
+                {
+                    "severity": "critical",
+                    "code": "ATLAS_STATE_DIVERGENCE",
+                    "detail": f"Public atlas uses {atlas_snapshot}, while control state points to {state_snapshot}.",
+                }
+            )
+        if selected and first_blocking_stage and declared_complete:
+            changed = ", ".join(row["stage"] for row in stage_rows if row["status"] == "invalidated")
+            actions.append(
+                f"Audit the listed mutations ({changed}); reconcile the published supplemental snapshot with explicit mutation acknowledgements."
+            )
+        elif selected and first_blocking_stage:
+            row = next(item for item in stage_rows if item["stage"] == first_blocking_stage)
+            command = (
+                f"python3 scripts/run_living_review_pipeline.py run --run-id {selected['run_id']} "
+                f"--from-stage {first_blocking_stage} --manage-server"
+            )
+            actions.append(row["note"] or command)
+            if row["note"]:
+                actions.append(command)
+        elif selected and not selected.get("published"):
+            actions.append(
+                f"Publish or reconcile {selected['run_id']}; do not start the next date interval first."
+            )
+        elif state_path.is_file():
+            next_date = (date.fromisoformat(self.current["search_end"]) + timedelta(days=1)).isoformat()
+            actions.append(
+                f"Next update begins {next_date}. Run `plan`, then `preflight`, then `run --manage-server`."
+            )
+
+        result = {
+            "healthy": not any(issue["severity"] == "critical" for issue in issues),
+            "living_state": {"path": rel(state_path), "present": state_path.is_file(), "search_end": self.current["search_end"]},
+            "public_atlas": {
+                "path": rel(atlas_root),
+                "present": atlas_data.is_file(),
+                "generated_from": atlas_snapshot,
+                "records": atlas_meta.get("record_count"),
+                "models": atlas_meta.get("model_count"),
+                "routes": atlas_meta.get("route_count"),
+            },
+            "run": {
+                "run_id": selected.get("run_id") if selected else None,
+                "published": selected.get("published") if selected else None,
+                "first_blocking_stage": first_blocking_stage,
+                "stages": stage_rows,
+            },
+            "issues": issues,
+            "next_actions": actions,
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["healthy"] else 2
+
+    def reconcile(self) -> int:
+        """Adopt an already built supplemental snapshot without replacing the live atlas."""
+        incomplete = [stage for stage in STAGES if not self.stage_is_complete(stage)]
+        allowed_mutations = set(getattr(self.args, "allow_mutated_stage", []))
+        undeclared = [stage for stage in incomplete if stage not in allowed_mutations]
+        if undeclared:
+            raise RuntimeError(
+                "Reconciliation requires the primary run's complete hash-valid closure; "
+                f"incomplete_or_mutated={', '.join(undeclared)}. Inspect with `doctor` and "
+                "explicitly acknowledge documented post-run mutations with --allow-mutated-stage."
+            )
+        noncomplete = [
+            stage
+            for stage in incomplete
+            if self.manifest.get("stages", {}).get(stage, {}).get("status")
+            not in {"complete", "skipped_no_new_records"}
+        ]
+        if noncomplete:
+            raise RuntimeError(f"Mutation exceptions cannot waive incomplete stages: {', '.join(noncomplete)}")
+        if self.manifest.get("published"):
+            raise RuntimeError("Run is already published")
+        live_state = self.load_current_state()
+        for field in ("search_end", "master_record_files", "taxonomy_root", "docling_corpus_roots", "crop_ledger", "atlas_output"):
+            if live_state.get(field) != self.manifest["prior_state"].get(field):
+                raise RuntimeError(f"Living state changed after this run started ({field})")
+
+        snapshot_root = resolve(self.args.snapshot_root)
+        atlas_root = resolve(self.args.atlas_root or self.config["atlas_output"])
+        snapshot_manifest_path = snapshot_root / "snapshot_manifest.json"
+        atlas_data_path = atlas_root / "data/atlas.json"
+        if not snapshot_manifest_path.is_file() or not atlas_data_path.is_file():
+            raise RuntimeError("Reconciliation requires snapshot_manifest.json and atlas data/atlas.json")
+        snapshot = read_json(snapshot_manifest_path)
+        atlas = read_json(atlas_data_path)
+        atlas_meta = atlas.get("meta", {})
+        count_fields = {
+            "records": "record_count",
+            "studies": "study_count",
+            "models": "model_count",
+            "configurations": "configuration_count",
+            "routes": "route_count",
+        }
+        mismatches = {
+            source: {"snapshot": snapshot.get(source), "atlas": atlas_meta.get(target)}
+            for source, target in count_fields.items()
+            if snapshot.get(source) != atlas_meta.get(target)
+        }
+        if mismatches:
+            raise RuntimeError(f"Snapshot/atlas count mismatch: {mismatches}")
+        if str(atlas_meta.get("generated_from") or "") != rel(snapshot_root):
+            raise RuntimeError("Atlas generated_from does not point to the supplied snapshot")
+
+        supplemental_files = [resolve(path) for path in self.args.supplemental_record_file]
+        for path in supplemental_files:
+            if not path.is_file() or record_count(path) < 1:
+                raise RuntimeError(f"Invalid supplemental record file: {path}")
+        corpus_roots = [rel(resolve(path)) for path in snapshot.get("corpus_roots", [])]
+        for root in corpus_roots:
+            if not resolve(root).is_dir():
+                raise RuntimeError(f"Snapshot corpus root is unavailable: {root}")
+
+        primary_facts = self.paths.report / "prisma_update_facts.json"
+        reconciliation_path = self.paths.report / f"publication_reconciliation_{snapshot['records']}_records.json"
+        reconciliation = {
+            "schema_version": 1,
+            "kind": "supplemental_recall_publication_reconciliation",
+            "created": now_iso(),
+            "run_id": self.run_id,
+            "date_from": self.date_from,
+            "date_to": self.date_to,
+            "reason": self.args.reason,
+            "acknowledged_post_run_mutations": {
+                stage: self.stage_validation_issues(stage) for stage in sorted(allowed_mutations)
+            },
+            "primary_prisma_facts": rel(primary_facts),
+            "supplemental_record_files": [rel(path) for path in supplemental_files],
+            "snapshot": rel(snapshot_root),
+            "atlas": rel(atlas_root),
+            "catalog_after_reconciliation": {source: snapshot[source] for source in count_fields},
+            "note": "Primary PRISMA facts remain immutable; this ledger makes the post-search supplemental recall correction explicit.",
+        }
+        write_json(reconciliation_path, reconciliation)
+
+        master_files = list(self.current["master_record_files"])
+        for path in [self.paths.records / "new_records_after_cross_dedup_crossref_checked.json", *supplemental_files]:
+            value = rel(path)
+            if value not in master_files:
+                master_files.append(value)
+        history = list(live_state.get("prisma_update_history", []))
+        history.append(
+            {
+                "run_id": self.run_id,
+                "date_from": self.date_from,
+                "date_to": self.date_to,
+                "facts": rel(reconciliation_path),
+                "publication_mode": "supplemental_recall_reconciliation",
+            }
+        )
+        state = {
+            "schema_version": 1,
+            "updated": now_iso(),
+            "search_end": self.date_to,
+            "master_record_files": master_files,
+            "taxonomy_root": rel(snapshot_root),
+            "docling_corpus_roots": corpus_roots,
+            "crop_ledger": rel(snapshot_root / "crop_ledger.json"),
+            "atlas_output": self.config["atlas_output"],
+            "last_run_id": self.run_id,
+            "last_run_manifest": rel(self.manifest_path),
+            "last_prisma_update": rel(reconciliation_path),
+            "prisma_update_history": history,
+        }
+        state_path = resolve(self.config["living_state"])
+        write_json(state_path, state)
+        self.manifest["published"] = True
+        self.manifest["published_at"] = now_iso()
+        self.manifest["publication_mode"] = "supplemental_recall_reconciliation"
+        self.manifest["publication_reconciliation"] = rel(reconciliation_path)
+        self.manifest["published_state"] = state
+        self.save_manifest()
+        print(json.dumps(state, ensure_ascii=False, indent=2))
+        return 0
+
+    def verify_live(self) -> int:
+        atlas_root = resolve(self.config["atlas_output"])
+        local_path = atlas_root / "data/atlas.json"
+        if not local_path.is_file():
+            raise RuntimeError(f"Local atlas is missing: {local_path}")
+        base_url = str(self.args.url or self.config.get("public_atlas_url") or "").rstrip("/")
+        if not base_url:
+            raise RuntimeError("Configure public_atlas_url or pass --url")
+        import requests
+
+        cache_token = int(time.time())
+        headers = {"Cache-Control": "no-cache", "User-Agent": "living-review-verifier/2"}
+
+        def fetch(path: str) -> bytes:
+            encoded = urllib.parse.quote(path, safe="/")
+            response = requests.get(
+                f"{base_url}/{encoded}?verify={cache_token}", timeout=60, headers=headers
+            )
+            response.raise_for_status()
+            return response.content
+
+        url = f"{base_url}/data/atlas.json"
+        remote_bytes = fetch("data/atlas.json")
+        local_bytes = local_path.read_bytes()
+        local = json.loads(local_bytes)
+        remote = json.loads(remote_bytes)
+        fields = ("generated_from", "record_count", "study_count", "model_count", "configuration_count", "route_count")
+        local_meta = local.get("meta", {})
+        remote_meta = remote.get("meta", {})
+        differences = {
+            field: {"local": local_meta.get(field), "remote": remote_meta.get(field)}
+            for field in fields
+            if local_meta.get(field) != remote_meta.get(field)
+        }
+        exact_bytes_match = local_bytes == remote_bytes
+        expected_commit = str(getattr(self.args, "expected_commit", "") or "")
+        check_assets = bool(getattr(self.args, "check_assets", False))
+        deployment: dict[str, Any] | None = None
+        deployment_error = ""
+        try:
+            deployment = json.loads(fetch("data/deployment.json"))
+        except Exception as exc:
+            deployment_error = repr(exc)
+        commit_match = bool(deployment and deployment.get("commit") == expected_commit) if expected_commit else None
+        local_tree = atlas_tree_manifest(atlas_root)
+        tree_match = bool(
+            deployment
+            and (deployment.get("atlas_tree") or {}).get("manifest_sha256")
+            == local_tree["manifest_sha256"]
+        )
+        asset_failures: list[dict[str, Any]] = []
+        checked_assets = 0
+        if check_assets:
+            if not deployment:
+                asset_failures.append({"path": "data/deployment.json", "error": deployment_error})
+            else:
+                remote_rows = (deployment.get("atlas_tree") or {}).get("files") or []
+                remote_by_path = {str(row.get("path") or ""): row for row in remote_rows}
+                local_by_path = {row["path"]: row for row in local_tree["files"]}
+                if set(remote_by_path) != set(local_by_path):
+                    asset_failures.append(
+                        {
+                            "path": "<tree>",
+                            "missing_remote": sorted(set(local_by_path) - set(remote_by_path)),
+                            "extra_remote": sorted(set(remote_by_path) - set(local_by_path)),
+                        }
+                    )
+                for path, expected in sorted(local_by_path.items()):
+                    try:
+                        content = fetch(path)
+                        checked_assets += 1
+                        digest = hashlib.sha256(content).hexdigest()
+                        if digest != expected["sha256"]:
+                            asset_failures.append(
+                                {"path": path, "expected_sha256": expected["sha256"], "remote_sha256": digest}
+                            )
+                    except Exception as exc:
+                        asset_failures.append({"path": path, "error": repr(exc)})
+        release_checks_ok = (
+            (not expected_commit or commit_match is True)
+            and (not check_assets or (tree_match and not asset_failures))
+        )
+        result = {
+            "ok": not differences and exact_bytes_match and release_checks_ok,
+            "url": url,
+            "local": rel(local_path),
+            "local_sha256": hashlib.sha256(local_bytes).hexdigest(),
+            "remote_sha256": hashlib.sha256(remote_bytes).hexdigest(),
+            "semantic_differences": differences,
+            "exact_bytes_match": exact_bytes_match,
+            "deployment_manifest_present": deployment is not None,
+            "deployment_manifest_error": deployment_error,
+            "expected_commit": expected_commit,
+            "deployed_commit": deployment.get("commit") if deployment else None,
+            "commit_match": commit_match,
+            "local_tree_sha256": local_tree["manifest_sha256"],
+            "remote_tree_sha256": (deployment.get("atlas_tree") or {}).get("manifest_sha256")
+            if deployment
+            else None,
+            "tree_match": tree_match if deployment else None,
+            "assets_checked": checked_assets,
+            "asset_failures": asset_failures,
+        }
+        if getattr(self.args, "record_completion", False):
+            if not result["ok"]:
+                raise RuntimeError("Cannot write a completion record for a failed remote verification")
+            if not expected_commit or not check_assets:
+                raise RuntimeError(
+                    "--record-completion requires --expected-commit and --check-assets"
+                )
+            if not self.args.workflow_run_id or not self.args.operator:
+                raise RuntimeError(
+                    "--record-completion requires --workflow-run-id and --operator"
+                )
+            screenshot_paths = [resolve(path) for path in self.args.screenshot]
+            if len(screenshot_paths) < 2:
+                raise RuntimeError(
+                    "--record-completion requires at least desktop and mobile screenshots"
+                )
+            missing = [str(path) for path in screenshot_paths if not path.is_file()]
+            if missing:
+                raise RuntimeError(f"Completion screenshots are missing: {missing}")
+            completed_run_id = self.args.run_id or self.current.get("last_run_id")
+            completed_manifest = (
+                resolve(self.config["updates_root"]) / str(completed_run_id) / "run_manifest.json"
+            )
+            completion = {
+                "schema_version": 1,
+                "completed_at": now_iso(),
+                "run_id": completed_run_id,
+                "operator": self.args.operator,
+                "commit": expected_commit,
+                "workflow_run_id": str(self.args.workflow_run_id),
+                "run_manifest": self.artifact(completed_manifest),
+                "living_state": self.artifact(resolve(self.config["living_state"])),
+                "atlas_json": self.artifact(local_path),
+                "remote_verification": result,
+                "browser_qa": self.artifact(atlas_root / "data/browser_qa.json"),
+                "screenshots": [self.artifact(path) for path in screenshot_paths],
+                "next_search_date": (
+                    date.fromisoformat(self.current["search_end"]) + timedelta(days=1)
+                ).isoformat(),
+            }
+            completion_root = resolve(
+                self.config.get("release_records_root", "data/living_catalog/releases")
+            ) / str(completed_run_id)
+            completion_path = completion_root / "completion_record.json"
+            if completion_path.exists():
+                existing = read_json(completion_path)
+                completion["completed_at"] = existing.get("completed_at")
+                if existing != completion:
+                    raise RuntimeError(
+                        f"Completion record already exists and is immutable: {completion_path}"
+                    )
+            else:
+                write_json(completion_path, completion)
+            result["completion_record"] = rel(completion_path)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["ok"] else 2
+
     def preflight(self) -> int:
         checks: list[dict[str, Any]] = []
         target_stage = getattr(self.args, "through_stage", None) or "report"
@@ -2203,7 +3037,22 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser()
     root.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     sub = root.add_subparsers(dest="command", required=True)
-    for name in ("plan", "preflight", "run", "status", "publish"):
+    for name in (
+        "plan",
+        "preflight",
+        "run",
+        "status",
+        "doctor",
+        "scholar-capture",
+        "scholar-validate",
+        "register-supplemental",
+        "taxonomy-rerun-preflight",
+        "publish",
+        "reconcile",
+        "release-manifest",
+        "verify-live",
+        "incident",
+    ):
         command = sub.add_parser(name)
         command.add_argument("--run-id")
         command.add_argument("--date-from")
@@ -2215,8 +3064,52 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--through-stage", choices=STAGES)
             command.add_argument("--force", action="store_true")
             command.add_argument("--manage-server", action="store_true")
-        else:
-            command.set_defaults(from_stage=None, through_stage=None, force=False, manage_server=False)
+        if name == "reconcile":
+            command.add_argument("--snapshot-root", required=True)
+            command.add_argument("--atlas-root")
+            command.add_argument("--supplemental-record-file", action="append", default=[])
+            command.add_argument("--reason", required=True)
+            command.add_argument("--allow-mutated-stage", action="append", choices=STAGES, default=[])
+        if name == "scholar-capture":
+            command.add_argument("--retries", type=int, default=5)
+            command.add_argument("--delay", type=float, default=1.0)
+        if name == "register-supplemental":
+            command.add_argument("--record-file", required=True)
+            command.add_argument("--reason", required=True)
+            command.add_argument("--source-url")
+            command.add_argument("--resolver", required=True)
+            command.add_argument("--declared-at")
+        if name == "taxonomy-rerun-preflight":
+            command.add_argument("--output-dir", required=True)
+        if name == "release-manifest":
+            command.add_argument("--commit", required=True)
+        if name == "verify-live":
+            command.add_argument("--url")
+            command.add_argument("--expected-commit")
+            command.add_argument("--check-assets", action="store_true")
+            command.add_argument("--record-completion", action="store_true")
+            command.add_argument("--workflow-run-id")
+            command.add_argument("--operator")
+            command.add_argument("--screenshot", action="append", default=[])
+        if name == "incident":
+            command.add_argument(
+                "--phase",
+                required=True,
+                choices=["search", "processing", "publication", "deployment", "rollback"],
+            )
+            command.add_argument("--summary", required=True)
+            command.add_argument("--operator", required=True)
+            command.add_argument("--commit")
+            command.add_argument("--workflow-run-id")
+            command.add_argument("--recovery-commit")
+        command.set_defaults(
+            from_stage=None,
+            through_stage=None,
+            force=False,
+            manage_server=False,
+            retries=5,
+            delay=1.0,
+        )
     return root
 
 
@@ -2243,10 +3136,28 @@ def main() -> int:
     if args.command == "status":
         print(json.dumps(pipeline.manifest, ensure_ascii=False, indent=2))
         return 0
+    if args.command == "doctor":
+        return pipeline.doctor()
     if args.command == "preflight":
         return pipeline.preflight()
+    if args.command == "scholar-capture":
+        return pipeline.scholar_capture()
+    if args.command == "scholar-validate":
+        return pipeline.scholar_validate()
+    if args.command == "register-supplemental":
+        return pipeline.register_supplemental()
+    if args.command == "taxonomy-rerun-preflight":
+        return pipeline.taxonomy_rerun_preflight()
     if args.command == "publish":
         return pipeline.publish()
+    if args.command == "reconcile":
+        return pipeline.reconcile()
+    if args.command == "verify-live":
+        return pipeline.verify_live()
+    if args.command == "release-manifest":
+        return pipeline.release_manifest()
+    if args.command == "incident":
+        return pipeline.record_incident()
     try:
         return pipeline.run()
     except ManualGate as exc:

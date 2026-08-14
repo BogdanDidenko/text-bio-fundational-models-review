@@ -32,6 +32,14 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Verify living-review state and staged atlas
+        run: python3 scripts/run_living_review_pipeline.py doctor
+
+      - name: Bind deployment payload to this commit
+        run: |
+          python3 scripts/run_living_review_pipeline.py release-manifest \
+            --commit "${GITHUB_SHA}"
+
       - name: Upload atlas
         uses: actions/upload-pages-artifact@v3
         with:
@@ -40,3 +48,13 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed atlas
+        run: |
+          python3 -m pip install --disable-pip-version-check requests
+          for attempt in 1 2 3 4 5; do
+            python3 scripts/run_living_review_pipeline.py verify-live \
+              --expected-commit "${GITHUB_SHA}" --check-assets && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1

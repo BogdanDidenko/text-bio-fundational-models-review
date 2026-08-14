@@ -26,14 +26,21 @@ def sha256(path: Path) -> str:
 
 def category(relative: Path) -> str:
     parts = relative.parts
-    if parts and parts[0] == "runs" and len(parts) == 2:
-        return "run_logs"
-    if parts and parts[0] == "runs" and len(parts) > 2:
-        return f"run:{parts[1]}"
-    if parts and parts[0] == "taxonomy_synthesis":
+    if "baseline_vlm_profiles" in parts or "combined_vlm_profiles" in parts:
+        return "canonical_docling_profiles"
+    if "runs" in parts:
+        index = parts.index("runs")
+        return f"run:{parts[index + 1]}" if len(parts) > index + 1 else "run_logs"
+    if "taxonomy_synthesis" in parts:
         return "taxonomy_synthesis"
-    if parts and parts[0] == "adjudication":
+    if "adjudication" in parts:
         return "adjudication"
+    if "snapshot_full_55" in parts:
+        return "immutable_snapshot"
+    if parts and parts[0] == "atlas":
+        return "staged_atlas"
+    if parts and parts[0].startswith("crops"):
+        return "crop_validation"
     return "final_or_documentation"
 
 
@@ -64,7 +71,11 @@ def main() -> int:
         )
     manifest = artifact_root / "artifact_manifest.csv"
     with manifest.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]) if rows else [])
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=list(rows[0]) if rows else [],
+            lineterminator="\n",
+        )
         if rows:
             writer.writeheader()
             writer.writerows(rows)

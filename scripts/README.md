@@ -58,10 +58,11 @@ python reproduce_search.py --keys api_keys.json \
   --gs-provider-export data/living_catalog_updates/update_YYYY-MM-DD/00_search/google_scholar_provider_export.json
 ```
 
-Create the contract skeleton with
-`python3 scripts/build_google_scholar_provider_template.py --config <search_config> --provider <provider-name> --pagination-policy <policy> --output <path>`.
-For SerpAPI, use
-`python3 scripts/capture_google_scholar_serpapi.py --config <search_config> --api-keys api_keys.json --output <path>`.
+For a living update, use the first-class
+`run_living_review_pipeline.py scholar-capture` and `scholar-validate`
+commands. They build the dated config, invoke the SerpAPI collector, and apply
+the signed provider-export validator. The lower-level template and collector
+scripts remain available for provider diagnostics.
 The legacy `--gs-fallback` option is diagnostic only and is not accepted by the
 incremental configuration.
 
@@ -94,7 +95,7 @@ python3 scripts/reproduce_search.py \
   --output-dir data/exports_update_2026-07-06
 ```
 
-The latest completed update search covers **2026-06-11 to 2026-07-06**.
+The latest completed update search covers **2026-07-07 to 2026-08-09**.
 
 ## Living search-to-atlas updates
 
@@ -104,11 +105,20 @@ commands and hashes, stops at explicit manual gates, classifies newly eligible
 papers with the frozen taxonomy, validates source-figure crops, and stages a
 rebuilt visual atlas before publication.
 
+Use [`protocol/LIVING_REVIEW_RUNBOOK.md`](../protocol/LIVING_REVIEW_RUNBOOK.md)
+as the canonical operator checklist. Begin every update with `doctor`; a run is
+not complete until both `verify-live` and the final `doctor` succeed.
+
 ```bash
+# Check state/snapshot/atlas consistency and obtain the next action.
+python3 scripts/run_living_review_pipeline.py doctor
+
 # Show the next interval and all stages without executing them.
 python3 scripts/run_living_review_pipeline.py plan --date-to 2026-08-09
 
 # Verify local binaries, API-key names, environments, and baseline artifacts.
+python3 scripts/run_living_review_pipeline.py scholar-capture --date-to 2026-08-09
+python3 scripts/run_living_review_pipeline.py scholar-validate --date-to 2026-08-09
 python3 scripts/run_living_review_pipeline.py preflight --date-to 2026-08-09
 
 # Run or resume the full update; start the local Codex API wrapper as needed.
@@ -119,7 +129,18 @@ python3 scripts/run_living_review_pipeline.py run \
 # Publish only after the complete staged run and browser QA succeed.
 python3 scripts/run_living_review_pipeline.py publish \
   --run-id update_2026-08-09
+
+# After committing and deploying docs/input-representation-atlas.
+python3 scripts/run_living_review_pipeline.py verify-live \
+  --expected-commit "$(git rev-parse HEAD)" --check-assets
 ```
+
+Missed records discovered before publication enter through
+`register-supplemental` and rerun from cumulative deduplication onward. A
+prompt/schema change or failed taxonomy acceptance threshold is prepared with
+`taxonomy-rerun-preflight`; it refuses partial-cohort execution and writes the
+native-Docling regeneration and full rerun commands. Deployment completion and
+incidents are stored under `data/living_catalog/releases/`.
 
 The living configuration is `config/living_review_pipeline.json`. Immutable run
 artifacts are written under `data/living_catalog_updates/`; the published pointer
@@ -132,7 +153,7 @@ crosswalk is in
 
 ## Notes
 
-- **SpringerNature** searches full-text body (title/abstract restriction is premium-only). A mandatory post-retrieval validation step filters records to those matching all 3 concept blocks in the title or abstract. Expect ~98% noise removal.
+- **SpringerNature** searches broader metadata/full text because title/abstract restriction is premium-only. Mandatory post-retrieval validation labels 3/3 concept-block matches as the primary stratum and retains 2/3 near-misses as a recall stratum; 0/3 and 1/3 records are rejected.
 - **Google Scholar** has no official bulk API. Incremental canonical runs require a provider-mediated capture with all configured query pages, raw-response hashes, and a signed query bundle; see `protocol/google_scholar_provider_export_schema.md`. The legacy `scholarly` mode remains diagnostic only. An arbitrary older JSON list is never substituted into a new interval.
 - **Semantic Scholar** uses the `/paper/search/bulk` endpoint (not `/paper/search`, which does not support Boolean queries).
 - **bioRxiv/medRxiv** are searched via EuropePMC API (the native bioRxiv API does not support content search).
@@ -163,6 +184,7 @@ the full list and per-model expected criterion labels.
 | 2026-04-14 | 2026-03-01 to 2026-04-14 | 867 | 762 | 668 | 668 | Google Scholar rate-limited after query 5/7. |
 | 2026-06-10 | 2026-04-15 to 2026-06-10 | 933 | 785 | 447 | 431 | CrossRef audit removed 2 hidden duplicates and enriched 126 DOIs. |
 | 2026-07-06 | 2026-06-11 to 2026-07-06 | 197 | 155 | 134 | 119 | Google Scholar returned 0 due full rate-limit; CrossRef audit found no hidden duplicates. |
+| 2026-08-09 | 2026-07-07 to 2026-08-09 | 639 | 514 | 285 | 285 | Eight complete sources; one-query Scholar capture returned 252 records; Crossref audit removed 2 hidden duplicates. |
 
 ## Search Configuration
 
