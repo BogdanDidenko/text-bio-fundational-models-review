@@ -424,6 +424,8 @@ class Pipeline:
             self.manifest = self.new_manifest()
         self.paths = Paths(self.run_root, self.date_to)
         self._active_log_attempts: dict[str, Path] = {}
+        self._repository_external_artifacts_cache: dict[str, dict[str, Any]] | None = None
+        self._repository_artifact_ledger_summary: dict[str, Any] | None = None
 
     def recover_interrupted_publication(self) -> None:
         """Rollback a crash between atlas promotion and state/manifest finalization."""
@@ -524,6 +526,97 @@ class Pipeline:
 
     def artifact(self, path: Path) -> dict[str, Any]:
         return {"path": rel(path), "bytes": path.stat().st_size, "sha256": sha256(path)}
+
+    def repository_external_artifacts(self) -> dict[str, dict[str, Any]]:
+        """Return hash-ledger artifacts intentionally omitted from a Git checkout."""
+        if self._repository_external_artifacts_cache is not None:
+            return self._repository_external_artifacts_cache
+
+        manifest_path = self.run_root / "artifact_manifest.csv"
+        summary_path = self.run_root / "artifact_manifest_summary.json"
+        if not manifest_path.is_file() or not summary_path.is_file():
+            raise RuntimeError(
+                "repository-checkout validation requires artifact_manifest.csv and "
+                "artifact_manifest_summary.json in the selected run root"
+            )
+        summary = read_json(summary_path)
+        if summary.get("manifest_sha256") != sha256(manifest_path):
+            raise RuntimeError("artifact_manifest.csv does not match its committed summary hash")
+
+        ledger: dict[str, dict[str, Any]] = {}
+        total_size = 0
+        with manifest_path.open(newline="", encoding="utf-8") as stream:
+            reader = csv.DictReader(stream)
+            required = {"relative_path", "size_bytes", "sha256"}
+            if not required.issubset(reader.fieldnames or []):
+                raise RuntimeError("artifact_manifest.csv is missing required columns")
+            for row in reader:
+                relative = Path(str(row["relative_path"]))
+                if relative.is_absolute() or ".." in relative.parts:
+                    raise RuntimeError(f"unsafe artifact ledger path: {relative}")
+                path = rel(self.run_root / relative)
+                if path in ledger:
+                    raise RuntimeError(f"duplicate artifact ledger path: {path}")
+                try:
+                    size = int(row["size_bytes"])
+                except (TypeError, ValueError) as exc:
+                    raise RuntimeError(f"invalid artifact size for {path}") from exc
+                digest = str(row["sha256"])
+                if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+                    raise RuntimeError(f"invalid artifact SHA-256 for {path}")
+                ledger[path] = {"path": path, "bytes": size, "sha256": digest}
+                total_size += size
+
+        if int(summary.get("file_count", -1)) != len(ledger):
+            raise RuntimeError("artifact ledger file count does not match its summary")
+        if int(summary.get("total_size_bytes", -1)) != total_size:
+            raise RuntimeError("artifact ledger byte count does not match its summary")
+
+        tracked_result = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-z"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if tracked_result.returncode:
+            raise RuntimeError(f"cannot inspect tracked files: {tracked_result.stderr.strip()}")
+        tracked = {path for path in tracked_result.stdout.split("\0") if path}
+        for required_path in (rel(manifest_path), rel(summary_path)):
+            if required_path not in tracked:
+                raise RuntimeError(f"repository artifact ledger is not tracked: {required_path}")
+
+        candidates = sorted(path for path in ledger if path not in tracked)
+        ignored: set[str] = set()
+        if candidates:
+            ignored_result = subprocess.run(
+                ["git", "-C", str(ROOT), "check-ignore", "--no-index", "-z", "--stdin"],
+                input="\0".join(candidates) + "\0",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if ignored_result.returncode not in {0, 1}:
+                raise RuntimeError(f"cannot inspect ignored files: {ignored_result.stderr.strip()}")
+            ignored = {path for path in ignored_result.stdout.split("\0") if path}
+
+        self._repository_external_artifacts_cache = {
+            path: ledger[path] for path in candidates if path in ignored
+        }
+        self._repository_artifact_ledger_summary = {
+            "manifest": rel(manifest_path),
+            "manifest_sha256": summary["manifest_sha256"],
+            "ledger_files": len(ledger),
+            "declared_external_files": len(self._repository_external_artifacts_cache),
+        }
+        return self._repository_external_artifacts_cache
+
+    def repository_artifact_is_external(self, artifact: dict[str, Any]) -> bool:
+        expected = self.repository_external_artifacts().get(str(artifact.get("path") or ""))
+        return bool(
+            expected
+            and expected["bytes"] == artifact.get("bytes")
+            and expected["sha256"] == artifact.get("sha256")
+        )
 
     def human_input_paths(self, stage: str) -> list[Path]:
         return {
@@ -641,7 +734,12 @@ class Pipeline:
         )
         return inventory
 
-    def stage_validation_issues(self, stage: str) -> list[str]:
+    def stage_validation_issues(
+        self,
+        stage: str,
+        repository_checkout: bool = False,
+        repository_omissions: list[str] | None = None,
+    ) -> list[str]:
         row = self.manifest["stages"].get(stage, {})
         if row.get("status") not in {"complete", "skipped_no_new_records"}:
             return [f"status={row.get('status', 'not_started')}"]
@@ -658,7 +756,11 @@ class Pipeline:
         for artifact in row.get("artifacts", []):
             path = resolve(artifact["path"])
             if not path.exists():
-                issues.append(f"missing declared artifact: {artifact['path']}")
+                if repository_checkout and self.repository_artifact_is_external(artifact):
+                    if repository_omissions is not None:
+                        repository_omissions.append(artifact["path"])
+                else:
+                    issues.append(f"missing declared artifact: {artifact['path']}")
             elif sha256(path) != artifact["sha256"]:
                 issues.append(f"changed declared artifact: {artifact['path']}")
         inventory_path = row.get("artifact_inventory")
@@ -673,7 +775,11 @@ class Pipeline:
                 for artifact in inventory.get("files", []):
                     path = resolve(artifact["path"])
                     if not path.exists():
-                        issues.append(f"missing inventoried file: {artifact['path']}")
+                        if repository_checkout and self.repository_artifact_is_external(artifact):
+                            if repository_omissions is not None:
+                                repository_omissions.append(artifact["path"])
+                        else:
+                            issues.append(f"missing inventoried file: {artifact['path']}")
                     elif sha256(path) != artifact["sha256"]:
                         issues.append(f"changed inventoried file: {artifact['path']}")
         return issues
@@ -2410,6 +2516,7 @@ class Pipeline:
 
     def doctor(self) -> int:
         """Report control-plane drift and the exact next safe operation."""
+        repository_checkout_requested = bool(getattr(self.args, "repository_checkout", False))
         state_path = resolve(self.config["living_state"])
         atlas_root = resolve(self.config["atlas_output"])
         atlas_data = atlas_root / "data/atlas.json"
@@ -2432,6 +2539,8 @@ class Pipeline:
         selected = self.manifest if self.manifest_path.is_file() else latest
         stage_rows: list[dict[str, Any]] = []
         first_blocking_stage: str | None = None
+        repository_ledger_error: str | None = None
+        repository_omission_count = 0
         if selected:
             selected_run_id = str(selected.get("run_id") or "")
             selected_path = resolve(self.config["updates_root"]) / selected_run_id / "run_manifest.json"
@@ -2442,6 +2551,13 @@ class Pipeline:
                 probe_args.date_from = None
                 probe_args.date_to = None
                 selected_pipeline = Pipeline(probe_args, self.config)
+            repository_checkout = repository_checkout_requested
+            if repository_checkout:
+                try:
+                    selected_pipeline.repository_external_artifacts()
+                except RuntimeError as exc:
+                    repository_ledger_error = str(exc)
+                    repository_checkout = False
             acknowledged_mutations: set[str] = set()
             reconciliation_ref = selected.get("publication_reconciliation")
             if reconciliation_ref and resolve(reconciliation_ref).is_file():
@@ -2452,11 +2568,21 @@ class Pipeline:
             for stage in STAGES:
                 row = selected.get("stages", {}).get(stage, {})
                 declared = row.get("status", "not_started")
-                valid = selected_pipeline.stage_is_complete(stage) if row else False
+                repository_omissions: list[str] = []
+                validation_issues = (
+                    selected_pipeline.stage_validation_issues(
+                        stage,
+                        repository_checkout=repository_checkout,
+                        repository_omissions=repository_omissions,
+                    )
+                    if row
+                    else []
+                )
+                valid = not validation_issues if row else False
                 effective = declared if declared not in {"complete", "skipped_no_new_records"} or valid else "invalidated"
                 if effective == "invalidated" and stage in acknowledged_mutations:
                     effective = "acknowledged_post_run_mutation"
-                validation_issues = selected_pipeline.stage_validation_issues(stage) if row else []
+                repository_omission_count += len(set(repository_omissions))
                 stage_rows.append(
                     {
                         "stage": stage,
@@ -2464,6 +2590,7 @@ class Pipeline:
                         "status": effective,
                         "note": row.get("note", ""),
                         "validation_issues": validation_issues,
+                        "repository_external_omissions": len(set(repository_omissions)),
                     }
                 )
                 if first_blocking_stage is None and effective not in {
@@ -2475,6 +2602,14 @@ class Pipeline:
 
         issues: list[dict[str, str]] = []
         actions: list[str] = []
+        if repository_ledger_error:
+            issues.append(
+                {
+                    "severity": "critical",
+                    "code": "INVALID_REPOSITORY_ARTIFACT_LEDGER",
+                    "detail": repository_ledger_error,
+                }
+            )
         if not state_path.is_file():
             issues.append(
                 {
@@ -2546,6 +2681,15 @@ class Pipeline:
 
         result = {
             "healthy": not any(issue["severity"] == "critical" for issue in issues),
+            "validation_mode": {
+                "name": "repository_checkout" if repository_checkout_requested else "complete_local_archive",
+                "external_omissions_accepted": repository_omission_count,
+                "artifact_ledger": (
+                    selected_pipeline._repository_artifact_ledger_summary
+                    if selected and repository_checkout_requested and not repository_ledger_error
+                    else None
+                ),
+            },
             "living_state": {"path": rel(state_path), "present": state_path.is_file(), "search_end": self.current["search_end"]},
             "public_atlas": {
                 "path": rel(atlas_root),
@@ -3059,6 +3203,8 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--date-to")
         if name == "preflight":
             command.add_argument("--through-stage", choices=STAGES, default="report")
+        if name == "doctor":
+            command.add_argument("--repository-checkout", action="store_true")
         if name == "run":
             command.add_argument("--from-stage", choices=STAGES)
             command.add_argument("--through-stage", choices=STAGES)
@@ -3109,6 +3255,7 @@ def parser() -> argparse.ArgumentParser:
             manage_server=False,
             retries=5,
             delay=1.0,
+            repository_checkout=False,
         )
     return root
 

@@ -2032,6 +2032,45 @@ class OrchestratorTests(unittest.TestCase):
                 {"MISSING_LIVING_STATE", "ATLAS_STATE_DIVERGENCE"},
             )
 
+    def test_repository_checkout_waives_only_matching_external_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            artifact = pipeline.paths.search / "ignored.pdf"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_bytes(b"external payload")
+            pipeline.mark("search", "complete", [artifact])
+            expected = pipeline.manifest["stages"]["search"]["artifacts"][0]
+            artifact.unlink()
+
+            strict = pipeline.stage_validation_issues("search")
+            self.assertIn(f"missing declared artifact: {expected['path']}", strict)
+            with patch.object(
+                pipeline,
+                "repository_external_artifacts",
+                return_value={expected["path"]: expected},
+            ):
+                omissions: list[str] = []
+                self.assertEqual(
+                    pipeline.stage_validation_issues(
+                        "search",
+                        repository_checkout=True,
+                        repository_omissions=omissions,
+                    ),
+                    [],
+                )
+            self.assertEqual(set(omissions), {expected["path"]})
+
+            wrong = {**expected, "sha256": "0" * 64}
+            with patch.object(
+                pipeline,
+                "repository_external_artifacts",
+                return_value={expected["path"]: wrong},
+            ):
+                issues = pipeline.stage_validation_issues("search", repository_checkout=True)
+            self.assertIn(f"missing declared artifact: {expected['path']}", issues)
+
     def test_reconcile_adopts_valid_supplemental_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

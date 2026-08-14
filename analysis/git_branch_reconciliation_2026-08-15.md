@@ -48,11 +48,17 @@ both files while joining the July commit history through merge commit
 - `git diff --check` passed.
 - Python compilation of the living-review runner and taxonomy audit passed.
 - the taxonomy audit reproduced byte-for-byte.
-- `.venv-docling/bin/python tests/test_living_review_pipeline.py` passed all 89
+- `.venv-docling/bin/python tests/test_living_review_pipeline.py` passed all 90
   tests.
 - `python3 scripts/run_living_review_pipeline.py doctor` reported `healthy:
   true`, a published cursor through 2026-08-09, and the 55-record/109-model/
   586-route atlas.
+- A clean Git checkout initially invalidated stages whose complete PDF,
+  Docling, Graph, and image payloads are intentionally excluded by repository
+  policy. The release gate now uses explicit `doctor --repository-checkout`
+  semantics: only untracked, ignored files whose path, byte count, and SHA-256
+  agree in both the stage inventory and committed run-level artifact ledger may
+  be absent. The complete local archive remains subject to strict `doctor`.
 
 ## Scope boundary
 

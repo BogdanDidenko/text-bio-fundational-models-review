@@ -408,6 +408,24 @@ repository `.gitignore` and
 define the current large-artifact precedent; the run manifest and artifact
 hashes preserve excluded local evidence.
 
+Build the run-level hash ledger from the complete local archive before staging.
+The ledger and its summary must be committed even though the large payloads are
+not. Then verify both storage modes explicitly:
+
+```bash
+python3 scripts/docling/build_input_taxonomy_artifact_manifest.py \
+  --artifact-root "data/living_catalog_updates/${RUN_ID}"
+python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID"
+python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID" \
+  --repository-checkout
+```
+
+The first command validates the complete operator archive. The second doctor
+mode models a clean Git checkout: it may waive a missing payload only when its
+path, byte count, and SHA-256 agree in the stage inventory and committed
+`artifact_manifest.csv`, and Git marks that path as ignored and untracked.
+Changed tracked files, undeclared omissions, or a damaged ledger remain fatal.
+
 ```bash
 git commit -m "Update living review through ${END}"
 ```
@@ -415,7 +433,7 @@ git commit -m "Update living review through ${END}"
 The Pages workflow is `.github/workflows/deploy-input-representation-atlas.yml`.
 Push-triggered deployment currently accepts `main` and the legacy
 `codex/fulltext-section-screening-audit` branch; `main` is the preferred
-publication branch. The workflow runs local `doctor`, writes an ephemeral
+publication branch. The workflow runs `doctor --repository-checkout`, writes an ephemeral
 commit-bound file/tree manifest, uploads the atlas, deploys Pages, then retries
 full remote verification five times.
 
