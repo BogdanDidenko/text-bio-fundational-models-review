@@ -27,6 +27,25 @@ adjudication resolution, registries, source hashes, final routes, evidence
 strength, crop decisions, and the generated methodological description. It does
 not request or claim hidden chain-of-thought.
 
+## Follow-up: F5 migration ledger, 2026-08-17
+
+The missing cross-version transition ledger identified in F5 has now been
+created under `analysis/input_taxonomy_migration_2026-08-17/`. It compares the
+same 52 records at study, model, configuration, and route levels without an LLM.
+All 52 study identifiers are stable. The shared cohort changes from 489 to 549
+routes; the additional three records contribute 37 routes to the 586-route
+current total. A conservative maximum-weight matcher accepts 279 one-to-one
+primary route links and leaves all weaker or ambiguous relationships visible
+rather than forcing them.
+
+The separate analyst review of the 15 largest deltas shows that the drift mixes
+task/model decomposition, route aggregation, entity normalization, and genuine
+carrier/lifecycle recoding. Consequently, F5 is corrected as an audit-artifact
+gap, but the substantive ProCyon, X-Cell, SciCore-Omics, scMOBA, TeamPath, and
+Longevity-LLM cases remain part of the F6 evidence-sufficiency work. The old and
+current route totals remain valid within-version outputs, not directly
+comparable prevalence estimates.
+
 ## Verdict
 
 The LLM, Docling Graph, VLM, and crop-agent executions were real. There is no
