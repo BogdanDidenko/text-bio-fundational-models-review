@@ -44,9 +44,95 @@ def stable_id(prefix: str, value: str) -> str:
 
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def assemble_registry(
+    source_rows: list[dict[str, str]],
+    prior_rows: list[dict[str, str]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Preserve prior study identity without treating record reuse as duplication."""
+    prior_by_hash: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in prior_rows:
+        source_hash = row.get("source_document_sha256") or row.get("source_pdf_sha256")
+        if source_hash:
+            prior_by_hash[source_hash].append(row)
+
+    by_document: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in source_rows:
+        by_document[row["source_document_sha256"]].append(row)
+
+    registry: list[dict[str, Any]] = []
+    exact_duplicate_groups: list[dict[str, Any]] = []
+    for document_hash, group in sorted(by_document.items()):
+        current_ids = {row["candidate_id"] for row in group}
+        prior_group = prior_by_hash.get(document_hash, [])
+        prior_ids = {row["record_id"] for row in prior_group}
+        all_record_ids = sorted(current_ids | prior_ids)
+
+        prior_canonical = next(
+            (
+                row
+                for row in sorted(prior_group, key=lambda item: item["record_id"])
+                if row.get("canonical_record_for_study", "").casefold() == "true"
+            ),
+            None,
+        )
+        prior_anchor = prior_canonical or (
+            sorted(prior_group, key=lambda item: item["record_id"])[0]
+            if prior_group
+            else None
+        )
+        current_canonical = sorted(group, key=lambda row: row["candidate_id"])[0]
+        canonical_record_id = (
+            prior_anchor["record_id"] if prior_anchor else current_canonical["candidate_id"]
+        )
+        study_id = (
+            prior_anchor["study_id"]
+            if prior_anchor
+            else stable_id("study", current_canonical["candidate_id"])
+        )
+        exact_duplicate = len(all_record_ids) > 1
+
+        if exact_duplicate:
+            exact_duplicate_groups.append(
+                {
+                    "group_id": stable_id("duplicate", document_hash),
+                    "source_pdf_sha256": document_hash,
+                    "record_ids": all_record_ids,
+                    "canonical_record_id": canonical_record_id,
+                    "study_id": study_id,
+                }
+            )
+
+        for row in group:
+            record_id = row["candidate_id"]
+            registry.append(
+                {
+                    "record_id": record_id,
+                    "source_record_id": row.get("source_record_id", ""),
+                    "study_id": study_id,
+                    "title": row.get("title", ""),
+                    "doi": row.get("doi", ""),
+                    "source_pdf_sha256": document_hash,
+                    "source_document_sha256": document_hash,
+                    "canonical_record_for_study": record_id == canonical_record_id,
+                    "exact_duplicate": exact_duplicate,
+                    "possible_version_group": "omnina_preprint_journal"
+                    if record_id in {OMNINA_PREPRINT, OMNINA_JOURNAL}
+                    else "",
+                    "primary_analysis_linkage": "separate"
+                    if record_id in {OMNINA_PREPRINT, OMNINA_JOURNAL}
+                    else "exact_pdf_only",
+                    "docling_json": row["docling_json"],
+                    "markdown": row["markdown"],
+                }
+            )
+
+    registry.sort(key=lambda row: row["record_id"])
+    return registry, exact_duplicate_groups
 
 
 def main() -> int:
@@ -74,65 +160,12 @@ def main() -> int:
     if args.prior_registry:
         with args.prior_registry.open(newline="", encoding="utf-8") as stream:
             prior_rows = list(csv.DictReader(stream))
-    prior_by_hash = {
-        row.get("source_document_sha256") or row.get("source_pdf_sha256"): row
-        for row in prior_rows
-        if row.get("source_document_sha256") or row.get("source_pdf_sha256")
-    }
-
-    by_pdf: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in source_rows:
         source_document = row.get("source_document") or row.get("source_pdf")
         if not source_document:
             raise RuntimeError(f"Missing source document for {row.get('candidate_id')}")
         row["source_document_sha256"] = sha256(resolve(source_document))
-        by_pdf[row["source_document_sha256"]].append(row)
-
-    registry: list[dict[str, Any]] = []
-    exact_duplicate_groups: list[dict[str, Any]] = []
-    for pdf_hash, group in sorted(by_pdf.items()):
-        canonical = sorted(group, key=lambda row: row["candidate_id"])[0]
-        prior = prior_by_hash.get(pdf_hash)
-        study_id = prior["study_id"] if prior else stable_id("study", canonical["candidate_id"])
-        if len(group) > 1 or prior:
-            exact_duplicate_groups.append(
-                {
-                    "group_id": stable_id("duplicate", pdf_hash),
-                    "source_pdf_sha256": pdf_hash,
-                    "record_ids": [
-                        *([prior["record_id"]] if prior else []),
-                        *[row["candidate_id"] for row in group],
-                    ],
-                    "canonical_record_id": prior["record_id"] if prior else canonical["candidate_id"],
-                    "study_id": study_id,
-                }
-            )
-        for row in group:
-            record_id = row["candidate_id"]
-            exact_duplicate = len(group) > 1 or bool(prior)
-            registry.append(
-                {
-                    "record_id": record_id,
-                    "source_record_id": row.get("source_record_id", ""),
-                    "study_id": study_id,
-                    "title": row.get("title", ""),
-                    "doi": row.get("doi", ""),
-                    "source_pdf_sha256": pdf_hash,
-                    "source_document_sha256": pdf_hash,
-                    "canonical_record_for_study": not prior and record_id == canonical["candidate_id"],
-                    "exact_duplicate": exact_duplicate,
-                    "possible_version_group": "omnina_preprint_journal"
-                    if record_id in {OMNINA_PREPRINT, OMNINA_JOURNAL}
-                    else "",
-                    "primary_analysis_linkage": "separate"
-                    if record_id in {OMNINA_PREPRINT, OMNINA_JOURNAL}
-                    else "exact_pdf_only",
-                    "docling_json": row["docling_json"],
-                    "markdown": row["markdown"],
-                }
-            )
-
-    registry.sort(key=lambda row: row["record_id"])
+    registry, exact_duplicate_groups = assemble_registry(source_rows, prior_rows)
     write_csv(args.output_dir / "study_model_registry.csv", registry)
     registry_ids = {row["record_id"] for row in registry}
     omnina_present = {OMNINA_PREPRINT, OMNINA_JOURNAL} <= registry_ids

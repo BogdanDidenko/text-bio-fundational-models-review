@@ -15,6 +15,52 @@ This document is deliberately operational. It specifies what to inspect, what
 may be changed, what constitutes success, and how to recover. It does not
 replace the protocol or taxonomy codebook.
 
+## 0. Agent execution contract
+
+This is a state machine, not a list of loosely related scripts. An agent running
+an update must follow these rules:
+
+1. Start from `doctor`, `current.json`, and the selected `run_manifest.json`.
+   Never infer the current stage from filenames or from the last terminal line.
+2. Use `scripts/run_living_review_pipeline.py` for the normal path. A script
+   mentioned inside the runner is an implementation detail, not an alternative
+   entry point.
+3. Execute stages in the declared order. Resume the first blocking stage shown
+   by `doctor`; do not skip ahead because a downstream-looking file exists.
+4. Treat a non-zero exit, timeout, partial JSON response, missing provider page,
+   or incomplete shard as failure. Never create a plausible substitute output.
+5. Keep every automatic response, retry, schema, prompt, command, and manual
+   decision. Report decisions, not hidden chain-of-thought.
+6. Do not change queries, prompts, models, schemas, Docling settings, Graph
+   contracts, taxonomy definitions, route boundaries, or acceptance thresholds
+   during a routine update.
+7. Resolve human gates only through their generated declaration files. Never
+   edit generated decisions, Markdown, Graph output, route annotations, counts,
+   or the published cursor by hand.
+8. Reconcile every transition denominator before continuing. `0` is a result
+   only when the upstream source completed and the zero is evidenced.
+9. Never delete or relocate source PDFs, native Docling profiles, Docling Graph
+   workspaces, figures, or LLM logs until a complete archive has been verified
+   in independent storage.
+10. At every stop, state the last hash-valid stage, the blocking condition, the
+    evidence path, and the exact next supported command.
+
+### Supported run modes
+
+Choose one mode before doing work; their outputs must not be mixed.
+
+| Mode | When to use | Taxonomy behavior |
+|---|---|---|
+| Routine incremental update | New publication-date interval after the published cursor | Open discovery on new eligible records, then classification against unchanged taxonomy v1. |
+| Resume | A previously created run is incomplete or failed | Same run ID, inputs, method lock, model, schema, and artifact namespace. |
+| Supplemental recall | A missed record is discovered before publication | Register it at the cumulative-dedup boundary and invalidate all downstream stages. |
+| Whole-cohort bridge/rerun | A method component changes or an agreement gate fails | Rebuild one complete cohort under one new declared version; never patch selected records into old results. |
+
+`baseline_taxonomy_development`, `incremental_frozen_taxonomy`, and
+`full_cohort_frozen_taxonomy` are distinct analysis modes. Inventory generation
+is not taxonomy synthesis. A full-cohort rerun against taxonomy v1 must be
+reported as frozen-taxonomy reclassification, even though discovery is rerun.
+
 ## 1. Safety model
 
 The following files have distinct roles:
@@ -54,6 +100,8 @@ git branch --show-current
 git log -1 --format='%H %cI %s'
 python3 --version
 python3 scripts/run_living_review_pipeline.py doctor
+python3 scripts/verify_living_review_method_lock.py \
+  --current-taxonomy-tree "$(jq -r .taxonomy_root data/living_catalog/current.json)/taxonomy_tree.json"
 ```
 
 Stop if `doctor` is not healthy. In particular, do not plan a new interval when:
@@ -81,6 +129,30 @@ The configured model roles are not interchangeable:
 
 Preflight or a hash check must fail rather than silently substitute a runner,
 prompt, schema, model name, or taxonomy version.
+
+### Comparability envelope and method lock
+
+`protocol/living_review_method_lock_v1.json` is the executable definition of
+"the same method." Every new run manifest records its `method_id` and lock
+SHA-256. The runner refuses to execute if any locked file, configured model, or
+the current frozen taxonomy tree differs.
+
+Allowed run-to-run variation is limited to the inclusive search dates, records
+returned by providers, lawful manual declarations, retry timing, and logged
+worker concurrency. The following require a new method version and a bridge
+analysis, not `--refresh` inside a routine update:
+
+- a query term, search source, source-side validation rule, or date policy;
+- inclusion/exclusion prompt, role topology, model identifier, or JSON schema;
+- Docling dependency or conversion/VLM setting;
+- Graph direct/dense contract, section boundary rule, or grounding rule;
+- taxonomy family/subtype definition or source-to-model route boundary;
+- replicate count, agreement metric/threshold, adjudication policy, or crop rule.
+
+`--refresh` on the verifier is reserved for an explicitly reviewed method
+version change. If the lock fails, restore the locked implementation or stop,
+version the method, define a bridge cohort, and rerun that cohort end to end.
+Do not relabel a changed lock as v1 merely to make preflight pass.
 
 ## 3. Plan and preflight
 
@@ -150,6 +222,13 @@ python3 scripts/run_living_review_pipeline.py run \
 - A failed or manual-gate stage is recomputed from its declared inputs.
 - Successful full-text downloads may be reused across retrieval retries.
 - LLM retries retain failed prompts/responses and require complete parsed rows.
+- Before an expensive stage is recomputed, existing Docling profiles, Graph
+  workspaces, taxonomy Graph runs, and adjudication outputs are moved to
+  `preserved_stage_outputs/<stage>/attempt_NNN/`. The append-only
+  `preservation_ledger.jsonl` records their original and preserved paths, file
+  count, byte count, and timestamp. They remain recovery evidence and are not
+  silently mixed into the new attempt; reuse requires matching source/profile
+  hashes and the same locked stage contract.
 - Never use `--force` as ordinary recovery. It explicitly invalidates the named
   stage and every downstream stage. Use it only after documenting why the
   current stage output is scientifically invalid and must be regenerated.
@@ -176,6 +255,82 @@ python3 scripts/run_living_review_pipeline.py run \
 | `snapshot` | Cumulative registry/routes/evidence/crops and manifest | Counts and exact route/evidence IDs reconcile; source-corpus hashes are recorded. | Repair the earliest invalid upstream stage; never hand-edit snapshot totals. |
 | `atlas` | Staged static UI and browser QA | Build report matches snapshot; desktop/mobile screenshots, review-iteration filter, assets, and console checks pass. | Fix builder/UI code, rebuild atlas stage, rerun browser QA. |
 | `report` | PRISMA fact table, retrieval dispositions, update report | Every transition denominator is derived from artifacts and retrieval branches are mutually exclusive. | Fix source artifact or report generator; do not edit counts manually. |
+
+### Boundary-by-boundary execution logic
+
+The stage table defines acceptance. The following defines what crosses each
+boundary and what the agent must check before advancing.
+
+1. **Search to within-update deduplication.** `00_search/search_summary.json`
+   must reconcile to the sum of all completed source exports. Preserve database,
+   query name, raw rank, provider identifier, date status, and raw-page hash on
+   every record. A provider failure stays a failure; it does not contribute zero.
+2. **Within-update to cumulative deduplication.** Keep one update cluster with a
+   complete member/merge ledger, then compare DOI, PMID, arXiv/bioRxiv identifier,
+   and normalized title against every published master artifact. Cross-version
+   conflicts remain visible. An exact file duplicate reuses its prior `study_id`;
+   reuse of the same `record_id` is not itself a duplicate.
+3. **Records to abstract screening.** Enrich missing abstracts through declared
+   identifier and title routes. The screening payload is exactly `title +
+   abstract`; title-only fallback is explicit and identity-corroborated. Scope
+   reviewer and architecture reviewer are separate prompt roles of the same
+   locked `gpt-5.4-mini`, followed by the Python gate and adjudicator.
+4. **Abstract screening to retrieval.** Every `INCLUDE` and `UNCERTAIN` decision
+   becomes one full-text candidate. The count must equal the corresponding final
+   decision counts, after stable-ID uniqueness checks.
+5. **Retrieval to Docling screening.** Every candidate receives exactly one
+   disposition: validated main-article PDF/HTML, terminal evidence-backed
+   not-retrieved, or blocking technical failure. Only validated supported payloads
+   enter Docling. Supplements, abstract pages, XML-only payloads, and login pages
+   do not masquerade as main articles.
+6. **No-VLM Docling to Graph sections.** Build complete native profiles with the
+   locked PDF settings. Graph direct extraction locates `data_source` and
+   `input_representation` evidence. Recover the complete heading-bounded section,
+   not an evidence quote, arbitrary character window, root document, or whole
+   Markdown. Deduplicate identical selected sections.
+7. **Selected sections to full-text screening.** Reviewer input is exactly
+   `title + abstract + complete selected_full_text_sections`. It does not contain
+   `selector_reason`, `section_evidence`, or complete `docling_markdown`. Use the
+   same role topology and model as abstract screening in the configured
+   full-document mode.
+8. **Eligibility to canonical VLM profile.** Resolve every remaining UNCERTAIN
+   through declared evidence. Only accepted records receive fresh, complete
+   VLM-enriched profiles. Preserve source-document identity, native Docling JSON,
+   Markdown, figures, captions, and VLM picture descriptions as one profile.
+9. **Profiles to route taxonomy.** Open direct discovery sees each complete
+   document without family labels. Three independent direct classifications use
+   the fixed candidate inventory and taxonomy v1; dense scoped fill audits
+   coverage; a separately prompted adjudicator dispositions conflicts and every
+   dense candidate. The analysis mode must be
+   `incremental_frozen_taxonomy` for a routine batch.
+10. **Routes to crops, snapshot, and atlas.** Every accepted route must pass
+    provenance and taxonomy consistency. Crop annotations reference accepted
+    route IDs and native figures. Snapshot merge preserves prior routes and adds
+    only the new cohort. The atlas is generated from the snapshot and exposes the
+    review-iteration tag without changing existing filters or model details.
+
+### Denominator ledger
+
+Before `report`, verify these identities from machine-readable artifacts:
+
+```text
+raw hits = sum(completed source export counts)
+within-update unique = raw hits - within-update duplicate members
+new records = within-update unique - cumulative matches/exclusions
+abstract-screened = records with a final title/abstract decision
+full-text candidates = abstract INCLUDE + abstract UNCERTAIN
+retrieval candidates = retrieved + terminal not-retrieved
+section-screened = retrieved reports with a valid targeted-section pair
+eligibility inputs = section-screened records
+accepted + excluded = resolved eligibility inputs
+taxonomy records = newly accepted records with complete VLM profiles
+cumulative snapshot = prior snapshot + accepted update, under explicit duplicate/version linkage
+```
+
+These are different denominators. Route, configuration, model, study, and record
+counts must never be substituted for one another. A paper may yield multiple
+models, configurations, and routes; a model may belong to several carrier
+families through separate source-to-model routes.
 
 ## 6. Manual gates
 
@@ -357,7 +512,101 @@ Its assertions must derive expected model, route, group, subtype, and batch
 counts from the staged `atlas.json`; never hard-code counts from an older
 snapshot.
 
-## 8. Pre-publication review
+## 8. Preserve Docling and Graph artifacts
+
+Git is not the storage layer for the expensive corpus. `.gitignore` deliberately
+excludes source PDFs, native Docling payloads, figures, and Graph workspaces.
+`artifact_manifest.csv` is an integrity ledger, not a backup: it cannot restore
+a missing file.
+
+### What must be retained
+
+Archive the complete run root, not a hand-selected list. At minimum it contains:
+
+- validated source PDF/HTML payloads and their retrieval/identity evidence;
+- no-VLM and VLM canonical profile manifests;
+- native `*.docling.json`, complete Markdown, figure manifests, extracted images,
+  captions, and VLM picture descriptions;
+- every Graph `document.dclg`, `document.json`, `chunks.json`, `graph.html`,
+  `metadata.json`, extraction summary, provenance row, schema, prompt, response,
+  retry, and error;
+- all direct replicates, dense coverage, adjudication, evidence ledgers, taxonomy
+  outputs, crop decisions/assets, snapshot, atlas build evidence, and run logs.
+
+The canonical Docling profile is the reusable document representation. A Graph
+workspace is reusable only when the source-document SHA, canonical Docling JSON
+SHA, locked Graph code/contract, model, schema, and extraction stage all match.
+If one of those changes, create a new sibling run; never overwrite the old
+workspace. A publisher version with a different source hash is a new profile,
+even when its DOI/title represents the same study.
+
+### Create and verify an immutable archive
+
+Generate the ledger only after the run root is final. The archive command first
+rehashes every declared file and rejects both missing files and unlisted extras.
+
+```bash
+RUN_ROOT="data/living_catalog_updates/${RUN_ID}"
+ARCHIVE_ROOT="/Volumes/INDEPENDENT_BACKUP/text-bio-living-review"
+
+python3 scripts/docling/build_input_taxonomy_artifact_manifest.py \
+  --artifact-root "$RUN_ROOT"
+
+python3 scripts/archive_living_review_artifacts.py create \
+  --source-root "$RUN_ROOT" \
+  --archive-root "$ARCHIVE_ROOT" \
+  --receipt-dir data/living_catalog/archives \
+  --label "$RUN_ID" \
+  --storage-class independent_backup
+```
+
+The command streams a compressed `.tar.zst`, verifies every archived member
+against the source ledger, and writes an immutable receipt under
+`data/living_catalog/archives/`. Inspect and commit the receipt. A second folder
+on the same internal disk may be labelled `local_secondary`, but it is not an
+independent backup and does not satisfy the publication gate.
+
+Verify the archived location again before deleting, migrating, or publishing:
+
+```bash
+RECEIPT="$(ls -t data/living_catalog/archives/${RUN_ID}__*.json | head -1)"
+python3 scripts/archive_living_review_artifacts.py verify --receipt "$RECEIPT"
+```
+
+If an archive is copied to another disk or cloud-mounted path, verify that exact
+copy without changing the receipt:
+
+```bash
+python3 scripts/archive_living_review_artifacts.py verify \
+  --receipt "$RECEIPT" \
+  --archive /path/to/copied/archive.tar.zst
+```
+
+Restore only into an empty directory, then point recovery tooling at the
+restored root or restore to the original absolute location when old manifests
+contain absolute paths:
+
+```bash
+python3 scripts/archive_living_review_artifacts.py restore \
+  --receipt "$RECEIPT" \
+  --destination /empty/path/restored_run
+```
+
+After restore, regenerate no scientific output. First run archive verification,
+profile-contract validation, the relevant canonical manifest check, and
+`doctor`. Recompute an expensive Docling/Graph stage only if the payload is
+genuinely absent or fails its recorded hash/identity contract.
+
+### Retention rule
+
+Keep the live run root plus at least one independently stored verified archive.
+Do not prune failed LLM attempts or intermediate Graph workspaces merely because
+a final JSON exists; they establish how the final decision was reached. Local
+payloads may be removed for space only after independent verification, receipt
+commit, restore smoke test, and confirmation that no current manifest or corpus
+root still points to the path.
+
+## 9. Pre-publication review
 
 ```bash
 python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID"
@@ -367,7 +616,8 @@ git diff --check
 
 Do not publish unless all 18 stages are complete and hash-valid, the report is
 consistent with the snapshot, taxonomy gates passed, crop/atlas QA passed, and
-all manual resolutions are retained. `status` is the complete manifest;
+all manual resolutions are retained. A method-locked run also requires an
+`independent_backup` receipt matching the final run artifact manifest. `status` is the complete manifest;
 `doctor` is the concise decision view.
 
 ```bash
@@ -383,7 +633,7 @@ implements pending/finalized publication, the operational rule is:
 > After local `publish`, freeze new review work until the exact atlas has been
 > committed, deployed, and verified remotely.
 
-## 9. Git and GitHub Pages
+## 10. Git and GitHub Pages
 
 Never use `git add .`. Review the diff and stage only intentional code/protocol,
 the published state, the versioned run evidence permitted by `.gitignore`, and
@@ -463,7 +713,7 @@ Required UI checks:
 - desktop and mobile screenshots are readable;
 - remote `atlas.json` exactly matches local bytes.
 
-## 10. Deployment failure and rollback
+## 11. Deployment failure and rollback
 
 If commit, push, workflow, or remote verification fails after local `publish`:
 
@@ -518,7 +768,7 @@ The runner has a local publication journal and rollback for a crash during
 atlas/state promotion. It does not currently automate rollback across Git and
 GitHub Pages.
 
-## 11. Supplemental recall and reconciliation
+## 12. Supplemental recall and reconciliation
 
 Before publication, register a missed record through the first-class input
 boundary rather than creating sibling stages:
@@ -559,12 +809,13 @@ checks snapshot/atlas counts and source roots, writes an immutable reconciliatio
 ledger, adds supplemental records to future cumulative deduplication, and marks
 the publication mode explicitly in PRISMA history.
 
-## 12. Completion record
+## 13. Completion record
 
 An update is complete only when all of the following are recorded:
 
 - inclusive interval and search execution timestamp;
 - run ID and run-manifest hash;
+- method ID, method-lock hash, and independently verified archive receipt;
 - exact source/query configuration and source completion states;
 - search, dedup, screening, retrieval, eligibility, taxonomy, crop, and atlas counts;
 - prompt/runner/schema/model and taxonomy identifiers;
@@ -598,7 +849,7 @@ git commit -m "Record verified release evidence for ${RUN_ID}"
 git push origin HEAD
 ```
 
-## 13. Known limitations
+## 14. Known limitations
 
 The following are explicit open engineering issues, not implied guarantees:
 

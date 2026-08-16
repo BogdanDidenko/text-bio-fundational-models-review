@@ -78,7 +78,10 @@ from download_full_texts import (
 from merge_living_catalog_snapshot import corpus_inventory, validate_grounded_evidence
 from docling_graph_grounding import derive_full_section
 from build_canonical_vlm_profile_manifest import document_identity
-from analyze_input_taxonomy_runs import load_fixed_run
+from analyze_input_taxonomy_runs import corpus_description, load_fixed_run
+from build_input_taxonomy_registry import assemble_registry
+from archive_living_review_artifacts import create_archive, restore_archive, verify_archive
+from verify_living_review_method_lock import verify_method_lock
 from classify_fixed_input_taxonomy_candidates import prompt_for_record
 from profile_artifact_contract import validate_profile_artifacts
 from reproduce_search import (
@@ -99,6 +102,33 @@ from capture_google_scholar_serpapi import normalize_result, scrub_secret
 
 
 class SearchConfigTests(unittest.TestCase):
+    def test_expensive_stage_output_is_preserved_before_rerun(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pipeline = Pipeline.__new__(Pipeline)
+            pipeline.run_root = root
+            graph = root / "07_graph_sections"
+            payload = graph / "shard_00" / "record" / "document.dclg"
+            payload.parent.mkdir(parents=True)
+            payload.write_text("expensive graph", encoding="utf-8")
+
+            preserved = pipeline.preserve_expensive_generated_path(
+                "graph-sections", graph
+            )
+
+            self.assertFalse(graph.exists())
+            self.assertIsNotNone(preserved)
+            self.assertEqual(
+                (preserved / "shard_00/record/document.dclg").read_text(
+                    encoding="utf-8"
+                ),
+                "expensive graph",
+            )
+            ledger = root / "preserved_stage_outputs/preservation_ledger.jsonl"
+            rows = [json.loads(line) for line in ledger.read_text().splitlines()]
+            self.assertEqual(rows[0]["stage"], "graph-sections")
+            self.assertEqual(rows[0]["file_count"], 1)
+
     def test_springer_two_block_near_miss_enters_explicit_recall_stratum(self) -> None:
         config = {
             "databases": {
@@ -1606,6 +1636,185 @@ class BaselineRegistryTests(unittest.TestCase):
             rows = list(csv.DictReader(stream))
         self.assertEqual(len(rows), 52)
         self.assertEqual(len({row["study_id"] for row in rows}), 51)
+
+    @staticmethod
+    def source_row(record_id: str, source_hash: str = "hash-a") -> dict[str, str]:
+        return {
+            "candidate_id": record_id,
+            "source_record_id": record_id,
+            "source_document_sha256": source_hash,
+            "title": record_id,
+            "doi": "",
+            "docling_json": f"{record_id}.json",
+            "markdown": f"{record_id}.md",
+        }
+
+    @staticmethod
+    def prior_row(
+        record_id: str,
+        *,
+        canonical: bool,
+        source_hash: str = "hash-a",
+    ) -> dict[str, str]:
+        return {
+            "record_id": record_id,
+            "study_id": "study-preserved",
+            "source_document_sha256": source_hash,
+            "canonical_record_for_study": str(canonical),
+        }
+
+    def test_same_record_prior_reuse_is_not_a_duplicate(self) -> None:
+        registry, groups = assemble_registry(
+            [self.source_row("record-a")],
+            [self.prior_row("record-a", canonical=True)],
+        )
+        self.assertEqual(groups, [])
+        self.assertTrue(registry[0]["canonical_record_for_study"])
+        self.assertFalse(registry[0]["exact_duplicate"])
+        self.assertEqual(registry[0]["study_id"], "study-preserved")
+
+    def test_new_cross_record_exact_duplicate_inherits_prior_canonical(self) -> None:
+        registry, groups = assemble_registry(
+            [self.source_row("record-new")],
+            [self.prior_row("record-old", canonical=True)],
+        )
+        self.assertFalse(registry[0]["canonical_record_for_study"])
+        self.assertTrue(registry[0]["exact_duplicate"])
+        self.assertEqual(groups[0]["record_ids"], ["record-new", "record-old"])
+        self.assertEqual(groups[0]["canonical_record_id"], "record-old")
+
+    def test_full_cohort_duplicate_group_does_not_repeat_prior_ids(self) -> None:
+        registry, groups = assemble_registry(
+            [self.source_row("record-a"), self.source_row("record-b")],
+            [
+                self.prior_row("record-a", canonical=True),
+                self.prior_row("record-b", canonical=False),
+            ],
+        )
+        self.assertEqual(groups[0]["record_ids"], ["record-a", "record-b"])
+        by_id = {row["record_id"]: row for row in registry}
+        self.assertTrue(by_id["record-a"]["canonical_record_for_study"])
+        self.assertFalse(by_id["record-b"]["canonical_record_for_study"])
+
+    def test_full_cohort_methods_are_derived_from_current_run(self) -> None:
+        lines = corpus_description(
+            protocol_mode="full_cohort_frozen_taxonomy",
+            expected=55,
+            cohort_label="full living catalog",
+            inventory_candidate_count=644,
+            taxonomy_version="v1",
+            taxonomy_synthesis_runs=0,
+            registry_rows=[self.prior_row("record-a", canonical=True)],
+        )
+        text = " ".join(lines)
+        self.assertIn("55 accepted screening records", text)
+        self.assertIn("644 candidates", text)
+        self.assertIn("did not re-synthesize", text)
+        self.assertNotIn("52 accepted", text)
+        self.assertNotIn("583", text)
+        self.assertNotIn("Three independent", text)
+
+
+class MethodLockTests(unittest.TestCase):
+    def test_repository_method_lock_passes(self) -> None:
+        current = json.loads((ROOT / "data/living_catalog/current.json").read_text())
+        result = verify_method_lock(
+            ROOT / "protocol/living_review_method_lock_v1.json",
+            ROOT / "config/living_review_pipeline.json",
+            current_taxonomy_tree=ROOT / current["taxonomy_root"] / "taxonomy_tree.json",
+        )
+        self.assertTrue(result["ok"], result["issues"])
+
+    def test_configured_model_drift_fails_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = json.loads((ROOT / "config/living_review_pipeline.json").read_text())
+            config["models"]["graph"] = "openai/different-model"
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            result = verify_method_lock(
+                ROOT / "protocol/living_review_method_lock_v1.json",
+                config_path,
+            )
+        self.assertFalse(result["ok"])
+        self.assertTrue(
+            any("models.graph" in issue for issue in result["issues"]),
+            result["issues"],
+        )
+
+
+class ArtifactArchiveTests(unittest.TestCase):
+    @staticmethod
+    def write_manifest(root: Path) -> None:
+        payload = root / "profiles/record/document.dclg"
+        payload.parent.mkdir(parents=True)
+        payload.write_bytes(b"expensive graph payload")
+        digest = hashlib.sha256(payload.read_bytes()).hexdigest()
+        manifest = root / "artifact_manifest.csv"
+        manifest.write_text(
+            "relative_path,category,size_bytes,mtime_utc,sha256\n"
+            f"profiles/record/document.dclg,test,{payload.stat().st_size},2026-01-01T00:00:00+00:00,{digest}\n",
+            encoding="utf-8",
+        )
+        summary = {
+            "artifact_root": str(root),
+            "file_count": 1,
+            "total_size_bytes": payload.stat().st_size,
+            "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        }
+        (root / "artifact_manifest_summary.json").write_text(
+            json.dumps(summary), encoding="utf-8"
+        )
+
+    def test_create_verify_and_restore_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "run"
+            source.mkdir()
+            self.write_manifest(source)
+            args = argparse.Namespace(
+                source_root=source,
+                archive_root=root / "archives",
+                receipt_dir=root / "receipts",
+                label="test-run",
+                storage_class="local_secondary",
+                compression_level=1,
+            )
+            created = create_archive(args)
+            self.assertTrue(created["ok"], created["issues"])
+            receipt = next((root / "receipts").glob("*.json"))
+            verified = verify_archive(receipt, None, update_receipt=False)
+            self.assertTrue(verified["ok"], verified["issues"])
+            restored = restore_archive(
+                argparse.Namespace(
+                    receipt=receipt,
+                    archive=None,
+                    destination=root / "restored",
+                )
+            )
+            self.assertTrue(restored["ok"])
+            self.assertEqual(
+                (root / "restored/profiles/record/document.dclg").read_bytes(),
+                b"expensive graph payload",
+            )
+
+    def test_stale_manifest_blocks_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "run"
+            source.mkdir()
+            self.write_manifest(source)
+            (source / "unlisted.json").write_text("{}", encoding="utf-8")
+            with self.assertRaises(RuntimeError):
+                create_archive(
+                    argparse.Namespace(
+                        source_root=source,
+                        archive_root=root / "archives",
+                        receipt_dir=root / "receipts",
+                        label="test-run",
+                        storage_class="local_secondary",
+                        compression_level=1,
+                    )
+                )
 
 
 class CropValidationTests(unittest.TestCase):

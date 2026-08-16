@@ -262,7 +262,8 @@ def rerun_commands(
         f"python3 scripts/docling/analyze_input_taxonomy_runs.py {direct_flags} "
         f"--dense-run {rel(dense_root)} --adjudication {rel(adjudication)} "
         f"--registry {rel(registry)} --output-dir {rel(output_root)} "
-        f"--expected-records {expected} --cohort-label full_living_catalog_{expected}_records"
+        f"--expected-records {expected} --cohort-label full_living_catalog_{expected}_records "
+        f"--protocol-mode full_cohort_frozen_taxonomy --taxonomy-version v1"
     )
     commands.extend(["kill ${SERVER_PID}", "wait ${SERVER_PID} 2>/dev/null || true", "trap - EXIT"])
     return commands

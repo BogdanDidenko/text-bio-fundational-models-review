@@ -343,6 +343,90 @@ def markdown_table(rows: list[dict[str, Any]], key: str) -> list[str]:
     return lines
 
 
+PROTOCOL_MODES = {
+    "baseline_taxonomy_development",
+    "incremental_frozen_taxonomy",
+    "full_cohort_frozen_taxonomy",
+}
+
+
+def corpus_description(
+    *,
+    protocol_mode: str,
+    expected: int,
+    cohort_label: str,
+    inventory_candidate_count: int,
+    taxonomy_version: str,
+    taxonomy_synthesis_runs: int,
+    registry_rows: list[dict[str, str]],
+) -> list[str]:
+    duplicate_hashes: dict[str, set[str]] = defaultdict(set)
+    for row in registry_rows:
+        source_hash = row.get("source_document_sha256") or row.get("source_pdf_sha256")
+        if source_hash:
+            duplicate_hashes[source_hash].add(row["record_id"])
+    duplicate_groups = sum(len(record_ids) > 1 for record_ids in duplicate_hashes.values())
+
+    if protocol_mode == "incremental_frozen_taxonomy":
+        opening = [
+            f"The {cohort_label} comprised {expected} newly accepted screening records",
+            "represented by complete VLM-enriched Docling profiles. The carrier-family",
+            f"hierarchy and leaf definitions were held fixed at taxonomy {taxonomy_version};",
+            "the update did not re-synthesize or silently revise the baseline taxonomy.",
+            "Exact source-document duplicates inherited the prior study identifier and remained",
+            "explicit in the registry.",
+        ]
+    elif protocol_mode == "full_cohort_frozen_taxonomy":
+        opening = [
+            f"The {cohort_label} comprised {expected} accepted screening records represented",
+            "by complete VLM-enriched Docling profiles. The complete cumulative cohort was",
+            f"reclassified against the unchanged taxonomy {taxonomy_version}; this run did not",
+            "re-synthesize or revise the taxonomy.",
+        ]
+        if duplicate_groups:
+            opening.extend(
+                [
+                    f"The registry contained {duplicate_groups} exact source-document duplicate",
+                    "group(s), retained at record level and collapsed for study-level reporting.",
+                ]
+            )
+    elif protocol_mode == "baseline_taxonomy_development":
+        if taxonomy_synthesis_runs < 1:
+            raise RuntimeError(
+                "baseline_taxonomy_development requires --taxonomy-synthesis-runs >= 1"
+            )
+        opening = [
+            f"The {cohort_label} comprised {expected} accepted screening records represented",
+            "by complete VLM-enriched Docling profiles.",
+        ]
+        if duplicate_groups:
+            opening.extend(
+                [
+                    f"The registry contained {duplicate_groups} exact source-document duplicate",
+                    "group(s), retained at record level and collapsed for study-level reporting.",
+                ]
+            )
+    else:
+        raise RuntimeError(f"Unsupported protocol mode: {protocol_mode}")
+
+    discovery = [
+        "",
+        "Open route discovery used Docling Graph direct extraction over each complete",
+        "canonical document, including body text, tables, captions, appendices, and native",
+        "VLM picture descriptions. The open extractor was not shown the frozen taxonomy.",
+        f"Its {inventory_candidate_count} candidates formed the fixed route inventory for",
+        "the repeated classification stage.",
+    ]
+    if protocol_mode == "baseline_taxonomy_development":
+        discovery.extend(
+            [
+                f"The taxonomy was derived through {taxonomy_synthesis_runs} independent synthesis",
+                f"pass(es) and reconciliation before taxonomy {taxonomy_version} was frozen.",
+            ]
+        )
+    return opening + discovery
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--direct-run", action="append", type=Path, required=True)
@@ -352,13 +436,30 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--expected-records", type=int, default=52)
     parser.add_argument("--cohort-label", default="52-paper baseline corpus")
-    parser.add_argument("--incremental", action="store_true")
+    parser.add_argument("--protocol-mode", choices=sorted(PROTOCOL_MODES))
+    parser.add_argument("--taxonomy-version", default="v1")
+    parser.add_argument("--taxonomy-synthesis-runs", type=int, default=0)
+    parser.add_argument("--adjudication-replay-count", type=int, default=0)
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Deprecated alias for --protocol-mode incremental_frozen_taxonomy.",
+    )
     parser.add_argument(
         "--allow-alpha-na",
         action="store_true",
         help="Treat alpha as not applicable when a small cohort has no estimable disagreement.",
     )
     args = parser.parse_args()
+    if args.incremental:
+        if args.protocol_mode and args.protocol_mode != "incremental_frozen_taxonomy":
+            raise RuntimeError("--incremental conflicts with the selected --protocol-mode")
+        args.protocol_mode = "incremental_frozen_taxonomy"
+    if not args.protocol_mode:
+        raise RuntimeError(
+            "--protocol-mode is required; distinguish baseline taxonomy development, "
+            "incremental frozen-taxonomy updates, and full-cohort frozen-taxonomy reruns"
+        )
     if len(args.direct_run) != 3:
         raise RuntimeError("Expected exactly three --direct-run roots")
     direct_runs = [load_fixed_run(path) for path in args.direct_run]
@@ -513,16 +614,11 @@ def main() -> int:
     metrics["expected_records"] = expected
     metrics["cohort_label"] = args.cohort_label
     metrics["acceptance_passed"] = all(acceptance.values())
-    canonical_rows = [
-        row
-        for row in registry_rows
-        if row.get("canonical_record_for_study", "").casefold() == "true"
-    ]
     metrics["final_counts"] = {
         "screening_records": expected,
         "primary_studies": len({row["study_id"] for row in registry_rows}),
         "sensitivity_studies_omniNA_linked": len(
-            {row.get("possible_version_group") or row["study_id"] for row in canonical_rows}
+            {row.get("possible_version_group") or row["study_id"] for row in registry_rows}
         ),
         "models": len({row["model_id"] for row in accepted}),
         "configurations": len({row["configuration_id"] for row in accepted}),
@@ -650,33 +746,29 @@ def main() -> int:
         int(summary.get("candidate_count") or 0)
         for summary in direct_runs[0].values()
     )
-    if args.incremental:
-        corpus_description = [
-            f"This incremental post-eligibility cohort comprised {expected} newly accepted",
-            "screening records represented by complete VLM-enriched Docling profiles.",
-            "The carrier-family hierarchy and leaf definitions were held fixed at taxonomy v1;",
-            "the update did not re-synthesize or silently revise the baseline taxonomy.",
-            "Exact source-document duplicates inherited the prior study identifier and remained",
-            "explicit in the registry.",
-            "",
-            "Open route discovery used Docling Graph direct extraction over each complete new",
-            "document, including body text, tables, captions, appendices, and native VLM picture",
-            f"descriptions. Its {inventory_candidate_count} candidates formed the fixed inventory",
-            "for this update.",
-        ]
-    else:
-        corpus_description = [
-            "The post-eligibility corpus comprised 52 accepted screening records represented",
-            "by complete VLM-enriched Docling profiles. One exact Cell2Text PDF duplicate was",
-            "retained at the record level but collapsed for study-level reporting. OmniNA",
-            "versions were separate in the primary analysis and linked in sensitivity analysis.",
-            "",
-            "Open route discovery used Docling Graph direct extraction over each complete",
-            "canonical document, including body text, tables, captions, appendices, and VLM",
-            "picture descriptions. The open extractor was not shown the eventual taxonomy.",
-            "Its 583 grounded candidate routes formed a fixed inventory. Three independent",
-            "taxonomy syntheses were reconciled into taxonomy v1 before classification.",
-        ]
+    corpus_method = corpus_description(
+        protocol_mode=args.protocol_mode,
+        expected=expected,
+        cohort_label=args.cohort_label,
+        inventory_candidate_count=inventory_candidate_count,
+        taxonomy_version=args.taxonomy_version,
+        taxonomy_synthesis_runs=args.taxonomy_synthesis_runs,
+        registry_rows=registry_rows,
+    )
+    write_json(
+        args.output_dir / "analysis_run_metadata.json",
+        {
+            "protocol_mode": args.protocol_mode,
+            "cohort_label": args.cohort_label,
+            "expected_records": expected,
+            "taxonomy_version": args.taxonomy_version,
+            "taxonomy_synthesis_runs": args.taxonomy_synthesis_runs,
+            "adjudication_replay_count": args.adjudication_replay_count,
+            "discovery_candidate_count": inventory_candidate_count,
+            "dense_candidate_count": len(dense_dispositions),
+            "accepted_route_count": len(accepted),
+        },
+    )
     family_agreement_text = (
         f"{metrics['carrier_family_exact_agreement']:.3f}"
         if metrics["carrier_family_exact_agreement"] is not None
@@ -690,7 +782,7 @@ def main() -> int:
     methods = [
         "# Manuscript-Ready Methods: Post-Eligibility Input-Representation Taxonomy",
         "",
-        *corpus_description,
+        *corpus_method,
         "",
         "Each of three repeated classifications received the same fixed per-paper candidate",
         "inventory and complete canonical Markdown. Separate routes represented source",
@@ -709,10 +801,17 @@ def main() -> int:
         "explicitly excluded. Non-verbatim quotations were deterministically rebound only",
         "to cited candidate support or native Docling items. Reciprocal candidate links and",
         "immutable candidate namespaces were normalized without changing model decisions.",
-        "Four already logged full-adjudication responses were replayed through the final",
-        "validator after these normalization rules were frozen; the source response line,",
-        "request index, and log hash are retained. This is repeated computational annotation with LLM",
-        "adjudication, not human-validated ground truth.",
+        *(
+            [
+                f"{args.adjudication_replay_count} already logged full-adjudication responses were",
+                "replayed through the final validator after normalization rules were frozen;",
+                "the source response line, request index, and log hash are retained.",
+            ]
+            if args.adjudication_replay_count
+            else []
+        ),
+        "This is repeated computational annotation with LLM adjudication, not",
+        "human-validated ground truth.",
         "",
         "Agreement was calculated on fixed discovery candidate references. Route detection",
         "used pairwise Jaccard; carrier agreement used exact family-set agreement and nominal",

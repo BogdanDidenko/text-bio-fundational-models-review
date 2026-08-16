@@ -24,6 +24,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
+from verify_living_review_method_lock import verify_method_lock
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config/living_review_pipeline.json"
@@ -67,6 +69,12 @@ def write_json(path: Path, value: Any) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+def append_jsonl(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(value, ensure_ascii=False) + "\n")
 
 
 def sha256(path: Path) -> str:
@@ -481,7 +489,7 @@ class Pipeline:
         }
 
     def new_manifest(self) -> dict[str, Any]:
-        return {
+        manifest = {
             "schema_version": 1,
             "run_id": self.run_id,
             "created": now_iso(),
@@ -492,6 +500,48 @@ class Pipeline:
             "stages": {},
             "published": False,
         }
+        if self.config.get("method_lock"):
+            lock_path = resolve(self.config["method_lock"])
+            if lock_path.is_file():
+                lock = read_json(lock_path)
+                manifest["method_lock"] = {
+                    "method_id": lock.get("method_id"),
+                    "path": rel(lock_path),
+                    "sha256": sha256(lock_path),
+                }
+        return manifest
+
+    def method_lock_status(self, manifest: dict[str, Any] | None = None) -> dict[str, Any]:
+        if not self.config.get("method_lock"):
+            return {"ok": False, "issues": ["pipeline config does not declare method_lock"]}
+        taxonomy_tree = resolve(self.current["taxonomy_root"]) / "taxonomy_tree.json"
+        result = verify_method_lock(
+            self.config["method_lock"],
+            self.args.config,
+            current_taxonomy_tree=taxonomy_tree,
+        )
+        binding = (manifest or self.manifest).get("method_lock")
+        if not binding:
+            result["ok"] = False
+            result.setdefault("issues", []).append("run manifest is not bound to a method lock")
+        else:
+            if binding.get("sha256") != result.get("lock_sha256"):
+                result["ok"] = False
+                result.setdefault("issues", []).append(
+                    "run manifest method-lock hash differs from the current lock"
+                )
+            if binding.get("method_id") != result.get("method_id"):
+                result["ok"] = False
+                result.setdefault("issues", []).append(
+                    "run manifest method_id differs from the current lock"
+                )
+        return result
+
+    def assert_method_lock(self) -> dict[str, Any]:
+        result = self.method_lock_status()
+        if not result["ok"]:
+            raise RuntimeError("Method lock failed: " + "; ".join(result["issues"]))
+        return result
 
     def save_manifest(self) -> None:
         self.run_root.mkdir(parents=True, exist_ok=True)
@@ -524,8 +574,114 @@ class Pipeline:
         else:
             path.unlink(missing_ok=True)
 
+    def preserve_expensive_generated_path(self, stage: str, path: Path) -> Path | None:
+        """Rotate an existing expensive stage output into an append-only attempt store."""
+        if not path.exists():
+            return None
+        if path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
+            return None
+        try:
+            relative = path.resolve().relative_to(self.run_root.resolve())
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Refusing to preserve an expensive output outside the run root: {path}"
+            ) from exc
+        stage_root = self.run_root / "preserved_stage_outputs" / stage
+        attempts = [
+            int(candidate.name.removeprefix("attempt_"))
+            for candidate in stage_root.glob("attempt_*")
+            if candidate.is_dir()
+            and candidate.name.removeprefix("attempt_").isdigit()
+        ] if stage_root.exists() else []
+        attempt = stage_root / f"attempt_{max(attempts, default=0) + 1:03d}"
+        preserved = attempt / relative
+        preserved.parent.mkdir(parents=True, exist_ok=False)
+        path.rename(preserved)
+        file_count = 1
+        total_size = preserved.stat().st_size
+        if preserved.is_dir():
+            files = [candidate for candidate in preserved.rglob("*") if candidate.is_file()]
+            file_count = len(files)
+            total_size = sum(candidate.stat().st_size for candidate in files)
+        ledger = self.run_root / "preserved_stage_outputs" / "preservation_ledger.jsonl"
+        append_jsonl(
+            ledger,
+            {
+                "preserved_at": now_iso(),
+                "stage": stage,
+                "original_path": rel(path),
+                "preserved_path": rel(preserved),
+                "file_count": file_count,
+                "total_size_bytes": total_size,
+                "reason": "existing expensive output rotated before a new stage attempt",
+            },
+        )
+        return preserved
+
     def artifact(self, path: Path) -> dict[str, Any]:
         return {"path": rel(path), "bytes": path.stat().st_size, "sha256": sha256(path)}
+
+    def artifact_archive_status(
+        self,
+        source_root: Path | None = None,
+        *,
+        require_independent: bool = False,
+    ) -> dict[str, Any]:
+        source = (source_root or self.run_root).resolve()
+        manifest = source / "artifact_manifest.csv"
+        summary = source / "artifact_manifest_summary.json"
+        issues: list[str] = []
+        if not manifest.is_file() or not summary.is_file():
+            return {
+                "ok": False,
+                "source_root": str(source),
+                "issues": ["artifact manifest and summary have not been generated"],
+            }
+        summary_payload = read_json(summary)
+        manifest_sha = sha256(manifest)
+        if summary_payload.get("manifest_sha256") != manifest_sha:
+            issues.append("artifact manifest does not match its summary")
+        receipt_root = resolve(
+            self.config.get("archive_receipts_root", "data/living_catalog/archives")
+        )
+        matching: list[tuple[Path, dict[str, Any]]] = []
+        for path in sorted(receipt_root.glob("*.json")) if receipt_root.is_dir() else []:
+            try:
+                receipt = read_json(path)
+                receipt_source = Path(str(receipt.get("source_root") or "")).resolve()
+            except (OSError, RuntimeError, TypeError, ValueError):
+                continue
+            if receipt_source == source and receipt.get("source_manifest_sha256") == manifest_sha:
+                matching.append((path, receipt))
+        if require_independent:
+            matching = [
+                item for item in matching if item[1].get("storage_class") == "independent_backup"
+            ]
+        valid: list[tuple[Path, dict[str, Any]]] = []
+        for path, receipt in matching:
+            archive = Path(str(receipt.get("archive_path") or ""))
+            verification = receipt.get("verification") or {}
+            if (
+                verification.get("ok")
+                and archive.is_file()
+                and archive.stat().st_size == int(receipt.get("archive_size_bytes") or -1)
+            ):
+                valid.append((path, receipt))
+        if not valid:
+            scope = "independent verified" if require_independent else "verified"
+            issues.append(f"no {scope} archive receipt matches the current artifact manifest")
+        selected = valid[-1] if valid else None
+        return {
+            "ok": not issues,
+            "source_root": str(source),
+            "source_manifest_sha256": manifest_sha,
+            "receipt": rel(selected[0]) if selected else None,
+            "archive": selected[1].get("archive_path") if selected else None,
+            "storage_class": selected[1].get("storage_class") if selected else None,
+            "verified_at": (selected[1].get("verification") or {}).get("verified_at") if selected else None,
+            "issues": issues,
+        }
 
     def repository_external_artifacts(self) -> dict[str, dict[str, Any]]:
         """Return hash-ledger artifacts intentionally omitted from a Git checkout."""
@@ -648,6 +804,7 @@ class Pipeline:
             "evidence_ledger.jsonl",
             "uncertainty_cases.jsonl",
             "model_registry.csv",
+            "analysis_run_metadata.json",
             "agreement_metrics.json",
             "agreement_report.md",
             "manuscript_methods.md",
@@ -1617,7 +1774,7 @@ class Pipeline:
 
     def stage_docling_screening(self) -> list[Path]:
         profile_root = self.paths.docling_screen / "profiles"
-        self.reset_generated_path(profile_root)
+        self.preserve_expensive_generated_path("docling-screening", profile_root)
         config_path = self.build_docling_config("docling-screening", self.paths.fulltext_candidates, profile_root, False)
         documents = read_json(config_path).get("documents", [])
         retrieved = retrieved_candidate_subset(
@@ -1674,7 +1831,7 @@ class Pipeline:
         ]
 
     def stage_graph_sections(self) -> list[Path]:
-        self.reset_generated_path(self.paths.graph_sections)
+        self.preserve_expensive_generated_path("graph-sections", self.paths.graph_sections)
         for path in (
             self.paths.section_screening_input,
             self.paths.section_screening_input.with_suffix(".jsonl"),
@@ -1830,7 +1987,9 @@ class Pipeline:
         return [self.paths.accepted_records, self.paths.eligibility / "excluded_records.json"]
 
     def stage_docling_vlm(self) -> list[Path]:
-        self.reset_generated_path(self.paths.docling_vlm / "profiles")
+        self.preserve_expensive_generated_path(
+            "docling-vlm", self.paths.docling_vlm / "profiles"
+        )
         self.reset_generated_path(self.paths.docling_vlm / "no_new_eligible_records.json")
         accepted = record_count(self.paths.accepted_records)
         if not accepted:
@@ -1896,8 +2055,10 @@ class Pipeline:
         ]
 
     def stage_taxonomy_discovery(self) -> list[Path]:
+        self.preserve_expensive_generated_path(
+            "taxonomy-discovery", self.paths.taxonomy / "runs/discovery"
+        )
         for path in (
-            self.paths.taxonomy / "runs/discovery",
             self.paths.taxonomy / "taxonomy_synthesis",
             self.paths.taxonomy / "study_model_registry.csv",
             self.paths.taxonomy / "registry_summary.json",
@@ -1948,6 +2109,9 @@ class Pipeline:
             self.paths.taxonomy / "runs/classification_fixed_r3",
             self.paths.taxonomy / "runs/classification_dense",
             self.paths.taxonomy / "adjudication",
+        ):
+            self.preserve_expensive_generated_path("taxonomy-classification", path)
+        for path in (
             self.paths.taxonomy / "tables",
             self.paths.taxonomy / "no_new_eligible_records.json",
         ):
@@ -1960,6 +2124,7 @@ class Pipeline:
             "evidence_ledger.jsonl",
             "uncertainty_cases.jsonl",
             "model_registry.csv",
+            "analysis_run_metadata.json",
             "agreement_metrics.json",
             "agreement_report.md",
             "manuscript_methods.md",
@@ -2035,7 +2200,9 @@ class Pipeline:
             "--dense-run", str(dense_root), "--adjudication", str(adjudication),
             "--registry", str(self.paths.taxonomy / "study_model_registry.csv"),
             "--output-dir", str(self.paths.taxonomy), "--expected-records", str(expected),
-            "--cohort-label", self.run_id, "--incremental",
+            "--cohort-label", self.run_id,
+            "--protocol-mode", "incremental_frozen_taxonomy",
+            "--taxonomy-version", "v1",
         ]
         for root in direct_roots:
             analyze.extend(["--direct-run", str(root)])
@@ -2352,6 +2519,7 @@ class Pipeline:
         }
 
     def run(self) -> int:
+        self.assert_method_lock()
         start = STAGES.index(self.args.from_stage) if self.args.from_stage else 0
         end = STAGES.index(self.args.through_stage) if self.args.through_stage else len(STAGES) - 1
         if start > end:
@@ -2387,6 +2555,13 @@ class Pipeline:
                 "Publication requires a hash-valid completed stage closure through report; "
                 f"incomplete_or_mutated={', '.join(incomplete)}"
             )
+        if self.manifest.get("method_lock"):
+            archive_status = self.artifact_archive_status(require_independent=True)
+            if not archive_status["ok"]:
+                raise RuntimeError(
+                    "Publication requires an independently stored and fully verified artifact "
+                    "archive: " + "; ".join(archive_status["issues"])
+                )
         live_state = self.load_current_state()
         prior_state = self.manifest["prior_state"]
         for field in (
@@ -2602,6 +2777,16 @@ class Pipeline:
 
         issues: list[dict[str, str]] = []
         actions: list[str] = []
+        method_lock = self.method_lock_status(selected) if selected else self.method_lock_status()
+        if self.config.get("method_lock") and not method_lock["ok"]:
+            severity = "critical" if selected and selected.get("method_lock") else "warning"
+            issues.append(
+                {
+                    "severity": severity,
+                    "code": "METHOD_LOCK_FAILED" if severity == "critical" else "LEGACY_RUN_NOT_METHOD_LOCKED",
+                    "detail": "; ".join(method_lock["issues"]),
+                }
+            )
         if repository_ledger_error:
             issues.append(
                 {
@@ -2691,6 +2876,7 @@ class Pipeline:
                 ),
             },
             "living_state": {"path": rel(state_path), "present": state_path.is_file(), "search_end": self.current["search_end"]},
+            "method_lock": method_lock,
             "public_atlas": {
                 "path": rel(atlas_root),
                 "present": atlas_data.is_file(),
@@ -3027,6 +3213,18 @@ class Pipeline:
                     "needed_at": needed_at,
                 }
             )
+
+        method_lock = self.method_lock_status()
+        add(
+            "method_lock",
+            method_lock["ok"],
+            (
+                f"{method_lock.get('method_id')} ({method_lock.get('files_checked', 0)} files verified)"
+                if method_lock["ok"]
+                else "; ".join(method_lock["issues"])
+            ),
+            needed_at="search",
+        )
 
         executable_stages = {
             "codex": "abstract-screening",
