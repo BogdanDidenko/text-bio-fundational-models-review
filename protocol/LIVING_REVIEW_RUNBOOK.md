@@ -242,7 +242,7 @@ python3 scripts/run_living_review_pipeline.py run \
 | `prepare-records` | Cumulative matches, Crossref audit, new-record cohort | DOI/PMID/arXiv/title comparison completed against every published master artifact; queue empty or manually resolved. | Complete generated cross-dedup resolution file and resume. |
 | `enrich-abstracts` | Identifier/title retrieval logs and screening input | Every missing abstract attempted; accepted title fallback has year/author corroboration; no bounded diagnostic output becomes canonical. | Resume the stage; provider failures and rejected candidates remain logged. |
 | `abstract-screening` | Scope, architecture, Python gate, adjudicator logs | Frozen runner/prompt hashes match; every input record has a final structured result. | Retry incomplete batches through the same stage/model/schema; never combine outputs from a changed prompt version. |
-| `fulltext-candidates` | INCLUDE/UNCERTAIN manifest | Candidate IDs map one-to-one to abstract decisions and source records. | Correct upstream decisions only through their declared resolution path. |
+| `fulltext-candidates` | INCLUDE/UNCERTAIN manifest, generated stable-ID crosswalk, optional post-screen duplicate declarations | Raw candidates equal INCLUDE + UNCERTAIN; retrieval candidates equal raw candidates minus explicitly resolved duplicates. | Correct upstream identity/decisions or the optional duplicate declaration; never infer a missing file as a duplicate decision. |
 | `fulltext-download` | Attempt ledger, payload manifest, and `fulltext_retrieval_dispositions.json` | Each candidate has one mutually exclusive validated PDF/HTML, terminal not-retrieved, or blocking technical disposition. | Retry providers or declare a lawful manual main article. Abstract pages and supplements are invalid. |
 | `docling-screening` | Retrieved-candidate subset and complete no-VLM Docling profile manifest | Every candidate with a validated supported PDF/HTML has exactly one identity-corroborated profile; terminal not-retrieved records remain only in the PRISMA retrieval denominator. | Replace wrong/corrupt source payload and rerun from full-text download; otherwise rerun Docling stage. |
 | `graph-sections` | Graph evidence and complete heading-bounded sections | Both data-source and input-representation targets are grounded; empty, duplicate, root-level, or near-whole-document sections are rejected. | Use canonical heading override through the generated template. |
@@ -261,8 +261,9 @@ python3 scripts/run_living_review_pipeline.py run \
 The stage table defines acceptance. The following defines what crosses each
 boundary and what the agent must check before advancing.
 
-1. **Search to within-update deduplication.** `00_search/search_summary.json`
-   must reconcile to the sum of all completed source exports. Preserve database,
+1. **Search to within-update deduplication.**
+   `00_search/exports/search_summary_${END}.json` must reconcile to the sum of
+   all completed source exports. Preserve database,
    query name, raw rank, provider identifier, date status, and raw-page hash on
    every record. A provider failure stays a failure; it does not contribute zero.
 2. **Within-update to cumulative deduplication.** Keep one update cluster with a
@@ -271,13 +272,18 @@ boundary and what the agent must check before advancing.
    conflicts remain visible. An exact file duplicate reuses its prior `study_id`;
    reuse of the same `record_id` is not itself a duplicate.
 3. **Records to abstract screening.** Enrich missing abstracts through declared
-   identifier and title routes. The screening payload is exactly `title +
-   abstract`; title-only fallback is explicit and identity-corroborated. Scope
-   reviewer and architecture reviewer are separate prompt roles of the same
-   locked `gpt-5.4-mini`, followed by the Python gate and adjudicator.
+   identifier and title routes. The scientific evidence is `title + abstract`;
+   title-only fallback is explicit and identity-corroborated. The model-visible
+   transport JSON also carries stable identity and bibliographic fields listed in
+   the method lock so decisions can be joined and audited. Scope reviewer and
+   architecture reviewer are separate prompt roles of the same locked
+   `gpt-5.4-mini`, followed by the Python gate and adjudicator.
 4. **Abstract screening to retrieval.** Every `INCLUDE` and `UNCERTAIN` decision
-   becomes one full-text candidate. The count must equal the corresponding final
-   decision counts, after stable-ID uniqueness checks.
+   enters the raw full-text-candidate set. The legacy positional screening ID is
+   mapped back to its canonical stable ID through the generated
+   `record_id_crosswalk.json`. A declared post-screen duplicate resolution may
+   remove a candidate before retrieval; absent such a file, no removal is
+   inferred.
 5. **Retrieval to Docling screening.** Every candidate receives exactly one
    disposition: validated main-article PDF/HTML, terminal evidence-backed
    not-retrieved, or blocking technical failure. Only validated supported payloads
@@ -288,11 +294,12 @@ boundary and what the agent must check before advancing.
    `input_representation` evidence. Recover the complete heading-bounded section,
    not an evidence quote, arbitrary character window, root document, or whole
    Markdown. Deduplicate identical selected sections.
-7. **Selected sections to full-text screening.** Reviewer input is exactly
-   `title + abstract + complete selected_full_text_sections`. It does not contain
-   `selector_reason`, `section_evidence`, or complete `docling_markdown`. Use the
-   same role topology and model as abstract screening in the configured
-   full-document mode.
+7. **Selected sections to full-text screening.** Scientific evidence is `title +
+   abstract + complete selected_full_text_sections`. The transport JSON also
+   carries the locked identity/bibliographic fields; the adjudicator additionally
+   receives `first_pass_outputs`. It does not contain `selector_reason`,
+   `section_evidence`, or complete `docling_markdown`. Use the same role topology
+   and model as abstract screening in the configured full-document mode.
 8. **Eligibility to canonical VLM profile.** Resolve every remaining UNCERTAIN
    through declared evidence. Only accepted records receive fresh, complete
    VLM-enriched profiles. Preserve source-document identity, native Docling JSON,
@@ -309,6 +316,32 @@ boundary and what the agent must check before advancing.
     only the new cohort. The atlas is generated from the snapshot and exposes the
     review-iteration tag without changing existing filters or model details.
 
+### Screening transport and frozen output contract
+
+Do not interpret “scientific evidence” above as “the only serialized keys visible
+to the model.” The two screening modes intentionally send auditable JSON records:
+
+- abstract reviewers: `record_id`, `title`, `abstract`, `doi`, `year`, `venue`,
+  and `sources`;
+- selected-section reviewers: the same bibliographic transport plus
+  `candidate_id`, `source_record_id`, `source_corpus`, and
+  `selected_full_text_sections`;
+- adjudicator: the corresponding record plus `first_pass_outputs`.
+
+Prompts restrict substantive screening evidence to title/abstract or to
+title/abstract/selected sections, respectively. Stable IDs and metadata are
+transport/provenance fields, but they are still model-visible and therefore must
+remain hash-locked and disclosed.
+
+Known v1 issues: the legacy abstract prompt key lists omit `evidence_snippet`
+although the appended batch instructions and strict schema require it; the
+selected-section templates additionally request legacy `evidence_for_*` and
+`boundary_case` keys that the strict schema rejects. The strict schema and parser
+are the executable output authority. Do not silently edit either side inside a
+routine update: resolving these mismatches changes the method and requires a new
+method lock, bridge cohort, and any full-cohort rerun required by that bridge
+analysis.
+
 ### Denominator ledger
 
 Before `report`, verify these identities from machine-readable artifacts:
@@ -318,7 +351,8 @@ raw hits = sum(completed source export counts)
 within-update unique = raw hits - within-update duplicate members
 new records = within-update unique - cumulative matches/exclusions
 abstract-screened = records with a final title/abstract decision
-full-text candidates = abstract INCLUDE + abstract UNCERTAIN
+raw full-text candidates = abstract INCLUDE + abstract UNCERTAIN
+full-text candidates = raw full-text candidates - declared post-screen duplicates
 retrieval candidates = retrieved + terminal not-retrieved
 section-screened = retrieved reports with a valid targeted-section pair
 eligibility inputs = section-screened records
@@ -350,6 +384,10 @@ partial Scholar evidence blocks deduplication.
 The normal interface is `scholar-capture`, followed by the read-only-capable
 `scholar-validate` command shown in Section 3. The lower-level collector remains
 available for diagnosis, but operators do not have to construct its arguments.
+Method v1 uses the hash-locked SerpAPI collector and ignored `serpapi` credential.
+An institutional or different provider may satisfy the generic export schema,
+but substituting it in a comparable routine v1 run is not approved; version and
+bridge that provider change first.
 
 ### Cumulative duplicate conflict
 
@@ -385,6 +423,18 @@ Target: `05_fulltext/manual_fulltexts.json`.
 
 The pipeline revalidates file signature, size, title/DOI identity, and main
 article status. A filename extension is not validation.
+
+### Optional post-screen duplicate resolution
+
+Target: `05_fulltext/postscreen_dedup/duplicate_resolutions.json`.
+
+This file is absent by default. Create it only when a candidate already screened
+under a distinct stable ID is subsequently proven to duplicate another screened
+candidate. Each row declares `duplicate_screening_record_id`,
+`canonical_screening_record_id`, `resolution=duplicate_of`, rationale, resolver,
+and timestamp. Its presence and hash become a `fulltext-candidates` human input.
+An absent file means zero declared post-screen duplicates, not a blocking missing
+artifact.
 
 Inspect `05_fulltext/fulltext_retrieval_dispositions.json` before adding a
 manual file. `manual_gate_required: true` means retry or supply a lawful main
@@ -542,8 +592,10 @@ even when its DOI/title represents the same study.
 
 ### Create and verify an immutable archive
 
-Generate the ledger only after the run root is final. The archive command first
-rehashes every declared file and rejects both missing files and unlisted extras.
+Generate the ledger only after all 18 scientific stages are complete and before
+`publish`. This creates the immutable **pre-publication stage-closure snapshot**.
+The archive command first rehashes every declared file and rejects both missing
+files and unlisted extras.
 
 ```bash
 RUN_ROOT="data/living_catalog_updates/${RUN_ID}"
@@ -587,15 +639,31 @@ restored root or restore to the original absolute location when old manifests
 contain absolute paths:
 
 ```bash
+RESTORE_ROOT=/empty/path/restored_run
 python3 scripts/archive_living_review_artifacts.py restore \
   --receipt "$RECEIPT" \
-  --destination /empty/path/restored_run
+  --destination "$RESTORE_ROOT"
 ```
 
 After restore, regenerate no scientific output. First run archive verification,
 profile-contract validation, the relevant canonical manifest check, and
 `doctor`. Recompute an expensive Docling/Graph stage only if the payload is
 genuinely absent or fails its recorded hash/identity contract.
+
+```bash
+EXPECTED_ACCEPTED_RECORDS="$(jq '.records | length' "$RESTORE_ROOT/10_eligibility/accepted_records.json")"
+.venv-docling/bin/python scripts/docling/validate_canonical_profile_manifest.py \
+  --manifest "$RESTORE_ROOT/11_docling_vlm/profiles/manifests/canonical_docling_profile_manifest.csv" \
+  --original-run-root "$RUN_ROOT" \
+  --restored-run-root "$RESTORE_ROOT" \
+  --expected-records "$EXPECTED_ACCEPTED_RECORDS"
+python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID"
+```
+
+Archive verification covers every retained Graph workspace and its hashes; the
+profile command additionally reopens each canonical source document, native
+Docling JSON, Markdown, and figure manifest. A restore is not accepted merely
+because the tar stream can be decompressed.
 
 ### Retention rule
 
@@ -633,6 +701,13 @@ implements pending/finalized publication, the operational rule is:
 > After local `publish`, freeze new review work until the exact atlas has been
 > committed, deployed, and verified remotely.
 
+`publish` changes only control-plane publication fields in `run_manifest.json`;
+it must not change any completed scientific stage output. Do not rebuild
+`artifact_manifest.csv` after publication: doing so would create a different
+manifest that is not covered by the verified pre-publication archive receipt.
+The final completion record binds that receipt to the post-publication run
+manifest, living state, deployed commit, and remote QA.
+
 ## 10. Git and GitHub Pages
 
 Never use `git add .`. Review the diff and stage only intentional code/protocol,
@@ -644,6 +719,7 @@ git status --short
 git diff --check
 git add data/living_catalog/current.json
 git add "data/living_catalog_updates/${RUN_ID}"
+git add "$RECEIPT"
 git add docs/input-representation-atlas
 git add protocol/PRISMA_protocol.md protocol/prisma_search_screening_log_2026-07-07.md
 git status --short
@@ -658,19 +734,18 @@ repository `.gitignore` and
 define the current large-artifact precedent; the run manifest and artifact
 hashes preserve excluded local evidence.
 
-Build the run-level hash ledger from the complete local archive before staging.
-The ledger and its summary must be committed even though the large payloads are
-not. Then verify both storage modes explicitly:
+The run-level hash ledger was built and archived before `publish`. Do not
+regenerate it after `publish`. Verify the existing receipt and both checkout
+modes explicitly:
 
 ```bash
-python3 scripts/docling/build_input_taxonomy_artifact_manifest.py \
-  --artifact-root "data/living_catalog_updates/${RUN_ID}"
+python3 scripts/archive_living_review_artifacts.py verify --receipt "$RECEIPT"
 python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID"
 python3 scripts/run_living_review_pipeline.py doctor --run-id "$RUN_ID" \
   --repository-checkout
 ```
 
-The first command validates the complete operator archive. The second doctor
+The first command validates the immutable stage-closure archive. The final doctor
 mode models a clean Git checkout: it may waive a missing payload only when its
 path, byte count, and SHA-256 agree in the stage inventory and committed
 `artifact_manifest.csv`, and Git marks that path as ignored and untracked.
@@ -687,13 +762,42 @@ publication branch. The workflow runs `doctor --repository-checkout`, writes an 
 commit-bound file/tree manifest, uploads the atlas, deploys Pages, then retries
 full remote verification five times.
 
+The publication commit may be prepared on another branch or linked worktree, but
+the commit being verified must descend from current `origin/main`. Stop if
+`git merge-base --is-ancestor` returns non-zero; rebase or merge explicitly and
+repeat the pre-publication checks. `HEAD:main` pushes the reviewed commit rather
+than an unrelated local `main` ref.
+
 ```bash
-git push origin main
-gh run list --workflow deploy-input-representation-atlas.yml --limit 5
-gh run watch RUN_ID_FROM_GITHUB --exit-status
 COMMIT=$(git rev-parse HEAD)
+git fetch origin main
+git merge-base --is-ancestor origin/main "$COMMIT"
+git push origin HEAD:main
+if ! git diff-tree --no-commit-id --name-only -r "$COMMIT" | \
+  rg -q '^docs/input-representation-atlas/'; then
+  gh workflow run deploy-input-representation-atlas.yml --ref main
+fi
+GITHUB_RUN_ID=""
+for attempt in 1 2 3 4 5 6; do
+  GITHUB_RUN_ID="$(gh run list \
+    --workflow deploy-input-representation-atlas.yml --branch main --limit 10 \
+    --json databaseId,headSha \
+    --jq ".[] | select(.headSha == \"$COMMIT\") | .databaseId" | head -1)"
+  test -n "$GITHUB_RUN_ID" && break
+  sleep $((attempt * 5))
+done
+test -n "$GITHUB_RUN_ID"
+gh run watch "$GITHUB_RUN_ID" --exit-status
 python3 scripts/run_living_review_pipeline.py verify-live \
   --expected-commit "$COMMIT" --check-assets
+
+RELEASE_ROOT="data/living_catalog/releases/${RUN_ID}"
+REMOTE_QA="${RELEASE_ROOT}/remote_browser_qa.json"
+NODE_PATH="${NODE_PATH:-$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules}" \
+  node scripts/qa_input_representation_atlas.mjs \
+  https://bogdandidenko.github.io/text-bio-fundational-models-review/ \
+  "$REMOTE_QA"
+
 python3 scripts/run_living_review_pipeline.py doctor
 ```
 
@@ -706,9 +810,10 @@ file hash. The contract is
 Required UI checks:
 
 - landing summary and five family counts load;
-- review-iteration filter shows the exact records from the new iteration alone
-  and clears correctly;
-- at least one new model detail opens with routes, evidence, and crop/disposition;
+- for a nonzero accepted cohort, the review-iteration filter shows the exact new
+  records and at least one new model detail opens with routes, evidence, and
+  crop/disposition; for a zero-accepted cohort, the atlas content remains
+  byte-identical and the manually dispatched workflow binds it to the new commit;
 - no missing figure assets or console errors;
 - desktop and mobile screenshots are readable;
 - remote `atlas.json` exactly matches local bytes.
@@ -738,11 +843,17 @@ git restore --source LAST_GOOD_COMMIT -- docs/input-representation-atlas
 git diff --check
 git add data/living_catalog/current.json docs/input-representation-atlas
 git commit -m "Rollback invalid living review publication ${RUN_ID}"
-git push origin HEAD
+ROLLBACK_COMMIT="$(git rev-parse HEAD)"
+git fetch origin main
+git merge-base --is-ancestor origin/main "$ROLLBACK_COMMIT"
+git push origin HEAD:main
 ```
 
-Deploy the rollback commit through the normal Pages workflow, run exact remote
-verification against its SHA, and add `--recovery-commit` to the incident record.
+Deploy the rollback commit through the normal Pages workflow. If the restored
+atlas tree is byte-identical and the path filter produces no run, dispatch the
+workflow explicitly with `gh workflow run deploy-input-representation-atlas.yml
+--ref main`. Run exact remote verification against the rollback SHA and add
+`--recovery-commit` to the incident record.
 
 Retry the exact failed workflow run, not a newly assembled artifact:
 
@@ -831,9 +942,9 @@ Create that record only after remote and visual QA succeed:
 python3 scripts/run_living_review_pipeline.py verify-live \
   --run-id "$RUN_ID" --expected-commit "$COMMIT" --check-assets \
   --record-completion --workflow-run-id "$GITHUB_RUN_ID" \
-  --operator "OPERATOR" \
-  --screenshot /absolute/path/desktop.png \
-  --screenshot /absolute/path/mobile.png
+  --operator "OPERATOR" --browser-qa-report "$REMOTE_QA" \
+  --screenshot /tmp/atlas-graph-desktop.png \
+  --screenshot /tmp/atlas-graph-mobile.png
 ```
 
 The immutable result is
@@ -846,8 +957,17 @@ payload:
 git add "data/living_catalog/releases/${RUN_ID}/completion_record.json"
 git diff --cached --check
 git commit -m "Record verified release evidence for ${RUN_ID}"
-git push origin HEAD
+git fetch origin main
+git merge-base --is-ancestor origin/main HEAD
+git push origin HEAD:main
 ```
+
+The historical `update_2026-08-09` publication predates the method lock,
+independent-backup gate, and completion-record schema. Its surviving
+`local_secondary` receipts and reconciliation artifacts are retained as a
+declared legacy exception; do not fabricate a retrospective completion record.
+This warning does not change the next cursor, but no new method-locked update may
+be declared complete without its own independent archive and schema-v2 record.
 
 ## 14. Known limitations
 

@@ -161,6 +161,16 @@ def fulltext_candidates(args: argparse.Namespace) -> int:
         for duplicate_id, resolution in duplicate_resolutions.items():
             if resolution.get("resolution") != "duplicate_of":
                 raise RuntimeError(f"Unsupported post-screening resolution for {duplicate_id}")
+            missing_provenance = [
+                field
+                for field in ("rationale", "resolver", "resolved_at")
+                if not str(resolution.get(field) or "").strip()
+            ]
+            if missing_provenance:
+                raise RuntimeError(
+                    f"Post-screening duplicate resolution lacks provenance for {duplicate_id}: "
+                    + ", ".join(missing_provenance)
+                )
             canonical_id = str(resolution.get("canonical_screening_record_id") or "")
             if duplicate_id not in source_index or canonical_id not in source_index:
                 raise RuntimeError(f"Duplicate resolution references an unknown screening record: {duplicate_id}")

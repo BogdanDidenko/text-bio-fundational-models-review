@@ -411,6 +411,22 @@ class Pipeline:
         self.publish_journal_path = resolve(config["updates_root"]) / ".publish_journal.json"
         self.recover_interrupted_publication()
         self.current = self.load_current_state()
+        if (
+            getattr(args, "command", "")
+            in {"plan", "preflight", "run", "scholar-capture", "scholar-validate"}
+            and not args.date_to
+            and (
+                not args.run_id
+                or not (
+                    resolve(config["updates_root"])
+                    / str(args.run_id)
+                    / "run_manifest.json"
+                ).is_file()
+            )
+        ):
+            raise ValueError(
+                "A new routine run requires explicit --date-to; use the last fully elapsed local day"
+            )
         requested_date_to = args.date_to or date.today().isoformat()
         self.run_id = args.run_id or f"update_{requested_date_to}"
         self.run_root = resolve(config["updates_root"]) / self.run_id
@@ -775,7 +791,7 @@ class Pipeline:
         )
 
     def human_input_paths(self, stage: str) -> list[Path]:
-        return {
+        paths = {
             "search": [self.paths.search / "google_scholar_provider_export.json"],
             "prepare-records": [
                 self.paths.records / "manual_cross_dedup_resolutions.json",
@@ -785,6 +801,11 @@ class Pipeline:
             "fulltext-screening": [self.paths.section_input / "manual_section_overrides.json"],
             "eligibility-resolution": [self.paths.eligibility / "manual_resolution.csv"],
         }.get(stage, [])
+        if stage == "fulltext-candidates" and self.manifest.get("method_lock"):
+            paths = [
+                self.paths.fulltext / "postscreen_dedup/duplicate_resolutions.json"
+            ]
+        return paths
 
     def human_input_fingerprints(self, stage: str) -> list[dict[str, Any]]:
         fingerprints = []
@@ -1511,6 +1532,50 @@ class Pipeline:
         write_json(output / "final_screening_results.json", {"metadata": {"evidence_mode": evidence_mode}, "records": []})
         write_json(output / "summary.json", {"total_records": 0, "decision_counts": {}, "adjudicated": 0})
 
+    def write_abstract_screening_crosswalk(self) -> Path:
+        """Bind legacy positional screening IDs back to stable catalog IDs."""
+        canonical = records_from(self.paths.abstract_input)
+        screened = records_from(self.paths.abstract_screening / "input_records.json")
+        if len(canonical) != len(screened):
+            raise RuntimeError(
+                "Legacy abstract screening input does not preserve the canonical cohort size"
+            )
+        rows = []
+        for position, (source, legacy) in enumerate(zip(canonical, screened), 1):
+            stable_id = str(source.get("record_id") or "")
+            legacy_id = str(legacy.get("record_id") or "")
+            if not stable_id or not legacy_id:
+                raise RuntimeError("Abstract screening crosswalk contains an empty record ID")
+            for field in ("title", "abstract", "doi"):
+                if str(source.get(field) or "") != str(legacy.get(field) or ""):
+                    raise RuntimeError(
+                        f"Legacy abstract screening changed {field} at position {position}"
+                    )
+            rows.append(
+                {
+                    "legacy_record_id": legacy_id,
+                    "stable_record_id": stable_id,
+                    "candidate_id": str(source.get("candidate_id") or stable_id),
+                    "input_position": position,
+                }
+            )
+        if len({row["legacy_record_id"] for row in rows}) != len(rows):
+            raise RuntimeError("Legacy abstract screening IDs are not unique")
+        if len({row["stable_record_id"] for row in rows}) != len(rows):
+            raise RuntimeError("Canonical abstract screening IDs are not unique")
+        output = self.paths.abstract_screening / "record_id_crosswalk.json"
+        write_json(
+            output,
+            {
+                "schema_version": 1,
+                "created": now_iso(),
+                "canonical_input": rel(self.paths.abstract_input),
+                "legacy_input": rel(self.paths.abstract_screening / "input_records.json"),
+                "records": rows,
+            },
+        )
+        return output
+
     def screening_command(self, input_path: Path, output: Path, evidence_mode: str) -> list[str]:
         if evidence_mode == "title_abstract":
             legacy = self.config["legacy_abstract_screening"]
@@ -1557,20 +1622,32 @@ class Pipeline:
                 "abstract-screening", "codex-pipeline",
                 self.screening_command(self.paths.abstract_input, self.paths.abstract_screening, "title_abstract"),
             )
-        return [self.paths.abstract_screening / "final_screening_results.json", self.paths.abstract_screening / "summary.json"]
+        crosswalk = self.write_abstract_screening_crosswalk()
+        return [
+            self.paths.abstract_screening / "final_screening_results.json",
+            self.paths.abstract_screening / "summary.json",
+            crosswalk,
+        ]
 
     def stage_fulltext_candidates(self) -> list[Path]:
+        duplicate_resolutions = (
+            self.paths.fulltext / "postscreen_dedup/duplicate_resolutions.json"
+        )
+        command = [
+            self.python(), "scripts/build_living_review_cohorts.py", "fulltext-candidates",
+            "--screening-results", str(self.paths.abstract_screening / "final_screening_results.json"),
+            "--screening-input", str(self.paths.abstract_screening / "input_records.json"),
+            "--record-id-crosswalk", str(self.paths.abstract_screening / "record_id_crosswalk.json"),
+            "--canonical-input", str(self.paths.abstract_input),
+            "--output", str(self.paths.fulltext_candidates),
+        ]
+        if duplicate_resolutions.is_file():
+            command[command.index("--output"):command.index("--output")] = [
+                "--duplicate-resolutions", str(duplicate_resolutions)
+            ]
         self.run_command(
             "fulltext-candidates", "select",
-            [
-                self.python(), "scripts/build_living_review_cohorts.py", "fulltext-candidates",
-                "--screening-results", str(self.paths.abstract_screening / "final_screening_results.json"),
-                "--screening-input", str(self.paths.abstract_screening / "input_records.json"),
-                "--record-id-crosswalk", str(self.paths.abstract_screening / "record_id_crosswalk.json"),
-                "--canonical-input", str(self.paths.abstract_input),
-                "--duplicate-resolutions", str(self.paths.fulltext / "postscreen_dedup/duplicate_resolutions.json"),
-                "--output", str(self.paths.fulltext_candidates),
-            ],
+            command,
         )
         return [self.paths.fulltext_candidates]
 
@@ -2329,7 +2406,9 @@ class Pipeline:
         downloads = read_json(self.paths.download_manifest)
         section_meta = read_json(self.paths.section_input / "run_metadata.json")
         fulltext_summary = read_json(self.paths.fulltext_screening / "summary.json")
+        fulltext_candidate_artifact = read_json(self.paths.fulltext_candidates)
         fulltext_candidates = records_from(self.paths.fulltext_candidates)
+        fulltext_candidate_meta = fulltext_candidate_artifact.get("metadata") or {}
         missing_document_rows = records_from(self.paths.docling_screen / "missing_documents.json")
         date_precision = date_precision_rollup(search_summary)
         retrieval = retrieval_disposition_table(
@@ -2412,6 +2491,13 @@ class Pipeline:
             "databases": self.enabled_databases(),
             "raw_hits": search_summary.get("total_before_dedup", 0),
             "date_precision": date_precision,
+            "late_indexing_lookback": {
+                "automated": False,
+                "policy": (
+                    "No retrospective lookback is automated; the update includes records "
+                    "returned by providers for the declared interval at search execution time."
+                ),
+            },
             "within_update_unique": dedup.get("total_after_dedup", 0),
             "within_update_duplicates_removed": dedup.get("duplicates_removed", 0),
             "already_in_cumulative_master": cross.get("already_in_master", 0),
@@ -2420,6 +2506,12 @@ class Pipeline:
             "abstracts_screened": abstract_summary.get("total_records", 0),
             "records_without_usable_abstract": unusable_abstracts,
             "abstract_decisions": abstract_summary.get("decision_counts", {}),
+            "raw_fulltext_candidates": fulltext_candidate_meta.get(
+                "raw_screening_candidates", retrieval["candidate_count"]
+            ),
+            "postscreen_duplicates_removed": fulltext_candidate_meta.get(
+                "postscreen_duplicates_removed", 0
+            ),
             "fulltext_candidates": retrieval["candidate_count"],
             "retrieval_disposition": {
                 "counts": retrieval["disposition_counts"],
@@ -2459,6 +2551,7 @@ class Pipeline:
         lines = [
             f"# Living Review Update {self.run_id}", "",
             f"- Search interval: {self.date_from} to {self.date_to}",
+            "- Late-indexing lookback: not automated; records indexed after this closed interval may require a later supplemental recall declaration.",
             f"- Databases: {', '.join(facts['databases'])}",
             f"- Raw hits: {facts['raw_hits']}",
             f"- Confirmed source-date-filtered hits: {facts['date_precision']['confirmed_by_source_date_filter']}",
@@ -2468,6 +2561,8 @@ class Pipeline:
             f"- New records after Crossref audit: {facts['new_records']}",
             f"- Title/abstract screened: {facts['abstracts_screened']} {facts['abstract_decisions']}",
             f"- Records without a usable abstract: {facts['records_without_usable_abstract']}",
+            f"- Raw full-text candidates: {facts['raw_fulltext_candidates']}",
+            f"- Post-screen duplicates removed: {facts['postscreen_duplicates_removed']}",
             f"- Full-text candidates: {facts['fulltext_candidates']}",
             f"- Retrieved PDF/HTML full text: {facts['fulltext_pdf_downloaded']}/{facts['fulltext_non_pdf_downloaded']}",
             f"- Pre-existing full texts reused: {facts['preexisting_fulltext_retrieval_reused']}",
@@ -3150,22 +3245,97 @@ class Pipeline:
             missing = [str(path) for path in screenshot_paths if not path.is_file()]
             if missing:
                 raise RuntimeError(f"Completion screenshots are missing: {missing}")
+            browser_qa_arg = str(
+                getattr(self.args, "browser_qa_report", "") or ""
+            ).strip()
+            if not browser_qa_arg:
+                raise RuntimeError(
+                    "--record-completion requires --browser-qa-report from the deployed URL"
+                )
+            browser_qa_path = resolve(browser_qa_arg)
+            if not browser_qa_path.is_file():
+                raise RuntimeError(f"Remote browser QA report is missing: {browser_qa_path}")
+            browser_qa_payload = read_json(browser_qa_path)
+            if browser_qa_payload.get("status") != "ok":
+                raise RuntimeError("Remote browser QA report does not have status=ok")
             completed_run_id = self.args.run_id or self.current.get("last_run_id")
-            completed_manifest = (
-                resolve(self.config["updates_root"]) / str(completed_run_id) / "run_manifest.json"
+            completed_root = resolve(self.config["updates_root"]) / str(completed_run_id)
+            completed_manifest = completed_root / "run_manifest.json"
+            completed_manifest_payload = read_json(completed_manifest)
+            method_lock = self.method_lock_status(completed_manifest_payload)
+            if not method_lock["ok"]:
+                raise RuntimeError(
+                    "Completion requires the run-bound method lock to verify: "
+                    + "; ".join(method_lock["issues"])
+                )
+            archive_status = self.artifact_archive_status(
+                completed_root, require_independent=True
+            )
+            if not archive_status["ok"]:
+                raise RuntimeError(
+                    "Completion requires an independently verified pre-publication archive: "
+                    + "; ".join(archive_status["issues"])
+                )
+            archive_receipt = resolve(str(archive_status.get("receipt") or ""))
+            if not archive_receipt.is_file():
+                raise RuntimeError(
+                    f"Completion archive receipt is missing: {archive_receipt}"
+                )
+            archive_contract = {
+                **archive_status,
+                "receipt_artifact": self.artifact(archive_receipt),
+            }
+            search_config = completed_root / "00_search/search_config.json"
+            prisma_facts_path = completed_root / "16_report/prisma_update_facts.json"
+            prisma_facts = read_json(prisma_facts_path)
+            catalog_count_fields = (
+                "record_count",
+                "study_count",
+                "model_count",
+                "configuration_count",
+                "route_count",
             )
             completion = {
-                "schema_version": 1,
+                "schema_version": 2,
                 "completed_at": now_iso(),
                 "run_id": completed_run_id,
                 "operator": self.args.operator,
                 "commit": expected_commit,
                 "workflow_run_id": str(self.args.workflow_run_id),
+                "search_interval": {
+                    "date_from": completed_manifest_payload.get("date_from"),
+                    "date_to": completed_manifest_payload.get("date_to"),
+                    "search_completed_at": (
+                        completed_manifest_payload.get("stages", {})
+                        .get("search", {})
+                        .get("ended")
+                    ),
+                },
+                "method": {
+                    "method_id": method_lock["method_id"],
+                    "method_lock": self.artifact(Path(method_lock["lock_path"])),
+                    "method_lock_sha256": method_lock["lock_sha256"],
+                    "frozen_taxonomy_sha256": method_lock[
+                        "frozen_taxonomy_sha256"
+                    ],
+                },
+                "artifact_archive": archive_contract,
                 "run_manifest": self.artifact(completed_manifest),
+                "stage_statuses": {
+                    stage: row.get("status")
+                    for stage, row in completed_manifest_payload.get("stages", {}).items()
+                },
+                "search_config": self.artifact(search_config),
+                "prisma_facts": self.artifact(prisma_facts_path),
+                "prisma_counts": prisma_facts,
+                "catalog_counts": {
+                    field: local_meta.get(field) for field in catalog_count_fields
+                },
                 "living_state": self.artifact(resolve(self.config["living_state"])),
                 "atlas_json": self.artifact(local_path),
                 "remote_verification": result,
-                "browser_qa": self.artifact(atlas_root / "data/browser_qa.json"),
+                "local_browser_qa": self.artifact(atlas_root / "data/browser_qa.json"),
+                "remote_browser_qa": self.artifact(browser_qa_path),
                 "screenshots": [self.artifact(path) for path in screenshot_paths],
                 "next_search_date": (
                     date.fromisoformat(self.current["search_end"]) + timedelta(days=1)
@@ -3442,6 +3612,7 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--record-completion", action="store_true")
             command.add_argument("--workflow-run-id")
             command.add_argument("--operator")
+            command.add_argument("--browser-qa-report")
             command.add_argument("--screenshot", action="append", default=[])
         if name == "incident":
             command.add_argument(

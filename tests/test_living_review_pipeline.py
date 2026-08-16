@@ -4,6 +4,7 @@ import argparse
 import csv
 import hashlib
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -84,6 +85,10 @@ from archive_living_review_artifacts import create_archive, restore_archive, ver
 from verify_living_review_method_lock import verify_method_lock
 from classify_fixed_input_taxonomy_candidates import prompt_for_record
 from profile_artifact_contract import validate_profile_artifacts
+from validate_canonical_profile_manifest import (
+    rebase_row as rebase_canonical_profile_row,
+    validate_row as validate_canonical_profile_row,
+)
 from reproduce_search import (
     classify_interval_date,
     search_springernature,
@@ -1264,6 +1269,9 @@ class CohortTests(unittest.TestCase):
                                 "duplicate_screening_record_id": "rec_2",
                                 "canonical_screening_record_id": "rec_1",
                                 "resolution": "duplicate_of",
+                                "rationale": "Exact DOI and title match",
+                                "resolver": "test",
+                                "resolved_at": "2026-08-16T12:00:00+00:00",
                             }
                         ]
                     }
@@ -1742,6 +1750,53 @@ class MethodLockTests(unittest.TestCase):
         )
 
 
+class CanonicalProfileManifestTests(unittest.TestCase):
+    def test_restore_validator_checks_all_profile_payload_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = root / "original_run"
+            original.mkdir()
+            source = original / "paper.pdf"
+            docling_json = original / "paper.docling.json"
+            markdown = original / "paper.md"
+            figures = original / "figures_manifest.json"
+            source.write_bytes(b"%PDF-1.4\nrestored article")
+            docling_json.write_text('{"schema_name":"DoclingDocument"}\n', encoding="utf-8")
+            markdown.write_text("# Restored article\n", encoding="utf-8")
+            figures.write_text('[{"index":1}]\n', encoding="utf-8")
+
+            def digest(path: Path) -> str:
+                return hashlib.sha256(path.read_bytes()).hexdigest()
+
+            row = {
+                "candidate_id": "rec_restore",
+                "profile_status": "complete",
+                "document_identity_status": "verified",
+                "source_document": str(source),
+                "source_document_sha256": digest(source),
+                "docling_json": str(docling_json),
+                "docling_json_sha256": digest(docling_json),
+                "markdown": str(markdown),
+                "markdown_sha256": digest(markdown),
+                "figures_manifest": str(figures),
+                "figures_manifest_sha256": digest(figures),
+                "figure_count": "1",
+            }
+            self.assertEqual(
+                validate_canonical_profile_row(row)["candidate_id"], "rec_restore"
+            )
+            restored = root / "restored_run"
+            shutil.copytree(original, restored)
+            rebased = rebase_canonical_profile_row(row, original, restored)
+            shutil.rmtree(original)
+            self.assertEqual(
+                validate_canonical_profile_row(rebased)["candidate_id"], "rec_restore"
+            )
+            (restored / "figures_manifest.json").write_text("[]\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "Hash mismatch"):
+                validate_canonical_profile_row(rebased)
+
+
 class ArtifactArchiveTests(unittest.TestCase):
     @staticmethod
     def write_manifest(root: Path) -> None:
@@ -1922,6 +1977,98 @@ class OrchestratorTests(unittest.TestCase):
         self.assertNotIn("--evidence-mode", command)
         self.assertNotIn("--codex-timeout", command)
 
+    def test_legacy_abstract_screening_crosswalk_preserves_stable_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            pipeline.paths.abstract_input.parent.mkdir(parents=True)
+            pipeline.paths.abstract_input.write_text(
+                json.dumps(
+                    {
+                        "records": [
+                            {
+                                "record_id": "update_2026-08-09__stable_1",
+                                "candidate_id": "candidate_1",
+                                "title": "Stable title",
+                                "abstract": "Stable abstract",
+                                "doi": "10.1/stable",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            pipeline.paths.abstract_screening.mkdir(parents=True)
+            (pipeline.paths.abstract_screening / "input_records.json").write_text(
+                json.dumps(
+                    {
+                        "records": [
+                            {
+                                "record_id": "rec_000001",
+                                "title": "Stable title",
+                                "abstract": "Stable abstract",
+                                "doi": "10.1/stable",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            crosswalk = json.loads(
+                pipeline.write_abstract_screening_crosswalk().read_text()
+            )
+            self.assertEqual(
+                crosswalk["records"],
+                [
+                    {
+                        "legacy_record_id": "rec_000001",
+                        "stable_record_id": "update_2026-08-09__stable_1",
+                        "candidate_id": "candidate_1",
+                        "input_position": 1,
+                    }
+                ],
+            )
+
+    def test_postscreen_duplicate_resolution_is_optional_and_fingerprinted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            pipeline.manifest["method_lock"] = {"method_id": "test-method"}
+            with patch.object(pipeline, "run_command") as run:
+                pipeline.stage_fulltext_candidates()
+            command = run.call_args.args[2]
+            self.assertNotIn("--duplicate-resolutions", command)
+
+            declaration = (
+                pipeline.paths.fulltext / "postscreen_dedup/duplicate_resolutions.json"
+            )
+            declaration.parent.mkdir(parents=True)
+            declaration.write_text('{"records":[]}\n', encoding="utf-8")
+            with patch.object(pipeline, "run_command") as run:
+                pipeline.stage_fulltext_candidates()
+            command = run.call_args.args[2]
+            self.assertEqual(
+                command[command.index("--duplicate-resolutions") + 1], str(declaration)
+            )
+            fingerprints = pipeline.human_input_fingerprints("fulltext-candidates")
+            self.assertTrue(fingerprints[0]["present"])
+            self.assertIn("sha256", fingerprints[0])
+
+    def test_new_routine_plan_requires_explicit_end_date(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            args.command = "plan"
+            args.run_id = None
+            args.date_to = None
+            with self.assertRaisesRegex(ValueError, "explicit --date-to"):
+                Pipeline(args, config)
+            args.run_id = "update_not_started"
+            with self.assertRaisesRegex(ValueError, "explicit --date-to"):
+                Pipeline(args, config)
+
     def test_fulltext_screening_logs_three_bounded_batch_attempts(self) -> None:
         pipeline = Pipeline.__new__(Pipeline)
         pipeline.config = json.loads(
@@ -2097,7 +2244,15 @@ class OrchestratorTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            (atlas / "data/browser_qa.json").write_text(
+                '{"status":"ok","scope":"local"}\n', encoding="utf-8"
+            )
             pipeline = Pipeline(args, config)
+            pipeline.manifest.setdefault("stages", {})["search"] = {
+                "status": "complete",
+                "ended": "2026-08-09T12:00:00+00:00",
+            }
+            pipeline.save_manifest()
             pipeline.args.commit = "commit-sha"
             with patch("builtins.print"):
                 self.assertEqual(pipeline.release_manifest(), 0)
@@ -2119,6 +2274,70 @@ class OrchestratorTests(unittest.TestCase):
             pipeline.args.record_completion = False
             with patch("requests.get", side_effect=fake_get), patch("builtins.print"):
                 self.assertEqual(pipeline.verify_live(), 0)
+
+            search_config = pipeline.run_root / "00_search/search_config.json"
+            search_config.parent.mkdir(parents=True)
+            search_config.write_text('{"databases":{}}\n', encoding="utf-8")
+            prisma_facts = pipeline.run_root / "16_report/prisma_update_facts.json"
+            prisma_facts.parent.mkdir(parents=True)
+            prisma_facts.write_text('{"raw_hits":7,"accepted_records":1}\n', encoding="utf-8")
+            method_lock_path = root / "method_lock.json"
+            method_lock_path.write_text('{"method_id":"test-method"}\n', encoding="utf-8")
+            remote_qa = root / "remote_browser_qa.json"
+            remote_qa.write_text('{"status":"ok","scope":"remote"}\n', encoding="utf-8")
+            archive_receipt = root / "receipt.json"
+            archive_receipt.write_text(
+                '{"storage_class":"independent_backup"}\n', encoding="utf-8"
+            )
+            screenshots = [root / "desktop.png", root / "mobile.png"]
+            for screenshot in screenshots:
+                screenshot.write_bytes(b"screenshot")
+            config["release_records_root"] = str(root / "releases")
+            pipeline.config = config
+            pipeline.args.record_completion = True
+            pipeline.args.workflow_run_id = "workflow-1"
+            pipeline.args.operator = "tester"
+            pipeline.args.browser_qa_report = str(remote_qa)
+            pipeline.args.screenshot = [str(path) for path in screenshots]
+            method_status = {
+                "ok": True,
+                "issues": [],
+                "method_id": "test-method",
+                "lock_path": str(method_lock_path),
+                "lock_sha256": hashlib.sha256(method_lock_path.read_bytes()).hexdigest(),
+                "frozen_taxonomy_sha256": "f" * 64,
+            }
+            archive_status = {
+                "ok": True,
+                "receipt": str(archive_receipt),
+                "storage_class": "independent_backup",
+                "source_manifest_sha256": "a" * 64,
+                "issues": [],
+            }
+            with (
+                patch("requests.get", side_effect=fake_get),
+                patch("builtins.print"),
+                patch.object(pipeline, "method_lock_status", return_value=method_status),
+                patch.object(pipeline, "artifact_archive_status", return_value=archive_status),
+            ):
+                self.assertEqual(pipeline.verify_live(), 0)
+            completion = json.loads(
+                (root / "releases/update_test/completion_record.json").read_text()
+            )
+            self.assertEqual(completion["schema_version"], 2)
+            self.assertEqual(completion["method"]["method_id"], "test-method")
+            self.assertEqual(
+                completion["artifact_archive"]["receipt"], str(archive_receipt)
+            )
+            self.assertEqual(
+                completion["artifact_archive"]["receipt_artifact"]["path"],
+                str(archive_receipt.resolve()),
+            )
+            self.assertEqual(completion["prisma_counts"]["raw_hits"], 7)
+            self.assertEqual(completion["catalog_counts"]["route_count"], 1)
+            self.assertEqual(
+                completion["remote_browser_qa"]["path"], str(remote_qa.resolve())
+            )
 
     def test_zero_eligible_taxonomy_classification_writes_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
