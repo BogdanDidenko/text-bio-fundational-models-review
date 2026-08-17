@@ -8,8 +8,10 @@ import hashlib
 import json
 import math
 import os
+import signal
 import shutil
 import subprocess
+import tempfile
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -485,6 +487,7 @@ RECORDS
 def run_codex_attempt(
     *, prompt: str, schema: dict[str, Any], images: list[Path], output_dir: Path, model: str, timeout: int
 ) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     prompt_path = output_dir / "prompt.txt"
     schema_path = output_dir / "output_schema.json"
@@ -493,62 +496,64 @@ def run_codex_attempt(
     stderr_path = output_dir / "stderr.log"
     prompt_path.write_text(prompt, encoding="utf-8")
     write_json(schema_path, schema)
-    command = [
-        "codex",
-        "exec",
-        "--model",
-        model,
-        "--cd",
-        str(ROOT),
-        "--sandbox",
-        "read-only",
-        "--ignore-user-config",
-        "--ignore-rules",
-        "--ephemeral",
-        "--json",
-        "--output-last-message",
-        str(response_path),
-        "--output-schema",
-        str(schema_path),
-    ]
-    for image in images:
-        command.extend(["--image", str(image)])
-    command.append("-")
     started = utc_now()
     clock = time.monotonic()
     status = "ok"
     error = ""
     returncode: int | None = None
-    try:
-        result = subprocess.run(
+    with tempfile.TemporaryDirectory(prefix="atlas-exact-preview-") as workspace:
+        command = [
+            "codex", "exec", "--model", model, "--cd", workspace, "--sandbox", "read-only",
+            "--skip-git-repo-check", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--json",
+            "--disable", "shell_tool", "--disable", "unified_exec", "--strict-config",
+            "--disable", "apps", "--disable", "plugins", "--disable", "enable_mcp_apps",
+            "--disable", "browser_use", "--disable", "computer_use", "--disable", "plugin_sharing",
+            "--disable", "tool_suggest", "--disable", "workspace_dependencies",
+            "--output-last-message", str(response_path), "--output-schema", str(schema_path),
+        ]
+        for image in images:
+            command.extend(["--image", str(image.resolve())])
+        command.append("-")
+        process = subprocess.Popen(
             command,
-            input=prompt,
             text=True,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=ROOT,
-            timeout=timeout,
+            cwd=workspace,
             env={**os.environ, "NO_COLOR": "1"},
+            start_new_session=True,
         )
-        returncode = result.returncode
-        stdout_path.write_text(result.stdout, encoding="utf-8")
-        stderr_path.write_text(result.stderr, encoding="utf-8")
-        if result.returncode:
-            status = "error_returncode"
-            error = result.stderr[-4000:]
-        elif not response_path.exists():
-            status = "missing_response"
-            error = "Codex exited without response.json"
-    except subprocess.TimeoutExpired as exc:
-        status = "timeout"
-        error = f"Timed out after {timeout} seconds"
-        stdout_path.write_text(exc.stdout or "", encoding="utf-8")
-        stderr_path.write_text(exc.stderr or "", encoding="utf-8")
-    except Exception as exc:  # pragma: no cover - operational guard
-        status = "exception"
-        error = repr(exc)
-        stdout_path.write_text("", encoding="utf-8")
-        stderr_path.write_text(error + "\n", encoding="utf-8")
+        try:
+            stdout, stderr = process.communicate(input=prompt, timeout=timeout)
+            returncode = process.returncode
+            stdout_path.write_text(stdout, encoding="utf-8")
+            stderr_path.write_text(stderr, encoding="utf-8")
+            if process.returncode:
+                status = "error_returncode"
+                error = stderr[-4000:]
+            elif not response_path.exists():
+                status = "missing_response"
+                error = "Codex exited without response.json"
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                stdout, stderr = process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                stdout, stderr = process.communicate()
+            status = "timeout"
+            error = f"Timed out after {timeout} seconds"
+            stdout_path.write_text(stdout, encoding="utf-8")
+            stderr_path.write_text(stderr, encoding="utf-8")
+        except Exception as exc:  # pragma: no cover - operational guard
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.communicate()
+            status = "exception"
+            error = repr(exc)
+            stdout_path.write_text("", encoding="utf-8")
+            stderr_path.write_text(error + "\n", encoding="utf-8")
     metadata = {
         "status": status,
         "model": model,
@@ -563,6 +568,9 @@ def run_codex_attempt(
         "duration_seconds": round(time.monotonic() - clock, 3),
         "returncode": returncode,
         "error": error,
+        "agent_workspace": "isolated_empty_temporary_directory",
+        "agent_tool_policy": "shell_exec_apps_plugins_browser_computer_and_workspace_tools_disabled",
+        "repository_checkout_available_as_working_context": False,
     }
     write_json(output_dir / "metadata.json", metadata)
     return metadata
@@ -728,6 +736,36 @@ def role_review_index(output_dir: Path, role: str) -> dict[str, dict[str, Any]]:
         for review in read_json(response_path)["reviews"]:
             index[review["model_id"]] = review
     return index
+
+
+def audit_tool_isolation(output_dir: Path) -> dict[str, Any]:
+    tool_types = {"command_execution", "mcp_tool_call", "web_search", "computer_use"}
+    events = []
+    for stdout_path in sorted((output_dir / "runs").rglob("stdout.jsonl")):
+        for line_number, line in enumerate(stdout_path.read_text(encoding="utf-8").splitlines(), 1):
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            item = payload.get("item") if isinstance(payload.get("item"), dict) else {}
+            if item.get("type") not in tool_types:
+                continue
+            events.append(
+                {
+                    "path": display_path(stdout_path),
+                    "line": line_number,
+                    "type": item["type"],
+                    "status": item.get("status"),
+                }
+            )
+    audit = {
+        "status": "pass" if not events else "fail",
+        "tool_events": len(events),
+        "events": events,
+        "acceptance_rule": "No shell, MCP, web, browser, computer-use, or other tool event is permitted.",
+    }
+    write_json(output_dir / "tool_isolation_audit.json", audit)
+    return audit
 
 
 def needs_adjudication(first: dict[str, Any], second: dict[str, Any]) -> bool:
@@ -944,6 +982,11 @@ def prepare_adjusted_manifest(output_dir: Path) -> list[dict[str, Any]]:
 
 
 def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -> dict[str, Any]:
+    tool_isolation = audit_tool_isolation(output_dir)
+    if tool_isolation["status"] != "pass":
+        raise RuntimeError(
+            f"F7 tool-isolation gate failed with {tool_isolation['tool_events']} tool events"
+        )
     manifest = {item["model_id"]: item for item in read_json(output_dir / "preview_manifest.json")}
     comparison = {item["model_id"]: item for item in build_comparison(output_dir)}
     adjudicated = adjudication_index(output_dir)
@@ -1051,6 +1094,7 @@ def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -
         "unresolved_models": unresolved,
         "all_current_atlas_assets_hash_verified": True,
         "all_reviewed_images_hash_logged": True,
+        "tool_isolation_passed": True,
     }
     write_json(output_dir / "exact_preview_validation_report.json", report)
     build_proposed_crop_ledger(output_dir, dispositions, ledger_path)

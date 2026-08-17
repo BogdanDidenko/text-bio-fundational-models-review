@@ -10,8 +10,11 @@ const baseUrl = process.argv[2] || "http://127.0.0.1:8765/";
 const outputPath = path.resolve(
   process.argv[3] || path.join(root, "docs/input-representation-atlas/assets/social-preview.png"),
 );
+const atlasRoot = path.resolve(
+  process.argv[4] || path.join(root, "docs/input-representation-atlas"),
+);
 const atlas = JSON.parse(
-  fs.readFileSync(path.join(root, "docs/input-representation-atlas/data/atlas.json"), "utf8"),
+  fs.readFileSync(path.join(atlasRoot, "data/atlas.json"), "utf8"),
 );
 const graphCapturePath = "/tmp/input-representation-atlas-social-graph.png";
 

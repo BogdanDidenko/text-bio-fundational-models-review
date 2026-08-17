@@ -199,6 +199,21 @@ def slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.casefold()).strip("_")
 
 
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def resolve_source_image(value: str, artifact_roots: list[Path]) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    candidates = [ROOT / path, *((root / path) for root in artifact_roots)]
+    return next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
+
+
 def collection_metadata(record_id: str) -> dict[str, str]:
     """Recover the immutable review iteration encoded in canonical record IDs."""
     batch_id = record_id.split("__", 1)[0]
@@ -300,6 +315,13 @@ def main() -> int:
     )
     parser.add_argument("--crop-ledger", type=Path, default=CROP_LEDGER)
     parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Additional root for repository-relative Docling figure paths.",
+    )
+    parser.add_argument(
         "--prior-atlas-root",
         type=Path,
         default=DEFAULT_OUTPUT,
@@ -310,6 +332,7 @@ def main() -> int:
     taxonomy_root = args.taxonomy_root.resolve()
     corpus_roots = [path.resolve() for path in args.corpus_root] or [CORPUS_ROOT]
     crop_ledger_path = args.crop_ledger.resolve()
+    artifact_roots = [path.resolve() for path in args.artifact_root]
     prior_atlas_root = args.prior_atlas_root.resolve()
     prior_architectures: dict[str, dict[str, Any]] = {}
     prior_atlas_path = prior_atlas_root / "data/atlas.json"
@@ -317,6 +340,20 @@ def main() -> int:
         prior_architectures = {
             row["model_id"]: row for row in read_json(prior_atlas_path).get("architectures", [])
         }
+        for relative in (
+            ".nojekyll",
+            "index.html",
+            "README.md",
+            "QA.md",
+            "assets/app.js",
+            "assets/styles.css",
+            "assets/social-preview.png",
+        ):
+            source = prior_atlas_root / relative
+            if source.is_file():
+                target = output / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
     assets = output / "assets/figures"
     if assets.exists():
         shutil.rmtree(assets)
@@ -370,7 +407,9 @@ def main() -> int:
             )
             prior_figure = (prior_architectures.get(model_id) or {}).get("figure")
             if figure is not None:
-                source_image = ROOT / figure["image_path"]
+                source_image = resolve_source_image(figure["image_path"], artifact_roots)
+                if not source_image.is_file() and prior_figure and prior_figure.get("asset"):
+                    source_image = prior_atlas_root / prior_figure["asset"]
             elif prior_figure and prior_figure.get("asset"):
                 source_image = prior_atlas_root / prior_figure["asset"]
             else:
@@ -673,7 +712,8 @@ def main() -> int:
             "title": "Atlas of Input Representation Methods",
             "taxonomy_version": taxonomy["taxonomy_version"],
             "generated_from": str(taxonomy_root.relative_to(ROOT)),
-            "canonical_corpus": [str(path.relative_to(ROOT)) for path in corpus_roots],
+            "canonical_corpus": [display_path(path) for path in corpus_roots],
+            "artifact_roots": [display_path(path) for path in artifact_roots],
             "record_count": len(registry),
             "study_count": len({row["study_id"] for row in registry.values()}),
             "model_count": len(architectures),
@@ -689,7 +729,7 @@ def main() -> int:
                 architecture["figure_status"] == "no_suitable_figure"
                 for architecture in architectures
             ),
-            "crop_ledger": str(crop_ledger_path.relative_to(ROOT)),
+            "crop_ledger": display_path(crop_ledger_path),
             "classification_unit": taxonomy["classification_unit"],
             "organizing_principle": taxonomy["organizing_principle"],
         },

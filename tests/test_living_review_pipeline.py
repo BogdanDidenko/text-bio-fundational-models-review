@@ -423,6 +423,39 @@ class SearchConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "inventory is incomplete"):
                 corpus_inventory(root, require_complete_profile_artifacts=True)
 
+    def test_update_snapshot_resolves_migrated_relative_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            corpus = workspace / "corpus"
+            manifest = corpus / "manifests/canonical_docling_profile_manifest.csv"
+            manifest.parent.mkdir(parents=True)
+            relative_paths = {
+                "docling_json": Path("data/profiles/documents/paper.docling.json"),
+                "markdown": Path("data/profiles/markdown/paper.md"),
+                "figures_manifest": Path("data/profiles/figures/paper/figures_manifest.json"),
+                "source_document": Path("data/source/paper.pdf"),
+            }
+            for relative in relative_paths.values():
+                path = workspace / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("artifact", encoding="utf-8")
+            manifest.write_text(
+                "candidate_id,profile_status,docling_json,markdown,figures_manifest,source_document\n"
+                + "r1,complete,"
+                + ",".join(str(path) for path in relative_paths.values())
+                + "\n",
+                encoding="utf-8",
+            )
+
+            inventory = corpus_inventory(
+                corpus,
+                require_complete_profile_artifacts=True,
+                artifact_roots=[workspace],
+            )
+
+            self.assertEqual(inventory["status"], "complete")
+            self.assertEqual(len(inventory["profile_artifacts"]), 4)
+
     def test_prisma_date_and_retrieval_counts_are_explicit_partitions(self) -> None:
         date_audit = date_precision_rollup(
             {

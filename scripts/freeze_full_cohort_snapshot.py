@@ -36,7 +36,9 @@ def require_unique(rows: list[dict[str, Any]], key: str, label: str) -> None:
 
 
 def validate_crops(
-    crops: list[dict[str, Any]], routes: list[dict[str, Any]]
+    crops: list[dict[str, Any]],
+    routes: list[dict[str, Any]],
+    artifact_roots: list[Path],
 ) -> tuple[int, int]:
     require_unique(crops, "model_id", "Crop ledger")
     routes_by_model: dict[str, set[str]] = {}
@@ -61,7 +63,13 @@ def validate_crops(
             raise RuntimeError(f"Invalid crop status for {model_id}: {status}")
         cropped += 1
         figure = row.get("figure") or {}
-        source = resolve_artifact(str(figure.get("image_path") or ""))
+        image_path = str(figure.get("image_path") or "")
+        source = resolve_artifact(image_path)
+        if not source.is_file() and not Path(image_path).is_absolute():
+            source = next(
+                (root / image_path for root in artifact_roots if (root / image_path).is_file()),
+                source,
+            )
         if not source.is_file():
             raise RuntimeError(f"Missing crop source image for {model_id}: {source}")
         box = row.get("crop_box") or {}
@@ -93,6 +101,13 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--corpus-root", action="append", type=Path, required=True)
+    parser.add_argument(
+        "--artifact-root",
+        action="append",
+        type=Path,
+        default=[],
+        help="Additional root for repository-relative crop source paths.",
+    )
     args = parser.parse_args()
 
     output = args.output_dir.resolve()
@@ -118,13 +133,18 @@ def main() -> int:
     require_unique(evidence, "route_id", "Evidence ledger")
     require_unique(registry, "record_id", "Study/model registry")
     validate_grounded_evidence(routes, evidence)
-    cropped, no_suitable = validate_crops(crops, routes)
+    artifact_roots = [path.resolve() for path in args.artifact_root]
+    cropped, no_suitable = validate_crops(crops, routes, artifact_roots)
 
     corpus_roots = [path.resolve() for path in args.corpus_root]
     if len(set(corpus_roots)) != len(corpus_roots):
         raise RuntimeError("Duplicate --corpus-root values")
     source_corpus_inventory = [
-        corpus_inventory(root, require_complete_profile_artifacts=True)
+        corpus_inventory(
+            root,
+            require_complete_profile_artifacts=True,
+            artifact_roots=artifact_roots,
+        )
         for root in corpus_roots
     ]
 
@@ -150,6 +170,7 @@ def main() -> int:
         "taxonomy_root": str(args.taxonomy_root.resolve()),
         "frozen_taxonomy_root": str(args.frozen_taxonomy_root.resolve()),
         "corpus_roots": [str(path) for path in corpus_roots],
+        "artifact_roots": [str(path) for path in artifact_roots],
         "source_corpus_inventory": source_corpus_inventory,
         "records": len(registry),
         "studies": len({str(row["study_id"]) for row in registry}),

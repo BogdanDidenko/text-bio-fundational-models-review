@@ -75,9 +75,12 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
-def resolve_artifact(value: str) -> Path:
+def resolve_artifact(value: str, artifact_roots: list[Path] | None = None) -> Path:
     path = Path(value).expanduser()
-    return path if path.is_absolute() else REPO / path
+    if path.is_absolute():
+        return path
+    candidates = [REPO / path, *((root / path) for root in (artifact_roots or []))]
+    return next((candidate for candidate in candidates if candidate.exists()), candidates[0])
 
 
 def profile_manifest_for(root: Path) -> Path | None:
@@ -92,7 +95,11 @@ def profile_manifest_for(root: Path) -> Path | None:
     return None
 
 
-def corpus_inventory(root: Path, require_complete_profile_artifacts: bool) -> dict[str, Any]:
+def corpus_inventory(
+    root: Path,
+    require_complete_profile_artifacts: bool,
+    artifact_roots: list[Path] | None = None,
+) -> dict[str, Any]:
     """Capture external profile provenance without copying an entire source corpus."""
     root = root.resolve()
     manifest = profile_manifest_for(root)
@@ -117,7 +124,7 @@ def corpus_inventory(root: Path, require_complete_profile_artifacts: bool) -> di
             raise RuntimeError(f"Docling profile manifest has an empty candidate_id: {manifest}")
         for field in ("docling_json", "markdown", "figures_manifest", "source_document"):
             value = str(row.get(field) or "")
-            path = resolve_artifact(value) if value else None
+            path = resolve_artifact(value, artifact_roots) if value else None
             if path is None or not path.is_file():
                 missing.append({"candidate_id": candidate_id, "field": field, "path": value})
                 continue

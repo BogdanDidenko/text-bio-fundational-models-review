@@ -566,6 +566,43 @@ corrections through a declared taxonomy correction version, regenerate affected
 downstream artifacts, and rerun the gate. Do not edit the final route JSONL or
 erase a route merely to make the queue empty.
 
+If the action queue is non-empty, create a versioned correction rather than
+editing the taxonomy in place:
+
+```bash
+F6_CORRECTION="$RERUN/semantic_correction"
+CORRECTED_TAXONOMY="$RERUN/taxonomy_semantic_correction"
+
+python3 scripts/run_taxonomy_semantic_correction.py \
+  --taxonomy-root "$TAXONOMY" --f6-root "$F6" \
+  --output-dir "$F6_CORRECTION" --model gpt-5.4-mini
+# If sibling-route decisions conflict, run a declared grouped adjudication here.
+python3 scripts/apply_taxonomy_semantic_correction.py \
+  --source-taxonomy-root "$TAXONOMY" \
+  --correction-root "$F6_CORRECTION" \
+  --output-dir "$CORRECTED_TAXONOMY" \
+  --profile-manifest "$PROFILES" --profile-source-root "$SOURCE_ROOT"
+TAXONOMY="$CORRECTED_TAXONOMY"
+```
+
+The correction runner sends complete canonical Markdown without text
+truncation. `--max-routes-per-call` may split only the requested output routes
+for a paper; it does not split or shorten the document. Preserve prompts,
+responses, failed attempts, the route transition ledger, and tombstones. Keep
+post-hoc correction counts separate from the original repeated-classification
+agreement metrics. If sibling routes for the same model/source receive
+incompatible decisions, declare those route IDs and the consistency question as
+a versioned case before applying the correction, then run a grouped adjudication.
+`run_taxonomy_semantic_consistency_adjudication.py` records the two recovery
+cases from 2026-08-17; it is evidence for that run, not a generic step to invoke
+unchanged on a future cohort.
+
+The correction is valid only when Codex ran from an empty temporary workspace
+with shell/exec, apps, plugins, browser, computer-use, and workspace tools
+disabled, and its `tool_isolation_audit.json` reports zero evidence-bearing tool
+events. Reject and preserve any run that could search the checkout or prior
+taxonomy artifacts; do not use its decisions downstream.
+
 ### F7 exact-preview and input-role gate
 
 Run both visual roles against the exact source bytes and crop coordinates that
@@ -605,7 +642,16 @@ python3 scripts/run_atlas_exact_preview_validation.py finalize --output-dir "$F7
 Require zero unresolved models, verified hashes for every atlas source asset and
 reviewed image, and one final crop/no-suitable disposition per model. Promote
 `proposed_crossvalidated_crop_ledger.json` only through the normal reviewed
-snapshot build. The audit never mutates the canonical ledger by itself.
+snapshot build. `finalize` writes `tool_isolation_audit.json` and refuses to
+complete if any tool event is present. The audit never mutates the canonical
+ledger by itself.
+
+If a post-hoc taxonomy correction leaves crop coordinates and source bytes
+unchanged, rerun F7 only for current crop rows whose `route_ids_supported`
+intersect revised or removed routes. Supply all current routes for those models,
+run both isolated review roles, and preserve the target manifest and tool audit.
+Run adjudication or replacement only for disagreements/failures. A 2-role pass
+with a shared supported route closes the dependency without a whole-atlas rerun.
 
 After a whole-cohort rerun passes taxonomy and crop acceptance, freeze it with
 the dedicated full-cohort builder. Do not create a fake empty prior snapshot or
@@ -613,12 +659,13 @@ use the incremental merge command for this case:
 
 ```bash
 python3 scripts/freeze_full_cohort_snapshot.py \
-  --taxonomy-root "$RERUN/taxonomy" \
+  --taxonomy-root "$TAXONOMY" \
   --frozen-taxonomy-root "$(jq -r .taxonomy_root data/living_catalog/current.json)" \
   --crop-ledger "$RERUN/crops_final/crop_ledger.json" \
   --output-dir "$RERUN/snapshot_full" \
   --run-id "full-cohort-rerun-$(date +%F)" \
-  --corpus-root "$RERUN/combined_vlm_profiles"
+  --corpus-root "$RERUN/combined_vlm_profiles" \
+  --artifact-root "$SOURCE_ROOT"
 ```
 
 The command requires a passing `agreement_metrics.json`, exact route/evidence
@@ -639,9 +686,15 @@ python3 scripts/build_input_representation_atlas.py \
   --crop-ledger "$RERUN/snapshot_full/crop_ledger.json" \
   --output-dir "$RERUN/atlas" \
   --prior-atlas-root docs/input-representation-atlas \
+  --artifact-root "$SOURCE_ROOT" \
   --corpus-root CORPUS_ROOT_1 \
   --corpus-root CORPUS_ROOT_2
 ```
+
+After a workspace migration, keep immutable manifest paths unchanged and pass
+each old filesystem base with repeatable `--artifact-root`. Snapshot and atlas
+builders must resolve and hash the original bytes through those declared roots;
+never rewrite provenance to a machine-specific path merely to make a build pass.
 
 Run `scripts/qa_input_representation_atlas.mjs` against a local HTTP server.
 Its assertions must derive expected model, route, group, subtype, and batch
