@@ -209,6 +209,22 @@ def display_path(path: Path) -> str:
 def resolve_source_image(value: str, artifact_roots: list[Path]) -> Path:
     path = Path(value)
     if path.is_absolute():
+        if path.is_file():
+            return path
+        for anchor in ("data", "analysis", "docs"):
+            if anchor not in path.parts:
+                continue
+            suffix = Path(*path.parts[path.parts.index(anchor) :])
+            candidate = next(
+                (
+                    root / suffix
+                    for root in artifact_roots
+                    if (root / suffix).is_file()
+                ),
+                None,
+            )
+            if candidate is not None:
+                return candidate
         return path
     candidates = [ROOT / path, *((root / path) for root in artifact_roots)]
     return next((candidate for candidate in candidates if candidate.is_file()), candidates[0])

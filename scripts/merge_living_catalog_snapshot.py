@@ -78,6 +78,22 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def resolve_artifact(value: str, artifact_roots: list[Path] | None = None) -> Path:
     path = Path(value).expanduser()
     if path.is_absolute():
+        if path.exists():
+            return path
+        for anchor in ("data", "analysis", "docs"):
+            if anchor not in path.parts:
+                continue
+            suffix = Path(*path.parts[path.parts.index(anchor) :])
+            candidate = next(
+                (
+                    root / suffix
+                    for root in (artifact_roots or [])
+                    if (root / suffix).exists()
+                ),
+                None,
+            )
+            if candidate is not None:
+                return candidate
         return path
     candidates = [REPO / path, *((root / path) for root in (artifact_roots or []))]
     return next((candidate for candidate in candidates if candidate.exists()), candidates[0])
@@ -210,6 +226,13 @@ def main() -> int:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--corpus-root", action="append", type=Path, default=[])
     parser.add_argument(
+        "--artifact-root",
+        action="append",
+        type=Path,
+        default=[],
+        help="Additional filesystem base for immutable repository-relative profile paths.",
+    )
+    parser.add_argument(
         "--update-corpus-root",
         type=Path,
         required=True,
@@ -261,10 +284,15 @@ def main() -> int:
 
     update_corpus = args.update_corpus_root.resolve()
     roots = [path.resolve() for path in args.corpus_root]
+    artifact_roots = [path.resolve() for path in args.artifact_root]
     if update_corpus not in roots:
         roots.append(update_corpus)
     source_corpus_inventory = [
-        corpus_inventory(root, require_complete_profile_artifacts=root == update_corpus)
+        corpus_inventory(
+            root,
+            require_complete_profile_artifacts=root == update_corpus,
+            artifact_roots=artifact_roots,
+        )
         for root in roots
     ]
 
@@ -284,6 +312,7 @@ def main() -> int:
         "prior_taxonomy_root": str(args.prior_taxonomy_root),
         "update_taxonomy_root": str(args.update_taxonomy_root),
         "corpus_roots": [str(path) for path in roots],
+        "artifact_roots": [str(path) for path in artifact_roots],
         "source_corpus_inventory": source_corpus_inventory,
         "records": len(registry),
         "studies": len({row["study_id"] for row in registry}),

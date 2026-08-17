@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import hashlib
 import json
@@ -2710,6 +2711,143 @@ class OrchestratorTests(unittest.TestCase):
             dense = pipeline.sharded_commands(["command"], root / "dense", 2, "dense")
             self.assertEqual([name for name, _ in r1], ["fixed-r1-00", "fixed-r1-01"])
             self.assertEqual([name for name, _ in dense], ["dense-00", "dense-01"])
+
+    def test_artifact_root_resolves_migrated_docling_corpus(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root = root / "artifact-store"
+            corpus = artifact_root / "data/corpus"
+            corpus.mkdir(parents=True)
+            args, config = self.pipeline_args_and_config(root)
+            config["artifact_roots"] = [str(artifact_root)]
+            pipeline = Pipeline(args, config)
+
+            self.assertEqual(
+                pipeline.resolve_artifact("data/corpus").resolve(), corpus.resolve()
+            )
+            self.assertEqual(
+                pipeline.resolve_artifact("/old/machine/review/data/corpus").resolve(),
+                corpus.resolve(),
+            )
+            self.assertEqual(
+                pipeline.artifact_root_arguments(),
+                ["--artifact-root", str(artifact_root.resolve())],
+            )
+
+    def test_taxonomy_classification_runs_f6_semantic_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            config.update(
+                {
+                    "graph_workers": 1,
+                    "codex_timeout_seconds": 30,
+                    "taxonomy_adjudication_timeout_seconds": 30,
+                    "openai_compatible_endpoint": "http://127.0.0.1:8765/v1",
+                    "models": {
+                        "graph": "openai/gpt-5.4-mini",
+                        "crop": "gpt-5.4-mini",
+                    },
+                }
+            )
+            pipeline = Pipeline(args, config)
+            pipeline.paths.accepted_records.parent.mkdir(parents=True)
+            pipeline.paths.accepted_records.write_text(
+                '{"records":[{"record_id":"r1"}]}\n', encoding="utf-8"
+            )
+            command_names = []
+
+            def fake_run(stage: str, name: str, command: list[str], *args, **kwargs) -> None:
+                command_names.append(name)
+                if name == "f6-finalize":
+                    output = pipeline.paths.taxonomy / "semantic_sufficiency"
+                    output.mkdir(parents=True, exist_ok=True)
+                    (output / "semantic_sufficiency_action_queue.csv").write_text(
+                        "record_id,route_id,recommended_action\n", encoding="utf-8"
+                    )
+                    (output / "semantic_sufficiency_report.json").write_text(
+                        '{"status":"complete"}\n', encoding="utf-8"
+                    )
+
+            with (
+                patch.object(pipeline, "docling_python", return_value=sys.executable),
+                patch.object(pipeline, "run_parallel"),
+                patch.object(pipeline, "run_command", side_effect=fake_run),
+                patch.object(
+                    pipeline, "codex_server", return_value=contextlib.nullcontext()
+                ),
+            ):
+                outputs = pipeline.stage_taxonomy_classification()
+
+            self.assertIn("f6-semantic_reviewer", command_names)
+            self.assertIn("f6-adversarial_reviewer", command_names)
+            self.assertIn("f6-adjudicate", command_names)
+            self.assertIn("f6-finalize", command_names)
+            self.assertIn(
+                pipeline.paths.taxonomy
+                / "semantic_sufficiency/semantic_sufficiency_gate.json",
+                outputs,
+            )
+
+    def test_crop_validation_promotes_only_f7_validated_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            config.update(
+                {
+                    "crop_workers": 1,
+                    "codex_timeout_seconds": 30,
+                    "models": {"crop": "gpt-5.4-mini"},
+                }
+            )
+            pipeline = Pipeline(args, config)
+            pipeline.paths.accepted_records.parent.mkdir(parents=True)
+            pipeline.paths.accepted_records.write_text(
+                '{"records":[{"record_id":"r1"}]}\n', encoding="utf-8"
+            )
+            command_names = []
+
+            def fake_run(stage: str, name: str, command: list[str], *args, **kwargs) -> None:
+                command_names.append(name)
+                if name == "two-selectors-adjudicator-cropper":
+                    pipeline.paths.crops.mkdir(parents=True, exist_ok=True)
+                    write_json = lambda path, value: path.write_text(
+                        json.dumps(value) + "\n", encoding="utf-8"
+                    )
+                    write_json(
+                        pipeline.paths.crops / "crop_ledger.json",
+                        [{"model_id": "m1", "status": "no_suitable_figure"}],
+                    )
+                    write_json(pipeline.paths.crops / "run_summary.json", {"errors": []})
+                if name == "f7-finalize":
+                    output = pipeline.paths.crops / "exact_preview_validation"
+                    output.mkdir(parents=True, exist_ok=True)
+                    (output / "exact_preview_validation_report.json").write_text(
+                        '{"status":"complete","unresolved_models":0}\n', encoding="utf-8"
+                    )
+                    (output / "tool_isolation_audit.json").write_text(
+                        '{"status":"pass","tool_events":0}\n', encoding="utf-8"
+                    )
+                    (output / "proposed_crossvalidated_crop_ledger.json").write_text(
+                        '[{"model_id":"m1","status":"no_suitable_figure",'
+                        '"exact_preview_validation":{"status":"not_applicable_no_crop"}}]\n',
+                        encoding="utf-8",
+                    )
+
+            with patch.object(pipeline, "run_command", side_effect=fake_run):
+                outputs = pipeline.stage_crop_validation()
+
+            promoted = json.loads(
+                (pipeline.paths.crops / "crop_ledger.json").read_text(encoding="utf-8")
+            )
+            self.assertIn("f7-exact_preview_validator", command_names)
+            self.assertIn("f7-input_role_validator", command_names)
+            self.assertIn("f7-replacement-finalize", command_names)
+            self.assertEqual(
+                promoted[0]["exact_preview_validation"]["status"],
+                "not_applicable_no_crop",
+            )
+            self.assertIn(pipeline.paths.crops / "crop_ledger.json", outputs)
 
     def test_accepted_html_stops_before_canonical_vlm_conversion(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

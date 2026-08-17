@@ -42,8 +42,10 @@ flowchart LR
     FS --> M[Manual resolution gate]
     M --> V[Fresh VLM-enriched Docling profiles]
     V --> T[Open route discovery and frozen-taxonomy coding]
-    T --> P[Two figure selectors, adjudicator, and cropper]
-    P --> X[Immutable catalog snapshot]
+    T --> S[Semantic-sufficiency review and adjudication]
+    S --> P[Figure selectors, adjudicator, and cropper]
+    P --> E[Exact-preview and input-role validation]
+    E --> X[Immutable catalog snapshot]
     X --> AT[Staged atlas build and browser QA]
     AT --> PUB[Explicit publish]
 ```
@@ -53,6 +55,12 @@ flowchart LR
 The canonical entry point is `scripts/run_living_review_pipeline.py`, configured
 by `config/living_review_pipeline.json`. A run is stored below
 `data/living_catalog_updates/update_<date>/` and has 18 ordered stages:
+
+Executable code, configuration, prompts, and protocol files are resolved only
+from the canonical Git checkout. Large immutable PDFs, Docling profiles, Graph
+workspaces, and figures may remain under a separately declared artifact root.
+Repository-relative and migrated absolute provenance paths are resolved through
+that root at read time and hash-verified; canonical provenance is not rewritten.
 
 | Stage | Main input | Main output and rule |
 |---|---|---|
@@ -69,8 +77,8 @@ by `config/living_review_pipeline.json`. A run is stored below
 | `eligibility-resolution` | Full-text decisions | Every remaining `UNCERTAIN` requires a signed, rationale-bearing manual resolution row. |
 | `docling-vlm` | Newly accepted source documents | Fresh complete Docling conversion with native Codex VLM figure descriptions; the no-VLM profile is not patched in place. |
 | `taxonomy-discovery` | Complete new VLM profiles | Open direct-mode route inventory and stable study registry; taxonomy labels are hidden during discovery. |
-| `taxonomy-classification` | Frozen inventory + taxonomy v1 | Three direct fixed-candidate runs, one dense coverage audit, blinded adjudication, grounding validation, and agreement report. |
-| `crop-validation` | New routes + every extracted source figure | Two blind figure selectors, a separate adjudicator, and a cropper. Existing model dispositions are not silently replaced. |
+| `taxonomy-classification` | Frozen inventory + taxonomy v1 | Three direct fixed-candidate runs, one dense coverage audit, blinded adjudication, grounding validation, agreement report, and two-role full-document semantic-sufficiency audit. A non-retain semantic disposition blocks the run. |
+| `crop-validation` | New routes + every extracted source figure | Two blind figure selectors, a separate adjudicator, and a cropper, followed by exact-pixel and exact-model input-role review. Changed and replacement crops are rendered and reviewed again; unresolved crops cannot be promoted. |
 | `snapshot` | Prior snapshot + validated update | Immutable cumulative registry, route/evidence ledgers, crop ledger, counts, and hashes. |
 | `atlas` | Snapshot + all VLM corpora | Staged static atlas, data build report, local browser QA, and no mutation of the published site. |
 | `report` | All stage summaries | Machine-readable PRISMA update facts, a mutually exclusive full-text disposition ledger, and a human-readable run report. |
@@ -337,6 +345,13 @@ alpha cannot be estimated, taxonomy acceptance fails; the remedy is an
 adequately powered version-consistent rerun, not an implicit pass or mixing
 outputs across prompt/schema versions.
 
+After structural grounding, every dense-only or inferred accepted route receives
+two independent reviews against the complete canonical Docling Markdown. A
+separate adjudicator resolves any field-level disagreement or non-retain result.
+Supporting quotes must match the canonical document. The semantic audit does not
+silently edit routes: its action queue blocks snapshot creation until a versioned
+correction has been independently materialized and revalidated.
+
 The `taxonomy-rerun-preflight` command prepares a complete-catalog rerun in a
 separate immutable directory. It checks every current native profile manifest,
 the intended 55-record denominator, and writes the exact sharded discovery,
@@ -362,14 +377,24 @@ manifest (`candidate_id` and `source_record_id`), not through a directory-name
 assumption. A missing or internally mismatched native figures manifest stops crop
 validation instead of producing a false `no_suitable_figure` disposition.
 
+The exact coordinates proposed for publication are then rendered from the same
+source bytes. One blind role tests visual sufficiency; a second adversarial role
+tests whether the crop actually depicts an input route for the exact named model.
+Disagreements are adjudicated. Adjusted crops and replacement figures are rendered
+again and re-reviewed, including a final replacement input-role pass. The audit
+runs in an empty isolated workspace, records prompts, responses, image hashes and
+retries, and rejects evidence-bearing tool use. Only a zero-unresolved proposed
+ledger is promoted to the cumulative snapshot.
+
 The cumulative snapshot is built in a temporary directory, validates route IDs,
 one-to-one route/evidence-ledger IDs, verified quotes with page or Docling-item
 provenance, frozen taxonomy identity, and one crop disposition per model, then is
 atomically finalized. It writes a source-corpus inventory: the new VLM corpus must
 provide a complete native-profile manifest and SHA-256 entry for each Docling JSON,
 Markdown, figures manifest, and source document. Historical corpus roots are also
-audited; an unavailable migrated manifest is recorded explicitly rather than claimed
-as a complete native source. The atlas is rebuilt in a staging directory and exercised
+audited; a routine update cannot create a new snapshot until every declared
+cumulative profile manifest resolves through the checkout or artifact roots. The
+atlas is rebuilt in a staging directory and exercised
 through its search, filters, counts, evidence pages, and image assets in a local
 browser. Only `publish` advances `data/living_catalog/current.json` and swaps the
 validated staged atlas into `docs/input-representation-atlas/`.

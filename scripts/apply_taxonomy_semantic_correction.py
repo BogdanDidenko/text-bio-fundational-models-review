@@ -8,6 +8,7 @@ import csv
 import hashlib
 import html
 import json
+import os
 import re
 import shutil
 from collections import Counter
@@ -34,7 +35,7 @@ DEFAULT_PROFILE_MANIFEST = (
     / "data/living_catalog/taxonomy_rerun_preflight_2026-08-12"
     / "canonical_docling_profile_manifest.csv"
 )
-DEFAULT_PROFILE_SOURCE_ROOT = Path("/Users/bogdan.didenko/lpnu/review")
+DEFAULT_PROFILE_SOURCE_ROOT = Path(os.environ.get("REVIEW_ARTIFACT_ROOT", ROOT))
 
 
 def read_json(path: Path) -> Any:

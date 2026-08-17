@@ -22,6 +22,11 @@ There is one authoritative runbook: the file in the canonical repository. Any
 convenience path under the artifact root must be a symlink to this file, never a
 copied second version.
 
+**Invariant:** every command containing `cd`, `git`, `scripts/`, `config/`,
+`protocol/`, or `docs/` runs from `REVIEW_REPO_ROOT`. `REVIEW_ARTIFACT_ROOT` is
+used only to resolve or archive immutable evidence; it must never be used as the
+working directory for pipeline commands.
+
 This document is deliberately operational. It specifies what to inspect, what
 may be changed, what constitutes success, and how to recover. It does not
 replace the protocol or taxonomy codebook.
@@ -120,6 +125,14 @@ python3 scripts/verify_living_review_method_lock.py \
   --current-taxonomy-tree "$(jq -r .taxonomy_root data/living_catalog/current.json)/taxonomy_tree.json"
 ```
 
+The runner anchors code paths to its own canonical checkout. For immutable
+repository-relative evidence paths it tries the checkout first, then every
+declared artifact root from `config`, `REVIEW_ARTIFACT_ROOT`, `current.json`, and
+the current snapshot manifest. It never rewrites stored provenance after a
+migration. `preflight --through-stage report` requires every cumulative Docling
+profile manifest needed by snapshot creation to resolve successfully; a prior
+atlas image is not treated as a substitute for a missing corpus.
+
 Stop if `doctor` is not healthy. In particular, do not plan a new interval when:
 
 - `current.json` is missing or malformed;
@@ -131,8 +144,9 @@ Stop if `doctor` is not healthy. In particular, do not plan a new interval when:
 Required local components are checked by `preflight`, including Python,
 `requests`, Codex, Node/Playwright, ImageMagick, the isolated Docling Python,
 baseline artifacts, and non-secret key names. API credentials live in
-`api_keys.json`; never print or commit their values. Expected names are defined
-by `scripts/api_keys.template.json`.
+`api_keys.json`; the ignored file may resolve from the checkout or declared
+artifact root. Never print or commit its values. Expected names are defined by
+`scripts/api_keys.template.json`.
 
 The configured model roles are not interchangeable:
 
@@ -215,6 +229,16 @@ python3 scripts/run_living_review_pipeline.py run \
 `--manage-server` starts and stops the local OpenAI-compatible Codex wrapper
 when a stage needs it. The configured endpoint is local port `8765`. A stopped
 terminal or timeout does not imply that the stage completed.
+
+The routine runner includes the gates described in the stage table; they are not
+optional operator-side scripts. `taxonomy-classification` runs the two F6
+semantic reviewers, comparison, adjudication, and final action-queue check.
+`crop-validation` runs F7 exact-preview and exact-model input-role review,
+adjudication, changed-crop review, exhaustive replacement search, replacement
+review, and tool-isolation audit. Only
+`proposed_crossvalidated_crop_ledger.json` from a zero-unresolved F7 result is
+promoted to the update crop ledger. A non-empty F6 action queue or unresolved F7
+case exits through a manual gate before snapshot creation.
 
 After every non-zero exit, interruption, timeout, or ambiguous terminal state:
 

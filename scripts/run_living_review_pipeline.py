@@ -450,6 +450,7 @@ class Pipeline:
         self._active_log_attempts: dict[str, Path] = {}
         self._repository_external_artifacts_cache: dict[str, dict[str, Any]] | None = None
         self._repository_artifact_ledger_summary: dict[str, Any] | None = None
+        self._artifact_roots_cache: list[Path] | None = None
 
     def recover_interrupted_publication(self) -> None:
         """Rollback a crash between atlas promotion and state/manifest finalization."""
@@ -504,6 +505,70 @@ class Pipeline:
             "prisma_update_history": prisma_history,
         }
 
+    def artifact_roots(self) -> list[Path]:
+        """Return declared filesystem bases for immutable artifacts outside the checkout."""
+        if self._artifact_roots_cache is not None:
+            return self._artifact_roots_cache
+
+        values: list[str | Path] = []
+        configured = self.config.get("artifact_roots") or []
+        values.extend(configured if isinstance(configured, list) else [configured])
+        environment = os.environ.get("REVIEW_ARTIFACT_ROOT", "")
+        values.extend(value for value in environment.split(os.pathsep) if value)
+        current_roots = self.current.get("artifact_roots") or []
+        values.extend(current_roots if isinstance(current_roots, list) else [current_roots])
+
+        taxonomy_root = resolve(self.current["taxonomy_root"])
+        snapshot_manifest = taxonomy_root / "snapshot_manifest.json"
+        if snapshot_manifest.is_file():
+            payload = read_json(snapshot_manifest)
+            manifest_roots = payload.get("artifact_roots") or []
+            values.extend(
+                manifest_roots if isinstance(manifest_roots, list) else [manifest_roots]
+            )
+
+        roots: list[Path] = []
+        seen: set[Path] = set()
+        for value in values:
+            path = Path(value).expanduser()
+            path = path if path.is_absolute() else ROOT / path
+            path = path.resolve()
+            if path not in seen:
+                seen.add(path)
+                roots.append(path)
+        self._artifact_roots_cache = roots
+        return roots
+
+    def resolve_artifact(self, value: str | Path) -> Path:
+        """Resolve a repository-relative immutable path through declared artifact roots."""
+        path = Path(value).expanduser()
+        if path.is_absolute():
+            if path.exists():
+                return path
+            for anchor in ("data", "analysis", "docs"):
+                if anchor not in path.parts:
+                    continue
+                suffix = Path(*path.parts[path.parts.index(anchor) :])
+                candidate = next(
+                    (
+                        root / suffix
+                        for root in self.artifact_roots()
+                        if (root / suffix).exists()
+                    ),
+                    None,
+                )
+                if candidate is not None:
+                    return candidate
+            return path
+        candidates = [ROOT / path, *((root / path) for root in self.artifact_roots())]
+        return next((candidate for candidate in candidates if candidate.exists()), candidates[0])
+
+    def artifact_root_arguments(self) -> list[str]:
+        arguments: list[str] = []
+        for root in self.artifact_roots():
+            arguments.extend(["--artifact-root", str(root)])
+        return arguments
+
     def new_manifest(self) -> dict[str, Any]:
         manifest = {
             "schema_version": 1,
@@ -530,7 +595,7 @@ class Pipeline:
     def method_lock_status(self, manifest: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self.config.get("method_lock"):
             return {"ok": False, "issues": ["pipeline config does not declare method_lock"]}
-        taxonomy_tree = resolve(self.current["taxonomy_root"]) / "taxonomy_tree.json"
+        taxonomy_tree = self.resolve_artifact(self.current["taxonomy_root"]) / "taxonomy_tree.json"
         result = verify_method_lock(
             self.config["method_lock"],
             self.args.config,
@@ -885,6 +950,7 @@ class Pipeline:
                 self.paths.taxonomy / "runs/classification_fixed_r3",
                 self.paths.taxonomy / "runs/classification_dense",
                 self.paths.taxonomy / "adjudication",
+                self.paths.taxonomy / "semantic_sufficiency",
                 self.paths.taxonomy / "tables",
                 self.paths.taxonomy / "no_new_eligible_records.json",
                 *[self.paths.taxonomy / name for name in taxonomy_final_files],
@@ -1092,7 +1158,7 @@ class Pipeline:
         return sys.executable
 
     def docling_python(self) -> str:
-        path = resolve(self.config["docling_python"])
+        path = self.resolve_artifact(self.config["docling_python"])
         if not path.exists():
             raise RuntimeError(
                 f"Docling environment is missing: {path}. Install scripts/docling/requirements-docling.txt first."
@@ -1164,7 +1230,7 @@ class Pipeline:
         if self.manifest.get("published"):
             raise RuntimeError("A published run's search evidence is immutable")
         self.ensure_search_config()
-        keys = resolve(self.config["api_keys_file"])
+        keys = self.resolve_artifact(self.config["api_keys_file"])
         if not keys.is_file():
             raise RuntimeError(f"Missing ignored API key file: {keys}")
         self.begin_log_attempt("search-provider")
@@ -1325,7 +1391,7 @@ class Pipeline:
                 "--output", str(self.paths.search_config),
             ],
         )
-        keys = resolve(self.config["api_keys_file"])
+        keys = self.resolve_artifact(self.config["api_keys_file"])
         if not keys.exists():
             raise RuntimeError(f"Missing ignored API key file: {keys}")
         command = [
@@ -1424,7 +1490,7 @@ class Pipeline:
             "--output-dir", str(self.paths.records), "--run-id", self.run_id,
         ]
         for path in self.current["master_record_files"]:
-            command.extend(["--master-records", str(resolve(path))])
+            command.extend(["--master-records", str(self.resolve_artifact(path))])
         manual_resolutions = self.paths.records / "manual_cross_dedup_resolutions.json"
         if manual_resolutions.is_file():
             command.extend(
@@ -1477,7 +1543,7 @@ class Pipeline:
         short_enriched = self.paths.abstracts / "short_abstracts_enriched.json"
         missing_log = self.paths.abstracts / "missing_enrichment_log.json"
         short_log = self.paths.abstracts / "short_enrichment_log.json"
-        keys = resolve(self.config["api_keys_file"])
+        keys = self.resolve_artifact(self.config["api_keys_file"])
         self.paths.abstracts.mkdir(parents=True, exist_ok=True)
 
         def reusable(output: Path, log: Path, input_path: Path) -> bool:
@@ -2168,7 +2234,7 @@ class Pipeline:
                 "--output-dir", str(synthesis), "--expected-records", str(expected),
             ],
         )
-        prior_registry = resolve(self.current["taxonomy_root"]) / "study_model_registry.csv"
+        prior_registry = self.resolve_artifact(self.current["taxonomy_root"]) / "study_model_registry.csv"
         self.run_command(
             "taxonomy-discovery", "registry",
             [
@@ -2186,6 +2252,7 @@ class Pipeline:
             self.paths.taxonomy / "runs/classification_fixed_r3",
             self.paths.taxonomy / "runs/classification_dense",
             self.paths.taxonomy / "adjudication",
+            self.paths.taxonomy / "semantic_sufficiency",
         ):
             self.preserve_expensive_generated_path("taxonomy-classification", path)
         for path in (
@@ -2218,7 +2285,7 @@ class Pipeline:
             return [marker]
         workers = min(expected, int(self.config["graph_workers"]))
         inventory = self.paths.taxonomy / "taxonomy_synthesis/open_route_inventory.json"
-        taxonomy_tree = resolve(self.current["taxonomy_root"]) / "taxonomy_tree.json"
+        taxonomy_tree = self.resolve_artifact(self.current["taxonomy_root"]) / "taxonomy_tree.json"
         direct_roots = []
         adjudication_timeout = int(
             self.config.get(
@@ -2284,10 +2351,64 @@ class Pipeline:
         for root in direct_roots:
             analyze.extend(["--direct-run", str(root)])
         self.run_command("taxonomy-classification", "analyze", analyze)
-        return [self.paths.taxonomy / "route_annotations.jsonl", self.paths.taxonomy / "agreement_metrics.json"]
+
+        f6 = self.paths.taxonomy / "semantic_sufficiency"
+        f6_common = [
+            "--taxonomy-root", str(self.paths.taxonomy),
+            "--profile-manifest", str(self.paths.vlm_manifest),
+            "--source-root", str(ROOT),
+            "--output-dir", str(f6),
+            "--model", self.config["models"].get("semantic_review", "gpt-5.4-mini"),
+            "--max-workers", str(self.config.get("semantic_review_workers", 6)),
+            "--timeout", str(self.config.get("semantic_review_timeout_seconds", 3600)),
+        ]
+        f6_script = "scripts/run_taxonomy_semantic_sufficiency_audit.py"
+        self.run_command(
+            "taxonomy-classification", "f6-prepare",
+            [self.python(), f6_script, "prepare", *f6_common],
+        )
+        for role in ("semantic_reviewer", "adversarial_reviewer"):
+            self.run_command(
+                "taxonomy-classification", f"f6-{role}",
+                [self.python(), f6_script, "review", "--role", role, *f6_common],
+            )
+        self.run_command(
+            "taxonomy-classification", "f6-compare",
+            [self.python(), f6_script, "compare", *f6_common],
+        )
+        self.run_command(
+            "taxonomy-classification", "f6-adjudicate",
+            [self.python(), f6_script, "adjudicate", *f6_common],
+        )
+        self.run_command(
+            "taxonomy-classification", "f6-finalize",
+            [self.python(), f6_script, "finalize", *f6_common],
+        )
+        action_queue = f6 / "semantic_sufficiency_action_queue.csv"
+        with action_queue.open(newline="", encoding="utf-8") as stream:
+            action_rows = list(csv.DictReader(stream))
+        gate = {
+            "created": now_iso(),
+            "status": "pass" if not action_rows else "blocked",
+            "action_count": len(action_rows),
+            "action_queue": rel(action_queue),
+            "rule": "Every non-retain F6 disposition requires a versioned correction and revalidation.",
+        }
+        write_json(f6 / "semantic_sufficiency_gate.json", gate)
+        if action_rows:
+            raise ManualGate(
+                f"F6 semantic sufficiency produced {len(action_rows)} corrective actions; "
+                f"follow {rel(action_queue)} and do not build the snapshot from uncorrected routes"
+            )
+        return [
+            self.paths.taxonomy / "route_annotations.jsonl",
+            self.paths.taxonomy / "agreement_metrics.json",
+            f6 / "semantic_sufficiency_report.json",
+            f6 / "semantic_sufficiency_gate.json",
+        ]
 
     def stage_crop_validation(self) -> list[Path]:
-        self.reset_generated_path(self.paths.crops)
+        self.preserve_expensive_generated_path("crop-validation", self.paths.crops)
         expected = record_count(self.paths.accepted_records)
         if not expected:
             ledger = self.paths.crops / "crop_ledger.json"
@@ -2302,10 +2423,99 @@ class Pipeline:
                 "--output-dir", str(self.paths.crops), "--model", self.config["models"]["crop"],
                 "--max-workers", str(self.config["crop_workers"]),
                 "--timeout", str(self.config["codex_timeout_seconds"]),
-                "--exclude-model-ledger", str(resolve(self.current["crop_ledger"])),
+                "--exclude-model-ledger", str(self.resolve_artifact(self.current["crop_ledger"])),
             ],
         )
-        return [self.paths.crops / "crop_ledger.json", self.paths.crops / "run_summary.json"]
+        crop_ledger = self.paths.crops / "crop_ledger.json"
+        initial_ledger = self.paths.crops / "initial_crop_ledger.json"
+        shutil.copy2(crop_ledger, initial_ledger)
+
+        f7 = self.paths.crops / "exact_preview_validation"
+        f7_script = "scripts/run_atlas_exact_preview_validation.py"
+        validation_model = self.config["models"].get(
+            "preview_validation", self.config["models"]["crop"]
+        )
+        f7_common = [
+            "--taxonomy-root", str(self.paths.taxonomy),
+            "--crop-ledger", str(initial_ledger),
+            "--source-root", str(ROOT),
+            "--output-dir", str(f7),
+            "--model", validation_model,
+            "--max-workers", str(self.config.get("preview_validation_workers", 8)),
+            "--timeout", str(self.config.get("preview_validation_timeout_seconds", 2700)),
+        ]
+        self.run_command(
+            "crop-validation", "f7-prepare",
+            [self.python(), f7_script, "prepare", *f7_common],
+        )
+        for role in ("exact_preview_validator", "input_role_validator"):
+            self.run_command(
+                "crop-validation", f"f7-{role}",
+                [self.python(), f7_script, "review", "--role", role, *f7_common],
+            )
+        for command in ("compare", "adjudicate", "adjusted"):
+            self.run_command(
+                "crop-validation", f"f7-{command}",
+                [self.python(), f7_script, command, *f7_common],
+            )
+
+        replacement_script = "scripts/run_atlas_replacement_validation.py"
+        replacement_common = [
+            "--output-dir", str(f7),
+            "--profile-manifest", str(self.paths.vlm_manifest),
+            "--source-root", str(ROOT),
+            "--model", validation_model,
+            "--timeout", str(self.config.get("preview_validation_timeout_seconds", 2700)),
+        ]
+        for command in ("prepare", "run"):
+            self.run_command(
+                "crop-validation", f"f7-replacement-{command}",
+                [self.python(), replacement_script, command, *replacement_common],
+            )
+        self.run_command(
+            "crop-validation", "f7-replacement-preview",
+            [
+                self.python(), f7_script, "review", "--role",
+                "replacement_preview_validator", *f7_common,
+            ],
+        )
+        self.run_command(
+            "crop-validation", "f7-replacement-round2",
+            [self.python(), replacement_script, "round2", *replacement_common],
+        )
+        for role in (
+            "replacement_preview_validator_round2",
+            "replacement_input_role_validator",
+        ):
+            self.run_command(
+                "crop-validation", f"f7-{role}",
+                [self.python(), f7_script, "review", "--role", role, *f7_common],
+            )
+        self.run_command(
+            "crop-validation", "f7-replacement-finalize",
+            [self.python(), replacement_script, "finalize", *replacement_common],
+        )
+        self.run_command(
+            "crop-validation", "f7-finalize",
+            [self.python(), f7_script, "finalize", *f7_common],
+        )
+
+        report_path = f7 / "exact_preview_validation_report.json"
+        report = read_json(report_path)
+        if report.get("unresolved_models"):
+            raise ManualGate(
+                f"F7 has {report['unresolved_models']} unresolved model previews; "
+                f"inspect {rel(report_path)} before snapshot creation"
+            )
+        proposed = f7 / "proposed_crossvalidated_crop_ledger.json"
+        shutil.copy2(proposed, crop_ledger)
+        return [
+            crop_ledger,
+            self.paths.crops / "run_summary.json",
+            initial_ledger,
+            report_path,
+            f7 / "tool_isolation_audit.json",
+        ]
 
     def stage_snapshot(self) -> list[Path]:
         self.reset_generated_path(self.paths.snapshot / "no_catalog_change.json")
@@ -2318,15 +2528,16 @@ class Pipeline:
             shutil.rmtree(working)
         command = [
             self.python(), "scripts/merge_living_catalog_snapshot.py",
-            "--prior-taxonomy-root", str(resolve(self.current["taxonomy_root"])),
+            "--prior-taxonomy-root", str(self.resolve_artifact(self.current["taxonomy_root"])),
             "--update-taxonomy-root", str(self.paths.taxonomy),
-            "--prior-crop-ledger", str(resolve(self.current["crop_ledger"])),
+            "--prior-crop-ledger", str(self.resolve_artifact(self.current["crop_ledger"])),
             "--update-crop-ledger", str(self.paths.crops / "crop_ledger.json"),
             "--output-dir", str(working), "--run-id", self.run_id,
             "--update-corpus-root", str(self.paths.docling_vlm / "profiles"),
+            *self.artifact_root_arguments(),
         ]
         for root in [*self.current["docling_corpus_roots"], rel(self.paths.docling_vlm / "profiles")]:
-            command.extend(["--corpus-root", str(resolve(root))])
+            command.extend(["--corpus-root", str(self.resolve_artifact(root))])
         self.run_command("snapshot", "merge", command)
         if self.paths.snapshot.exists():
             shutil.rmtree(self.paths.snapshot)
@@ -2347,9 +2558,10 @@ class Pipeline:
             "--taxonomy-root", str(self.paths.snapshot), "--crop-ledger", str(self.paths.snapshot / "crop_ledger.json"),
             "--output-dir", str(self.paths.atlas),
             "--prior-atlas-root", str(resolve(self.current["atlas_output"])),
+            *self.artifact_root_arguments(),
         ]
         for root in [*self.current["docling_corpus_roots"], rel(self.paths.docling_vlm / "profiles")]:
-            command.extend(["--corpus-root", str(resolve(root))])
+            command.extend(["--corpus-root", str(self.resolve_artifact(root))])
         self.run_command("atlas", "build", command)
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
@@ -3395,6 +3607,26 @@ class Pipeline:
             ),
             needed_at="search",
         )
+        git_root = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        actual_git_root = Path(git_root.stdout.strip()).resolve() if git_root.returncode == 0 else None
+        add(
+            "canonical_repository_root",
+            actual_git_root == ROOT.resolve(),
+            str(actual_git_root) if actual_git_root else git_root.stderr.strip() or "not a Git checkout",
+            needed_at="search",
+        )
+        for artifact_root in self.artifact_roots():
+            add(
+                f"artifact_root:{artifact_root}",
+                artifact_root.is_dir(),
+                "present" if artifact_root.is_dir() else "missing",
+                needed_at="snapshot",
+            )
 
         executable_stages = {
             "codex": "abstract-screening",
@@ -3424,7 +3656,7 @@ class Pipeline:
             node_path or "not found in NODE_PATH, local node_modules, or Codex runtime",
             needed_at="atlas",
         )
-        docling_python = resolve(self.config["docling_python"])
+        docling_python = self.resolve_artifact(self.config["docling_python"])
         docling_importable = False
         docling_detail = (
             f"missing; create from {ROOT / 'scripts/docling/requirements-docling.txt'}"
@@ -3486,7 +3718,7 @@ class Pipeline:
             docling_detail,
             needed_at="docling-screening",
         )
-        keys_path = resolve(self.config["api_keys_file"])
+        keys_path = self.resolve_artifact(self.config["api_keys_file"])
         key_names = set(read_json(keys_path)) if keys_path.is_file() else set()
         add("api_keys_file", keys_path.is_file(), str(keys_path), needed_at="search")
         scholar_provider_export = self.paths.search / "google_scholar_provider_export.json"
@@ -3514,11 +3746,11 @@ class Pipeline:
             )
         required_paths = [
             (resolve(self.config["search_config_template"]), "search"),
-            (resolve(self.current["taxonomy_root"]) / "taxonomy_tree.json", "taxonomy-classification"),
-            (resolve(self.current["taxonomy_root"]) / "route_annotations.jsonl", "taxonomy-classification"),
-            (resolve(self.current["crop_ledger"]), "crop-validation"),
+            (self.resolve_artifact(self.current["taxonomy_root"]) / "taxonomy_tree.json", "taxonomy-classification"),
+            (self.resolve_artifact(self.current["taxonomy_root"]) / "route_annotations.jsonl", "taxonomy-classification"),
+            (self.resolve_artifact(self.current["crop_ledger"]), "crop-validation"),
             (resolve(self.current["atlas_output"]) / "index.html", "atlas"),
-            *[(resolve(path), "prepare-records") for path in self.current["master_record_files"]],
+            *[(self.resolve_artifact(path), "prepare-records") for path in self.current["master_record_files"]],
         ]
         if self.config.get("baseline_prisma_facts"):
             required_paths.append((resolve(self.config["baseline_prisma_facts"]), "report"))
@@ -3530,16 +3762,12 @@ class Pipeline:
                 needed_at=needed_at,
             )
         for root in self.current["docling_corpus_roots"]:
-            path = resolve(root) / "manifests/canonical_docling_profile_manifest.csv"
+            path = self.resolve_artifact(root) / "manifests/canonical_docling_profile_manifest.csv"
             add(
                 f"archival_artifact:{rel(path)}",
                 path.is_file(),
-                "present" if path.is_file() else (
-                    "missing after migration; prior atlas assets permit incremental builds, "
-                    "but complete baseline Docling operations are unavailable"
-                ),
-                required=False,
-                needed_at="taxonomy-discovery",
+                "present" if path.is_file() else "missing; restore the immutable Docling corpus before snapshot creation",
+                needed_at="snapshot",
             )
         payload = {
             "run_id": self.run_id,
@@ -3649,6 +3877,9 @@ def main() -> int:
                     "date_from": pipeline.date_from,
                     "date_to": pipeline.date_to,
                     "run_root": rel(pipeline.run_root),
+                    "repository_root": str(ROOT),
+                    "artifact_roots": [str(path) for path in pipeline.artifact_roots()],
+                    "docling_python": pipeline.docling_python(),
                     "stages": STAGES,
                     "prior_state": pipeline.current,
                 },
