@@ -11,6 +11,17 @@ method or losing provenance.
 **Public atlas:**
 <https://bogdandidenko.github.io/text-bio-fundational-models-review/>
 
+**Single canonical repository checkout:**
+`/Users/bogdan.didenko/lpnu/text-bio-fundational-models-review`
+**External artifact root:** `/Users/bogdan.didenko/lpnu/review`
+
+The artifact root contains retained PDFs, Docling profiles, Graph workspaces,
+figures, and rejected/recovery runs. It is not an executable checkout. In
+particular, do not run the pipeline from its legacy linked recovery worktree.
+There is one authoritative runbook: the file in the canonical repository. Any
+convenience path under the artifact root must be a symlink to this file, never a
+copied second version.
+
 This document is deliberately operational. It specifies what to inspect, what
 may be changed, what constitutes success, and how to recover. It does not
 replace the protocol or taxonomy codebook.
@@ -90,11 +101,16 @@ lookback. Record that limitation in every update report.
 
 ## 2. Before creating a run
 
-Work from the repository root. Do not clean or reset a dirty worktree: first
-identify whether changes belong to another task.
+Work from the canonical repository root, not the external artifact root. These
+defaults describe the current installation; set both variables explicitly after
+a migration. Do not clean or reset a dirty worktree: first identify whether
+changes belong to another task.
 
 ```bash
-cd /Users/bogdan.didenko/lpnu/review
+export REVIEW_REPO_ROOT="${REVIEW_REPO_ROOT:-/Users/bogdan.didenko/lpnu/text-bio-fundational-models-review}"
+export REVIEW_ARTIFACT_ROOT="${REVIEW_ARTIFACT_ROOT:-/Users/bogdan.didenko/lpnu/review}"
+cd "$REVIEW_REPO_ROOT"
+test "$(git rev-parse --show-toplevel)" = "$REVIEW_REPO_ROOT"
 git status --short --branch
 git branch --show-current
 git log -1 --format='%H %cI %s'
@@ -542,7 +558,7 @@ manifest; no paper text is truncated.
 ```bash
 TAXONOMY="$RERUN/taxonomy"
 PROFILES="$RERUN/canonical_docling_profile_manifest.csv"
-SOURCE_ROOT=/absolute/root/containing/canonical/profiles
+SOURCE_ROOT="$REVIEW_ARTIFACT_ROOT"
 F6="$RERUN/semantic_sufficiency"
 
 python3 scripts/run_taxonomy_semantic_sufficiency_audit.py prepare \
