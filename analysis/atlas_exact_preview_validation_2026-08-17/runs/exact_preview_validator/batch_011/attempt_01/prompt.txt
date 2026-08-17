@@ -1,0 +1,834 @@
+Act as a blind exact-preview validator. Judge the crop on the RIGHT as a scientific preview. It passes only if the visible labels, arrows, and objects form a coherent and readable source-to-model input path for at least one listed route. Reject clipped, ambiguous, unreadable, or needlessly broad regions. Use `adjust` only when the full source figure on the LEFT contains a clearly better rectangle.
+
+Every attachment has the full source figure with the selected red rectangle on the LEFT and the exact selected source-pixel crop on the RIGHT.
+
+Rules:
+- Inspect pixels, not earlier agent rationales.
+- The representative crop need not show every route, but report exactly which route IDs it visibly supports.
+- A `pass` requires at least one supported route and concrete visible evidence.
+- For `adjust`, return normalized coordinates relative to the full source figure and ensure x+width <= 1 and y+height <= 1.
+- Use `reject` when this figure cannot support a responsible crop for the target model/routes.
+- Return one review for every model_id and no others.
+- Do not use tools, external knowledge, or hidden chain-of-thought. Keep rationales concise and tied to visible content.
+
+Reviewer role: exact_preview_validator
+
+RECORDS
+[
+  {
+    "image_attachment_index": 1,
+    "model_id": "model_74758c50e662",
+    "model_name": "OmniNA",
+    "paper_title": "OmniNA: A foundation model for nucleotide sequences",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 1.0,
+      "height": 0.31
+    },
+    "claimed_route_ids_supported": [
+      "route_f25f4eadc58f"
+    ],
+    "routes": [
+      {
+        "route_id": "route_f25f4eadc58f",
+        "route_label": "OmniNA pre-training nucleotide-sequence input",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "model pre-training with prompts composed of an instruction, a nucleotide sequence, and an annotation",
+        "source_object_verbatim": "nucleotide sequence",
+        "transformation_chain_verbatim": [
+          "curate sequence data and corresponding textual annotations from the NCBI nt Database up to April, 2023",
+          "organize the sequence data with the text annotations as feature-ordered input",
+          "partition the data into sentence-based chunks",
+          "tokenize with SentencePiece byte pair encoding",
+          "add special tokens <s> and </s>",
+          "embed the input tokens and add GPTNeo positional encodings"
+        ],
+        "model_visible_form_verbatim": "tokenized nucleotide sequence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "concatenated with position embeddings and fed into the transformer layers",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We developed OmniNA as a foundation model for nucleotide sequence ( Figure 1 ). The cognitive core of OmniNA is a LLM developed through incremental training on an extensive nucleotide sequence corpus, which inherits the benefits of emergent abilities of LLM and domain-specific knowledge. The backbone of OmniNA is a transformer-based auto-regressive decoder with self-attention mechanism 10 . Three models with varying layer and head numbers were developed, spanning scales from 66 M to 330 M and up to 1.7 B parameters ( Supplementary Figure 1 ). The detailed network structure is delineated in Supplementary Figure 2 . We curated a dataset for model pre-training, which comprises 1076.2 B bases from 91.7 M nucleotide sequences across diverse species, extracted from the NCBI nt database ( Figure 1A ; see Method ). We designed prompts to structure the sequences and their corresponding natural language descriptions as model input ( Figure 1A ; Supplementary Table 1 ). The input underwent chunking into subword tokens, followed by embedding through the token embedding layer. Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 . The pre-trained OmniNA can handle versatile downstream applications in a multi-task manner ( Figure 1B ). After fine-tuning, the model can manage taxonomy and genomic element identification tasks in a Question-Answer (QA) paradigm ( Figure 1A ).",
+        "section_heading": "Methods Data processing for OmniNA pre-training",
+        "supporting_figure_or_table": "Supplementary Table 1",
+        "pages": [
+          4,
+          5,
+          12,
+          25,
+          26
+        ]
+      },
+      {
+        "route_id": "route_c9f58cc549fc",
+        "route_label": "OmniNA pre-training annotation input",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "model pre-training with prompts composed of an instruction, a nucleotide sequence, and an annotation",
+        "source_object_verbatim": "text annotations",
+        "transformation_chain_verbatim": [
+          "curate sequence data and corresponding textual annotations from the NCBI nt Database up to April, 2023",
+          "organize the sequence data with the text annotations as feature-ordered input",
+          "partition the data into sentence-based chunks",
+          "tokenize with SentencePiece byte pair encoding",
+          "add special tokens <s> and </s>",
+          "embed the input tokens and add GPTNeo positional encodings"
+        ],
+        "model_visible_form_verbatim": "annotation tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "concatenated with position embeddings and fed into the transformer layers",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+        "section_heading": "Methods Data processing for OmniNA pre-training",
+        "supporting_figure_or_table": "Supplementary Table 1",
+        "pages": [
+          4,
+          5,
+          12,
+          25,
+          26
+        ]
+      },
+      {
+        "route_id": "route_846f86009834",
+        "route_label": "OmniNA fine-tuning nucleotide-sequence input",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "multi-task QA framework with an instruction, a nucleotide sequence, a test question, and an answer",
+        "source_object_verbatim": "nucleotide sequence",
+        "transformation_chain_verbatim": [
+          "compose a prompt with an instruction, a nucleotide sequence, a test question, and an answer",
+          "keep the first two parts fixed for all tasks",
+          "train only the answer in an auto-regressive manner",
+          "fine-tune with AdamW for 2 epochs"
+        ],
+        "model_visible_form_verbatim": "instruction, nucleotide sequence, and test question tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "fed as a prompt into the pre-trained decoder-only transformer",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+        "section_heading": "Apply the model for multi-task fine-tuning",
+        "supporting_figure_or_table": "Supplementary Table 1",
+        "pages": [
+          10
+        ]
+      },
+      {
+        "route_id": "route_02ce74ec15e8",
+        "route_label": "OmniNA fine-tuning test-question input",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "multi-task QA framework with an instruction, a nucleotide sequence, a test question, and an answer",
+        "source_object_verbatim": "test question",
+        "transformation_chain_verbatim": [
+          "compose a prompt with an instruction, a nucleotide sequence, a test question, and an answer",
+          "keep the first two parts fixed for all tasks",
+          "train only the answer in an auto-regressive manner",
+          "fine-tune with AdamW for 2 epochs"
+        ],
+        "model_visible_form_verbatim": "test question tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "insertion_or_fusion_verbatim": "fed as a prompt into the pre-trained decoder-only transformer",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+        "section_heading": "Apply the model for multi-task fine-tuning",
+        "supporting_figure_or_table": "Supplementary Table 1",
+        "pages": [
+          10
+        ]
+      },
+      {
+        "route_id": "route_9c4898db67f0",
+        "route_label": "OmniNA saturation mutation scoring",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "We quantify mutation effects using log-likelihood (LL) differences between mutated ( s mut ) and wild-type ( s WT ) nucleotide sequences",
+        "source_object_verbatim": "mutated and wild-type nucleotide sequences",
+        "transformation_chain_verbatim": [
+          "mutated nucleotide sequence",
+          "wild-type nucleotide sequence",
+          "log-likelihood (LL) differences",
+          "predicted mutation effect"
+        ],
+        "model_visible_form_verbatim": "mutated ( s mut ) and wild-type ( s WT ) nucleotide sequences",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "log-likelihood (LL) differences between mutated ( s mut ) and wild-type ( s WT ) nucleotide sequences",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We quantify mutation effects using log-likelihood (LL) differences between mutated ( s mut ) and wild-type ( s WT ) nucleotide sequences",
+        "section_heading": "Saturation mutation analysis",
+        "supporting_figure_or_table": "Figure 5A",
+        "pages": [
+          11,
+          12
+        ]
+      },
+      {
+        "route_id": "route_b382ae08863d",
+        "route_label": "OmniNA mutation-effect prediction in distinct genomic contexts",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "predict the mutation impact within varied genomic contexts",
+        "source_object_verbatim": "mutated and wild-type nucleotide sequences",
+        "transformation_chain_verbatim": [
+          "paired wild-type and mutated nucleotide sequences",
+          "estimate LL difference between the paired sequences",
+          "derive a mutation effect score"
+        ],
+        "model_visible_form_verbatim": "mutated and wild-type nucleotide sequences",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "the OmniNA-1.7B estimated LL between mutated and wild-type nucleotide sequences",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We defined the effect score of a mutation as the OmniNA-1.7B estimated LL between mutated and wild-type nucleotide sequences",
+        "section_heading": "Discriminating mutation effects in distinct genomic contexts with OmniNA",
+        "supporting_figure_or_table": "Figure 5",
+        "pages": [
+          17,
+          18
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 2,
+    "model_id": "model_77f5da416a80",
+    "model_name": "BioMedGPT-10B",
+    "paper_title": "Biomedgpt: Open multimodal generative pre-trained transformer for biomedicine",
+    "figure_index": 2,
+    "current_crop_box": {
+      "x": 0.015,
+      "y": 0.3,
+      "width": 0.455,
+      "height": 0.65
+    },
+    "claimed_route_ids_supported": [
+      "route_907b394108c6"
+    ],
+    "routes": [
+      {
+        "route_id": "route_907b394108c6",
+        "route_label": "molecule-text multimodal fine-tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "answering questions with regard to a given molecule",
+        "source_object_verbatim": "molecules from PubChemQA",
+        "transformation_chain_verbatim": [
+          "remove molecules that cannot be processed by RDKit",
+          "generate 2D molecular graphs",
+          "encode with GraphMVP",
+          "project with an independent modality adaptor"
+        ],
+        "model_visible_form_verbatim": "<molecule><moleculeHere></molecule> {text_input}",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "insertion_or_fusion_verbatim": "### Human: <molecule><moleculeHere></molecule> {text_input}. ### Assistant: {text_output}",
+        "fusion_topology": "placeholder_replacement",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "To build the connections between molecular and protein structures with natural language, we perform multimodal fine-tuning, which involves answering questions with regard to a given molecule or protein. As shown in Table 1, we design prompt templates to help BioMedGPT-LM understand the context more accurately in a role-play manner. The <moleculeHere> and <proteinHere> symbolics represent the aligned molecular and protein features, where each atom of a molecule and each residue of a protein is considered as a token. {text_input} is populated by questions in the training set, and {text_output} is populated by answers to calculate the auto-regressive loss.",
+        "section_heading": "3.2 Multimodal alignment between molecules, proteins, and natural language",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          5,
+          6
+        ]
+      },
+      {
+        "route_id": "route_8dba88613ac4",
+        "route_label": "protein-text multimodal fine-tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "answering questions with regard to a given protein",
+        "source_object_verbatim": "proteins from UniProtQA",
+        "transformation_chain_verbatim": [
+          "encode protein sequences with ESM-2-3B",
+          "project with an independent modality adaptor",
+          "align to the feature space of BioMedGPT-LM-7B"
+        ],
+        "model_visible_form_verbatim": "<protein><proteinHere></protein> {text_input}",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "insertion_or_fusion_verbatim": "### Human: <protein><proteinHere></protein> {text_input}. ### Assistant: {text_output}",
+        "fusion_topology": "placeholder_replacement",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "To build the connections between molecular and protein structures with natural language, we perform multimodal fine-tuning, which involves answering questions with regard to a given molecule or protein. As shown in Table 1, we design prompt templates to help BioMedGPT-LM understand the context more accurately in a role-play manner. The <moleculeHere> and <proteinHere> symbolics represent the aligned molecular and protein features, where each atom of a molecule and each residue of a protein is considered as a token. {text_input} is populated by questions in the training set, and {text_output} is populated by answers to calculate the auto-regressive loss.",
+        "section_heading": "3.2 Multimodal alignment between molecules, proteins, and natural language",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          5,
+          6
+        ]
+      },
+      {
+        "route_id": "route_8ab7d83662c7",
+        "route_label": "PubMedQA biomedical QA fine-tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "training set of PubMedQA",
+        "source_object_verbatim": "PubMedQA training set of biomedical multiple-choice QA pairs",
+        "transformation_chain_verbatim": [
+          "fine-tune the language model of BioMedGPT-10B on the training sets of PubMedQA and MedMCQA"
+        ],
+        "model_visible_form_verbatim": "text question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "language-model fine-tuning",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "We fine-tune the language model of BioMedGPT-10B on the training sets of PubMedQA and MedMCQA",
+        "section_heading": "4.1 Biomedical QA",
+        "supporting_figure_or_table": "Table 2",
+        "pages": [
+          6,
+          7
+        ]
+      },
+      {
+        "route_id": "route_1266d867c22a",
+        "route_label": "MedMCQA biomedical QA fine-tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "training set of MedMCQA",
+        "source_object_verbatim": "MedMCQA training set of biomedical multiple-choice QA pairs",
+        "transformation_chain_verbatim": [
+          "fine-tune the language model of BioMedGPT-10B on the training sets of PubMedQA and MedMCQA"
+        ],
+        "model_visible_form_verbatim": "text question-answer pairs",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "language-model fine-tuning",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "We fine-tune the language model of BioMedGPT-10B on the training sets of PubMedQA and MedMCQA",
+        "section_heading": "4.1 Biomedical QA",
+        "supporting_figure_or_table": "Table 2",
+        "pages": [
+          6,
+          7
+        ]
+      },
+      {
+        "route_id": "route_296252896033",
+        "route_label": "biomedical QA out-of-domain evaluation",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "out-of-domain (OOD) evaluation on USMLE without additional fine-tuning on its training set",
+        "source_object_verbatim": "USMLE multiple-choice questions",
+        "transformation_chain_verbatim": [
+          "evaluate on USMLE without additional fine-tuning"
+        ],
+        "model_visible_form_verbatim": "text multiple-choice questions",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "language-model evaluation",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "out-of-domain (OOD) evaluation on USMLE without additional fine-tuning on its training set.",
+        "section_heading": "4.1 Biomedical QA",
+        "supporting_figure_or_table": "Table 2",
+        "pages": [
+          6,
+          7
+        ]
+      },
+      {
+        "route_id": "route_8e681fc01a87",
+        "route_label": "molecule QA inference",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "generating a text response given a specific molecule and a text query over its properties",
+        "source_object_verbatim": "a specific molecule",
+        "transformation_chain_verbatim": [
+          "encode molecule structure",
+          "align to natural language",
+          "generate text response"
+        ],
+        "model_visible_form_verbatim": "<molecule><moleculeHere></molecule> plus text query",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "insertion_or_fusion_verbatim": "prompt-based multimodal alignment",
+        "fusion_topology": "placeholder_replacement",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Molecule QA involves generating a text response given a specific molecule and a text query over its properties.",
+        "section_heading": "4.2 Molecule QA",
+        "supporting_figure_or_table": "Table 3",
+        "pages": [
+          7,
+          8
+        ]
+      },
+      {
+        "route_id": "route_59d034a752b8",
+        "route_label": "protein QA inference",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "generating a text response to a query about a given protein",
+        "source_object_verbatim": "a given protein",
+        "transformation_chain_verbatim": [
+          "encode protein sequence",
+          "align to natural language",
+          "generate text response"
+        ],
+        "model_visible_form_verbatim": "<protein><proteinHere></protein> plus text query",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "insertion_or_fusion_verbatim": "prompt-based multimodal alignment",
+        "fusion_topology": "placeholder_replacement",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Protein QA involves generating a text response to a query about a given protein",
+        "section_heading": "4.3 Protein QA",
+        "supporting_figure_or_table": "Table 4",
+        "pages": [
+          8
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 3,
+    "model_id": "model_78760ba29751",
+    "model_name": "LLaMA3-8B",
+    "paper_title": "Geneverse: A collection of Open-source Multimodal Large Language Models for Genomic and Proteomic Research",
+    "figure_index": 6,
+    "current_crop_box": {
+      "x": 0.45,
+      "y": 0.0,
+      "width": 0.55,
+      "height": 0.43
+    },
+    "claimed_route_ids_supported": [
+      "route_e3e67790db59"
+    ],
+    "routes": [
+      {
+        "route_id": "route_e3e67790db59",
+        "route_label": "gene-function prompt to LLaMA3-8B",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "gene function description",
+        "source_object_verbatim": "gene name in the prompt",
+        "transformation_chain_verbatim": [
+          "instruction example"
+        ],
+        "model_visible_form_verbatim": "text prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "text-only prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_heading": "4.1 Benchmarking LLMs for summarizing of gene functions",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          4,
+          16
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 4,
+    "model_id": "model_79e042109d33",
+    "model_name": "C2S-Scale",
+    "paper_title": "SCALING LARGE LANGUAGE MODELS FOR NEXT-GENERATION SINGLE-CELL ANALYSIS",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0,
+      "y": 0.47,
+      "width": 0.59,
+      "height": 0.23
+    },
+    "claimed_route_ids_supported": [
+      "route_7cb2dbf173a7"
+    ],
+    "routes": [
+      {
+        "route_id": "route_7cb2dbf173a7",
+        "route_label": "single-cell language modeling and conditional cell generation",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "Single cell language modeling; Cell type annotation; Conditional cell generation",
+        "source_object_verbatim": "single-cell transcriptomic profiles",
+        "transformation_chain_verbatim": [
+          "remove genes expressed in fewer than three cells and cells that express fewer than 100 genes",
+          "normalize counts to 1 × 10 4 and log-transform",
+          "convert expression profiles into cell sentences"
+        ],
+        "model_visible_form_verbatim": "cell sentences made of ordered gene-name token sequences",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "prompt formatting with the pretrained tokenizer; no new special tokens",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Following established conventions [61], we preprocess raw scRNA-seq data by removing genes that are expressed in fewer than three cells and cells that express fewer than 100 genes, followed by normalizing counts to 1 × 10 4 and log-transforming the data. Notably, we do not do any quality control for mitochondrial genes, as we found that proportions varied significantly across datasets and a single threshold was either too permissive or too restrictive across the corpus. For each dataset, the transcriptomic profiles were converted into cell sentences, and the accompanying annotations were preserved to construct natural language prompts. This resulted in a multimodal corpus linking expression profiles with textual descriptors of biological context.",
+        "section_heading": "4.1 Data Collection",
+        "supporting_figure_or_table": "Figure 1",
+        "pages": [
+          2,
+          3,
+          8,
+          38
+        ]
+      },
+      {
+        "route_id": "route_92e25ae511ab",
+        "route_label": "multi-cell language modeling and conditional sample generation",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "Multiple cell language modeling; Tissue sample annotation; Sample cell type(s) annotation; Conditional sample generation (tissue); Conditional sample generation (cell type); Conditional sample generation (abstract); Natural language interpretation",
+        "source_object_verbatim": "multiple single-cell transcriptomic profiles from the same donor sample, tissue, or dataset",
+        "transformation_chain_verbatim": [
+          "sample multiple cells from the same donor sample",
+          "convert each cell into a cell sentence",
+          "combine cell sentences with task-specific natural language instructions and metadata"
+        ],
+        "model_visible_form_verbatim": "multiple cell sentences in a shared prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "combine the cell sentence representation of one or more cells with task-specific natural language instructions",
+        "fusion_topology": "concatenation",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Prompts were constructed by combining the cell sentence representation of one or more cells with task-specific natural language instructions.",
+        "section_heading": "4.3 Multi-Task Dataset Creation",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          9,
+          10,
+          37,
+          38,
+          39,
+          40
+        ]
+      },
+      {
+        "route_id": "route_5000a33edeb7",
+        "route_label": "gene set enumeration and naming",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "Gene set enumeration; Gene set naming",
+        "source_object_verbatim": "gene set name or list of genes in a gene set",
+        "transformation_chain_verbatim": [
+          "construct prompts from gene set names and gene lists"
+        ],
+        "model_visible_form_verbatim": "gene set name or list of genes",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "prompt formatting",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Training infrastructure varied by model scale to accommodate computational requirements. The C2S-Scale 410M 466 and 1B models were trained at Yale University using the Huggingface Transformers library (version 4.46.3) [64] and 467 PyTorch (version 2.4.1) [65] on a High Performance Computing (HPC) cluster running Red Hat Enterprise Linux 468 release 8.10. Each of these models was trained on 1-2 Nvidia H100 GPUs for several days (exact compute duration 469",
+        "section_heading": "Table 1: Pretraining tasks for C2S-Scale multi-task training.",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          10,
+          11
+        ]
+      },
+      {
+        "route_id": "route_38607301656a",
+        "route_label": "cluster captioning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Cluster captioning",
+        "source_object_verbatim": "cells from the same scRNA-seq cluster",
+        "transformation_chain_verbatim": [
+          "curate 30 scRNA-seq datasets",
+          "perform preprocessing, clustering, and differential expression analysis",
+          "generate captions with GPT-4o",
+          "randomly sample two cells from a cluster to form a multi-cell context prompt"
+        ],
+        "model_visible_form_verbatim": "two cell sentences from a cluster plus an instruction prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "multi-cell context prompt",
+        "fusion_topology": "concatenation",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "For each training sample, we randomly sampled two cells from a cluster to form a multi-cell context prompt",
+        "section_heading": "4.7.5 Cluster captioning",
+        "supporting_figure_or_table": "Figure 3",
+        "pages": [
+          15,
+          40
+        ]
+      },
+      {
+        "route_id": "route_cba015cfd76f",
+        "route_label": "dataset interpretation",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Dataset interpretation",
+        "source_object_verbatim": "multiple cell sentences from the same tissue and donor plus the associated study abstract",
+        "transformation_chain_verbatim": [
+          "sample 5-20 cells from the same tissue and donor",
+          "generate 500 variations of each ground-truth abstract using GPT-3.5-Turbo"
+        ],
+        "model_visible_form_verbatim": "multi-cell context prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "concatenate 5-20 cell sentences into the prompt",
+        "fusion_topology": "concatenation",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Task Setup and Test Set Construction To assess the model's ability to produce high-level biological insights from raw transcriptomic data, we designed a dataset-level natural language interpretation task. Models were presented with a multi-cell context (5-20 cells sampled from the same tissue and donor) and prompted to generate a biological abstract summarizing the experiment. To prevent memorization of the original study abstracts, we generated 500 variations of each ground-truth abstract using GPT-3.5-Turbo, increasing diversity in language and phrasing while preserving factual content (Supplementary Figure 13). Since dataset interpretation was included as a main stage training task (Table 1), we evaluated base C2S-Scale checkpoints immediately following the main training phase without additional fine-tuning. We constructed two separate evaluation sets to measure performance. The In-Distribution (ID) Test Set comprises 3,065 samples derived from 613 scRNA-seq datasets within the C2S-Scale pretraining corpus; while these specific samples were strictly held out from training, the model had been exposed to other cells and abstract samples from these same studies. To rigorously benchmark generalization to unseen biological contexts, we constructed an Out-of-Distribution (OOD) Test Set comprising 400 samples from two studies completely unseen during pretraining: a pancreas dataset [23] and a human retina study [68].",
+        "section_heading": "4.7.6 Dataset interpretation",
+        "supporting_figure_or_table": "Figure 3",
+        "pages": [
+          15,
+          16,
+          39,
+          40
+        ]
+      },
+      {
+        "route_id": "route_8b224797b192",
+        "route_label": "spatial neighborhood prediction and related spatial tasks",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Spatial neighborhood prediction; Conditional neighbor generation; Niche label prediction; Same niche prediction",
+        "source_object_verbatim": "multiple cell sentences from human liver tissue neighborhoods",
+        "transformation_chain_verbatim": [
+          "define neighborhoods by a radius of 0.02 pixels",
+          "sample positive or negative multi-cell contexts from the same or different neighborhood",
+          "construct prompts for neighborhood, neighbor generation, niche label, and same-niche tasks"
+        ],
+        "model_visible_form_verbatim": "multiple cell sentences",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "multi-cell context prompt",
+        "fusion_topology": "concatenation",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "To train C2S-Scale on spatial and multi-cellular relationships, we designed the following tasks. 1. Spatial neighborhood prediction: Given multiple cell sentences, predict whether these cells come from the same neighborhood. 2. Conditional neighbor generation: Given multiple cell sentences from a neighborhood, generate a novel cell sentence that would belong to the same neighborhood. 3. Niche label prediction: Given a cell sentence for a single cell, predict the niche label annotation for that cell. 4. Same niche prediction: Given multiple cell sentences, predict whether all of these cells have the same niche label or different niches.",
+        "section_heading": "4.7.7 Spatial niche prediction",
+        "supporting_figure_or_table": "Figure 4",
+        "pages": [
+          16,
+          33,
+          42,
+          43,
+          44
+        ]
+      },
+      {
+        "route_id": "route_26c7508ccc65",
+        "route_label": "gene interaction-augmented spatial reasoning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "CellPhoneDB and BioGRID interaction prompts",
+        "source_object_verbatim": "gene interaction metadata from CellPhoneDB and BioGRID",
+        "transformation_chain_verbatim": [
+          "retain interactions involving the 1,000 genes in the CosMx data",
+          "restrict to genes coding for extracellular proteins",
+          "format interactions as natural language prompts"
+        ],
+        "model_visible_form_verbatim": "natural language interaction prompts",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "included in the training data mixture as prompts",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "we included gene interaction metadata from CellPhoneDB [41] and BioGRID [42] in the training data mixture.",
+        "section_heading": "4.7.7 Spatial niche prediction",
+        "supporting_figure_or_table": "Figure 4",
+        "pages": [
+          16
+        ]
+      },
+      {
+        "route_id": "route_6c6756ff33b1",
+        "route_label": "single-cell question answering from raw cell sentences",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Question answering",
+        "source_object_verbatim": "raw cell sentences sampled from the corresponding dataset",
+        "transformation_chain_verbatim": [
+          "sample cells from scRNA-seq datasets",
+          "pair them with associated biological manuscripts",
+          "use GPT-4.5 to generate question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "raw cell sentences in a hybrid prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "hybrid context prompt",
+        "fusion_topology": "concatenation",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "GPT-4.5 was provided with a hybrid context consisting of: (1) key text sections (Abstract, Results, Discussion) from a published scRNA-seq study, and (2) raw cell sentences sampled from the corresponding dataset.",
+        "section_heading": "4.7.8 Question answering",
+        "supporting_figure_or_table": "Figure 14",
+        "pages": [
+          16,
+          17
+        ]
+      },
+      {
+        "route_id": "route_ade35c66eb40",
+        "route_label": "cytokine-stimulation perturbation prediction",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Cytokine Stimulation; Perturbation response prediction",
+        "source_object_verbatim": "immune cells exposed to individual and combinatorial cytokines in the Dong et al. dataset",
+        "transformation_chain_verbatim": [
+          "retain 5000 most highly variable genes",
+          "pair untreated and treated samples under each condition",
+          "fine-tune on cell sentence generation and natural language label prediction",
+          "align with GRPO using scGPT embedding-space rewards"
+        ],
+        "model_visible_form_verbatim": "cell sentence plus cell type, perturbation, and exposure labels",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt formatting with condition labels and response-cell generation",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "The training of C2S models for the Dong et al. dataset followed a structured two-stage process",
+        "section_heading": "4.7.9 Perturbation prediction",
+        "supporting_figure_or_table": "Figure 6",
+        "pages": [
+          17,
+          41
+        ]
+      },
+      {
+        "route_id": "route_6054e5a31b07",
+        "route_label": "L1000 bulk perturbation prediction",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Small Molecule Perturbations in Bulk RNAseq",
+        "source_object_verbatim": "LINCS L1000 bulk RNA-seq profiles of treated and untreated cell lines",
+        "transformation_chain_verbatim": [
+          "train on the 978 landmark genes",
+          "pair untreated and treated samples by cell line",
+          "fine-tune on cell-sentence generation",
+          "refine with GRPO using Kendall's tau reward"
+        ],
+        "model_visible_form_verbatim": "cell sentence plus compound and cell-line metadata",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt formatting with perturbation metadata",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "For the L1000 dataset [52], we trained on the 978 genes measured in the original study",
+        "section_heading": "4.7.9 Perturbation prediction",
+        "supporting_figure_or_table": "Figure 6",
+        "pages": [
+          18,
+          41
+        ]
+      },
+      {
+        "route_id": "route_d1fbf31866b4",
+        "route_label": "SciPlex3 drug perturbation prediction",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Small Molecule Perturbations in single-cell RNAseq",
+        "source_object_verbatim": "single-cell RNA-seq profiles from SciPlex3",
+        "transformation_chain_verbatim": [
+          "use the ChemCPA 2,000-gene feature set",
+          "train on the out-of-distribution split with unseen drugs",
+          "use pathway information rather than RDKit embeddings",
+          "evaluate generated response profiles"
+        ],
+        "model_visible_form_verbatim": "cell sentence plus drug, dose, cell-line, and pathway metadata",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt formatting with perturbation and pathway annotations",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We utilized the SciPlex3 dataset [55], which consists of 187 small molecule perturbations applied across three cell lines",
+        "section_heading": "4.7.9 Perturbation prediction",
+        "supporting_figure_or_table": "Figure 6",
+        "pages": [
+          18,
+          41
+        ]
+      },
+      {
+        "route_id": "route_4890ce7d64b4",
+        "route_label": "cell type annotation (downstream fine-tuning)",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Cell type annotation",
+        "source_object_verbatim": "single-cell transcriptomic profiles from immune, pancreas, and lung datasets",
+        "transformation_chain_verbatim": [
+          "filter genes expressed in fewer than 3 cells",
+          "normalize library size to 10,000 counts per cell",
+          "apply a log1p transformation",
+          "convert expression profiles into cell sentences",
+          "append a natural language instruction prompt"
+        ],
+        "model_visible_form_verbatim": "cell sentence plus natural language instruction",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt formatting with instruction appended to the cell sentence",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Input prompts combined the cell sentence with natural language instructions",
+        "section_heading": "4.7.1 Cell type annotation",
+        "supporting_figure_or_table": null,
+        "pages": [
+          13,
+          14
+        ]
+      },
+      {
+        "route_id": "route_d09976e7764b",
+        "route_label": "cell generation (evaluation)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Cell generation",
+        "source_object_verbatim": "metadata prompts such as cell type or tissue conditions",
+        "transformation_chain_verbatim": [
+          "format a natural language prompt with relevant metadata",
+          "generate a valid cell sentence or multiple cell sentences"
+        ],
+        "model_visible_form_verbatim": "metadata-conditioned prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt formatting",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "the model was then tasked with generating a valid cell sentence (or multiple sentences) based on the metadata",
+        "section_heading": "4.7.2 Cell generation",
+        "supporting_figure_or_table": null,
+        "pages": [
+          14
+        ]
+      },
+      {
+        "route_id": "route_1862ed4360b8",
+        "route_label": "single-cell and bulk integration",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Single-cell bulk integration",
+        "source_object_verbatim": "single-cell lung tissue profiles and pseudo-bulk RNA-seq samples",
+        "transformation_chain_verbatim": [
+          "aggregate donor, cell type, and batch into pseudo-bulk samples",
+          "randomly sample ten single-cell profiles from matching conditions to construct pairs",
+          "embed single-cell and pseudo-bulk samples separately",
+          "compute cosine similarity and FOSCTTM"
+        ],
+        "model_visible_form_verbatim": "paired single-cell and pseudo-bulk samples",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "separate embedding of each modality followed by similarity comparison",
+        "fusion_topology": "shared_latent_alignment",
+        "text_role": "biological_payload",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "we designed a simple single-cell and bulk RNA seq integration task",
+        "section_heading": "4.7.4 Single-cell bulk integration",
+        "supporting_figure_or_table": null,
+        "pages": [
+          15
+        ]
+      }
+    ]
+  }
+]

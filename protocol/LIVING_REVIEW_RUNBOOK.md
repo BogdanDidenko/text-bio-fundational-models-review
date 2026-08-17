@@ -250,8 +250,8 @@ python3 scripts/run_living_review_pipeline.py run \
 | `eligibility-resolution` | Accepted, excluded, unresolved ledgers | No unresolved record remains; every manual row has decision, evidence, resolver, and timestamp. | Inspect complete Docling evidence and add only a declared manual resolution. |
 | `docling-vlm` | Fresh complete VLM-enriched profiles | Every newly accepted report has a validated PDF profile, figures, captions, and picture descriptions. HTML-only accepted reports block here. | Obtain an authorized main-article PDF and rerun from full-text download. |
 | `taxonomy-discovery` | Open route candidates and study/model registry | Discovery sees full canonical profiles without frozen family labels in its extraction prompt. | Retry failed document batches with unchanged schema/model. |
-| `taxonomy-classification` | Three direct runs, dense audit, adjudication, evidence ledger | All profiles succeed; every route is grounded; Jaccard >=0.80, family agreement >=0.90, alpha >=0.80; every dense-only route adjudicated. | A failed threshold requires a reviewed whole-cohort rerun under one prompt/schema version. Do not patch individual outputs. |
-| `crop-validation` | Two selectors, adjudicator, crop coordinates/dispositions | Every included model has a validated source crop or explicit no-suitable-figure disposition. | Retry failed model batches; retain every selector response and source-figure identity. |
+| `taxonomy-classification` | Three direct runs, dense audit, adjudication, evidence ledger, semantic-sufficiency dispositions | All profiles succeed; every route is grounded; Jaccard >=0.80, family agreement >=0.90, alpha >=0.80; every dense-only route is adjudicated; every dense-only or inferred final route also passes full-document semantic-sufficiency review or receives an explicit blocking correction disposition. | A failed agreement threshold requires a reviewed whole-cohort rerun under one prompt/schema version. A semantic action queue blocks snapshot until corrected routes are versioned and revalidated; do not patch generated output silently. |
+| `crop-validation` | Two selectors, adjudicator, crop coordinates/dispositions, rendered exact previews | Every included model has a source crop that passes both exact-preview and exact-model input-role validation, or an explicit no-suitable-figure disposition; every changed/replacement crop is rendered and reviewed again. | Retry failed model batches, search every native source figure when replacement is required, and retain every selector/preview response and image hash. Never promote an unreviewed crop-box change. |
 | `snapshot` | Cumulative registry/routes/evidence/crops and manifest | Counts and exact route/evidence IDs reconcile; source-corpus hashes are recorded. | Repair the earliest invalid upstream stage; never hand-edit snapshot totals. |
 | `atlas` | Staged static UI and browser QA | Build report matches snapshot; desktop/mobile screenshots, review-iteration filter, assets, and console checks pass. | Fix builder/UI code, rebuild atlas stage, rerun browser QA. |
 | `report` | PRISMA fact table, retrieval dispositions, update report | Every transition denominator is derived from artifacts and retrieval branches are mutually exclusive. | Fix source artifact or report generator; do not edit counts manually. |
@@ -308,13 +308,23 @@ boundary and what the agent must check before advancing.
    document without family labels. Three independent direct classifications use
    the fixed candidate inventory and taxonomy v1; dense scoped fill audits
    coverage; a separately prompted adjudicator dispositions conflicts and every
-   dense candidate. The analysis mode must be
-   `incremental_frozen_taxonomy` for a routine batch.
+   dense candidate. After structural grounding, every dense-only or inferred
+   final route receives two independent semantic-sufficiency reviews against the
+   complete canonical Docling Markdown. Field-level disagreement or any
+   non-retain decision goes to a separate full-document adjudicator. The analysis
+   mode must be `incremental_frozen_taxonomy` for a routine batch. A disposition
+   ledger is audit evidence, not permission to mutate canonical routes silently.
 10. **Routes to crops, snapshot, and atlas.** Every accepted route must pass
     provenance and taxonomy consistency. Crop annotations reference accepted
-    route IDs and native figures. Snapshot merge preserves prior routes and adds
-    only the new cohort. The atlas is generated from the snapshot and exposes the
-    review-iteration tag without changing existing filters or model details.
+    route IDs and native figures. Render the exact final crop from the same source
+    bytes and normalized coordinates used by the atlas. Separate reviewers test
+    visual sufficiency and exact-model input-role integrity. Adjudicated crop-box
+    changes and replacement figures are rendered and reviewed again; an
+    exhaustive unsuccessful source-figure search ends in `no_suitable_figure`,
+    not a generic or wrong-model illustration. Snapshot merge preserves prior
+    routes and adds only the new cohort. The atlas is generated from the snapshot
+    and exposes the review-iteration tag without changing existing filters or
+    model details.
 
 ### Screening transport and frozen output contract
 
@@ -520,6 +530,82 @@ historical PDFs from 24 valid but version/hash-different PDFs; this difference
 must remain visible in any rerun report. Taxonomy classification cannot begin
 until all 55 records have complete native Docling JSON, Markdown, figure
 manifests, and source-document hashes in one combined canonical manifest.
+
+### F6 semantic-sufficiency gate
+
+Structural provenance is necessary but does not establish that a passage
+semantically supports every coded route field. Run this gate after final taxonomy
+adjudication and before crop selection or snapshot creation. `SOURCE_ROOT` is the
+filesystem root used to resolve the immutable paths in the canonical profile
+manifest; no paper text is truncated.
+
+```bash
+TAXONOMY="$RERUN/taxonomy"
+PROFILES="$RERUN/canonical_docling_profile_manifest.csv"
+SOURCE_ROOT=/absolute/root/containing/canonical/profiles
+F6="$RERUN/semantic_sufficiency"
+
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py prepare \
+  --taxonomy-root "$TAXONOMY" --profile-manifest "$PROFILES" \
+  --source-root "$SOURCE_ROOT" --output-dir "$F6"
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py review \
+  --role semantic_reviewer --taxonomy-root "$TAXONOMY" --output-dir "$F6"
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py review \
+  --role adversarial_reviewer --taxonomy-root "$TAXONOMY" --output-dir "$F6"
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py compare \
+  --taxonomy-root "$TAXONOMY" --output-dir "$F6"
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py adjudicate \
+  --taxonomy-root "$TAXONOMY" --output-dir "$F6"
+python3 scripts/run_taxonomy_semantic_sufficiency_audit.py finalize \
+  --taxonomy-root "$TAXONOMY" --output-dir "$F6"
+```
+
+Require complete route coverage, verified supporting quotes, and zero missing
+adjudications. `semantic_sufficiency_action_queue.csv` is blocking: apply its
+corrections through a declared taxonomy correction version, regenerate affected
+downstream artifacts, and rerun the gate. Do not edit the final route JSONL or
+erase a route merely to make the queue empty.
+
+### F7 exact-preview and input-role gate
+
+Run both visual roles against the exact source bytes and crop coordinates that
+would be published. The replacement phase examines every native figure for a
+model whose current or adjusted crop fails. The final adversarial input-role pass
+is required even when a replacement looks generally relevant.
+
+```bash
+CROPS="$RERUN/crops_final/crop_ledger.json"
+F7="$RERUN/exact_preview_validation"
+
+python3 scripts/run_atlas_exact_preview_validation.py prepare \
+  --taxonomy-root "$TAXONOMY" --crop-ledger "$CROPS" \
+  --source-root "$SOURCE_ROOT" --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py review \
+  --role exact_preview_validator --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py review \
+  --role input_role_validator --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py compare --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py adjudicate --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py adjusted --output-dir "$F7"
+
+python3 scripts/run_atlas_replacement_validation.py prepare \
+  --output-dir "$F7" --profile-manifest "$PROFILES" --source-root "$SOURCE_ROOT"
+python3 scripts/run_atlas_replacement_validation.py run --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py review \
+  --role replacement_preview_validator --output-dir "$F7"
+python3 scripts/run_atlas_replacement_validation.py round2 --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py review \
+  --role replacement_preview_validator_round2 --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py review \
+  --role replacement_input_role_validator --output-dir "$F7"
+python3 scripts/run_atlas_replacement_validation.py finalize --output-dir "$F7"
+python3 scripts/run_atlas_exact_preview_validation.py finalize --output-dir "$F7"
+```
+
+Require zero unresolved models, verified hashes for every atlas source asset and
+reviewed image, and one final crop/no-suitable disposition per model. Promote
+`proposed_crossvalidated_crop_ledger.json` only through the normal reviewed
+snapshot build. The audit never mutates the canonical ledger by itself.
 
 After a whole-cohort rerun passes taxonomy and crop acceptance, freeze it with
 the dedicated full-cohort builder. Do not create a fake empty prior snapshot or

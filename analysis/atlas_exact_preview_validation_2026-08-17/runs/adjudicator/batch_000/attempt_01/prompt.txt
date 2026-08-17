@@ -1,0 +1,315 @@
+You are the independent adjudicator for atlas crop validation.
+
+Each image shows the full source figure with the current red crop on the LEFT and the exact crop on the RIGHT. Resolve the two blind reviews by inspecting the pixels yourself. Accept only a crop that is coherent and readable and visibly supports an actual input route for the exact named model. Use `adjust_current` only when a better rectangle exists in this same source figure. Use `replacement_required` when another paper figure is needed, `no_suitable_figure` when the current crop should be removed and the paper appears not to offer responsible visual evidence, and `manual_review` when the pixels are insufficient to decide.
+
+Return normalized coordinates for `adjust_current`; return null otherwise. Do not use tools, external knowledge, or hidden chain-of-thought.
+
+CASES
+[
+  {
+    "image_attachment_index": 1,
+    "model_id": "model_16a912645955",
+    "model_name": "Mistral 7B",
+    "paper_title": "Multimodal learning of transcriptomes and text enables interactive single-cell RNA-seq data exploration with natural-language chats",
+    "current_crop_box": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.38,
+      "height": 1.0
+    },
+    "routes": [
+      {
+        "route_id": "route_5e86ef1efcaa",
+        "route_label": "Transcriptome embeddings plus questions to Mistral 7B for CellWhisperer fine-tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "question-answer-style conversations",
+        "source_object_verbatim": "transcriptome profiles",
+        "transformation_chain_verbatim": [
+          "CellWhisperer-derived transcriptome embeddings",
+          "adapter layer that converts the transcriptome embeddings into Mistral-compatible token-level embeddings"
+        ],
+        "model_visible_form_verbatim": "transcriptome-derived token embeddings alongside their corresponding questions",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "insertion_or_fusion_verbatim": "a two-layer adapter module that transforms the 2048-dimensional CellWhisperer transcriptome embedding into eight 4096-dimensional embeddings",
+        "fusion_topology": "prefix",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "To enable natural-language chats with CellWhisperer's multimodal embedding model, we fine-tuned the Mistral 7B LLM based on data-centric conversations about individual transcriptomes and cell states. We generated 106,610 such conversations for transcriptomes from our training dataset of 1,082,413 GEO and CELLxGENE Census data points. To mitigate historical bias in these community repositories, we took a weighted subsample, inversely proportional to the local point density calculated with densMAP (Narayan et al. 2021), such that transcriptome-text pairs in lowly covered regions were preferentially picked. For each transcriptome, we generated a chat-like conversation using one of two LLMs (GPT-4 or Mixtral) on the basis of the transcriptome's top 50 most highly expressed genes, the top 50 GSVA-derived gene sets, and the transcriptome's textual annotation. We prepared conversations in four ways, resulting in simple , detailed, complex, and conversational chats . The LLM prompts and examples of the generated conversations are shown in Supplementary Note 1 .",
+        "section_heading": "Development and training of CellWhisperer's multimodal LLM for natural-language chats",
+        "supporting_figure_or_table": null,
+        "pages": [
+          11,
+          12
+        ]
+      },
+      {
+        "route_id": "route_bb452f4c33e5",
+        "route_label": "Transcriptome embeddings plus free-text questions to Mistral 7B for CellWhisperer inference",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "natural-language chats and free-text queries",
+        "source_object_verbatim": "transcriptome profiles",
+        "transformation_chain_verbatim": [
+          "Geneformer-based transcriptome embeddings",
+          "adapter layer that converts the transcriptome embeddings into Mistral-compatible token-level embeddings"
+        ],
+        "model_visible_form_verbatim": "transcriptome-derived token embeddings plus free-text query tokens",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "insertion_or_fusion_verbatim": "a two-layer adapter module",
+        "fusion_topology": "prefix",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Third, to enable natural-language chats with CellWhisperer, we customized and fine-tuned the Mistral 7B open-source LLM (Jiang et al. 2023) to incorporate transcriptome information in addition to textual input. Our approach is inspired by the ability of multimodal LLMs - such as GPT-4, Gemini, and the open-source LLaVA model (H. Liu et al. 2023) - to interpret and converse about images. We generated a training dataset of 106,610 question-answer-style conversations, including simple rule-based conversations (e.g., 'What does the sample represent?' , with the sample's textual annotation as the designated answer) as well as more complex LLMgenerated conversations that all take transcriptome profiles into account (see Methods section for technical details and Supplementary Note 1 for examples). Based on this training dataset, we used the CellWhispererderived transcriptome embeddings together with the prepared questions as input to the Mistral 7B LLM (with an adapter layer that converts the transcriptome embeddings into Mistral -compatible token-level embeddings), and we fine-tuned this LLM to produce the matched answers. The resulting fine-tuned LLM responds to freetext questions and engages in natural-language chats about cells and their biological functions, gene-regulatory mechanisms, and other biological processes that can be linked to transcriptional cell states.",
+        "section_heading": "CellWhisperer links transcriptomes and text through a multimodal embedding model and LLM",
+        "supporting_figure_or_table": null,
+        "pages": [
+          1,
+          3
+        ]
+      },
+      {
+        "route_id": "route_2951164b5686",
+        "route_label": "Conversation evaluation perplexity with matched or mismatched transcriptome embeddings",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "perplexity-based evaluation across 200 question-answer pairs",
+        "source_object_verbatim": "200 question-answer pairs from the conversation evaluation dataset",
+        "transformation_chain_verbatim": [
+          "trimmed the conversations to the first question-answer pair",
+          "removed passages that did not refer to biological cell states",
+          "paired each question with the matched transcriptome embedding and 30 randomly sampled mismatched transcriptome embeddings"
+        ],
+        "model_visible_form_verbatim": "question text with matched or unmatched transcriptome embeddings and candidate answer tokens",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "insertion_or_fusion_verbatim": "transcriptome-derived token embeddings were passed through the multimodal LLM adapter together with the question",
+        "fusion_topology": "prefix",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "We first evaluated whether, for a given conversation, CellWhisperer's multimodal LLM preferred the correctly matched transcriptome over randomly mismatched transcriptomes. We quantified this preference using the perplexity metric, which is defined as the exponentiated average negative log-likelihood of the sequence of tokens that correspond to the 'ground truth' answer for a given prompt (i.e., a question and a matched or unmatched transcriptome embedding). In other words, perplexity measures the degree of surprise for the model when confronted with an answer to a given pair of a question and a matched or unmatched transcriptome.",
+        "section_heading": "Evaluation of CellWhisperer's multimodal LLM for natural-language chats",
+        "supporting_figure_or_table": "Extended Data Figure 3",
+        "pages": [
+          12
+        ]
+      },
+      {
+        "route_id": "route_110ecfea952d",
+        "route_label": "Tabula Sapiens cell-type answer perplexity with Mistral 7B",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "cell type prediction by perplexity",
+        "source_object_verbatim": "Tabula Sapiens pseudo-bulk transcriptomes",
+        "transformation_chain_verbatim": [
+          "asked the prompt 'Which cell type is this cell?'",
+          "converted each annotated cell type label into a natural-language answer by prefixing it with 'This cell is a '",
+          "computed perplexity over all possible cell-type answer texts and ranked the correct answer against mismatched answers"
+        ],
+        "model_visible_form_verbatim": "transcriptome embeddings plus a candidate cell-type answer text",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "connector_mediated_embedding",
+        "insertion_or_fusion_verbatim": "transcriptome-derived token embeddings were passed through the multimodal LLM adapter with the candidate answer text",
+        "fusion_topology": "prefix",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "As a separate line of validation, we assessed whether CellWhisperer's multimodal LLM could correctly predict cell types in the Tabula Sapiens (20 common cell types) dataset. For each of the 20 cell types, we sampled 20 pseudo-bulk transcriptomes, resulting in a total of 400 individual transcriptomes. We asked a simple question ( 'Which cell type is this cell?' ) and converted the annotated cell type label to a natural-language answer by prefixing them with the following text: 'This cell is a ' . To evaluate the preference of a given transcriptome for its annotated cell type, we calculated the perplexity for all possible cell-type answer texts and determined the quantile of the correct cell-type perplexity against the background of all unmatched-answer perplexities.",
+        "section_heading": "Evaluation of CellWhisperer's multimodal LLM for natural-language chats",
+        "supporting_figure_or_table": "Extended Data Figure 3",
+        "pages": [
+          12
+        ]
+      }
+    ],
+    "exact_preview_review": {
+      "model_id": "model_16a912645955",
+      "decision": "pass",
+      "route_ids_supported": [
+        "route_2951164b5686"
+      ],
+      "visible_input_evidence": [
+        "Visible transcriptome embedding feeding the CellWhisperer LLM",
+        "Visible question-answer pair with \"Q: Describe this sample\" and a ground-truth answer",
+        "Visible perplexity label showing evaluation of matched vs. mismatched transcriptome inputs"
+      ],
+      "failure_modes": [
+        "none"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "The crop is readable and shows a coherent evaluation path from transcriptome embedding and question to LLM output/perplexity, which supports the perplexity-based conversation evaluation route.",
+      "confidence": "high"
+    },
+    "input_role_review": {
+      "model_id": "model_16a912645955",
+      "decision": "reject",
+      "route_ids_supported": [],
+      "visible_input_evidence": [
+        "transcriptome embedding",
+        "Q: \"Describe this sample\"",
+        "Question-answer pairs (test set, n=200)",
+        "Perplexity lower is better"
+      ],
+      "failure_modes": [
+        "downstream_consumer",
+        "model_output"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "This crop is an evaluation panel about perplexity over matched/mismatched embeddings, not a clean model input or immediate interface for the named model route.",
+      "confidence": "high"
+    }
+  },
+  {
+    "image_attachment_index": 2,
+    "model_id": "model_1bd0fe9134d7",
+    "model_name": "OCellus-GNN",
+    "paper_title": "OCellus: A Language-Model Framework for Single-Cell, Spatial, and Perturbation Biology with Natural-Language Reasoning",
+    "current_crop_box": {
+      "x": 0,
+      "y": 0,
+      "width": 0.476,
+      "height": 0.441
+    },
+    "routes": [
+      {
+        "route_id": "route_0f9204eed8da",
+        "route_label": "gene symbols to OCellus-GNN perturbation prediction",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Replogle 2022 benchmark",
+        "source_object_verbatim": "individual gene symbols",
+        "transformation_chain_verbatim": [
+          "passing individual gene symbols through the model",
+          "averaging last-layer hidden states",
+          "mapping frozen OCellus gene embeddings to the working dimension",
+          "three graph-convolution layers",
+          "MLP head produces continuous log2 fold-change predictions"
+        ],
+        "model_visible_form_verbatim": "4,096-dimensional gene embeddings",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "pooled_or_aggregated_embedding",
+        "insertion_or_fusion_verbatim": "plug-in graph neural network over the STRING v12 protein-interaction graph",
+        "fusion_topology": "side_or_generative_conditioning",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "passing individual gene symbols through the model and averaging last-layer hidden states",
+        "section_heading": "Results",
+        "supporting_figure_or_table": "Figure 5",
+        "pages": [
+          5,
+          6,
+          46,
+          47,
+          48
+        ]
+      }
+    ],
+    "exact_preview_review": {
+      "model_id": "model_1bd0fe9134d7",
+      "decision": "pass",
+      "route_ids_supported": [
+        "route_0f9204eed8da"
+      ],
+      "visible_input_evidence": [
+        "Visible gene knockout / TP53 KO prediction context",
+        "Visible response genes and log2FC prediction labels",
+        "Visible interpretative model arrowing from input to predicted response genes"
+      ],
+      "failure_modes": [
+        "none"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "The crop clearly shows a source-to-prediction path for gene knockout perturbation prediction, with the knockout gene, response genes, and prediction output all legible.",
+      "confidence": "high"
+    },
+    "input_role_review": {
+      "model_id": "model_1bd0fe9134d7",
+      "decision": "reject",
+      "route_ids_supported": [],
+      "visible_input_evidence": [
+        "TP53 KO prediction",
+        "gene knockout icon",
+        "response genes heatmap",
+        "interpretative model provides context-specific response gene prediction"
+      ],
+      "failure_modes": [
+        "downstream_consumer",
+        "model_output",
+        "wrong_lifecycle_or_configuration"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "The crop shows a prediction/result schematic for knockout validation, not the actual gene-symbol input path required for the route.",
+      "confidence": "high"
+    }
+  },
+  {
+    "image_attachment_index": 3,
+    "model_id": "model_1fb19463c978",
+    "model_name": "GPT-4",
+    "paper_title": "Multimodal learning of transcriptomes and text enables interactive single-cell RNA-seq data exploration with natural-language chats",
+    "current_crop_box": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.39,
+      "height": 0.59
+    },
+    "routes": [
+      {
+        "route_id": "route_50dfc1a52d64",
+        "route_label": "Disease validation metadata annotation with GPT-4",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "zero-shot prompting for the validation dataset",
+        "source_object_verbatim": "metadata for 14,112 primary tissue samples annotated with a disease state",
+        "transformation_chain_verbatim": [
+          "obtained 14,112 primary tissue samples that were annotated with a disease state",
+          "manually curated metadata obtained from SRA, GEO, and PubMed",
+          "prepared textual annotations from metadata downloaded via the Entrez API"
+        ],
+        "model_visible_form_verbatim": "metadata prompt with disease-state context",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "OpenAI API with zero-shot prompting",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "metadata_or_context",
+        "input_status": "actual_model_input",
+        "evidence_quote": "pipelines (Ewels et al. 2020; Patel, Ewels, et al. 2024; Patel, Garcia, et al. 2024) for preparing the transcriptome 415 data, whereas textual annotations were prepared from metadata downloaded via the Entrez API (biopython) and GPT-4 using the OpenAI API with zero-shot prompting. Because this dataset contains multiple samples with highly overlapping textual annotations, we additionally derived a deduplicated disease validation dataset for use in retrieval scoring. To that end, we processed all 14,112 textual annotations with BioBERT, performed",
+        "section_heading": "Validation dataset. To guide model development, we derived a thematically coherent disease validation dataset from GEO.",
+        "supporting_figure_or_table": null,
+        "pages": [
+          10
+        ]
+      }
+    ],
+    "exact_preview_review": {
+      "model_id": "model_1fb19463c978",
+      "decision": "reject",
+      "route_ids_supported": [],
+      "visible_input_evidence": [
+        "Visible CellWhisperer training/application overview with sample-description generation",
+        "Visible transcriptome/text conversation examples, not disease-validation metadata",
+        "No clear disease-state validation annotation path or zero-shot GPT-4 validation dataset input"
+      ],
+      "failure_modes": [
+        "other"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "This crop is coherent for the CellWhisperer overview, but it does not visibly support the claimed disease-validation metadata annotation route; the relevant GPT-4 zero-shot validation input path is not shown.",
+      "confidence": "high"
+    },
+    "input_role_review": {
+      "model_id": "model_1fb19463c978",
+      "decision": "reject",
+      "route_ids_supported": [],
+      "visible_input_evidence": [
+        "Generating sample descriptions",
+        "Q: \"Describe this sample\"",
+        "LLM (GPT-4, Mixtral)",
+        "transcriptomes and text"
+      ],
+      "failure_modes": [
+        "wrong_model_variant",
+        "wrong_lifecycle_or_configuration",
+        "downstream_consumer"
+      ],
+      "proposed_crop_box": null,
+      "concise_rationale": "This is a CellWhisperer figure about transcriptome-text conversation generation, not the GPT-4 disease-validation metadata annotation route named in the record.",
+      "confidence": "high"
+    }
+  }
+]

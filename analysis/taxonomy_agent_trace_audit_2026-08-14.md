@@ -46,6 +46,48 @@ Longevity-LLM cases remain part of the F6 evidence-sufficiency work. The old and
 current route totals remain valid within-version outputs, not directly
 comparable prevalence estimates.
 
+## Follow-up: F6 semantic sufficiency, 2026-08-17
+
+The semantic-sufficiency audit requested in F6 is complete under
+`analysis/taxonomy_semantic_sufficiency_audit_2026-08-17/`. It selected the
+union of dense-only and inferred final routes: 95 routes from 18 records. Two
+independent `gpt-5.4-mini` roles reviewed all ten material fields against each
+complete canonical Docling Markdown document without truncation; 66 routes with
+field disagreement or a non-retain decision went to a separate full-document
+adjudicator. Every returned supporting quote was verified against canonical
+Markdown, and every request, schema, response, error, retry, command, hash, and
+timing is retained.
+
+The final dispositions retain 45 routes as-is, recommend field revision for 46,
+and leave four ProCyon routes for manual full-text resolution. The dominant
+problem is over-specific carrier subtype, model-visible-form, insertion, or
+fusion-topology coding, rather than an untraceable paper or fabricated route.
+The four unresolved routes use real benchmark labels (`GO Function`, `GtoP`,
+`Drugbank Transporter`, and `Drugbank Target`) but do not establish the current
+peptide-specific input interpretation. The audit closes the missing F6 test, but
+does not silently mutate the canonical 586-route output: its 50-row action queue
+must be resolved in a versioned correction release before that output can be
+called semantically cross-validated.
+
+## Follow-up: F7 exact-preview validation, 2026-08-17
+
+The missing exact-preview and exact-model input-role checks are complete under
+`analysis/atlas_exact_preview_validation_2026-08-17/`. The audit reconstructed
+and hash-verified the exact rendered crops for all 98 currently cropped models;
+the other 11 already had `no_suitable_figure`. Two blind `gpt-5.4-mini` visual
+roles reviewed every crop, 19 conflicts were adjudicated, and every adjusted or
+replacement crop was rendered and reviewed again.
+
+Eighty-nine crops pass the strengthened gate. The OCellus-Agent crop was adjusted
+and revalidated. Nine prior crops fail exact input-role validation. For six of
+those cases, the audit searched every native source figure and attempted
+replacement selection/cropping; no candidate survived both exact-preview and
+adversarial input-role review. The proposed cross-validated ledger therefore has
+89 crops and 20 explicit no-suitable-figure dispositions, with zero unresolved
+models. It is stored separately from the canonical crop ledger. F7's validation
+gap is closed, while promotion of the proposed ledger and atlas rebuild remain a
+reviewed correction-release step rather than an audit side effect.
+
 ## Verdict
 
 The LLM, Docling Graph, VLM, and crop-agent executions were real. There is no
@@ -321,13 +363,13 @@ and cross-version gaps above remain important.
    stable after the fix.
 3. Replace hard-coded full-corpus Methods prose with values and protocol mode
    derived from run metadata. State explicitly that taxonomy v1 was frozen.
-4. Build a 52-record old-to-current migration ledger for studies, models,
-   configurations, and routes; manually review the largest gains/losses.
-5. Review all 92 dense-only final routes, prioritizing 34 very short evidence
-   spans and all 7 inferred routes. Require section-level evidence sufficient
-   for every coded route field or downgrade/remove the route.
-6. Run exact-preview and input-role integrity validation on the 98 displayed
-   crops, with a separate adjudicator for failures and changed crops.
+4. Use the completed F5 migration ledger when reporting cross-version change;
+   do not compare the old and current route totals as direct prevalence drift.
+5. Resolve the completed F6 audit's 46 field-revision rows and four manual
+   full-text cases in one declared correction version, then rerun semantic
+   sufficiency before promotion.
+6. Review and promote the completed F7 audit's proposed crop ledger, then rebuild
+   and visually verify the atlas so the nine rejected crops are no longer served.
 7. Replace `commands.sh` with an end-to-end release driver or generated replay
    manifest that includes repairs, final selection, crops, snapshot, UI build,
    browser QA, manifest regeneration, and publication.
@@ -342,9 +384,9 @@ and cross-version gaps above remain important.
 - **Verbatim/native-item provenance presence:** pass.
 - **Registry correctness:** fail.
 - **Methods accuracy:** fail.
-- **Cross-version interpretability:** incomplete.
-- **Evidence semantic sufficiency:** incomplete.
-- **Crop semantic validation parity:** fail.
+- **Cross-version interpretability:** pass through the F5 migration ledger.
+- **Evidence semantic sufficiency:** audit complete; canonical correction pending.
+- **Crop semantic validation parity:** audit complete; canonical promotion pending.
 - **End-to-end one-command reproducibility:** fail.
 
 The present output is a substantial, traceable computation, not a simulated

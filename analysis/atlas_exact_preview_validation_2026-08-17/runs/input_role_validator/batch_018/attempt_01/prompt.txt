@@ -1,0 +1,765 @@
+Act as a blind adversarial input-role validator. Determine what the RIGHT crop actually depicts. It passes only when it visibly shows an input, transformation, model-visible carrier, or immediate interface for the exact named model and at least one listed `actual_model_input` route. Reject outputs, downstream consumers, graders, benchmark/results panels, generic data summaries, wrong variants, or wrong lifecycle/configuration evidence.
+
+Every attachment has the full source figure with the selected red rectangle on the LEFT and the exact selected source-pixel crop on the RIGHT.
+
+Rules:
+- Inspect pixels, not earlier agent rationales.
+- The representative crop need not show every route, but report exactly which route IDs it visibly supports.
+- A `pass` requires at least one supported route and concrete visible evidence.
+- For `adjust`, return normalized coordinates relative to the full source figure and ensure x+width <= 1 and y+height <= 1.
+- Use `reject` when this figure cannot support a responsible crop for the target model/routes.
+- Return one review for every model_id and no others.
+- Do not use tools, external knowledge, or hidden chain-of-thought. Keep rationales concise and tied to visible content.
+
+Reviewer role: input_role_validator
+
+RECORDS
+[
+  {
+    "image_attachment_index": 1,
+    "model_id": "model_b4d1be45d2bb",
+    "model_name": "Omni-DNA",
+    "paper_title": "Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning",
+    "figure_index": 3,
+    "current_crop_box": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.27,
+      "height": 1.0
+    },
+    "claimed_route_ids_supported": [
+      "route_ff58ef3678d5"
+    ],
+    "routes": [
+      {
+        "route_id": "route_ff58ef3678d5",
+        "route_label": "DNA-only pretraining",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "pretraining on DNA sequences with next token prediction objective",
+        "source_object_verbatim": "unlabeled DNA data",
+        "transformation_chain_verbatim": [
+          "remove exact duplicates from NCBI's multi-species genome dataset",
+          "Byte-Pair Encoding (BPE) tokenizer",
+          "autoregressive next token prediction"
+        ],
+        "model_visible_form_verbatim": "DNA token sequences",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "insertion_or_fusion_verbatim": "direct DNA-only tokenization into the auto-regressive transformer",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "no_text_on_this_route",
+        "input_status": "actual_model_input",
+        "evidence_quote": "we pretrain a series of autoregressive transformer-based models using unlabeled DNA data",
+        "section_heading": "3.1. Pretraining",
+        "supporting_figure_or_table": "Figure 3",
+        "pages": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "route_id": "route_5a870e25295a",
+        "route_label": "Task-unified DNA classification with prompts and label tokens",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "cross-modal multi-task finetuning; task unification",
+        "source_object_verbatim": "DNA sequences from labeled genomic tasks",
+        "transformation_chain_verbatim": [
+          "append a task-specific prompt Prompt_k to the input",
+          "expand the tokenizer vocabulary to include unique new tokens",
+          "replicate key label tokens by factor α",
+          "add noise using NEFTune during loss computation"
+        ],
+        "model_visible_form_verbatim": "instruction-response token sequence with expanded BPE tokenizer",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "task-specific prompt appended to DNA input with expanded embedding matrix",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "each sample from task k is modified by appending a task-specific prompt Prompt k to its input x ( i )",
+        "section_heading": "3.2. Cross-modal Multi-task Finetuning",
+        "supporting_figure_or_table": "Algorithm 1 / Table 1",
+        "pages": [
+          4,
+          8,
+          9
+        ]
+      },
+      {
+        "route_id": "route_6610039a3b9e",
+        "route_label": "DNA-to-functional-text generation",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "DNA2Func / Seq2Func functional annotation generation",
+        "source_object_verbatim": "DNA sequences from 20 species",
+        "transformation_chain_verbatim": [
+          "append a function-prediction prompt",
+          "expand vocabulary with text tokens"
+        ],
+        "model_visible_form_verbatim": "instruction-response token sequence with textual annotations",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "task-specific prompt appended to DNA input with expanded BPE tokenizer",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "each sequence is annotated with a concise short annotation followed by a more detailed natural language description",
+        "section_heading": "5.2. Functional Annotation Generation (DNA2Func)",
+        "supporting_figure_or_table": "Figure 10 / Table 11",
+        "pages": [
+          1,
+          4,
+          7
+        ]
+      },
+      {
+        "route_id": "route_c4ad04e86ac4",
+        "route_label": "DNA-to-digit-image generation",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "Needle-in-DNA task (DNA2Image)",
+        "source_object_verbatim": "synthetic DNA sequences containing one of four functional motifs {TATAAA, CAAT, GGGCGG, TTAGGG}",
+        "transformation_chain_verbatim": [
+          "append an image-mapping prompt",
+          "discretize MNIST images with VQ-VAE into 49 discrete tokens"
+        ],
+        "model_visible_form_verbatim": "instruction-response token sequence with discretized image tokens",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "task-specific prompt appended to DNA input; image output tokenized by VQ-VAE",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "generate the corresponding handwritten digit image",
+        "section_heading": "5.3. Needle-in-DNA Task (DNA2Image)",
+        "supporting_figure_or_table": "Figure 5",
+        "pages": [
+          1,
+          4,
+          7,
+          8
+        ]
+      },
+      {
+        "route_id": "route_96f0223e6ea1",
+        "route_label": "DNA classification with a linear head",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "conventional full-size fine-tuning with a classification head for NT Downstream and Genomic Benchmark tasks",
+        "source_object_verbatim": "DNA sequences from labeled genomic tasks",
+        "transformation_chain_verbatim": [
+          "attach a linear layer on top for sequence classification",
+          "full-size finetuning"
+        ],
+        "model_visible_form_verbatim": "DNA token sequences",
+        "carrier_family": "discrete_biological_symbol_stream",
+        "carrier_subtype": "native_biological_token_stream",
+        "insertion_or_fusion_verbatim": "pretrained model with AutoModelForSequenceClassification linear head",
+        "fusion_topology": "other_explicit",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "automatically adds a linear layer on top for sequence classification",
+        "section_heading": "D. Finetuning with Classificatoin Head",
+        "supporting_figure_or_table": "Table 2 / Table 3 / Table 8 / Table 9",
+        "pages": [
+          5,
+          6,
+          8,
+          9,
+          14,
+          15,
+          16
+        ]
+      },
+      {
+        "route_id": "route_b81c19c31deb",
+        "route_label": "DNA-to-functional-text inference",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "generate a natural language description for functional annotations",
+        "source_object_verbatim": "DNA sequence",
+        "transformation_chain_verbatim": [
+          "What is the function of this sequence?",
+          "generate a natural language description for functional annotations"
+        ],
+        "model_visible_form_verbatim": "What is the function of this sequence?GGCTG...TTTTCTGA",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "insertion_or_fusion_verbatim": "What is the function of this sequence?",
+        "fusion_topology": "prefix",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Omni-DNA could generate a natural language description for functional annotations.",
+        "section_heading": "1. Introduction",
+        "supporting_figure_or_table": "Figure 1",
+        "pages": [
+          2,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 2,
+    "model_id": "model_b8eba3c26c46",
+    "model_name": "Qwen3-1.7B and Qwen3-4B",
+    "paper_title": "How Post-Training Shapes Biological Reasoning Models",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0.435,
+      "y": 0.011,
+      "width": 0.13,
+      "height": 0.989
+    },
+    "claimed_route_ids_supported": [
+      "route_b1629b0a2392"
+    ],
+    "routes": [
+      {
+        "route_id": "route_f63a340967cb",
+        "route_label": "Biology CPT text",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "biology subset of FineFineWeb",
+        "source_object_verbatim": "biology subset of FineFineWeb",
+        "transformation_chain_verbatim": [
+          "tokenized biological free-text",
+          "causal next-token prediction"
+        ],
+        "model_visible_form_verbatim": "tokenized biological free-text",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "insertion_or_fusion_verbatim": "language model alone",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "no_text_on_this_route",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We mid-train the two Qwen3 backbones on the biology subset of FineFineWeb [77].",
+        "section_heading": "B.2 Continued Pre-training (Mid-training) Setup",
+        "supporting_figure_or_table": null,
+        "pages": [
+          18,
+          22,
+          32
+        ]
+      },
+      {
+        "route_id": "route_b1629b0a2392",
+        "route_label": "Pathway DNA encoder route",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "pathway prediction",
+        "source_object_verbatim": "paired reference and variant DNA sequences",
+        "transformation_chain_verbatim": [
+          "DNA-specific start and padding tokens",
+          "frozen Evo2-1B encoder",
+          "trainable linear projection",
+          "prepended to the text embeddings"
+        ],
+        "model_visible_form_verbatim": "DNA hidden state",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "direct_projected_embedding",
+        "insertion_or_fusion_verbatim": "DNA hidden state is prepended to the text embeddings",
+        "fusion_topology": "prefix",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "DNA hidden state is prepended",
+        "section_heading": "B.1 Base Models, Tokenization, and Input Representations",
+        "supporting_figure_or_table": null,
+        "pages": [
+          18,
+          20,
+          21,
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_f4b298ad02fb",
+        "route_label": "Pathway prompt route",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "pathway prediction",
+        "source_object_verbatim": "pathway network definition and gene annotations",
+        "transformation_chain_verbatim": [
+          "tokenized text",
+          "text embeddings"
+        ],
+        "model_visible_form_verbatim": "tokenized text",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "followed by a pathway network definition and gene annotations",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Pathway prediction. A representative input consists of two versions of the same DNA sequence region, with and without the mutation, including DNA-specific start and padding tokens, followed by a pathway network definition and gene annotations. The model is then asked to infer the biological or disease effect associated with the allele. For example:",
+        "section_heading": "A.4 Example Prompts and Inputs for Each Task",
+        "supporting_figure_or_table": null,
+        "pages": [
+          20,
+          21,
+          22
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 3,
+    "model_id": "model_c0a097206f2c",
+    "model_name": "CellHermes",
+    "paper_title": "Language may be all omics needs: Harmonizing multimodal data for omics understanding with CellHermes",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0.02,
+      "y": 0.14,
+      "width": 0.8,
+      "height": 0.19
+    },
+    "claimed_route_ids_supported": [
+      "route_4f41a9d21678",
+      "route_ff6373f5dec8"
+    ],
+    "routes": [
+      {
+        "route_id": "route_4f41a9d21678",
+        "route_label": "single-cell transcriptome MLM pretraining",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "masked language modeling (MLM)",
+        "source_object_verbatim": "single-cell transcriptomic profile",
+        "transformation_chain_verbatim": [
+          "row-normalized (summing to 10,000) and log-normalized",
+          "ranked gene expression values",
+          "truncated the top 100 genes",
+          "serialized into a gene-expression 'sentence'",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language instruction-response pair over ranked gene names",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction templates on a pretrained LLaMA-3.1-8B-Instruct backbone with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "In MLM, the instruction specifies which tokens are masked",
+        "section_heading": "Self-supervised learning (SSL) emulation instruction dataset construction",
+        "supporting_figure_or_table": "Fig. 1b",
+        "pages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          20,
+          21,
+          28
+        ]
+      },
+      {
+        "route_id": "route_ff6373f5dec8",
+        "route_label": "single-cell transcriptome autoregressive pretraining",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "autoregressive prediction",
+        "source_object_verbatim": "single-cell transcriptomic profile",
+        "transformation_chain_verbatim": [
+          "row-normalized (summing to 10,000) and log-normalized",
+          "ranked gene expression values",
+          "truncated the top 100 genes",
+          "serialized into a gene-expression 'sentence'",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language prefix-to-next-token instruction-response pair over ranked gene names",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "instruction templates on a pretrained LLaMA-3.1-8B-Instruct backbone with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "In AR, the instruction is the prefix sequence",
+        "section_heading": "Self-supervised learning (SSL) emulation instruction dataset construction",
+        "supporting_figure_or_table": "Fig. 1b",
+        "pages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          20,
+          21,
+          28
+        ]
+      },
+      {
+        "route_id": "route_392326cd1a03",
+        "route_label": "PPI masked node pretraining",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "masked node prediction",
+        "source_object_verbatim": "protein-protein interaction (PPI) network",
+        "transformation_chain_verbatim": [
+          "downloaded from BioGRID and filtered for Homo sapiens physical interactions",
+          "represented as a graph G=(V,A)",
+          "designed five template types",
+          "masked a node and used its neighborhood context",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language graph-context instruction with a masked node",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction templates on a pretrained LLaMA-3.1-8B-Instruct backbone with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "the instruction encodes the graph context with a masked node",
+        "section_heading": "Self-supervised learning (SSL) emulation instruction dataset construction",
+        "supporting_figure_or_table": "Fig. 1b",
+        "pages": [
+          3,
+          4,
+          20,
+          21
+        ]
+      },
+      {
+        "route_id": "route_93a958aa7b2a",
+        "route_label": "PPI masked link pretraining",
+        "lifecycle_phase": "pretraining",
+        "task_or_configuration_verbatim": "masked link prediction",
+        "source_object_verbatim": "protein-protein interaction (PPI) network",
+        "transformation_chain_verbatim": [
+          "downloaded from BioGRID and filtered for Homo sapiens physical interactions",
+          "represented as a graph G=(V,A)",
+          "designed ten template types",
+          "masked an edge and used its neighborhood context",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language graph-context instruction with a missing edge",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction templates on a pretrained LLaMA-3.1-8B-Instruct backbone with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "the instruction specifies the graph neighborhood with a missing edge",
+        "section_heading": "Self-supervised learning (SSL) emulation instruction dataset construction",
+        "supporting_figure_or_table": "Fig. 1b",
+        "pages": [
+          3,
+          4,
+          20,
+          21
+        ]
+      },
+      {
+        "route_id": "route_c2c95046be4c",
+        "route_label": "gene embedding from gene symbol",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "gene embeddings",
+        "source_object_verbatim": "gene name",
+        "transformation_chain_verbatim": [
+          "complete gene name provided as input",
+          "tokenized as text",
+          "final sub-token embedding extracted from the last transformer layer"
+        ],
+        "model_visible_form_verbatim": "the complete gene name (e.g. BRCA1)",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "plain_language_prompt_or_question",
+        "insertion_or_fusion_verbatim": "extracting the final sub-token embedding from the last transformer layer",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "gene embeddings are extracted by taking the final sub-token embedding from the last transformer layer",
+        "section_heading": "Gene embeddings",
+        "supporting_figure_or_table": "Fig. 2a",
+        "pages": [
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_6c8f21176e6c",
+        "route_label": "cell embedding from ranked gene sentence",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "sentence-based embedding (CellHermes-s)",
+        "source_object_verbatim": "a 'cell sentence' consisting of ranked gene names",
+        "transformation_chain_verbatim": [
+          "ranked gene names",
+          "cell sentence",
+          "last sub-token embedding extracted from the final transformer layer"
+        ],
+        "model_visible_form_verbatim": "ranked gene-name sentence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "serialized_biological_context_or_ordered_profile",
+        "insertion_or_fusion_verbatim": "extracting the last sub-token embedding from the final transformer layer",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "biological_payload",
+        "input_status": "actual_model_input",
+        "evidence_quote": "using as input a 'cell sentence' consisting of ranked gene names (CellHermes-s)",
+        "section_heading": "Embedding cells while preserving biological signals and mitigating batch effects",
+        "supporting_figure_or_table": "Fig. 3a",
+        "pages": [
+          6,
+          7,
+          11,
+          12,
+          13,
+          22,
+          23,
+          27
+        ]
+      },
+      {
+        "route_id": "route_25b99cf078be",
+        "route_label": "weighted gene-embedding average",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "weighted gene-embedding average (CellHermes-w)",
+        "source_object_verbatim": "a cell's gene expression profile",
+        "transformation_chain_verbatim": [
+          "convert a cell into gene embeddings",
+          "compute the weighted average of gene embeddings based on expression levels"
+        ],
+        "model_visible_form_verbatim": "expression-weighted gene-embedding vector",
+        "carrier_family": "dense_continuous_carrier",
+        "carrier_subtype": "pooled_or_aggregated_embedding",
+        "insertion_or_fusion_verbatim": "weighted average of gene embeddings based on expression levels",
+        "fusion_topology": "other_explicit",
+        "text_role": "no_text_on_this_route",
+        "input_status": "actual_model_input",
+        "evidence_quote": "weighted average of gene embeddings based on expression levels",
+        "section_heading": "Embedding cells while preserving biological signals and mitigating batch effects",
+        "supporting_figure_or_table": null,
+        "pages": [
+          6,
+          7,
+          11,
+          12,
+          13,
+          22,
+          23,
+          27
+        ]
+      },
+      {
+        "route_id": "route_0edf23432715",
+        "route_label": "cell-specific gene embeddings with cell context",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "cell-type-specific gene embeddings",
+        "source_object_verbatim": "one cell's transcriptomic information",
+        "transformation_chain_verbatim": [
+          "incorporated the transcriptomic information of one cell into the prompt",
+          "generated gene embeddings tailored to that cell"
+        ],
+        "model_visible_form_verbatim": "prompt containing a cell transcriptomic context and a gene query",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "incorporating the transcriptomic information of one cell into the prompt",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "we incorporated the transcriptomic information of one cell into the prompt",
+        "section_heading": "Embedding genes and constructs into cell-specific gene networks",
+        "supporting_figure_or_table": "Fig. 2e",
+        "pages": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_ccfc70eb3ae8",
+        "route_label": "perturbation prediction instruction tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "perturbation prediction (DEG prediction and gene expression change direction prediction)",
+        "source_object_verbatim": "perturbation data from Perturbase",
+        "transformation_chain_verbatim": [
+          "adopted the STAMP framework",
+          "structured prediction of differentially expressed gene (DEG) outcomes",
+          "gene expression change direction prediction",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language question-answer pair for perturbation response",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction fine-tuning on the existing natural language-LLM with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "For the perturbation prediction task, we adopted the STAMP framework",
+        "section_heading": "CellHermes as a predictor to enable multi-task biological prediction",
+        "supporting_figure_or_table": "Fig. 4c",
+        "pages": [
+          13,
+          23
+        ]
+      },
+      {
+        "route_id": "route_95763cec2e30",
+        "route_label": "cell fitness prediction instruction tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "cell fitness prediction",
+        "source_object_verbatim": "cell fitness data from DepMap",
+        "transformation_chain_verbatim": [
+          "constructed from the DepMap-derived dataset",
+          "evaluated unseen gene and unseen cell line scenarios",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language question-answer pair for cell fitness",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction fine-tuning on the existing natural language-LLM with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "For cell fitness prediction, we used the DepMap-derived dataset",
+        "section_heading": "CellHermes as a predictor to enable multi-task biological prediction",
+        "supporting_figure_or_table": "Fig. 4e",
+        "pages": [
+          23
+        ]
+      },
+      {
+        "route_id": "route_038e564e42f0",
+        "route_label": "genetic interaction classification instruction tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "genetic interaction classification",
+        "source_object_verbatim": "genetic interaction examples from BioGRID",
+        "transformation_chain_verbatim": [
+          "evaluated performance across four different genetic interaction (GI) types",
+          "converted into question-answer pairs"
+        ],
+        "model_visible_form_verbatim": "natural language question-answer pair for genetic interaction type",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction fine-tuning on the existing natural language-LLM with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "For genetic interaction classification, we evaluated performance across four different genetic interaction (GI) types",
+        "section_heading": "CellHermes as a predictor to enable multi-task biological prediction",
+        "supporting_figure_or_table": "Fig. 4f",
+        "pages": [
+          14,
+          15,
+          23
+        ]
+      },
+      {
+        "route_id": "route_8f43e17eb0ce",
+        "route_label": "gene-set classification instruction tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "gene set-based tasks (cell type, disease, phenotype, and rare disease)",
+        "source_object_verbatim": "gene sets from CellMarker, CTD, Orphanet, and DisGeNET",
+        "transformation_chain_verbatim": [
+          "built from CellMarker, CTD, Orphanet, and DisGeNET",
+          "classified gene sets according to their associated category",
+          "converted into unified instruction-response format"
+        ],
+        "model_visible_form_verbatim": "natural language instruction-response pair for gene-set category classification",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction fine-tuning on the existing natural language-LLM with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "For gene set-based tasks (cell type, disease, phenotype, and rare disease), the objective was to classify gene sets according to their associated category",
+        "section_heading": "CellHermes as a predictor to enable multi-task biological prediction",
+        "supporting_figure_or_table": "Fig. 4f",
+        "pages": [
+          23
+        ]
+      },
+      {
+        "route_id": "route_499c67ed1380",
+        "route_label": "tumor-reactivity classification instruction tuning",
+        "lifecycle_phase": "fine_tuning",
+        "task_or_configuration_verbatim": "tumor-reactivity classification",
+        "source_object_verbatim": "T cell transcriptomic profiles from melanoma patients",
+        "transformation_chain_verbatim": [
+          "use transcriptomic profiles of more than 1,000 T cells",
+          "construct instruction-label pairs",
+          "fine-tune CellHermes for tumor-reactivity classification"
+        ],
+        "model_visible_form_verbatim": "instruction-label pair for tumor-reactivity classification",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "instruction fine-tuning on the existing natural language-LLM with LoRA",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "paired_alignment_supervision",
+        "input_status": "paired_alignment_input",
+        "evidence_quote": "we applied CellHermes to predict the tumor reactivity of T cells based on their transcriptomic profiles",
+        "section_heading": "CellHermes as an explainer to provide interpretable explanations for biological discovery",
+        "supporting_figure_or_table": "Fig. 5a",
+        "pages": [
+          16,
+          18,
+          19
+        ]
+      },
+      {
+        "route_id": "route_26c3e6a61748",
+        "route_label": "tumor-reactivity explanation prompt",
+        "lifecycle_phase": "inference",
+        "task_or_configuration_verbatim": "text-based reasoning explanation for tumor-reactivity predictions",
+        "source_object_verbatim": "the original transcriptome and the predicted phenotype",
+        "transformation_chain_verbatim": [
+          "provide the original transcriptome and predicted phenotype",
+          "prompt CellHermes to generate a reasoning-based explanation"
+        ],
+        "model_visible_form_verbatim": "prompt built from the original transcriptome and predicted phenotype",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "a prompt is constructed using both the original transcriptome and the predicted phenotype",
+        "fusion_topology": "concatenation",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "a prompt is constructed using both the original transcriptome and the predicted phenotype",
+        "section_heading": "CellHermes as an explainer to provide interpretable explanations for biological discovery",
+        "supporting_figure_or_table": "Fig. 5b",
+        "pages": [
+          18,
+          19
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 4,
+    "model_id": "model_c443713ee155",
+    "model_name": "LLaMA2-7B",
+    "paper_title": "Geneverse: A collection of Open-source Multimodal Large Language Models for Genomic and Proteomic Research",
+    "figure_index": 6,
+    "current_crop_box": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 0.49,
+      "height": 0.46
+    },
+    "claimed_route_ids_supported": [
+      "route_22d13b63dfa8"
+    ],
+    "routes": [
+      {
+        "route_id": "route_22d13b63dfa8",
+        "route_label": "gene-function prompt to LLaMA2-7B",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "gene function description",
+        "source_object_verbatim": "gene name in the prompt",
+        "transformation_chain_verbatim": [
+          "instruction example"
+        ],
+        "model_visible_form_verbatim": "text prompt",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "text-only prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_heading": "4.1 Benchmarking LLMs for summarizing of gene functions",
+        "supporting_figure_or_table": "Table 1",
+        "pages": [
+          4,
+          16
+        ]
+      }
+    ]
+  }
+]

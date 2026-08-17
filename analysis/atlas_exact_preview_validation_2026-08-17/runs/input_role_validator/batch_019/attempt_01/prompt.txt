@@ -1,0 +1,404 @@
+Act as a blind adversarial input-role validator. Determine what the RIGHT crop actually depicts. It passes only when it visibly shows an input, transformation, model-visible carrier, or immediate interface for the exact named model and at least one listed `actual_model_input` route. Reject outputs, downstream consumers, graders, benchmark/results panels, generic data summaries, wrong variants, or wrong lifecycle/configuration evidence.
+
+Every attachment has the full source figure with the selected red rectangle on the LEFT and the exact selected source-pixel crop on the RIGHT.
+
+Rules:
+- Inspect pixels, not earlier agent rationales.
+- The representative crop need not show every route, but report exactly which route IDs it visibly supports.
+- A `pass` requires at least one supported route and concrete visible evidence.
+- For `adjust`, return normalized coordinates relative to the full source figure and ensure x+width <= 1 and y+height <= 1.
+- Use `reject` when this figure cannot support a responsible crop for the target model/routes.
+- Return one review for every model_id and no others.
+- Do not use tools, external knowledge, or hidden chain-of-thought. Keep rationales concise and tied to visible content.
+
+Reviewer role: input_role_validator
+
+RECORDS
+[
+  {
+    "image_attachment_index": 1,
+    "model_id": "model_c47c8bf166d6",
+    "model_name": "o3-mini",
+    "paper_title": "Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0,
+      "y": 0.34,
+      "width": 0.33,
+      "height": 0.66
+    },
+    "claimed_route_ids_supported": [
+      "route_b3ec9d44728a"
+    ],
+    "routes": [
+      {
+        "route_id": "route_781af690075d",
+        "route_label": "cell-level reasoning prompt (o3-mini)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Cell-level Reasoning Setup",
+        "source_object_verbatim": "the gene expression profile of a single cell from a specific donor",
+        "transformation_chain_verbatim": [
+          "use the single cell's top expressed genes",
+          "combine them with donor context",
+          "provide a fixed candidate label set",
+          "format the response with reasoning tags"
+        ],
+        "model_visible_form_verbatim": "a single-cell prompt with donor context, candidate labels, and structured <think>/<answer> instructions",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt template",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "You are an expert assistant specialized in cell type annotation. You will be given the gene expression profile of a single cell from a specific donor. The top expressed genes are listed in descending order. Use both gene expression and donor context to determine the correct cell type. You will also receive a list of candidate cell types-choose the one that best fits this cell . Include your detailed reasoning within <think> and </think> tags, and provide your final answer within <answer> and </answer> tags. The final answer should be a single string with exactly one cell type.",
+        "section_heading": "C Cell-level vs. Batch-level Reasoning",
+        "supporting_figure_or_table": "Table 11",
+        "pages": [
+          21
+        ]
+      },
+      {
+        "route_id": "route_b3ec9d44728a",
+        "route_label": "batch-level reasoning prompt (o3-mini)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Batch-level Reasoning Setup",
+        "source_object_verbatim": "a batch of N cells from the same donor",
+        "transformation_chain_verbatim": [
+          "rank top-expressed genes per cell",
+          "combine with donor context",
+          "present the candidate label set",
+          "directly predict answers without reasoning traces"
+        ],
+        "model_visible_form_verbatim": "batch-level structured input without reasoning traces",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "direct prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "You are an expert assistant specialized in cell type annotation. You will be given a batch of N cells from the same donor, where each cell represents a unique cell type. For each cell, the top-expressed genes are provided in descending order of expression. Using both the gene expression data and donor information, determine the correct cell type for each cell. You will also receive a list of N candidate cell types, and each candidate must be assigned to exactly one cell. Ensure that you consider all cells and candidate types together, rather than annotating each cell individually. Include your detailed reasoning within <think> and </think> tags, and provide your final answer within <answer> and </answer> tags. The final answer should be a single string listing the assigned cell types in order, separated by ' | '.",
+        "section_heading": "C Cell-level vs. Batch-level Reasoning",
+        "supporting_figure_or_table": "Table 11",
+        "pages": [
+          4
+        ]
+      },
+      {
+        "route_id": "route_768e5f339019",
+        "route_label": "open-ended QA prompt (o3-mini)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Open-ended QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "provide gene expression profile and metadata",
+          "remove the constrained label set",
+          "ask for free-form cell type generation"
+        ],
+        "model_visible_form_verbatim": "free-form textual generation of a cell type name for each cell",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompting without constrained labels",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_b74ebbc6e38c",
+        "route_label": "constrained QA prompt (o3-mini)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Constrained QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "rank top-expressed genes per cell",
+          "convert donor metadata into natural language context",
+          "attach a predefined candidate label set",
+          "require a single ordered answer string"
+        ],
+        "model_visible_form_verbatim": "a structured batch-level text prompt with candidate labels and ordered answer output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "predefined candidate label set with structured prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 2,
+    "model_id": "model_ca02cecd45be",
+    "model_name": "Qwen2.5-7B-Instruct",
+    "paper_title": "Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+    "figure_index": 2,
+    "current_crop_box": {
+      "x": 0,
+      "y": 0.46,
+      "width": 0.72,
+      "height": 0.54
+    },
+    "claimed_route_ids_supported": [
+      "route_e8e195e0b315"
+    ],
+    "routes": [
+      {
+        "route_id": "route_f6a3945350e8",
+        "route_label": "cell-level prediction prompt (Qwen2.5-7B-Instruct)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Cell-level Prediction Setup",
+        "source_object_verbatim": "the gene expression profile of a single cell from a specific donor",
+        "transformation_chain_verbatim": [
+          "use the single cell's top expressed genes",
+          "combine them with donor context",
+          "provide the fixed candidate label set",
+          "directly classify without reasoning traces"
+        ],
+        "model_visible_form_verbatim": "a single-cell prompt with donor context and candidate labels, without reasoning traces",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "direct prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "We consider two variants under this cell-level setup: Cell-level Prediction Setup : Instruction-tuned models that have not been exposed to any reasoning tasks. These models directly predict answers from the input without generating reasoning traces. Cell-level Reasoning Setup : Models capable of generating reasoning traces are evaluated on individual cells in isolation, requiring them to infer labels without the help of contextual comparisons among cells.",
+        "section_heading": "B.2 Baselines",
+        "supporting_figure_or_table": "Table 11",
+        "pages": [
+          21
+        ]
+      },
+      {
+        "route_id": "route_d1359ce2ae2e",
+        "route_label": "open-ended QA prompt (Qwen2.5-7B-Instruct)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Open-ended QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "provide gene expression profile and metadata",
+          "remove the constrained label set",
+          "ask for free-form cell type generation"
+        ],
+        "model_visible_form_verbatim": "free-form textual generation of a cell type name for each cell",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompting without constrained labels",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_e8e195e0b315",
+        "route_label": "constrained QA prompt (Qwen2.5-7B-Instruct)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Constrained QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "rank top-expressed genes per cell",
+          "convert donor metadata into natural language context",
+          "attach a predefined candidate label set",
+          "require a single ordered answer string"
+        ],
+        "model_visible_form_verbatim": "a structured batch-level text prompt with candidate labels and ordered answer output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "predefined candidate label set with structured prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 3,
+    "model_id": "model_cabb39a8d967",
+    "model_name": "GPT-4o",
+    "paper_title": "Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0,
+      "y": 0.37,
+      "width": 0.34,
+      "height": 0.63
+    },
+    "claimed_route_ids_supported": [
+      "route_d52f38caf9ac"
+    ],
+    "routes": [
+      {
+        "route_id": "route_3346bafbaa10",
+        "route_label": "cell-level reasoning prompt (GPT-4o)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Cell-level Reasoning Setup",
+        "source_object_verbatim": "the gene expression profile of a single cell from a specific donor",
+        "transformation_chain_verbatim": [
+          "use the single cell's top expressed genes",
+          "combine them with donor context",
+          "provide a fixed candidate label set",
+          "format the response with reasoning tags"
+        ],
+        "model_visible_form_verbatim": "a single-cell prompt with donor context, candidate labels, and structured <think>/<answer> instructions",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompt template",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "You are an expert assistant specialized in cell type annotation. You will be given the gene expression profile of a single cell from a specific donor. The top expressed genes are listed in descending order. Use both gene expression and donor context to determine the correct cell type. You will also receive a list of candidate cell types-choose the one that best fits this cell . Include your detailed reasoning within <think> and </think> tags, and provide your final answer within <answer> and </answer> tags. The final answer should be a single string with exactly one cell type.",
+        "section_heading": "C Cell-level vs. Batch-level Reasoning",
+        "supporting_figure_or_table": "Table 11",
+        "pages": [
+          21
+        ]
+      },
+      {
+        "route_id": "route_d52f38caf9ac",
+        "route_label": "batch-level reasoning prompt (GPT-4o)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Batch-level Reasoning Setup",
+        "source_object_verbatim": "a batch of N cells from the same donor",
+        "transformation_chain_verbatim": [
+          "rank top-expressed genes per cell",
+          "combine with donor context",
+          "present the candidate label set",
+          "directly predict answers without reasoning traces"
+        ],
+        "model_visible_form_verbatim": "batch-level structured input without reasoning traces",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "direct prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "You are an expert assistant specialized in cell type annotation. You will be given a batch of N cells from the same donor, where each cell represents a unique cell type. For each cell, the top-expressed genes are provided in descending order of expression. Using both the gene expression data and donor information, determine the correct cell type for each cell. You will also receive a list of N candidate cell types, and each candidate must be assigned to exactly one cell. Ensure that you consider all cells and candidate types together, rather than annotating each cell individually. Include your detailed reasoning within <think> and </think> tags, and provide your final answer within <answer> and </answer> tags. The final answer should be a single string listing the assigned cell types in order, separated by ' | '.",
+        "section_heading": "C Cell-level vs. Batch-level Reasoning",
+        "supporting_figure_or_table": "Table 11",
+        "pages": [
+          4
+        ]
+      },
+      {
+        "route_id": "route_c7edfd5df171",
+        "route_label": "open-ended QA prompt (GPT-4o)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Open-ended QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "provide gene expression profile and metadata",
+          "remove the constrained label set",
+          "ask for free-form cell type generation"
+        ],
+        "model_visible_form_verbatim": "free-form textual generation of a cell type name for each cell",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "prompting without constrained labels",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      },
+      {
+        "route_id": "route_a03dbfe863f0",
+        "route_label": "constrained QA prompt (GPT-4o)",
+        "lifecycle_phase": "evaluation",
+        "task_or_configuration_verbatim": "Constrained QA Setup",
+        "source_object_verbatim": "a batch of cells in a given batch, based on its gene expression profile and metadata",
+        "transformation_chain_verbatim": [
+          "rank top-expressed genes per cell",
+          "convert donor metadata into natural language context",
+          "attach a predefined candidate label set",
+          "require a single ordered answer string"
+        ],
+        "model_visible_form_verbatim": "a structured batch-level text prompt with candidate labels and ordered answer output",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "predefined candidate label set with structured prompt",
+        "fusion_topology": "tokenizer_sequence",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "Although LLMs are naturally suited for open-ended question answering (QA), we find this formulation to be suboptimal for the task of cell type annotation. In the open-ended QA setup, the model is prompted to freely generate a cell type name for each cell in a given batch, based on its gene expression profile and metadata, without access to a constrained label set.",
+        "section_heading": "D Open-ended QA vs. Constrained QA",
+        "supporting_figure_or_table": "Table 12",
+        "pages": [
+          22,
+          23
+        ]
+      }
+    ]
+  },
+  {
+    "image_attachment_index": 4,
+    "model_id": "model_cc36a8d0a233",
+    "model_name": "Deepseek-V3",
+    "paper_title": "WITHDRAWN: OKR-Cell: Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training",
+    "figure_index": 1,
+    "current_crop_box": {
+      "x": 0.03,
+      "y": 0.19,
+      "width": 0.88,
+      "height": 0.41
+    },
+    "claimed_route_ids_supported": [
+      "route_050dc5bde59a"
+    ],
+    "routes": [
+      {
+        "route_id": "route_050dc5bde59a",
+        "route_label": "RAG prompt to Deepseek-V3 for text augmentation",
+        "lifecycle_phase": "unclear",
+        "task_or_configuration_verbatim": "RAG enhanced Textual Descriptions Generation",
+        "source_object_verbatim": "standardized original text",
+        "transformation_chain_verbatim": [
+          "Data Preprocessing and Structuralization",
+          "Constructing a Biomedical Knowledge Base",
+          "RAG enhanced Textual Descriptions Generation"
+        ],
+        "model_visible_form_verbatim": "combined prompt sequence",
+        "carrier_family": "text_native_token_stream",
+        "carrier_subtype": "structured_biological_prompt_or_task_scaffold",
+        "insertion_or_fusion_verbatim": "feeding the combined prompt sequence into the LLM",
+        "fusion_topology": "retrieval_or_tool_context",
+        "text_role": "instruction_or_query",
+        "input_status": "actual_model_input",
+        "evidence_quote": "feeding the combined prompt sequence into the LLM",
+        "section_heading": "4.2.1 LLM-enriched Textual Corpus Curation",
+        "supporting_figure_or_table": "Figure 1",
+        "pages": [
+          19
+        ]
+      }
+    ]
+  }
+]
