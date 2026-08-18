@@ -77,8 +77,8 @@ that root at read time and hash-verified; canonical provenance is not rewritten.
 | `eligibility-resolution` | Full-text decisions | Every remaining `UNCERTAIN` requires a signed, rationale-bearing manual resolution row. |
 | `docling-vlm` | Newly accepted source documents | Fresh complete Docling conversion with native Codex VLM figure descriptions; the no-VLM profile is not patched in place. |
 | `taxonomy-discovery` | Complete new VLM profiles | Open direct-mode route inventory and stable study registry; taxonomy labels are hidden during discovery. |
-| `taxonomy-classification` | Frozen inventory + taxonomy v1 | Three direct fixed-candidate runs, one dense coverage audit, blinded adjudication, grounding validation, agreement report, and two-role full-document semantic-sufficiency audit. A non-retain semantic disposition blocks the run. |
-| `crop-validation` | New routes + every extracted source figure | Two blind figure selectors, a separate adjudicator, and a cropper, followed by exact-pixel and exact-model input-role review. Changed and replacement crops are rendered and reviewed again; unresolved crops cannot be promoted. |
+| `taxonomy-classification` | Frozen inventory + taxonomy v1 | Three direct fixed-candidate runs, one dense coverage audit, blinded adjudication, grounding validation, agreement report, and two-role full-document semantic-sufficiency audit. A non-retain disposition enters one versioned correction and complete-document F6 revalidation; only the explicitly marked authoritative root continues. |
+| `crop-validation` | New routes + every extracted source figure | Two blind figure selectors, a separate adjudicator, and a cropper, followed by exact-pixel and exact-model input-role review. Changed and replacement crops are rendered and reviewed again; persistent exhaustive failures become transparent `no_suitable_figure` omissions and no unsupported crop is promoted. |
 | `snapshot` | Prior snapshot + validated update | Immutable cumulative registry, route/evidence ledgers, crop ledger, counts, and hashes. |
 | `atlas` | Snapshot + all VLM corpora | Staged static atlas, data build report, local browser QA, and no mutation of the published site. |
 | `report` | All stage summaries | Machine-readable PRISMA update facts, a mutually exclusive full-text disposition ledger, and a human-readable run report. |
@@ -349,8 +349,11 @@ After structural grounding, every dense-only or inferred accepted route receives
 two independent reviews against the complete canonical Docling Markdown. A
 separate adjudicator resolves any field-level disagreement or non-retain result.
 Supporting quotes must match the canonical document. The semantic audit does not
-silently edit routes: its action queue blocks snapshot creation until a versioned
-correction has been independently materialized and revalidated.
+silently edit routes: its action queue automatically materializes one separate
+versioned correction and repeats the complete-document audit. An explicit
+authoritative-root marker binds downstream stages to the passing route ledger.
+If the corrected ledger still produces actions, the update stops for the
+whole-cohort rerun path rather than applying another local patch.
 
 The `taxonomy-rerun-preflight` command prepares a complete-catalog rerun in a
 separate immutable directory. It checks every current native profile manifest,
@@ -384,7 +387,11 @@ Disagreements are adjudicated. Adjusted crops and replacement figures are render
 again and re-reviewed, including a final replacement input-role pass. The audit
 runs in an empty isolated workspace, records prompts, responses, image hashes and
 retries, and rejects evidence-bearing tool use. Only a zero-unresolved proposed
-ledger is promoted to the cumulative snapshot.
+ledger is promoted to the cumulative snapshot. When no candidate survives the
+complete adjustment and exhaustive replacement sequence, finalization clears the
+crop and records `no_suitable_figure` together with the preterminal unresolved
+status. This preserves the failure while preventing unsupported visual evidence
+from entering the atlas.
 
 The cumulative snapshot is built in a temporary directory, validates route IDs,
 one-to-one route/evidence-ledger IDs, verified quotes with page or Docling-item

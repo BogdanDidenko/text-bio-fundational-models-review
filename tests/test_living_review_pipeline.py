@@ -64,6 +64,7 @@ from run_incremental_atlas_crop_pipeline import (
     load_figures_by_record,
     validate_selection,
 )
+from run_atlas_exact_preview_validation import terminalize_unresolved_dispositions
 from enrich_abstracts import fetch_abstract_openalex_doi, main as enrich_abstracts_main
 from metadata_match import accept_title_candidate
 from download_full_texts import (
@@ -2284,7 +2285,7 @@ class OrchestratorTests(unittest.TestCase):
             pipeline = Pipeline(args, config)
             pipeline.manifest.setdefault("stages", {})["search"] = {
                 "status": "complete",
-                "ended": "2026-08-09T12:00:00+00:00",
+                "finished": "2026-08-09T12:00:00+00:00",
             }
             pipeline.save_manifest()
             pipeline.args.commit = "commit-sha"
@@ -2369,6 +2370,10 @@ class OrchestratorTests(unittest.TestCase):
             )
             self.assertEqual(completion["prisma_counts"]["raw_hits"], 7)
             self.assertEqual(completion["catalog_counts"]["route_count"], 1)
+            self.assertEqual(
+                completion["search_interval"]["search_completed_at"],
+                "2026-08-09T12:00:00+00:00",
+            )
             self.assertEqual(
                 completion["remote_browser_qa"]["path"], str(remote_qa.resolve())
             )
@@ -2751,6 +2756,10 @@ class OrchestratorTests(unittest.TestCase):
                 }
             )
             pipeline = Pipeline(args, config)
+            baseline_taxonomy = Path(config["baseline_taxonomy_root"])
+            baseline_taxonomy.mkdir(parents=True)
+            (baseline_taxonomy / "taxonomy_tree.json").write_text("{}\n", encoding="utf-8")
+            (baseline_taxonomy / "taxonomy_codebook.md").write_text("# v1\n", encoding="utf-8")
             pipeline.paths.accepted_records.parent.mkdir(parents=True)
             pipeline.paths.accepted_records.write_text(
                 '{"records":[{"record_id":"r1"}]}\n', encoding="utf-8"
@@ -2759,6 +2768,20 @@ class OrchestratorTests(unittest.TestCase):
 
             def fake_run(stage: str, name: str, command: list[str], *args, **kwargs) -> None:
                 command_names.append(name)
+                if name == "analyze":
+                    pipeline.paths.taxonomy.mkdir(parents=True, exist_ok=True)
+                    (pipeline.paths.taxonomy / "route_annotations.jsonl").write_text(
+                        '{"route_id":"route_1"}\n', encoding="utf-8"
+                    )
+                    (pipeline.paths.taxonomy / "evidence_ledger.jsonl").write_text(
+                        '{"route_id":"route_1"}\n', encoding="utf-8"
+                    )
+                    (pipeline.paths.taxonomy / "agreement_metrics.json").write_text(
+                        '{}\n', encoding="utf-8"
+                    )
+                    (pipeline.paths.taxonomy / "study_model_registry.csv").write_text(
+                        "record_id,model_id\nr1,m1\n", encoding="utf-8"
+                    )
                 if name == "f6-finalize":
                     output = pipeline.paths.taxonomy / "semantic_sufficiency"
                     output.mkdir(parents=True, exist_ok=True)
@@ -2788,6 +2811,150 @@ class OrchestratorTests(unittest.TestCase):
                 / "semantic_sufficiency/semantic_sufficiency_gate.json",
                 outputs,
             )
+            marker = json.loads(
+                (pipeline.paths.taxonomy / "authoritative_taxonomy.json").read_text()
+            )
+            self.assertEqual(marker["mode"], "original_classification_f6_pass")
+            self.assertEqual(
+                pipeline.authoritative_taxonomy_root().resolve(),
+                pipeline.paths.taxonomy.resolve(),
+            )
+
+    def test_taxonomy_classification_corrects_and_revalidates_nonretain_f6_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            config.update(
+                {
+                    "graph_workers": 1,
+                    "codex_timeout_seconds": 30,
+                    "taxonomy_adjudication_timeout_seconds": 30,
+                    "openai_compatible_endpoint": "http://127.0.0.1:8765/v1",
+                    "models": {
+                        "graph": "openai/gpt-5.4-mini",
+                        "crop": "gpt-5.4-mini",
+                    },
+                }
+            )
+            baseline_taxonomy = Path(config["baseline_taxonomy_root"])
+            baseline_taxonomy.mkdir(parents=True)
+            (baseline_taxonomy / "taxonomy_tree.json").write_text("{}\n", encoding="utf-8")
+            (baseline_taxonomy / "taxonomy_codebook.md").write_text("# v1\n", encoding="utf-8")
+            pipeline = Pipeline(args, config)
+            pipeline.paths.accepted_records.parent.mkdir(parents=True)
+            pipeline.paths.accepted_records.write_text(
+                '{"records":[{"record_id":"r1"}]}\n', encoding="utf-8"
+            )
+            command_names: list[str] = []
+
+            def write_taxonomy(target: Path, route_payload: str) -> None:
+                target.mkdir(parents=True, exist_ok=True)
+                (target / "route_annotations.jsonl").write_text(
+                    route_payload + "\n", encoding="utf-8"
+                )
+                (target / "evidence_ledger.jsonl").write_text(
+                    '{"route_id":"route_1"}\n', encoding="utf-8"
+                )
+                (target / "study_model_registry.csv").write_text(
+                    "record_id,model_id\nr1,m1\n", encoding="utf-8"
+                )
+                (target / "taxonomy_tree.json").write_text("{}\n", encoding="utf-8")
+                (target / "taxonomy_codebook.md").write_text("# v1\n", encoding="utf-8")
+                (target / "agreement_metrics.json").write_text("{}\n", encoding="utf-8")
+
+            def fake_run(stage: str, name: str, command: list[str], *args, **kwargs) -> None:
+                command_names.append(name)
+                if name == "analyze":
+                    write_taxonomy(
+                        pipeline.paths.taxonomy,
+                        '{"route_id":"route_1","carrier_family":"unclear"}',
+                    )
+                elif name == "f6-finalize":
+                    output = pipeline.paths.taxonomy / "semantic_sufficiency"
+                    output.mkdir(parents=True, exist_ok=True)
+                    (output / "semantic_sufficiency_action_queue.csv").write_text(
+                        "record_id,route_id,recommended_action\nr1,route_1,revise_fields\n",
+                        encoding="utf-8",
+                    )
+                    (output / "semantic_sufficiency_report.json").write_text(
+                        '{"status":"complete_with_actions"}\n', encoding="utf-8"
+                    )
+                elif name == "f6-apply-correction":
+                    write_taxonomy(
+                        pipeline.paths.taxonomy / "semantic_correction_applied",
+                        '{"route_id":"route_1","carrier_family":"text_native_token_stream"}',
+                    )
+                elif name == "f6-revalidate-finalize":
+                    output = pipeline.paths.taxonomy / "semantic_sufficiency_revalidation"
+                    output.mkdir(parents=True, exist_ok=True)
+                    (output / "semantic_sufficiency_action_queue.csv").write_text(
+                        "record_id,route_id,recommended_action\n", encoding="utf-8"
+                    )
+                    (output / "semantic_sufficiency_report.json").write_text(
+                        '{"status":"complete"}\n', encoding="utf-8"
+                    )
+
+            with (
+                patch.object(pipeline, "docling_python", return_value=sys.executable),
+                patch.object(pipeline, "run_parallel"),
+                patch.object(pipeline, "run_command", side_effect=fake_run),
+                patch.object(
+                    pipeline, "codex_server", return_value=contextlib.nullcontext()
+                ),
+            ):
+                pipeline.stage_taxonomy_classification()
+
+            self.assertIn("f6-correct", command_names)
+            self.assertIn("f6-apply-correction", command_names)
+            self.assertIn("f6-revalidate-finalize", command_names)
+            marker = json.loads(
+                (pipeline.paths.taxonomy / "authoritative_taxonomy.json").read_text()
+            )
+            self.assertEqual(marker["mode"], "versioned_f6_semantic_correction")
+            self.assertEqual(
+                pipeline.authoritative_taxonomy_root().resolve(),
+                (pipeline.paths.taxonomy / "semantic_correction_applied").resolve(),
+            )
+
+    def test_f7_terminalizes_exhaustive_failure_without_promoting_a_crop(self) -> None:
+        dispositions = [
+            {
+                "model_id": "m1",
+                "model_name": "Model 1",
+                "status": "unresolved_replacement_required",
+                "final_crop_box": {"x": 0.1, "y": 0.1, "width": 0.5, "height": 0.5},
+                "route_ids_supported": ["route_1"],
+            },
+            {
+                "model_id": "m2",
+                "model_name": "Model 2",
+                "status": "validated_current_crop",
+                "final_crop_box": {"x": 0, "y": 0, "width": 1, "height": 1},
+                "route_ids_supported": ["route_2"],
+            },
+        ]
+        resolved, prior = terminalize_unresolved_dispositions(dispositions)
+        self.assertEqual(prior[0]["status"], "unresolved_replacement_required")
+        self.assertEqual(resolved[0]["status"], "crop_rejected_no_suitable_figure")
+        self.assertEqual(resolved[0]["preterminal_status"], "unresolved_replacement_required")
+        self.assertIsNone(resolved[0]["final_crop_box"])
+        self.assertEqual(resolved[0]["route_ids_supported"], [])
+        self.assertEqual(resolved[1], dispositions[1])
+
+    def test_failed_scholar_validation_persists_run_manifest_before_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            args, config = self.pipeline_args_and_config(root)
+            pipeline = Pipeline(args, config)
+            self.assertFalse(pipeline.manifest_path.exists())
+            with patch.object(
+                pipeline, "ensure_search_config", side_effect=RuntimeError("probe failure")
+            ):
+                with self.assertRaisesRegex(RuntimeError, "probe failure"):
+                    pipeline.scholar_validate()
+            self.assertTrue(pipeline.manifest_path.is_file())
+            persisted = json.loads(pipeline.manifest_path.read_text())
+            self.assertEqual(persisted["run_id"], "update_test")
 
     def test_crop_validation_promotes_only_f7_validated_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

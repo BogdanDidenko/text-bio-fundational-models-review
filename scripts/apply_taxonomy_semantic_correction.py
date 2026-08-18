@@ -153,6 +153,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--profile-manifest", type=Path, default=DEFAULT_PROFILE_MANIFEST)
     parser.add_argument("--profile-source-root", type=Path, default=DEFAULT_PROFILE_SOURCE_ROOT)
+    parser.add_argument("--correction-id")
     args = parser.parse_args()
 
     output = args.output_dir
@@ -170,6 +171,9 @@ def main() -> int:
     population = read_json(args.correction_root / "correction_population.json")
     if len(decisions) != population["routes"]:
         raise RuntimeError("Correction decision count does not match the frozen population")
+    correction_run = read_json(args.correction_root / "correction_report.json")
+    correction_id = args.correction_id or f"{output.name}:F6_semantic_correction_v1"
+    correction_model = str(correction_run.get("model") or "gpt-5.4-mini")
 
     profiles = {row["candidate_id"]: row for row in read_csv(args.profile_manifest)}
     output_routes = []
@@ -203,8 +207,8 @@ def main() -> int:
             for field, value in decision["corrected_route"].items():
                 route[field] = value
             route["semantic_correction"] = {
-                "audit": "F6.1_taxonomy_aware_2026-08-17",
-                "model": "gpt-5.4-mini",
+                "audit": correction_id,
+                "model": correction_model,
                 "decision": decision["decision"],
                 "changed_fields": changed_fields,
                 "confidence": decision["confidence"],
@@ -239,7 +243,7 @@ def main() -> int:
                     "quote_verified_in_canonical_markdown": True,
                     "quote_verified_in_native_items": bool(refs),
                     "final_grounding_valid": True,
-                    "semantic_correction_audit": "F6.1_taxonomy_aware_2026-08-17",
+                    "semantic_correction_audit": correction_id,
                 }
             )
             disposition = decision["decision"]
@@ -292,10 +296,13 @@ def main() -> int:
         field for row in decisions.values() if row["decision"] == "revise_fields" for field in row["changed_fields"]
     )
     validation = {
-        "audit": "F6.1_taxonomy_aware_2026-08-17",
+        "audit": correction_id,
         "status": "passed",
-        "scope": "50 routes flagged by F6; 536 routes preserved byte-for-byte except serialization order",
-        "model": "gpt-5.4-mini",
+        "scope": (
+            f"{len(decisions)} routes flagged by F6; "
+            f"{len(source_routes) - len(decisions)} routes outside the correction population"
+        ),
+        "model": correction_model,
         "complete_decision_coverage": True,
         "primary_quotes_verified": True,
         "human_validation": False,
@@ -307,6 +314,8 @@ def main() -> int:
     }
     source_metrics["posthoc_semantic_correction"] = validation
     source_metrics["acceptance_passed"] = bool(source_metrics.get("acceptance_passed"))
+    if isinstance(source_metrics.get("final_counts"), dict):
+        source_metrics["final_counts"]["accepted_input_routes"] = len(output_routes)
     write_json(output / "agreement_metrics.json", source_metrics)
     report = {
         **validation,
@@ -321,8 +330,9 @@ def main() -> int:
     }
     write_json(output / "semantic_correction_report.json", report)
     (output / "README.md").write_text(
-        "# Taxonomy semantic correction (F6.1)\n\n"
-        "This version applies a narrow taxonomy-aware correction to the 50 routes flagged by F6. "
+        "# Taxonomy semantic correction\n\n"
+        f"Correction ID: `{correction_id}`.\n\n"
+        f"This version applies a narrow taxonomy-aware correction to {len(decisions)} routes flagged by F6. "
         "It preserves stable route IDs for retained/revised routes and records removals as tombstones "
         "in `route_transition_ledger.jsonl`. The original repeated-classification agreement metrics "
         "remain unchanged and are explicitly separated from the post-hoc correction validation.\n",

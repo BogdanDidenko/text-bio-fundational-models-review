@@ -29,6 +29,8 @@ DEFAULT_LEDGER = (
 )
 DEFAULT_OUTPUT = ROOT / "analysis/atlas_exact_preview_validation_2026-08-17"
 DEFAULT_MODEL = "gpt-5.4-mini"
+F7_AUDIT_ID = "F7_exact_preview_v1"
+F7_TERMINAL_POLICY = "omit_after_exhaustive_validation_failure_v1"
 
 FAILURE_MODES = [
     "none",
@@ -981,6 +983,41 @@ def prepare_adjusted_manifest(output_dir: Path) -> list[dict[str, Any]]:
     return adjusted
 
 
+def terminalize_unresolved_dispositions(
+    dispositions: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """Omit figures that remain unsupported after the exhaustive F7 workflow."""
+    terminalized: list[dict[str, Any]] = []
+    prior_unresolved: list[dict[str, str]] = []
+    for source in dispositions:
+        item = json.loads(json.dumps(source))
+        status = str(item["status"])
+        if status.startswith("validated_") or status == "crop_rejected_no_suitable_figure":
+            terminalized.append(item)
+            continue
+        prior_unresolved.append(
+            {
+                "model_id": str(item["model_id"]),
+                "model_name": str(item["model_name"]),
+                "status": status,
+            }
+        )
+        item["preterminal_status"] = status
+        item["status"] = "crop_rejected_no_suitable_figure"
+        item["final_crop_box"] = None
+        item["route_ids_supported"] = []
+        item["terminal_resolution"] = {
+            "policy": F7_TERMINAL_POLICY,
+            "rationale": (
+                "No crop passed exact-preview and exact-model input-role validation "
+                "after adjusted-crop review and exhaustive replacement-figure search. "
+                "The figure is omitted rather than publishing unsupported visual evidence."
+            ),
+        }
+        terminalized.append(item)
+    return terminalized, prior_unresolved
+
+
 def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -> dict[str, Any]:
     tool_isolation = audit_tool_isolation(output_dir)
     if tool_isolation["status"] != "pass":
@@ -1073,6 +1110,7 @@ def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -
                 "original_panel_sha256": item["panel_sha256"],
             }
         )
+    dispositions, prior_unresolved = terminalize_unresolved_dispositions(dispositions)
     write_json(output_dir / "crop_validation_dispositions.json", dispositions)
     statuses = Counter(item["status"] for item in dispositions)
     no_suitable = read_json(output_dir / "no_suitable_figure_manifest.json")
@@ -1092,6 +1130,9 @@ def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -
         "adjudicated_models": len(adjudicated),
         "status_counts": dict(sorted(statuses.items())),
         "unresolved_models": unresolved,
+        "preterminal_unresolved_models": prior_unresolved,
+        "terminal_no_suitable_from_unresolved": len(prior_unresolved),
+        "terminal_resolution_policy": F7_TERMINAL_POLICY,
         "all_current_atlas_assets_hash_verified": True,
         "all_reviewed_images_hash_logged": True,
         "tool_isolation_passed": True,
@@ -1111,6 +1152,7 @@ def finalize(output_dir: Path, model: str, ledger_path: Path = DEFAULT_LEDGER) -
         f"- Pre-existing `no_suitable_figure`: **{report['preexisting_no_suitable_figure']}**",
         f"- Validated crops: **{report['validated_crops']}**",
         f"- Models adjudicated: **{report['adjudicated_models']}**",
+        f"- Exhaustive failures conservatively omitted: **{report['terminal_no_suitable_from_unresolved']}**",
         f"- Unresolved models: **{report['unresolved_models']}**",
         f"- Model for every role: `{model}`",
         "- Interpretation: repeated computational visual annotation with LLM adjudication, not human ground truth",
@@ -1163,7 +1205,7 @@ def build_proposed_crop_ledger(
         if disposition is None:
             item["exact_preview_validation"] = {
                 "status": "not_applicable_no_crop",
-                "audit": "F7_2026-08-17",
+                "audit": F7_AUDIT_ID,
             }
             proposed.append(item)
             continue
@@ -1210,7 +1252,9 @@ def build_proposed_crop_ledger(
                     "route_ids_supported": [],
                     "annotation_pass": "F7_exact_preview_input_role_rejected_no_suitable_figure",
                     "rationale": (
-                        replacement["replacement_input_role_validation"]["concise_rationale"]
+                        disposition["terminal_resolution"]["rationale"]
+                        if disposition.get("terminal_resolution")
+                        else replacement["replacement_input_role_validation"]["concise_rationale"]
                         if (
                             replacement
                             and replacement["status"] == "no_suitable_figure"
@@ -1225,8 +1269,10 @@ def build_proposed_crop_ledger(
             )
         item["exact_preview_validation"] = {
             "status": status,
-            "audit": "F7_2026-08-17",
+            "audit": F7_AUDIT_ID,
             "route_ids_supported": disposition["route_ids_supported"],
+            "preterminal_status": disposition.get("preterminal_status"),
+            "terminal_resolution": disposition.get("terminal_resolution"),
         }
         proposed.append(item)
     if len(proposed) != len(ledger) or len({item["model_id"] for item in proposed}) != len(ledger):

@@ -25,17 +25,21 @@ class LivingReviewRunnerContractTests(unittest.TestCase):
 
     def test_f6_is_part_of_routine_taxonomy_classification(self) -> None:
         stage = self.runner[
-            self.runner.index("    def stage_taxonomy_classification") :
+            self.runner.index("    def run_semantic_sufficiency_gate") :
             self.runner.index("    def stage_crop_validation")
         ]
         for required in (
             "run_taxonomy_semantic_sufficiency_audit.py",
-            '"f6-prepare"',
+            'f"{command_prefix}-prepare"',
             '"semantic_reviewer"',
             '"adversarial_reviewer"',
-            '"f6-adjudicate"',
-            '"f6-finalize"',
+            '("compare", "adjudicate", "finalize")',
+            'self.paths.taxonomy, f6, "f6"',
+            '"f6-correct"',
+            '"f6-apply-correction"',
+            '"f6-revalidate"',
             "semantic_sufficiency_action_queue.csv",
+            "authoritative_taxonomy.json",
             "raise ManualGate",
         ):
             self.assertIn(required, stage)

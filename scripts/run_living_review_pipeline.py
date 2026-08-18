@@ -951,8 +951,14 @@ class Pipeline:
                 self.paths.taxonomy / "runs/classification_dense",
                 self.paths.taxonomy / "adjudication",
                 self.paths.taxonomy / "semantic_sufficiency",
+                self.paths.taxonomy / "semantic_correction_decisions",
+                self.paths.taxonomy / "semantic_correction_applied",
+                self.paths.taxonomy / "semantic_sufficiency_revalidation",
                 self.paths.taxonomy / "tables",
                 self.paths.taxonomy / "no_new_eligible_records.json",
+                self.paths.taxonomy / "authoritative_taxonomy.json",
+                self.paths.taxonomy / "taxonomy_tree.json",
+                self.paths.taxonomy / "taxonomy_codebook.md",
                 *[self.paths.taxonomy / name for name in taxonomy_final_files],
             ],
             "crop-validation": [self.paths.crops],
@@ -1195,6 +1201,8 @@ class Pipeline:
         )
 
     def scholar_validate(self) -> int:
+        if not self.manifest_path.is_file():
+            self.save_manifest()
         self.ensure_search_config()
         export = self.paths.search / "google_scholar_provider_export.json"
         if not export.is_file():
@@ -1229,6 +1237,8 @@ class Pipeline:
     def scholar_capture(self) -> int:
         if self.manifest.get("published"):
             raise RuntimeError("A published run's search evidence is immutable")
+        if not self.manifest_path.is_file():
+            self.save_manifest()
         self.ensure_search_config()
         keys = self.resolve_artifact(self.config["api_keys_file"])
         if not keys.is_file():
@@ -2245,6 +2255,81 @@ class Pipeline:
         )
         return [synthesis / "open_route_inventory.json", self.paths.taxonomy / "study_model_registry.csv"]
 
+    def run_semantic_sufficiency_gate(
+        self,
+        taxonomy_root: Path,
+        output_dir: Path,
+        command_prefix: str,
+    ) -> list[dict[str, str]]:
+        common = [
+            "--taxonomy-root", str(taxonomy_root),
+            "--profile-manifest", str(self.paths.vlm_manifest),
+            "--source-root", str(ROOT),
+            "--output-dir", str(output_dir),
+            "--model", self.config["models"].get("semantic_review", "gpt-5.4-mini"),
+            "--max-workers", str(self.config.get("semantic_review_workers", 6)),
+            "--timeout", str(self.config.get("semantic_review_timeout_seconds", 3600)),
+        ]
+        script = "scripts/run_taxonomy_semantic_sufficiency_audit.py"
+        self.run_command(
+            "taxonomy-classification",
+            f"{command_prefix}-prepare",
+            [self.python(), script, "prepare", *common],
+        )
+        for role in ("semantic_reviewer", "adversarial_reviewer"):
+            self.run_command(
+                "taxonomy-classification",
+                f"{command_prefix}-{role}",
+                [self.python(), script, "review", "--role", role, *common],
+            )
+        for command in ("compare", "adjudicate", "finalize"):
+            self.run_command(
+                "taxonomy-classification",
+                f"{command_prefix}-{command}",
+                [self.python(), script, command, *common],
+            )
+        action_queue = output_dir / "semantic_sufficiency_action_queue.csv"
+        with action_queue.open(newline="", encoding="utf-8") as stream:
+            action_rows = list(csv.DictReader(stream))
+        gate = {
+            "created": now_iso(),
+            "status": "pass" if not action_rows else "correction_required",
+            "action_count": len(action_rows),
+            "action_queue": rel(action_queue),
+            "taxonomy_root": rel(taxonomy_root),
+            "route_annotations_sha256": sha256(
+                taxonomy_root / "route_annotations.jsonl"
+            ),
+            "rule": (
+                "Every non-retain F6 disposition enters the versioned semantic "
+                "correction and complete-document revalidation path."
+            ),
+        }
+        write_json(output_dir / "semantic_sufficiency_gate.json", gate)
+        return action_rows
+
+    def authoritative_taxonomy_root(self) -> Path:
+        marker = self.paths.taxonomy / "authoritative_taxonomy.json"
+        if not marker.is_file():
+            return self.paths.taxonomy
+        payload = read_json(marker)
+        root = self.resolve_artifact(payload["authoritative_taxonomy_root"])
+        required = (
+            "route_annotations.jsonl",
+            "evidence_ledger.jsonl",
+            "study_model_registry.csv",
+            "taxonomy_tree.json",
+            "agreement_metrics.json",
+        )
+        missing = [name for name in required if not (root / name).is_file()]
+        if missing:
+            raise RuntimeError(
+                f"Authoritative taxonomy root is incomplete: {root}; missing={missing}"
+            )
+        if sha256(root / "route_annotations.jsonl") != payload["route_annotations_sha256"]:
+            raise RuntimeError("Authoritative taxonomy route hash changed")
+        return root
+
     def stage_taxonomy_classification(self) -> list[Path]:
         for path in (
             self.paths.taxonomy / "runs/classification_fixed_r1",
@@ -2253,11 +2338,15 @@ class Pipeline:
             self.paths.taxonomy / "runs/classification_dense",
             self.paths.taxonomy / "adjudication",
             self.paths.taxonomy / "semantic_sufficiency",
+            self.paths.taxonomy / "semantic_correction_decisions",
+            self.paths.taxonomy / "semantic_correction_applied",
+            self.paths.taxonomy / "semantic_sufficiency_revalidation",
         ):
             self.preserve_expensive_generated_path("taxonomy-classification", path)
         for path in (
             self.paths.taxonomy / "tables",
             self.paths.taxonomy / "no_new_eligible_records.json",
+            self.paths.taxonomy / "authoritative_taxonomy.json",
         ):
             self.reset_generated_path(path)
         for name in (
@@ -2352,59 +2441,104 @@ class Pipeline:
             analyze.extend(["--direct-run", str(root)])
         self.run_command("taxonomy-classification", "analyze", analyze)
 
+        frozen_taxonomy_root = self.resolve_artifact(self.current["taxonomy_root"])
+        for name in ("taxonomy_tree.json", "taxonomy_codebook.md"):
+            source = frozen_taxonomy_root / name
+            if not source.is_file():
+                raise RuntimeError(f"Frozen taxonomy artifact is missing: {source}")
+            shutil.copy2(source, self.paths.taxonomy / name)
+
         f6 = self.paths.taxonomy / "semantic_sufficiency"
-        f6_common = [
-            "--taxonomy-root", str(self.paths.taxonomy),
-            "--profile-manifest", str(self.paths.vlm_manifest),
-            "--source-root", str(ROOT),
-            "--output-dir", str(f6),
-            "--model", self.config["models"].get("semantic_review", "gpt-5.4-mini"),
-            "--max-workers", str(self.config.get("semantic_review_workers", 6)),
-            "--timeout", str(self.config.get("semantic_review_timeout_seconds", 3600)),
-        ]
-        f6_script = "scripts/run_taxonomy_semantic_sufficiency_audit.py"
-        self.run_command(
-            "taxonomy-classification", "f6-prepare",
-            [self.python(), f6_script, "prepare", *f6_common],
+        action_rows = self.run_semantic_sufficiency_gate(
+            self.paths.taxonomy, f6, "f6"
         )
-        for role in ("semantic_reviewer", "adversarial_reviewer"):
-            self.run_command(
-                "taxonomy-classification", f"f6-{role}",
-                [self.python(), f6_script, "review", "--role", role, *f6_common],
-            )
-        self.run_command(
-            "taxonomy-classification", "f6-compare",
-            [self.python(), f6_script, "compare", *f6_common],
-        )
-        self.run_command(
-            "taxonomy-classification", "f6-adjudicate",
-            [self.python(), f6_script, "adjudicate", *f6_common],
-        )
-        self.run_command(
-            "taxonomy-classification", "f6-finalize",
-            [self.python(), f6_script, "finalize", *f6_common],
-        )
-        action_queue = f6 / "semantic_sufficiency_action_queue.csv"
-        with action_queue.open(newline="", encoding="utf-8") as stream:
-            action_rows = list(csv.DictReader(stream))
-        gate = {
-            "created": now_iso(),
-            "status": "pass" if not action_rows else "blocked",
-            "action_count": len(action_rows),
-            "action_queue": rel(action_queue),
-            "rule": "Every non-retain F6 disposition requires a versioned correction and revalidation.",
-        }
-        write_json(f6 / "semantic_sufficiency_gate.json", gate)
+        authoritative_root = self.paths.taxonomy
+        authoritative_f6 = f6
         if action_rows:
-            raise ManualGate(
-                f"F6 semantic sufficiency produced {len(action_rows)} corrective actions; "
-                f"follow {rel(action_queue)} and do not build the snapshot from uncorrected routes"
+            correction = self.paths.taxonomy / "semantic_correction_decisions"
+            corrected = self.paths.taxonomy / "semantic_correction_applied"
+            revalidation = self.paths.taxonomy / "semantic_sufficiency_revalidation"
+            self.run_command(
+                "taxonomy-classification",
+                "f6-correct",
+                [
+                    self.python(),
+                    "scripts/run_taxonomy_semantic_correction.py",
+                    "--taxonomy-root", str(self.paths.taxonomy),
+                    "--f6-root", str(f6),
+                    "--output-dir", str(correction),
+                    "--model", self.config["models"].get(
+                        "semantic_review", "gpt-5.4-mini"
+                    ),
+                    "--timeout", str(
+                        self.config.get("semantic_correction_timeout_seconds", 3600)
+                    ),
+                    "--retries", str(
+                        self.config.get("semantic_correction_retries", 1)
+                    ),
+                    "--max-workers", str(
+                        self.config.get("semantic_correction_workers", 4)
+                    ),
+                    "--max-routes-per-call", str(
+                        self.config.get("semantic_correction_max_routes_per_call", 4)
+                    ),
+                ],
             )
+            self.run_command(
+                "taxonomy-classification",
+                "f6-apply-correction",
+                [
+                    self.python(),
+                    "scripts/apply_taxonomy_semantic_correction.py",
+                    "--source-taxonomy-root", str(self.paths.taxonomy),
+                    "--correction-root", str(correction),
+                    "--output-dir", str(corrected),
+                    "--profile-manifest", str(self.paths.vlm_manifest),
+                    "--profile-source-root", str(ROOT),
+                    "--correction-id", f"{self.run_id}:F6_semantic_correction_v1",
+                ],
+            )
+            remaining = self.run_semantic_sufficiency_gate(
+                corrected, revalidation, "f6-revalidate"
+            )
+            if remaining:
+                raise ManualGate(
+                    "F6 semantic correction failed complete-document revalidation; "
+                    "preserve this run and use `taxonomy-rerun-preflight` for a declared "
+                    "whole-cohort bridge instead of patching routine outputs"
+                )
+            authoritative_root = corrected
+            authoritative_f6 = revalidation
+        marker = self.paths.taxonomy / "authoritative_taxonomy.json"
+        write_json(
+            marker,
+            {
+                "schema_version": 1,
+                "created": now_iso(),
+                "run_id": self.run_id,
+                "mode": (
+                    "versioned_f6_semantic_correction"
+                    if action_rows
+                    else "original_classification_f6_pass"
+                ),
+                "original_taxonomy_root": rel(self.paths.taxonomy),
+                "authoritative_taxonomy_root": rel(authoritative_root),
+                "initial_f6_action_count": len(action_rows),
+                "final_f6_root": rel(authoritative_f6),
+                "route_annotations_sha256": sha256(
+                    authoritative_root / "route_annotations.jsonl"
+                ),
+                "evidence_ledger_sha256": sha256(
+                    authoritative_root / "evidence_ledger.jsonl"
+                ),
+            },
+        )
         return [
-            self.paths.taxonomy / "route_annotations.jsonl",
-            self.paths.taxonomy / "agreement_metrics.json",
-            f6 / "semantic_sufficiency_report.json",
-            f6 / "semantic_sufficiency_gate.json",
+            authoritative_root / "route_annotations.jsonl",
+            authoritative_root / "agreement_metrics.json",
+            authoritative_f6 / "semantic_sufficiency_report.json",
+            authoritative_f6 / "semantic_sufficiency_gate.json",
+            marker,
         ]
 
     def stage_crop_validation(self) -> list[Path]:
@@ -2418,7 +2552,7 @@ class Pipeline:
             "crop-validation", "two-selectors-adjudicator-cropper",
             [
                 self.python(), "scripts/run_incremental_atlas_crop_pipeline.py",
-                "--taxonomy-root", str(self.paths.taxonomy),
+                "--taxonomy-root", str(self.authoritative_taxonomy_root()),
                 "--corpus-root", str(self.paths.docling_vlm / "profiles"),
                 "--output-dir", str(self.paths.crops), "--model", self.config["models"]["crop"],
                 "--max-workers", str(self.config["crop_workers"]),
@@ -2436,7 +2570,7 @@ class Pipeline:
             "preview_validation", self.config["models"]["crop"]
         )
         f7_common = [
-            "--taxonomy-root", str(self.paths.taxonomy),
+            "--taxonomy-root", str(self.authoritative_taxonomy_root()),
             "--crop-ledger", str(initial_ledger),
             "--source-root", str(ROOT),
             "--output-dir", str(f7),
@@ -2529,7 +2663,7 @@ class Pipeline:
         command = [
             self.python(), "scripts/merge_living_catalog_snapshot.py",
             "--prior-taxonomy-root", str(self.resolve_artifact(self.current["taxonomy_root"])),
-            "--update-taxonomy-root", str(self.paths.taxonomy),
+            "--update-taxonomy-root", str(self.authoritative_taxonomy_root()),
             "--prior-crop-ledger", str(self.resolve_artifact(self.current["crop_ledger"])),
             "--update-crop-ledger", str(self.paths.crops / "crop_ledger.json"),
             "--output-dir", str(working), "--run-id", self.run_id,
@@ -2665,7 +2799,7 @@ class Pipeline:
         )
         accepted = record_count(self.paths.accepted_records)
         taxonomy_counts = {}
-        metrics_path = self.paths.taxonomy / "agreement_metrics.json"
+        metrics_path = self.authoritative_taxonomy_root() / "agreement_metrics.json"
         if metrics_path.exists():
             taxonomy_counts = read_json(metrics_path).get("final_counts", {})
         if accepted:
@@ -3519,6 +3653,9 @@ class Pipeline:
                     "date_to": completed_manifest_payload.get("date_to"),
                     "search_completed_at": (
                         completed_manifest_payload.get("stages", {})
+                        .get("search", {})
+                        .get("finished")
+                        or completed_manifest_payload.get("stages", {})
                         .get("search", {})
                         .get("ended")
                     ),
