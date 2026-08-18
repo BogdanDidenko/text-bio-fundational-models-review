@@ -998,7 +998,7 @@ class Pipeline:
         if expected_inputs != observed_inputs:
             issues.append("human input fingerprints changed")
         for artifact in row.get("artifacts", []):
-            path = resolve(artifact["path"])
+            path = self.resolve_artifact(artifact["path"])
             if not path.exists():
                 if repository_checkout and self.repository_artifact_is_external(artifact):
                     if repository_omissions is not None:
@@ -1009,7 +1009,7 @@ class Pipeline:
                 issues.append(f"changed declared artifact: {artifact['path']}")
         inventory_path = row.get("artifact_inventory")
         if inventory_path:
-            resolved_inventory = resolve(inventory_path)
+            resolved_inventory = self.resolve_artifact(inventory_path)
             if not resolved_inventory.exists():
                 issues.append(f"missing artifact inventory: {inventory_path}")
             elif sha256(resolved_inventory) != row.get("artifact_inventory_sha256"):
@@ -1017,7 +1017,7 @@ class Pipeline:
             else:
                 inventory = read_json(resolved_inventory)
                 for artifact in inventory.get("files", []):
-                    path = resolve(artifact["path"])
+                    path = self.resolve_artifact(artifact["path"])
                     if not path.exists():
                         if repository_checkout and self.repository_artifact_is_external(artifact):
                             if repository_omissions is not None:

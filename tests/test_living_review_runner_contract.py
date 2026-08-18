@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -7,6 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "scripts/run_living_review_pipeline.py"
 RUNBOOK = ROOT / "protocol/LIVING_REVIEW_RUNBOOK.md"
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from run_living_review_pipeline import Pipeline
 
 
 class LivingReviewRunnerContractTests(unittest.TestCase):
@@ -62,6 +70,68 @@ class LivingReviewRunnerContractTests(unittest.TestCase):
         self.assertIn('cd "$REVIEW_REPO_ROOT"', self.runbook)
         self.assertNotIn("cd /Users/bogdan.didenko/lpnu/review", self.runbook)
         self.assertNotIn('cd "$REVIEW_ARTIFACT_ROOT"', self.runbook)
+
+    def test_stage_validation_resolves_migrated_artifacts_and_inventory_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root = root / "artifact-store"
+            migrated = artifact_root / "data/living_catalog_updates/update_test/payload.bin"
+            migrated.parent.mkdir(parents=True)
+            migrated.write_bytes(b"migrated immutable evidence")
+
+            config = {
+                "baseline_search_end": "2026-07-06",
+                "master_record_files": [],
+                "baseline_taxonomy_root": str(root / "taxonomy"),
+                "baseline_docling_corpus_roots": [],
+                "baseline_crop_ledger": str(root / "crops.json"),
+                "living_state": str(root / "current.json"),
+                "updates_root": str(root / "updates"),
+                "atlas_output": str(root / "atlas"),
+                "artifact_roots": [str(artifact_root)],
+            }
+            args = argparse.Namespace(
+                config=root / "config.json",
+                run_id="update_test",
+                date_from="2026-07-07",
+                date_to="2026-08-09",
+                force=False,
+                manage_server=False,
+                from_stage=None,
+                through_stage=None,
+            )
+            pipeline = Pipeline(args, config)
+            relative_path = "data/living_catalog_updates/update_test/payload.bin"
+            old_path = "/old/machine/review/data/living_catalog_updates/update_test/payload.bin"
+            digest = hashlib.sha256(migrated.read_bytes()).hexdigest()
+            declared_artifact = {
+                "path": relative_path,
+                "bytes": migrated.stat().st_size,
+                "sha256": digest,
+            }
+            inventoried_artifact = {
+                "path": old_path,
+                "bytes": migrated.stat().st_size,
+                "sha256": digest,
+            }
+            inventory = root / "artifact_inventory.json"
+            inventory.write_text(
+                json.dumps({"stage": "search", "files": [inventoried_artifact]}),
+                encoding="utf-8",
+            )
+            pipeline.manifest["stages"] = {
+                "search": {
+                    "status": "complete",
+                    "human_input_fingerprints": [],
+                    "artifacts": [declared_artifact],
+                    "artifact_inventory": str(inventory),
+                    "artifact_inventory_sha256": hashlib.sha256(
+                        inventory.read_bytes()
+                    ).hexdigest(),
+                }
+            }
+
+            self.assertEqual(pipeline.stage_validation_issues("search"), [])
 
 
 if __name__ == "__main__":
