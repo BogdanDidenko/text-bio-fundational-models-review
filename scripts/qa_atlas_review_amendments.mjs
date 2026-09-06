@@ -1,0 +1,50 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {chromium}=require('playwright');
+const url=process.argv[2];
+const output=path.resolve(process.argv[3]);
+await fs.mkdir(output,{recursive:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROME||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+const results=[];
+try {
+  for(const viewport of [{width:1440,height:1000},{width:390,height:844}]) {
+    const page=await browser.newPage({viewport,deviceScaleFactor:1});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(url,{waitUntil:'networkidle'});
+    await page.waitForSelector('#loading-screen.is-hidden',{state:'attached'});
+    await page.fill('#search-input','P023');
+    await page.waitForFunction(()=>document.querySelectorAll('foreignObject.graph-node-model').length===1);
+    await page.selectOption('#subtype-filter','structured_biological_prompt_or_task_scaffold');
+    if(await page.locator('foreignObject.graph-node-model').count()) throw Error('P023 still assigned to F1.L2');
+    await page.selectOption('#subtype-filter','unresolved::text_native_token_stream');
+    await page.waitForSelector('foreignObject.graph-node-annotation_state');
+    await page.click('#fit-graph');
+    await page.waitForFunction(()=>!document.querySelector('#taxonomy-graph').__transition);
+    await page.locator('foreignObject.graph-node-model').dispatchEvent('click');
+    await page.waitForSelector('[data-review-case="P023"]');
+    const detail=await page.locator('#graph-inspector').innerText();
+    const quote=await page.locator('.route-record > blockquote').innerText();
+    if(!detail.includes('Subtype unresolved')||!detail.includes('auxiliary teacher')||!quote.includes('During teacher synthesis')) throw Error('Missing reviewed evidence');
+    if(await page.locator('#graph-inspector .input-example').count()) throw Error('Unknown subtype has invented illustrative input');
+    if(await page.locator('foreignObject.graph-node-model').count()!==1) throw Error('Model missing or duplicated');
+    await page.locator('#graph-inspector').scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(output,`p023_${viewport.width}_overview.png`),fullPage:true});
+    await page.locator('[data-review-case="P023"]').scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(output,`p023_${viewport.width}_evidence.png`),fullPage:true});
+    await page.locator('[data-review-case="P023"] summary').click();
+    if(!(await page.locator('[data-review-case="P023"] details').innerText()).includes('Athird constraint')) throw Error('Original evidence history missing');
+    await page.click('[data-view="architectures"]');
+    if(await page.locator('.architecture-card').count()!==1) throw Error('Index lost uncertain model');
+    await page.click('[data-view="evidence"]');
+    if(await page.locator('#evidence-rows tr').count()!==1) throw Error('Evidence filter lost uncertain route');
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+    if(overflow>1||errors.length) throw Error(JSON.stringify({overflow,errors}));
+    results.push({viewport,corrected_quote:quote,unresolved_subtype_visible:true,original_history_visible:true,f1_l2_assignment_removed:true,illustrative_prompt_removed:true,page_overflow:overflow,console_errors:errors});
+    await page.close();
+  }
+  await fs.writeFile(path.join(output,'review_qa.json'),JSON.stringify({status:'ok',url,results},null,2)+'\n');
+  console.log(JSON.stringify({status:'ok',viewports:results.length}));
+} finally {await browser.close();}

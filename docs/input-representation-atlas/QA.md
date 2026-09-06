@@ -1,19 +1,23 @@
 # Atlas QA Record
 
+Reviewed-view verification: 2026-09-06. The P023 amendment preserves the frozen
+source inventory and adds an explicit subtype-uncertainty state to its display.
+
 ## Data integrity
 
 - Taxonomy root: 1
 - Carrier families: 5
 - Operational subtypes: 15
-- Exact subtype-membership groups: 46
+- Membership groups: 48, including one unresolved-subtype group
 - Unique model nodes: 109/109
 - Canonical family nodes in render: 5
-- Mirrored subtype ports: 27
+- Mirrored subtype ports: 28; additional uncertainty-state port: 1
 - Configurations: 467/467
 - Grounded routes: 585/585
 - Models with an exact-preview-validated source crop: 89
 - Explicit no-suitable-figure cases: 20
 - Routes without final grounding: 0
+- Routes with known subtype: 584; unresolved subtype: 1
 
 The crop ledger covers all 109 model IDs exactly once. F7 rendered every exact
 crop viewport and checked visible content against the route and model identity.
@@ -31,13 +35,13 @@ The static site was exercised with Playwright against local Google Chrome at:
 
 Verified behaviors:
 
-- one root, 46 membership-group, and 109 unique model nodes render;
+- one root, 48 membership-group, and 109 unique model nodes render;
 - each carrier family appears once on the central taxonomy spine;
 - subtype layout ports appear on both sides of the central family spine;
 - every model has exactly one incoming membership-group edge;
 - every group has exactly the subtype-parent edges and model-child edges stated
   in the canonical graph artifact;
-- all 47 groups are split across both sides while remaining unique identities;
+- all 48 groups are split across both sides while remaining unique identities;
 - all SVG node rectangles are non-overlapping in graph coordinates;
 - a multi-subtype model remains a single identity node;
 - family and subtype focus recompute a readable graph neighborhood;
@@ -53,6 +57,11 @@ Verified behaviors:
 - the rendered social preview is a nonblank 1200 x 630 PNG;
 - screenshots are nonblank and were visually inspected in all-model, subtype,
   model-focus, and mobile states.
+
+P023-specific checks in `data/review_qa.json` verify that the model remains in
+the graph, index and evidence table, is absent from the F1.L2 filter, appears
+under the family-scoped uncertainty state, has no invented illustrative input,
+and exposes the corrected quote plus the original assignment and evidence history.
 
 Re-run locally after starting a static server:
 

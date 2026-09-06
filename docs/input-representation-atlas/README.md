@@ -8,7 +8,7 @@ explicit taxonomic graph:
 The graph contains:
 
 - one taxonomy root, five carrier families, and 15 operational subtypes;
-- 47 exact subtype-membership groups;
+- 48 membership groups, including one family-level group with unresolved subtype;
 - 109 unique model nodes;
 - 467 lifecycle/task configurations and 585 grounded input routes;
 - 89 exact-preview-validated model-specific original-paper crops;
@@ -30,6 +30,13 @@ the left and right to balance the graph without duplicating groups or models. A
 focused model exposes the complete grounded route inventory with source object,
 transformation chain, model-visible form, quote, heading, and pages.
 
+The reviewed view includes the dated P023 amendment: its text-native family is
+retained and its subtype is unresolved. The dashed `F1 ?` annotation-state branch
+keeps the model visible without assigning it to a subtype. The taxonomy retains
+five families and 15 subtypes. Its previous assignment and evidence are available
+in the route's review history; the unverified illustrative prompt is omitted.
+The reviewed view has 584 subtype-assigned routes and one unresolved-subtype route.
+
 Each model also carries the review iteration encoded by its canonical record ID.
 The **Review iteration** filter isolates the exact records added in a living-review
 update, including the latest `2026-08-09` iteration, across the graph, model
@@ -48,13 +55,19 @@ list, model count, and route count for every selectable iteration.
   --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm/profiles \
   --corpus-root data/living_catalog_updates/update_2026-08-09/11_docling_vlm_manual_recall_xunzi_2026-08-11/profiles \
   --artifact-root "$DOCLING_WORKSPACE"
+python3 scripts/apply_atlas_review_amendments.py --atlas-root docs/input-representation-atlas
+python3 scripts/apply_atlas_review_amendments.py --atlas-root docs/input-representation-atlas --check
 ```
 
 The full-cohort run method, retained logs, acceptance metrics, profile hashes,
 crop dispositions, and immutable snapshot are documented under
 `data/living_catalog/taxonomy_rerun_preflight_2026-08-12/`. The deterministic
-site build consumes only the frozen snapshot and crop ledger; it makes no LLM
-calls.
+base build consumes the frozen snapshot and crop ledger. The separate reviewed-view
+step applies `data/input_representation_audit_amendments/*.json`, verifies the
+cited source hashes and verbatim evidence, and preserves previous assignments.
+Both steps are deterministic and make no LLM calls. The method-locked base builder
+and canonical taxonomy snapshots remain unchanged. Publication checks refuse a
+stale reviewed view.
 
 Build integrity results are written to `data/build_report.json`.
 

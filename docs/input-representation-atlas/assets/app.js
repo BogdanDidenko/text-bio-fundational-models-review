@@ -45,8 +45,21 @@ function familyMeta(familyId) {
 }
 
 function subtypeLabel(subtypeId) {
+  if (subtypeId === "unclear") return "Subtype unresolved";
   const subtype = subtypeById.get(subtypeId);
   return subtype ? `${subtype.leaf_id} · ${subtype.name}` : subtypeId;
+}
+
+function familyPaths(family) {
+  return [...family.subtypes, ...(state.atlas.annotation_states || []).filter(item => item.family_id === family.family_id)];
+}
+
+function modelPaths(model) {
+  return model.membership_ids || model.subtypes;
+}
+
+function routePath(route) {
+  return route.carrier_subtype === "unclear" ? `unresolved::${route.carrier_family}` : route.carrier_subtype;
 }
 
 function shorten(value, length = 74) {
@@ -81,7 +94,7 @@ function cropMarkup(architecture, context = "node") {
 
 function exampleMarkup(architecture, context = "node") {
   const example = architecture.illustrative_examples[0];
-  if (!example) return "";
+  if (!example) return context === "node" ? '<div class="node-example"><span>Subtype unresolved</span></div>' : "";
   if (context === "node") {
     return `<div class="node-example"><span>Illustrative input</span><code>${escapeHtml(shorten(example.example_input, 56))}</code></div>`;
   }
@@ -106,7 +119,7 @@ function exampleMarkup(architecture, context = "node") {
 
 function architectureMatches(architecture) {
   if (state.family && !architecture.families.includes(state.family)) return false;
-  if (state.subtype && !architecture.subtypes.includes(state.subtype)) return false;
+  if (state.subtype && !modelPaths(architecture).includes(state.subtype)) return false;
   if (state.lifecycle && !architecture.lifecycle_phases.includes(state.lifecycle)) return false;
   if (state.modality && !architecture.modalities.includes(state.modality)) return false;
   if (state.collectionDate && architecture.collection_date !== state.collectionDate) return false;
@@ -126,6 +139,8 @@ function architectureMatches(architecture) {
       route.model_visible_form_verbatim,
       route.evidence_quote,
       route.section_heading,
+      route.review_amendment?.case_id,
+      route.review_amendment?.model_role,
     ]),
   ].join(" ").toLocaleLowerCase();
   return haystack.includes(query);
@@ -140,7 +155,7 @@ function filteredRoutes() {
   filteredArchitectures().forEach((architecture) => {
     architecture.routes.forEach((route) => {
       if (state.family && route.carrier_family !== state.family) return;
-      if (state.subtype && route.carrier_subtype !== state.subtype) return;
+      if (state.subtype && routePath(route) !== state.subtype) return;
       if (state.lifecycle && route.lifecycle_phase !== state.lifecycle) return;
       if (state.modality && route.source_modality_normalized !== state.modality) return;
       rows.push({ architecture, route });
@@ -169,7 +184,7 @@ function populateFilters() {
   ].join("");
 
   $("#subtype-filter").insertAdjacentHTML("beforeend", state.atlas.families
-    .flatMap((family) => family.subtypes.map((subtype) => `<option value="${escapeHtml(subtype.subtype_id)}">${escapeHtml(subtype.leaf_id)} · ${escapeHtml(subtype.name)}</option>`))
+    .flatMap((family) => familyPaths(family).map((subtype) => `<option value="${escapeHtml(subtype.subtype_id)}">${escapeHtml(subtype.leaf_id)} · ${escapeHtml(subtype.name)}</option>`))
     .join(""));
   $("#lifecycle-filter").insertAdjacentHTML("beforeend", state.atlas.filter_values.lifecycle_phases
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value.replaceAll("_", " "))}</option>`).join(""));
@@ -192,7 +207,7 @@ function syncFilterControls() {
 function graphData() {
   const models = filteredArchitectures();
   const allowedSubtypeIds = new Set();
-  models.forEach((model) => model.subtypes.forEach((subtypeId) => {
+  models.forEach((model) => modelPaths(model).forEach((subtypeId) => {
     const subtype = subtypeById.get(subtypeId);
     if ((!state.family || subtype.family_id === state.family) && (!state.subtype || subtypeId === state.subtype)) {
       allowedSubtypeIds.add(subtypeId);
@@ -202,7 +217,7 @@ function graphData() {
     .filter((family) => !state.family || family.family_id === state.family)
     .map((family) => ({
       ...family,
-      visibleSubtypes: family.subtypes.filter((subtype) => allowedSubtypeIds.has(subtype.subtype_id)),
+      visibleSubtypes: familyPaths(family).filter((subtype) => allowedSubtypeIds.has(subtype.subtype_id)),
     }))
     .filter((family) => family.visibleSubtypes.length);
   return { models, families, allowedSubtypeIds };
@@ -213,11 +228,11 @@ function calculateGraphLayout() {
   const modelMap = new Map(models.map((model) => [model.model_id, model]));
   const subtypeOrder = new Map();
   let orderIndex = 0;
-  state.atlas.families.forEach((family) => family.subtypes.forEach((subtype) => subtypeOrder.set(subtype.subtype_id, orderIndex++)));
+  state.atlas.families.forEach((family) => familyPaths(family).forEach((subtype) => subtypeOrder.set(subtype.subtype_id, orderIndex++)));
   const parentSubtypes = new Map();
   const groupsBySignature = new Map();
   models.forEach((model) => {
-    const parents = model.subtypes.filter((id) => allowedSubtypeIds.has(id)).sort((a, b) => subtypeOrder.get(a) - subtypeOrder.get(b));
+    const parents = modelPaths(model).filter((id) => allowedSubtypeIds.has(id)).sort((a, b) => subtypeOrder.get(a) - subtypeOrder.get(b));
     parentSubtypes.set(model.model_id, parents);
     if (!parents.length) return;
     const signature = [...parents].sort().join("|");
@@ -368,7 +383,7 @@ function calculateGraphLayout() {
   const nodes = [{ id: "taxonomy_root", type: "root", label: "Model-visible input representation" }];
   familyNodes.forEach((family) => nodes.push({ id: family.nodeId, type: "family", label: family.data.name, family_id: family.id, data: family.data }));
   ["left", "right"].forEach((side) => {
-    sideSubtypeNodes[side].forEach((subtype) => nodes.push({ id: subtype.nodeId, type: "subtype", side, label: subtype.data.name, family_id: subtype.family_id, subtype_id: subtype.subtype_id, data: subtype.data }));
+    sideSubtypeNodes[side].forEach((subtype) => nodes.push({ id: subtype.nodeId, type: subtype.data.annotation_state ? "annotation_state" : "subtype", side, label: subtype.data.name, family_id: subtype.family_id, subtype_id: subtype.subtype_id, data: subtype.data }));
   });
   groups.forEach((group) => nodes.push({ id: `group::${group.id}`, type: "membership_group", side: group.side, label: group.leaf_ids.join(" + "), group_id: group.id, subtype_ids: group.subtype_ids, family_ids: group.family_ids, data: group }));
   models.forEach((model) => nodes.push({ id: `model::${model.model_id}`, type: "model", label: model.model_name, model_id: model.model_id, data: model }));
@@ -419,7 +434,7 @@ function edgePath(edge, positions) {
 
 function taxonomyNodeMarkup(node) {
   if (node.type === "root") {
-    return `<div class="taxonomy-node root-node"><span>Taxonomy root</span><strong>${escapeHtml(node.label)}</strong><small>489 grounded input routes</small></div>`;
+    return `<div class="taxonomy-node root-node"><span>Taxonomy root</span><strong>${escapeHtml(node.label)}</strong><small>${state.atlas.meta.route_count} grounded input routes</small></div>`;
   }
   if (node.type === "family") {
     const family = familyMeta(node.family_id);
@@ -427,10 +442,11 @@ function taxonomyNodeMarkup(node) {
   }
   if (node.type === "membership_group") {
     const single = node.subtype_ids.length === 1;
-    return `<div class="taxonomy-node membership-group-node"><span>${single ? "Single subtype" : "Exact subtype combination"}</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.models.length} ${node.data.models.length === 1 ? "model" : "models"} · ${node.subtype_ids.length} ${node.subtype_ids.length === 1 ? "path" : "paths"}</small></div>`;
+    const unresolved = node.subtype_ids.some(id => subtypeById.get(id)?.annotation_state);
+    return `<div class="taxonomy-node membership-group-node"><span>${unresolved ? "Partially classified" : single ? "Single subtype" : "Exact subtype combination"}</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.models.length} ${node.data.models.length === 1 ? "model" : "models"} · ${node.subtype_ids.length} ${node.subtype_ids.length === 1 ? "path" : "paths"}</small></div>`;
   }
   const family = familyMeta(node.family_id);
-  return `<div class="taxonomy-node subtype-node" style="--family-color:${family.color}"><span>${escapeHtml(node.data.leaf_id)} · Subtype</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.route_count} routes · ${node.data.model_count} models</small></div>`;
+  return `<div class="taxonomy-node subtype-node ${node.data.annotation_state ? "unresolved-node" : ""}" style="--family-color:${family.color}"><span>${escapeHtml(node.data.leaf_id)} · ${node.data.annotation_state ? "Annotation state" : "Subtype"}</span><strong>${escapeHtml(node.label)}</strong><small>${node.data.route_count} routes · ${node.data.model_count} models</small></div>`;
 }
 
 function modelNodeMarkup(architecture) {
@@ -568,7 +584,7 @@ function selectGraphNode(node) {
     syncFilterControls();
     renderAll({ fitGraph: true });
     state.selection = { type: "family", id: node.id, key: node.family_id };
-  } else if (node.type === "subtype") {
+  } else if (node.type === "subtype" || node.type === "annotation_state") {
     state.family = node.family_id;
     state.subtype = node.subtype_id;
     state.selection.key = node.subtype_id;
@@ -606,6 +622,14 @@ function routeMarkup(route) {
   const transforms = (route.transformation_chain_verbatim || []).length
     ? route.transformation_chain_verbatim.map((item) => escapeHtml(item)).join(" → ")
     : "No transformation stated";
+  const amendment = route.review_amendment;
+  const reviewMarkup = amendment ? `<div class="review-amendment" data-review-case="${escapeHtml(amendment.case_id)}">
+    <strong>Subtype unresolved</strong><p>${escapeHtml(amendment.model_role.replaceAll("_", " "))} · ${escapeHtml(amendment.operation_purpose.replaceAll("_", " "))} · ${escapeHtml(route.lifecycle_phase)} of the receiving model</p>
+    <p>${escapeHtml(amendment.rationale)}</p>
+    <a href="${escapeHtml(amendment.evidence_source.url)}" target="_blank" rel="noreferrer">Article v1 · supporting paragraph</a>
+    <p>${escapeHtml(amendment.case_id)} · ${escapeHtml(amendment.date)} · ${escapeHtml(amendment.procedure)}</p>
+    <details><summary>Previous assignment and evidence</summary><p>Subtype: ${escapeHtml(subtypeLabel(amendment.original.carrier_subtype))}</p><p>Lifecycle: ${escapeHtml(amendment.original.lifecycle_phase)}; input status: ${escapeHtml(amendment.original.input_status)}</p><blockquote>${escapeHtml(amendment.original.evidence_quote)}</blockquote></details>
+  </div>` : "";
   return `<article class="route-record" style="--family-color:${family.color}">
     <div class="route-record-head"><strong>${escapeHtml(route.route_label || route.task_or_configuration_verbatim)}</strong><span>${escapeHtml(route.evidence_status)}</span></div>
     <div class="route-flow">
@@ -617,37 +641,41 @@ function routeMarkup(route) {
     </div>
     <blockquote>“${escapeHtml(route.evidence_quote)}”</blockquote>
     <p class="route-provenance">${escapeHtml(route.section_heading)} · pages ${escapeHtml((route.pages || []).join(", ") || "n/a")} · ${escapeHtml(subtypeLabel(route.carrier_subtype))}</p>
+    ${reviewMarkup}
   </article>`;
 }
 
 function modelInspector(architecture) {
+  const role = architecture.routes.find(route => route.review_amendment)?.review_amendment.model_role;
   const familyChips = architecture.families.map((familyId) => {
     const family = familyMeta(familyId);
     return `<span class="family-chip" style="--family-color:${family.color}">${escapeHtml(family.code)} · ${escapeHtml(family.short)}</span>`;
   }).join("");
-  const subtypePaths = architecture.subtypes
+  const subtypePaths = modelPaths(architecture)
     .map((subtypeId) => {
       const subtype = subtypeById.get(subtypeId);
       const family = familyMeta(subtype?.family_id);
-      return { subtypeId, subtype, family, routeCount: architecture.subtype_counts[subtypeId] || 0 };
+      return { subtypeId, subtype, family, routeCount: subtype?.annotation_state ? architecture.routes.filter(r => routePath(r) === subtypeId).length : architecture.subtype_counts[subtypeId] || 0 };
     })
     .sort((left, right) => (left.subtype?.leaf_id || left.subtypeId).localeCompare(right.subtype?.leaf_id || right.subtypeId));
   const subtypePathChips = subtypePaths.map(({ subtypeId, subtype, family, routeCount }) => `<span class="subtype-path-chip" data-inspector-subtype-path="${escapeHtml(subtypeId)}" style="--family-color:${family.color}">
     <b>${escapeHtml(subtype?.leaf_id || subtypeId)}</b><span>${escapeHtml(subtype?.name || subtypeId)}</span><em>${routeCount} ${routeCount === 1 ? "route" : "routes"}</em>
   </span>`).join("");
-  const pathScope = architecture.families.length === 1
+  const hasUnresolved = (architecture.unresolved_families || []).length > 0;
+  const pathScope = hasUnresolved ? "Carrier family identified; subtype unresolved."
+    : architecture.families.length === 1
     ? `All subtype paths remain within ${familyMeta(architecture.families[0]).code}.`
     : `Paths span ${architecture.families.length} carrier families.`;
   return `<div class="inspector-scroll">
-    <div class="inspector-title"><p class="section-kicker">Model node</p><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p></div>
+    <div class="inspector-title"><p class="section-kicker">${role ? escapeHtml(role.replaceAll("_", " ")) : "Model node"}</p><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p></div>
     <div class="chip-row">${familyChips}<span class="collection-chip"><i data-lucide="calendar-days"></i>Added in ${escapeHtml(architecture.review_iteration || architecture.collection_date)}</span></div>
     <div class="model-path-summary">
-      <div class="model-path-heading"><strong>Graph paths</strong><span>${architecture.subtypes.length} subtype ${architecture.subtypes.length === 1 ? "path" : "paths"} · ${architecture.route_count} routes</span></div>
+      <div class="model-path-heading"><strong>Graph paths</strong><span>${hasUnresolved ? "Subtype unresolved" : `${architecture.subtypes.length} subtype ${architecture.subtypes.length === 1 ? "path" : "paths"}`} · ${architecture.route_count} routes</span></div>
       <p>${escapeHtml(pathScope)}</p>
       <div class="subtype-path-list">${subtypePathChips}</div>
     </div>
     ${evidenceProvenance(architecture)}
-    <section class="inspector-section"><div class="inspector-section-title"><h4>What the input can look like</h4><span>Explanatory examples</span></div>${exampleMarkup(architecture, "detail")}</section>
+    ${architecture.illustrative_examples.length ? `<section class="inspector-section"><div class="inspector-section-title"><h4>What the input can look like</h4><span>Explanatory examples</span></div>${exampleMarkup(architecture, "detail")}</section>` : ""}
     <section class="inspector-section"><div class="inspector-section-title"><h4>Grounded routes</h4><span>${architecture.route_count} routes</span></div>${architecture.routes.map(routeMarkup).join("")}</section>
     <div class="paper-link-row">
       ${architecture.paper_url ? `<a href="${escapeHtml(architecture.paper_url)}" target="_blank" rel="noreferrer"><i data-lucide="external-link"></i>Open paper</a>` : ""}
@@ -694,33 +722,34 @@ function familyInspector(family) {
     <p class="section-kicker">${escapeHtml(family.code)} · Carrier family</p><h3>${escapeHtml(family.name)}</h3>
     <p>${escapeHtml(family.definition)}</p>
     <dl class="family-metrics"><div><dt>Routes</dt><dd>${family.route_count}</dd></div><div><dt>Models</dt><dd>${family.model_count}</dd></div><div><dt>Subtypes</dt><dd>${family.subtypes.length}</dd></div></dl>
-    <div class="inspector-subtypes">${family.subtypes.map((subtype) => `<button data-inspector-subtype="${escapeHtml(subtype.subtype_id)}"><b>${escapeHtml(subtype.leaf_id)}</b><span>${escapeHtml(subtype.name)}</span><em>${subtype.model_count} models</em></button>`).join("")}</div>
+    <div class="inspector-subtypes">${familyPaths(family).map((subtype) => `<button data-inspector-subtype="${escapeHtml(subtype.subtype_id)}"><b>${escapeHtml(subtype.leaf_id)}</b><span>${escapeHtml(subtype.name)}</span><em>${subtype.model_count} models</em></button>`).join("")}</div>
   </div>`;
 }
 
 function subtypeInspector(subtype) {
   if (!subtype) return rootInspector();
   const family = familyMeta(subtype.family_id);
-  const models = filteredArchitectures().filter((model) => model.subtypes.includes(subtype.subtype_id));
+  const models = filteredArchitectures().filter((model) => modelPaths(model).includes(subtype.subtype_id));
   return `<div class="inspector-scroll subtype-inspector" style="--family-color:${family.color}">
     <p class="section-kicker">${escapeHtml(subtype.leaf_id)} · ${escapeHtml(family.short)}</p><h3>${escapeHtml(subtype.name)}</h3>
     <p>${escapeHtml(subtype.definition)}</p>
-    <div class="input-example standalone-example"><div class="example-label"><span>Mechanism example</span><em>Illustrative · not paper evidence</em></div><div class="example-flow"><code>${escapeHtml(subtype.example.input)}</code><i data-lucide="arrow-right"></i><code>${escapeHtml(subtype.example.carrier)}</code><i data-lucide="arrow-right"></i><strong>${escapeHtml(subtype.example.model)}</strong></div></div>
+    ${subtype.example ? `<div class="input-example standalone-example"><div class="example-label"><span>Mechanism example</span><em>Illustrative · not paper evidence</em></div><div class="example-flow"><code>${escapeHtml(subtype.example.input)}</code><i data-lucide="arrow-right"></i><code>${escapeHtml(subtype.example.carrier)}</code><i data-lucide="arrow-right"></i><strong>${escapeHtml(subtype.example.model)}</strong></div></div>` : ""}
     <h4 class="model-list-title">${models.length} visible models</h4>
     <div class="inspector-model-list">${models.map((model) => `<button data-inspector-model="${escapeHtml(model.model_id)}"><span>${cropMarkup(model, "tiny")}</span><b>${escapeHtml(model.model_name)}</b><em>${model.route_count} routes</em></button>`).join("")}</div>
   </div>`;
 }
 
 function membershipGroupInspector(group) {
+  const unresolved = group.subtype_ids.some(id => subtypeById.get(id)?.annotation_state);
   const subtypeRows = group.subtype_ids.map((subtypeId) => {
     const subtype = subtypeById.get(subtypeId);
     const family = familyMeta(subtype.family_id);
     return `<div class="membership-path-row" style="--family-color:${family.color}"><b>${escapeHtml(subtype.leaf_id)}</b><span>${escapeHtml(subtype.name)}</span><em>${escapeHtml(family.code)}</em></div>`;
   }).join("");
   return `<div class="inspector-scroll membership-group-inspector">
-    <p class="section-kicker">Exact membership group</p>
+    <p class="section-kicker">${unresolved ? "Partially classified group" : "Exact membership group"}</p>
     <h3>${escapeHtml(group.leaf_ids.join(" + "))}</h3>
-    <p>Every model in this section has exactly this set of visible input-representation subtypes.</p>
+    <p>${unresolved ? "The family-level classification retains an unresolved subtype." : "Every model in this section has exactly this set of visible input-representation subtypes."}</p>
     <div class="membership-path-list">${subtypeRows}</div>
     <h4 class="model-list-title">${group.models.length} ${group.models.length === 1 ? "model" : "models"}</h4>
     <div class="inspector-model-list">${group.models.map((model) => `<button data-inspector-model="${escapeHtml(model.model_id)}"><span>${cropMarkup(model, "tiny")}</span><b>${escapeHtml(model.model_name)}</b><em>${model.route_count} routes</em></button>`).join("")}</div>
@@ -729,10 +758,10 @@ function membershipGroupInspector(group) {
 
 function architectureCard(architecture) {
   const example = architecture.illustrative_examples[0];
-  const family = familyMeta(example.family_id);
+  const family = familyMeta(example?.family_id || architecture.families[0]);
   return `<button class="architecture-card" type="button" data-open-model="${escapeHtml(architecture.model_id)}" data-record-id="${escapeHtml(architecture.record_id)}" style="--family-color:${family.color}">
-    <div class="architecture-card-media"><div><span>Original-paper crop</span>${cropMarkup(architecture, "card")}</div><div class="card-example"><span>Illustrative input</span><code>${escapeHtml(shorten(example.example_input, 74))}</code><small>${escapeHtml(shorten(example.example_carrier, 74))}</small></div></div>
-    <div class="architecture-card-body"><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p><div><span class="collection-tag"><i data-lucide="calendar-days"></i>${escapeHtml(architecture.review_iteration || architecture.collection_date)}</span><span>${architecture.route_count} routes</span><span>${architecture.subtypes.length} subtypes</span><span>${architecture.figure ? `Fig. ${architecture.figure.figure_index}` : "Text evidence only"}</span></div></div>
+    <div class="architecture-card-media"><div><span>Original-paper crop</span>${cropMarkup(architecture, "card")}</div><div class="card-example">${example ? `<span>Illustrative input</span><code>${escapeHtml(shorten(example.example_input, 74))}</code><small>${escapeHtml(shorten(example.example_carrier, 74))}</small>` : '<span>Subtype unresolved</span><p>Exact input format unconfirmed</p>'}</div></div>
+    <div class="architecture-card-body"><h3>${escapeHtml(architecture.model_name)}</h3><p>${escapeHtml(architecture.paper_title)}</p><div><span class="collection-tag"><i data-lucide="calendar-days"></i>${escapeHtml(architecture.review_iteration || architecture.collection_date)}</span><span>${architecture.route_count} routes</span><span>${architecture.unresolved_families?.length ? "Subtype unresolved" : `${architecture.subtypes.length} subtypes`}</span><span>${architecture.figure ? `Fig. ${architecture.figure.figure_index}` : "Text evidence only"}</span></div></div>
   </button>`;
 }
 
@@ -883,6 +912,7 @@ async function initialize() {
       familyById.set(family.family_id, family);
       family.subtypes.forEach((subtype) => subtypeById.set(subtype.subtype_id, { ...subtype, family_id: family.family_id }));
     });
+    (state.atlas.annotation_states || []).forEach(item => subtypeById.set(item.subtype_id, item));
     state.atlas.architectures.forEach((architecture) => architectureById.set(architecture.model_id, architecture));
     state.atlas.graph.nodes.forEach((node) => graphNodeById.set(node.id, node));
     state.atlas.graph.nodes
