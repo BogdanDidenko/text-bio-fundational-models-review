@@ -1,6 +1,6 @@
 # Atlas QA Record
 
-Reviewed-view verification: 2026-09-06. The P023 amendment preserves the frozen
+Reviewed-view verification: 2026-09-08. The P023 amendment preserves the frozen
 source inventory and adds an explicit subtype-uncertainty state to its display.
 
 ## Data integrity
@@ -62,6 +62,11 @@ P023-specific checks in `data/review_qa.json` verify that the model remains in
 the graph, index and evidence table, is absent from the F1.L2 filter, appears
 under the family-scoped uncertainty state, has no invented illustrative input,
 and exposes the corrected quote plus the original assignment and evidence history.
+
+P030 checks verify the separate reviewed transformation, the qualification about
+historical ordering, the source-code and dated-log links, and the original
+shuffling claim in history. Its existing F1.L2 classification and graph position
+are preserved. The correction is displayed without an unresolved-subtype label.
 
 Re-run locally after starting a static server:
 

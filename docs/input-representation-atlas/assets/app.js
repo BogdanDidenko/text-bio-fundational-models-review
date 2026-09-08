@@ -619,23 +619,28 @@ function evidenceProvenance(architecture) {
 
 function routeMarkup(route) {
   const family = familyMeta(route.carrier_family);
-  const transforms = (route.transformation_chain_verbatim || []).length
-    ? route.transformation_chain_verbatim.map((item) => escapeHtml(item)).join(" → ")
+  const transformationChain = route.reviewed_transformation_chain || route.transformation_chain_verbatim || [];
+  const transforms = transformationChain.length
+    ? transformationChain.map((item) => escapeHtml(item)).join(" → ")
     : "No transformation stated";
   const amendment = route.review_amendment;
+  const roleNote = amendment?.model_role && amendment.operation_purpose
+    ? `<p>${escapeHtml(amendment.model_role.replaceAll("_", " "))} · ${escapeHtml(amendment.operation_purpose.replaceAll("_", " "))} · ${escapeHtml(route.lifecycle_phase)} of the receiving model</p>` : "";
   const reviewMarkup = amendment ? `<div class="review-amendment" data-review-case="${escapeHtml(amendment.case_id)}">
-    <strong>Subtype unresolved</strong><p>${escapeHtml(amendment.model_role.replaceAll("_", " "))} · ${escapeHtml(amendment.operation_purpose.replaceAll("_", " "))} · ${escapeHtml(route.lifecycle_phase)} of the receiving model</p>
+    <strong>${escapeHtml(amendment.display_title || (route.carrier_subtype === "unclear" ? "Subtype unresolved" : "Reviewed description"))}</strong>${roleNote}
     <p>${escapeHtml(amendment.rationale)}</p>
-    <a href="${escapeHtml(amendment.evidence_source.url)}" target="_blank" rel="noreferrer">Article v1 · supporting paragraph</a>
+    <a href="${escapeHtml(amendment.evidence_source.url)}" target="_blank" rel="noreferrer">${escapeHtml(amendment.evidence_source.label || "Article v1 · supporting paragraph")}</a>
+    ${(amendment.supporting_sources || []).map(source => `<p><a href="${escapeHtml(source.url)}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></p>`).join("")}
+    ${amendment.analysis_log_url ? `<p><a href="${escapeHtml(amendment.analysis_log_url)}" target="_blank" rel="noreferrer">Dated analysis correction log</a></p>` : ""}
     <p>${escapeHtml(amendment.case_id)} · ${escapeHtml(amendment.date)} · ${escapeHtml(amendment.procedure)}</p>
-    <details><summary>Previous assignment and evidence</summary><p>Subtype: ${escapeHtml(subtypeLabel(amendment.original.carrier_subtype))}</p><p>Lifecycle: ${escapeHtml(amendment.original.lifecycle_phase)}; input status: ${escapeHtml(amendment.original.input_status)}</p><blockquote>${escapeHtml(amendment.original.evidence_quote)}</blockquote></details>
+    <details><summary>Previous assignment and evidence</summary><p>Subtype: ${escapeHtml(subtypeLabel(amendment.original.carrier_subtype))}</p><p>Lifecycle: ${escapeHtml(amendment.original.lifecycle_phase)}; input status: ${escapeHtml(amendment.original.input_status)}</p>${amendment.original.transformation_chain_verbatim ? `<p>Originally reported transformation: ${amendment.original.transformation_chain_verbatim.map(escapeHtml).join(" → ")}</p>` : ""}<blockquote>${escapeHtml(amendment.original.evidence_quote)}</blockquote></details>
   </div>` : "";
   return `<article class="route-record" style="--family-color:${family.color}">
     <div class="route-record-head"><strong>${escapeHtml(route.route_label || route.task_or_configuration_verbatim)}</strong><span>${escapeHtml(route.evidence_status)}</span></div>
     <div class="route-flow">
       <div><span>Source object</span><p>${escapeHtml(route.source_object_verbatim)}</p></div>
       <i data-lucide="arrow-right"></i>
-      <div><span>Transformation</span><p>${transforms}</p></div>
+      <div><span>${route.reviewed_transformation_chain ? "Reviewed transformation" : "Transformation"}</span><p>${transforms}</p></div>
       <i data-lucide="arrow-right"></i>
       <div><span>Model-visible carrier</span><p>${escapeHtml(route.model_visible_form_verbatim)}</p></div>
     </div>

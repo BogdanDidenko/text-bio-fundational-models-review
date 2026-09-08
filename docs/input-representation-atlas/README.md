@@ -37,6 +37,12 @@ five families and 15 subtypes. Its previous assignment and evidence are availabl
 in the route's review history; the unverified illustrative prompt is omitted.
 The reviewed view has 584 subtype-assigned routes and one unresolved-subtype route.
 
+P030 has a separate candidate-order correction. Its displayed reviewed
+transformation names alphabetical ordering in the published implementation and
+retains the discrepancy with the article's shuffling description. The original
+reported transformation, source links and dated correction log remain available
+in its review history. P030's classification and graph membership are unchanged.
+
 Each model also carries the review iteration encoded by its canonical record ID.
 The **Review iteration** filter isolates the exact records added in a living-review
 update, including the latest `2026-08-09` iteration, across the graph, model

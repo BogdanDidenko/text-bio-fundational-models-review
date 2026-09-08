@@ -96,6 +96,39 @@ class AtlasReviewAmendmentTests(unittest.TestCase):
             self.assertEqual(first["families"][0]["subtypes"][0]["route_count"], 0)
             self.assertEqual(first["architectures"][0]["illustrative_examples"], [])
 
+    def test_reviewed_transformation_preserves_reported_claim_and_categories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            route, record, file = self.fixture(root)
+            route.update(evidence_quote="Teacher receives gene features.", transformation_chain_verbatim=["shuffle candidates"])
+            record["updates"] = {"reviewed_transformation_chain": ["published code sorts candidates"]}
+            record["retain_original_fields"] = ["transformation_chain_verbatim", "carrier_subtype"]
+            record["display_title"] = "Candidate order clarified"
+            file.write_text(json.dumps(record))
+            result, _ = apply_review_amendments([route], [file], root)
+            self.assertEqual(result[0]["transformation_chain_verbatim"], ["shuffle candidates"])
+            self.assertEqual(result[0]["carrier_subtype"], route["carrier_subtype"])
+            self.assertEqual(result[0]["reviewed_transformation_chain"], ["published code sorts candidates"])
+            self.assertEqual(result[0]["review_amendment"]["original"]["transformation_chain_verbatim"], ["shuffle candidates"])
+
+    def test_supporting_code_source_is_verified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            route, record, file = self.fixture(root)
+            code = root / "builder.py"
+            code.write_text("sorted(chosen_types)\n")
+            record["supporting_sources"] = [{"path": "builder.py", "sha256": hashlib.sha256(code.read_bytes()).hexdigest(), "line": 1, "excerpt": "sorted(chosen_types)"}]
+            file.write_text(json.dumps(record))
+            result, _ = apply_review_amendments([route], [file], root)
+            self.assertEqual(result[0]["review_amendment"]["supporting_sources"], record["supporting_sources"])
+            record["supporting_sources"][0]["excerpt"] = "random.shuffle"
+            file.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError, "excerpt does not match"):
+                apply_review_amendments([route], [file], root)
+            code.write_text("different code\n")
+            with self.assertRaisesRegex(ValueError, "hash changed"):
+                apply_review_amendments([route], [file], root)
+
 
 if __name__ == "__main__":
     unittest.main()

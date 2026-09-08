@@ -6,6 +6,17 @@ are applied by `scripts/apply_atlas_review_amendments.py` after the unchanged
 method-locked atlas builder. The Pages workflow verifies the projection before
 deployment.
 
+## P030 candidate ordering, 2026-09-08
+
+The [dated correction log](../../analysis/input_taxonomy_p030_candidate_order_2026-09-08/README.md)
+and `2026-09-08_p030_candidate_order.json` distinguish article-reported shuffling
+from the alphabetical candidate order in the published QA builder. The current
+card displays `reviewed_transformation_chain`; its original article-derived
+`transformation_chain_verbatim` remains preserved. The source code is archived
+with a pinned commit, file hash and line reference. Taxonomy labels, route IDs,
+graph membership, crops and all other routes are unchanged. This description
+correction leaves the remaining P030 audit judgments held.
+
 ## P023, 2026-09-06
 
 The author accepted an unresolved subtype for the teacher gene-feature route in

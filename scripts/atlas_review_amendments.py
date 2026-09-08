@@ -11,7 +11,7 @@ def apply_review_amendments(routes, files, root):
     by_id = {row["route_id"]: row for row in amended}
     applied = []
     seen = set()
-    allowed = {"carrier_subtype", "input_status", "lifecycle_phase", "evidence_quote", "section_heading", "pages", "doc_item_refs", "uncertainty"}
+    allowed = {"carrier_subtype", "input_status", "lifecycle_phase", "evidence_quote", "section_heading", "pages", "doc_item_refs", "uncertainty", "reviewed_transformation_chain"}
     for file in files:
         record = json.loads(file.read_text())
         route_id = record["route_id"]
@@ -34,19 +34,31 @@ def apply_review_amendments(routes, files, root):
         text = text_path.read_text()
         if hashlib.sha256(text_path.read_bytes()).hexdigest() != source["sha256"]:
             raise ValueError("Review evidence source hash changed")
-        quote = record["updates"]["evidence_quote"]
+        quote = record["updates"].get("evidence_quote", route.get("evidence_quote"))
         if quote not in text or quote not in text.splitlines()[source["line"] - 1]:
             raise ValueError("Amended quote does not match its cited source line")
-        original = {field: route.get(field) for field in record["updates"]}
+        for supporting in record.get("supporting_sources", []):
+            supporting_path = root / supporting["path"]
+            if hashlib.sha256(supporting_path.read_bytes()).hexdigest() != supporting["sha256"]:
+                raise ValueError("Supporting source hash changed")
+            if supporting["excerpt"] not in supporting_path.read_text().splitlines()[supporting["line"] - 1]:
+                raise ValueError("Supporting source excerpt does not match its cited line")
+        retained = set(record.get("retain_original_fields", []))
+        if retained - allowed - {"transformation_chain_verbatim"}:
+            raise ValueError("Unsupported retained original field")
+        original = {field: route.get(field) for field in dict.fromkeys([*record["updates"], *sorted(retained)])}
         route.update(record["updates"])
         route["review_amendment"] = {
             "case_id": record["case_id"], "date": record["date"],
             "status": record["status"], "procedure": record["procedure"],
-            "model_role": record["model_role"], "operation_purpose": record["operation_purpose"],
+            "model_role": record.get("model_role"), "operation_purpose": record.get("operation_purpose"),
             "author_confirmed_fields": record["author_confirmed_fields"],
             "rationale": record["rationale"], "evidence_source": source,
             "original": original,
         }
+        for optional in ("display_title", "supporting_sources", "analysis_log_url", "author_authorized_fields", "audit_status"):
+            if optional in record:
+                route["review_amendment"][optional] = record[optional]
         applied.append({"path": str(file.relative_to(root)), "sha256": hashlib.sha256(file.read_bytes()).hexdigest(), "route_id": route_id})
     return amended, applied
 
