@@ -10,6 +10,12 @@ on:
       - "data/input_representation_audit_amendments/**"
       - "scripts/apply_atlas_review_amendments.py"
       - "scripts/atlas_review_amendments.py"
+      - "analysis/representation_block_library_2026-10-04/**"
+      - "scripts/build_representation_library.py"
+      - "scripts/review_representation_library_change.py"
+      - "scripts/docling_graph_templates/representation_library.py"
+      - "scripts/docling_graph_templates/symbolic_trajectories.py"
+      - "tests/test_representation_library.py"
       - ".github/workflows/deploy-input-representation-atlas.yml"
   workflow_dispatch:
 
@@ -34,6 +40,17 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      - name: Set up library validation runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify component library release
+        run: |
+          python3 -m pip install --disable-pip-version-check pydantic==2.13.5
+          python3 scripts/build_representation_library.py --check
+          python3 -m unittest discover -s tests -p test_representation_library.py
 
       - name: Verify living-review state and staged atlas
         run: python3 scripts/run_living_review_pipeline.py doctor --repository-checkout
