@@ -75,6 +75,7 @@ def decompose(row, library_hash, release):
     result.update(contract_version="operation-assembly-v1", record_id=row["record_id"], library_release=release,
                   library_sha256=library_hash, nodes=[{**node, "origin": "source_annotation"} for node in t["nodes"]],
                   calls=[], bypasses=[], source_steps=t["steps"])
+    source_nodes = {node["node_id"]: node for node in t["nodes"]}
     for step in t["steps"]:
         label = step["operation_type"]
         refs = [item["node_id"] for item in step["inputs"]]
@@ -108,9 +109,14 @@ def decompose(row, library_hash, release):
                 keys, table = refs[:1], refs[1]
                 kind = "identifier reference" if label.startswith("ensembl") else "shared embedding matrix"
             else:
-                keys = refs
                 kind = "vocabulary mapping" if label == "gene_identifier_to_vocabulary_index" else "embedding matrix"
-                table = node("lookup_table", "implicit_parameter", f"{kind} belonging to {step['component']}; values and sharing are unasserted")
+                declared_tables = [ref for ref in refs if source_nodes[ref]["representation_type"] in
+                                   {"learned_gene_embedding_parameters", "raw_shared_gene_embeddings"}]
+                if len(declared_tables) > 1:
+                    raise ValueError("Lookup contains multiple declared parameter tables; requires source review")
+                keys = [ref for ref in refs if ref not in declared_tables]
+                table = declared_tables[0] if declared_tables else node("lookup_table", "implicit_parameter",
+                    f"{kind} belonging to {step['component']}; values and sharing are unasserted")
             call("lookup", {"keys": keys, "table": [table]}, {"values": output},
                  {"resource_kind": kind, "trainability": "unspecified at this component/phase boundary"})
 

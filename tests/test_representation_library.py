@@ -45,6 +45,16 @@ class OperationLibraryTests(unittest.TestCase):
                     self.assertTrue(call["inputs"]["keys"])
                     self.assertEqual(len(call["inputs"]["table"]), 1)
 
+    def test_declared_gene_table_is_reused_as_table_operand(self):
+        checked = 0
+        for assembly in self.assemblies:
+            for call in assembly["calls"]:
+                if call["operation_id"] == "lookup" and call["source_step_id"] in {"identity_encoder", "perturbation_gene_lookup"}:
+                    self.assertEqual(call["inputs"]["table"], ["gene_table_raw"])
+                    self.assertNotIn("gene_table_raw", call["inputs"]["keys"])
+                    checked += 1
+        self.assertTrue(checked)
+
     def test_lookup_and_layernorm_are_separate_calls(self):
         for assembly in self.assemblies:
             for source in assembly["source_steps"]:

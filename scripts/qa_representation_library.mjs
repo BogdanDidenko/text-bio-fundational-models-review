@@ -33,17 +33,32 @@ try{
     await page.locator('[data-select="bin"]').click();
     await page.locator('[data-supplement="bin"]').click();
     if(!await page.locator("#detail").textContent().then((value)=>value.includes("WITHDRAWN")))throw new Error("Supplement source status hidden");
-    if(await page.locator(".graph-operation").count() !== 7)throw new Error("Binning/lookup branches incomplete");
+    if(await page.locator("#full-graph .graph-operation").count() !== 7)throw new Error("Binning/lookup branches incomplete");
     await page.screenshot({path:path.join(output,`${name}-binning-example.png`)});
     await page.locator('[data-view="proposals"]').click();
     if(!await page.locator(".list-entry").count())throw new Error("Opaque source boundaries missing");
     await page.locator('[data-view="reuse"]').click();
     if(await page.locator(".list-entry").count() !== catalog.report.cross_paper_reused_types)throw new Error("Reuse view failed");
+    await page.locator('[data-view="assemblies"]').click();
+    await page.locator('[data-select="full_2026-07-06__rec_003517"]').click();
+    if(await page.locator("#path-source").inputValue() !== "control_pool")throw new Error("X-Cell does not start at measured expression");
+    if(await page.locator("#full-graph").getAttribute("open") !== null)throw new Error("Full transformation dump expanded by default");
+    if(await page.locator('#focused-path [data-source-step="esm_lookup"]').count())throw new Error("Independent prior preparation leaked into expression path");
+    if(!await page.locator("#focused-path .parallel-band").count())throw new Error("Expression branches flattened");
+    await page.screenshot({path:path.join(output,`${name}-xcell-input-path.png`),fullPage:true});
+    await page.locator("#path-receipt").selectOption("context");
+    await page.locator("#path-source").selectOption("esm_reference");
+    if(await page.locator('#focused-path [data-source-step="esm_lookup"]').count() !== 1)throw new Error("Prior path selection failed");
+    if(await page.locator('#focused-path [data-source-step="control_normalization"]').count())throw new Error("Expression preprocessing leaked into prior path");
+    await page.screenshot({path:path.join(output,`${name}-xcell-prior-path.png`),fullPage:true});
+    await page.locator("#full-graph summary").first().click();
+    if(await page.locator("#full-graph .graph-operation").count() !== 46)throw new Error("Original operations lost");
+    await page.locator("#full-graph summary").first().click();
     const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
       clipped:[...document.querySelectorAll("h1,h2,h3,.quote,.definition,.list-entry strong")].filter((item)=>item.scrollWidth>item.clientWidth+1).map((item)=>item.textContent)}));
     if(layout.overflow>1 || layout.clipped.length || errors.length)throw new Error(JSON.stringify({layout,errors}));
     report.push({name,viewport,operation_types:catalog.blocks.length,reused_types:catalog.report.cross_paper_reused_types,
-      search:true,evidence:true,source_image:true,contexts:true,binning_lookup_branches:true,supplement_status:true,layout,errors});
+      search:true,evidence:true,source_image:true,contexts:true,binning_lookup_branches:true,supplement_status:true,xcell_expression_path:true,xcell_prior_path:true,complete_graph_preserved:true,layout,errors});
     await page.close();
   }
 }finally{await browser.close();}

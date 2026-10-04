@@ -1,4 +1,4 @@
-# Operation library, release 1.0.0
+# Operation library, release 1.0.1
 
 Rebuilt 2026-10-05 following the author's clarified unit: one reusable data
 transformation with defined operands and results. The failed 91-entry catalog,
@@ -38,3 +38,18 @@ desktop/mobile browser checks cover actual ports, branches, examples and reuse.
 No new LLM batch, PDF conversion, VLM call, canonical taxonomy migration or
 eligibility change was performed. Mechanical preservation does not certify all
 source entailment; unexpanded boundaries remain source-review work.
+
+## Input-path interface and lookup correction
+
+The interface projects one chosen source/boundary to one receiving operand using
+reachability over the complete recorded graph. Calls from independent branches
+remain available through Additional Inputs and the collapsed Complete Graph.
+Documented source steps retain their primitive calls and evidence; parallel
+dependency branches remain separate. No scientific field is shortened or dropped.
+
+Release 1.0.1 fixes a concrete adapter error: explicit gene embedding tables were
+previously included in lookup keys while a redundant implicit table was created.
+The corrected calls reuse `gene_table_raw` as their table operand and retain actual
+identifiers as keys. Original source annotations/hashes remain unchanged. Regression
+tests verify that binding. The frozen 1.0.0 artifact retains the prior published
+state for traceability; 1.0.1 is the active projection.

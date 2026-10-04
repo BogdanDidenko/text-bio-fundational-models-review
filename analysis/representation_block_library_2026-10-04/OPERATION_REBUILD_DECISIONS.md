@@ -23,3 +23,13 @@ All original 47 trajectories have full equality restoration tests. Source quotat
 are preserved in full. Added intermediate shapes are left unspecified when the
 source does not establish them. Required-port and reference tests check graph
 integrity. Source entailment and complete module decomposition remain review tasks.
+
+## Release 1.0.1 correction
+
+Source review of X-Cell confirmed that `gene_table_raw` is already supplied to the
+identity and perturbation-gene lookups. The 1.0.0 adapter incorrectly treated all
+otherwise-unhandled lookup operands as keys and added an implicit matrix. It now
+recognizes the explicit source-annotated gene parameter table, binds it to `table`,
+and leaves only actual identifiers in `keys`. A regression test exercises every
+affected call. This changes derived bindings, preserves the exact original source
+trajectory, and creates a new frozen release. No new model inference was used.

@@ -110,3 +110,9 @@ The failed 91-entry description catalog is removed from the active tree. It rema
 recoverable through commit `a61f9c2b`. Canonical atlas data and source evidence are
 unchanged. Further papers must be reconstructed with this operation-level guide
 and independently reviewed before corpus-wide use.
+
+The Model Chains interface separates task/phase contexts and traces a selected data
+source or intermediate boundary to a selected receiving port. Side inputs and full
+graph/evidence remain available. This projection follows recorded graph dependency
+edges; it establishes no new causal or execution-order claim. Source-specific
+primitive sequences are shown together, with parallel dependency branches separate.

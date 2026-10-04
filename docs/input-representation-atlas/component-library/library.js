@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-const state = {view:"blocks", selected:null, query:"", reuse:"", paper:"", context:null};
-let catalog, assemblies, evidence, atlas, operations;
+const state = {view:"blocks", selected:null, query:"", reuse:"", paper:"", context:null, source:null, receipt:null};
+let catalog, assemblies, evidence, atlas, operations, pathTools, activeAssembly;
 const paper = (id) => catalog.records[id]?.paper || (id === "full_2026-07-06__rec_001277" ? "OKR-Cell (WITHDRAWN source)" : id);
 const icons = () => window.lucide?.createIcons();
 const key = (item) => item.operation_id || item.record_id || item.source_operation;
@@ -39,8 +39,48 @@ function callView(call, assembly) {
   return `<article class="graph-operation ${call.operation_id ? "" : "unexpanded"}"><h4>${call.operation_id ? `<button class="inline-link" data-block="${esc(call.operation_id)}">${esc(name)}</button>` : esc(name)}</h4><div class="provenance">${esc(call.call_id)} / ${esc(call.component)}</div><div class="operand-list">${Object.entries(call.inputs).map(([port, nodes]) => `${esc(nodes.join(" + "))} → ${esc(port)}`).join("<br>")}<br>→ ${Object.entries(call.outputs).map(([port,nodes]) => `${esc(port)}: ${esc(nodes.join(" + "))}`).join("<br>")}</div><div class="small">${Object.entries(call.parameters).filter(([key]) => key !== "source_port_roles").map(([key,value]) => `${esc(key)}: ${esc(typeof value === "object" ? JSON.stringify(value) : value)}`).join(" · ")}</div>${call.condition ? `<p class="state">When: ${esc(call.condition)}</p>` : ""}${call.uncertainty ? `<details><summary>Uncertainty</summary><p class="small">${esc(call.uncertainty)}</p></details>` : ""}<details><summary>Source evidence</summary>${sourceEvidence(assembly.record_id,call.evidence)}</details></article>`;
 }
 
+const boundaryNames={
+  stratified_target_set_and_matched_control_sampling:"Paired cell-set sampling",
+  combine_identity_value_and_mask:"Combine identity, value and reveal status",
+  interleaved_post_layer_norm_transformer_encoding:"Interleaved Transformer layers",
+  interleaved_pre_rms_norm_swiglu_qk_norm_transformer_encoding:"Interleaved Transformer layers",
+  stack_source_tokens_and_align_availability_mask:"Assemble prior tokens and availability mask",
+  sample_reveal_fraction_and_positions:"Choose training reveal positions",
+  conditioned_full_profile_prediction:"Predict full expression profile",
+  gene_identity_context_encoding:"Encode perturbation-gene condition",
+};
+const nodeLabel=(node)=>node?.representation_type.replaceAll("_"," ") || "unknown node";
+function pathView(assembly){
+  const nodes=new Map(assembly.nodes.map((node)=>[node.node_id,node]));
+  const receipt=assembly.receipt_inputs.find((item)=>item.node_id===state.receipt) || assembly.receipt_inputs[0];
+  if(!receipt)return '<p class="empty">Receiving operand is unspecified.</p>';
+  state.receipt=receipt.node_id;
+  const available=pathTools.availableSources(assembly,receipt.node_id);
+  if(![...available.roots,...available.intermediates].some((node)=>node.node_id===state.source))state.source=available.defaultSource;
+  const path=pathTools.inputPath(assembly,state.source,receipt.node_id);
+  const groups=pathTools.groupPathCalls(path);
+  const levels=[...new Set(groups.map((group)=>group.level))].sort((a,b)=>a-b);
+  const option=(node)=>`<option value="${esc(node.node_id)}" ${node.node_id===state.source ? "selected" : ""}>${esc(nodeLabel(node))} · ${esc(node.node_id)}</option>`;
+  const dataLabel=(id)=>`<span class="path-data" title="${esc(nodes.get(id)?.information_content)}">${esc(nodeLabel(nodes.get(id)))}<small class="node-reference">${esc(id)}</small></span>`;
+  return `<div class="path-controls"><label>Source / input boundary<select id="path-source"><optgroup label="Source and parameter boundaries">${available.roots.map(option).join("")}</optgroup><optgroup label="Intermediate representations">${available.intermediates.map(option).join("")}</optgroup></select></label><label>Receiving port<select id="path-receipt">${assembly.receipt_inputs.map((item)=>`<option value="${esc(item.node_id)}" ${item.node_id===state.receipt ? "selected" : ""}>${esc(item.port_role)}</option>`).join("")}</select></label></div>
+    <div class="path-endpoint"><span class="phase">SOURCE</span><strong>${esc(nodeLabel(nodes.get(state.source)))}</strong><p class="small">${esc(nodes.get(state.source)?.information_content)}</p></div>
+    <div id="focused-path">${levels.map((level)=>{
+      const band=groups.filter((group)=>group.level===level);
+      return `<div class="path-band ${band.length>1 ? "parallel-band" : ""}">${band.length>1 ? '<div class="branch-heading">Parallel dependency branches</div>' : ""}<div class="path-stage-grid">${band.map((group)=>{
+        const localInputs=group.inputs.filter((id)=>path.nodeIds.has(id));
+        const localOutputs=group.outputs.filter((id)=>path.nodeIds.has(id));
+        return `<article class="path-stage" data-source-step="${esc(group.sourceStepId)}"><div class="path-inputs">${localInputs.map(dataLabel).join('<span class="join-symbol">+</span>')}</div><div class="path-operations">${group.calls.map((call)=>`<span class="operation-token ${call.operation_id ? "" : "boundary-token"}">${esc(call.operation_id ? operations.get(call.operation_id).label : boundaryNames[call.parameters.source_operation] || call.parameters.source_operation.replaceAll("_"," "))}${call.parameters.method ? `<small>${esc(call.parameters.method.replaceAll("_"," "))}</small>` : ""}</span>`).join('<span class="within-step-arrow">→</span>')}</div><div class="path-outputs">${localOutputs.map(dataLabel).join('<span class="join-symbol">+</span>')}</div>${group.calls.some((call)=>!call.operation_id) ? '<span class="boundary-state">Internal rule remains unexpanded</span>' : ""}${[...new Set(group.calls.map((call)=>call.condition ? ((call.operation_id ? operations.get(call.operation_id).label : "Source step")+" applies when "+call.condition) : null).filter(Boolean))].map((condition)=>`<p class="path-condition">${esc(condition)}</p>`).join("")}${group.sideInputs.length ? `<details class="side-inputs"><summary>Additional inputs · ${group.sideInputs.length}</summary>${group.sideInputs.map((id)=>`<div class="side-input-row"><span>${esc(nodeLabel(nodes.get(id)))}</span><button class="inline-link" data-path-source="${esc(id)}">Trace this input</button></div>`).join("")}</details>` : ""}<details class="step-details"><summary>Parameters and evidence</summary>${group.calls.map((call)=>callView(call,assembly)).join("")}</details></article>`;
+      }).join("")}</div></div>`;
+    }).join("")}${groups.length ? "" : '<p class="small">This representation is supplied directly at the selected receiving boundary.</p>'}</div>
+    ${path.bypasses.length ? `<details class="path-bypasses"><summary>Conditional bypasses on this path</summary>${path.bypasses.map((edge)=>`<p class="small">${esc(nodeLabel(nodes.get(edge.source_node_id)))} → ${esc(nodeLabel(nodes.get(edge.target_node_id)))}<br>${esc(edge.condition)}</p>`).join("")}</details>` : ""}
+    <div class="path-endpoint receipt-endpoint"><span class="phase">RECEIVER</span><strong>${esc(assembly.recipient_component)}</strong><p class="small">${esc(receipt.port_role)} ← ${esc(nodeLabel(nodes.get(receipt.node_id)))}</p></div>`;
+}
+
 function chainView(assembly, supplemental = false) {
-  return `<span class="kind">${supplemental ? "Supplemental section example · WITHDRAWN source" : "Model chain"}</span><h2>${esc(paper(assembly.record_id))}</h2><div class="block-id">${esc(assembly.trajectory_id)} · ${esc(assembly.lifecycle_phase.replaceAll("_"," "))}</div>${supplemental ? "" : `<select id="context-select" class="context-select" aria-label="Task and phase">${assemblies.filter((item) => item.record_id === assembly.record_id).map((item) => `<option value="${esc(item.trajectory_id)}" ${item.trajectory_id === assembly.trajectory_id ? "selected" : ""}>${esc(item.trajectory_id)} · ${esc(item.lifecycle_phase)}</option>`).join("")}</select>`}<p class="definition">${esc(assembly.task_configuration)}</p><p class="small">${esc(assembly.model_variant)}</p><div class="section"><h3>Data transformations</h3>${assembly.calls.map((call) => callView(call,assembly)).join("")}</div>${assembly.bypasses.length ? `<div class="section"><h3>Conditional bypasses</h3>${assembly.bypasses.map((edge) => `<p class="operand-list">${esc(edge.source_node_id)} → ${esc(edge.target_node_id)}<br>${esc(edge.condition)}</p>`).join("")}</div>` : ""}<div class="section"><h3>Model input</h3><p class="rationale">${esc(assembly.recipient_component)}</p>${assembly.receipt_inputs.map((item) => `<div class="operand-list">${esc(item.node_id)} → ${esc(item.port_role)}</div>`).join("")}</div><details><summary>Data nodes and parameter resources</summary>${assembly.nodes.map((node) => `<p class="shape">${esc(node.node_id)} · ${esc(node.representation_type)}${node.symbolic_shape ? ` [${esc(node.symbolic_shape.join(", "))}]` : ""}</p><p class="small">${esc(node.information_content)}</p>`).join("")}</details><div class="section">${assembly.open_questions.map((question) => `<p class="small">${esc(question)}</p>`).join("")}${sourceFigure(assembly.record_id)}</div><details><summary>Complete chain JSON</summary><pre>${esc(JSON.stringify(assembly,null,2))}</pre></details>`;
+  activeAssembly=assembly;
+  const contexts=assemblies.filter((item)=>item.record_id===assembly.record_id);
+  const variants=[...new Set(contexts.map((item)=>item.model_variant))];
+  return `<span class="kind">${supplemental ? "Supplemental section example · WITHDRAWN source" : "Model input paths"}</span><h2>${esc(paper(assembly.record_id))}</h2><div class="block-id">${esc(assembly.model_variant)} · ${esc(assembly.lifecycle_phase.replaceAll("_"," "))} · ${esc(assembly.model_role.replaceAll("_"," "))}</div>${supplemental ? "" : `<label class="context-label">Model variant · task · phase<select id="context-select" class="context-select" aria-label="Task and phase">${variants.map((variant)=>`<optgroup label="${esc(variant)}">${contexts.filter((item)=>item.model_variant===variant).map((item)=>`<option value="${esc(item.trajectory_id)}" ${item.trajectory_id===assembly.trajectory_id ? "selected" : ""}>${esc(item.lifecycle_phase.replaceAll("_"," "))} · ${esc(item.task_configuration)}</option>`).join("")}</optgroup>`).join("")}</select></label>`}<p class="task-description">${esc(assembly.task_configuration)}</p><section class="input-path-section"><h3>Input path</h3><div id="path-panel">${pathView(assembly)}</div></section><details id="full-graph" class="section"><summary>Complete transformation graph · ${assembly.calls.length} calls</summary>${assembly.calls.map((call)=>callView(call,assembly)).join("")}${assembly.bypasses.map((edge)=>`<p class="small">${esc(edge.source_node_id)} → ${esc(edge.target_node_id)} · ${esc(edge.condition)}</p>`).join("")}</details><details><summary>Data nodes and parameter resources</summary>${assembly.nodes.map((node)=>`<p class="shape">${esc(node.node_id)} · ${esc(node.representation_type)}${node.symbolic_shape ? ` [${esc(node.symbolic_shape.join(", "))}]` : ""}</p><p class="small">${esc(node.information_content)}</p>`).join("")}</details><details class="section"><summary>Source questions and original-paper figure</summary>${assembly.open_questions.map((question)=>`<p class="small">${esc(question)}</p>`).join("")}${sourceFigure(assembly.record_id)}</details><details><summary>Complete chain JSON</summary><pre>${esc(JSON.stringify(assembly,null,2))}</pre></details>`;
 }
 
 function operationView(block) {
@@ -73,7 +113,7 @@ function drawList() {
   drawDetail();
 }
 function navigate(view,id,context=null) {
-  Object.assign(state,{view,selected:id,context,query:"",reuse:"",paper:""});
+  Object.assign(state,{view,selected:id,context,query:"",reuse:"",paper:"",source:null,receipt:null});
   $("search").value=""; $("reuse").value=""; $("paper").value="";
   $("reuse").disabled=view === "assemblies" || view === "proposals";
   document.querySelectorAll("[data-view]").forEach((button) => button.setAttribute("aria-selected",button.dataset.view === view));
@@ -83,18 +123,23 @@ function navigate(view,id,context=null) {
 document.addEventListener("click",(event) => {
   const button=event.target.closest("button"); if(!button)return;
   if(button.dataset.view)navigate(button.dataset.view,null);
-  if(button.dataset.select){state.selected=button.dataset.select;state.context=null;drawList();}
+  if(button.dataset.select){state.selected=button.dataset.select;state.context=null;state.source=null;state.receipt=null;drawList();}
   if(button.dataset.block)navigate("blocks",button.dataset.block);
   if(button.dataset.assembly)navigate("assemblies",button.dataset.assembly,button.dataset.context);
   if(button.dataset.supplement){const item=operations.get(button.dataset.supplement).supplemental_examples[Number(button.dataset.example)];$("detail").innerHTML=chainView(item.assembly,true);icons();}
+  if(button.dataset.pathSource){state.source=button.dataset.pathSource;$("path-panel").innerHTML=pathView(activeAssembly);}
 });
 $("search").addEventListener("input",(event)=>{state.query=event.target.value;drawList();});
 $("reuse").addEventListener("change",(event)=>{state.reuse=event.target.value;drawList();});
 $("paper").addEventListener("change",(event)=>{state.paper=event.target.value;drawList();});
-document.addEventListener("change",(event)=>{if(event.target.id === "context-select"){state.context=event.target.value;drawDetail();}});
+document.addEventListener("change",(event)=>{
+  if(event.target.id === "context-select"){state.context=event.target.value;state.source=null;state.receipt=null;drawDetail();}
+  if(event.target.id === "path-source"){state.source=event.target.value;$("path-panel").innerHTML=pathView(activeAssembly);}
+  if(event.target.id === "path-receipt"){state.receipt=event.target.value;state.source=null;$("path-panel").innerHTML=pathView(activeAssembly);}
+});
 async function start(){
   const read=async(url)=>{const response=await fetch(url);if(!response.ok)throw new Error(`${url}: ${response.status}`);return response.json();};
-  [catalog,assemblies,evidence,atlas]=await Promise.all([read("data/catalog.json"),read("data/assemblies.json"),read("data/evidence.json"),read("../data/atlas.json")]);
+  [catalog,assemblies,evidence,atlas,pathTools]=await Promise.all([read("data/catalog.json"),read("data/assemblies.json"),read("data/evidence.json"),read("../data/atlas.json"),import("./input-paths.mjs")]);
   operations=new Map(catalog.blocks.map((block)=>[block.operation_id,block]));
   $("release").textContent=`RELEASE ${catalog.release} / OPERATION CONSTRUCTOR`;
   $("totals").textContent=`${catalog.blocks.length} operations · ${catalog.report.cross_paper_reused_types} reused across pilot papers`;
