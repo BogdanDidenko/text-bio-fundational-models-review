@@ -1,116 +1,93 @@
-# Source-backed representation component library
+# Operation constructor for model input reconstruction
 
-## Research status and boundaries
+## Unit and purpose
 
-This library provides reusable descriptions of representations, transformations,
-computational components and documented compositions. The development release
-adapts the supervised InstructCell, ChatNT, MUPAD and X-Cell pilot. The historical
-55-record/585-route annotations, eligibility and public taxonomy remain unchanged.
-The library does not implement neural-network computations or assert a final
-taxonomy. Corpus-wide reconstruction and clustering are subsequent work.
+The library entry is a reusable operation with input and output ports: normalization,
+binning, lookup, projection, concatenation, sampling, selection and other documented
+data transformations. Gene expression, token IDs, embedding matrices and computed
+vectors are data/resource instances in the graph. Biological names and module names
+stay on the instances. Each task/phase chain assembles calls from shared operations.
 
-Source review uses the complete available selected-section packets. Their recovered
-Markdown IDs are scoped to document hashes. Native PDF item IDs, pages and geometry
-are unavailable in these packets; never fabricate them. Unknown formulas,
-supplements and source gaps remain review questions.
+`operation_catalog.json` is the one editable catalog. The strict Pydantic contracts
+are in `scripts/docling_graph_templates/representation_library.py`. Validation,
+JSON Schema and static Pages retain the existing official Pydantic/GitHub Actions
+mechanisms. These are descriptive operation graphs; no neural computation is run.
 
-## Standard mechanisms
+Official references used to define the basic interfaces:
+- https://docs.pydantic.dev/latest/concepts/models/
+- https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html
+- https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.KBinsDiscretizer.html
+- https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
 
-Reuse `scripts/docling_graph_templates/representation_library.py`, the existing
-symbolic-trajectory contract and source auditors. Pydantic generates the JSON
-Schema via its documented `model_json_schema()` API:
-https://docs.pydantic.dev/latest/concepts/json_schema/ .
-Docling Graph already accepts domain-specific Pydantic templates; retain its
-existing extraction integration when extending reconstruction experiments:
-https://docling-project.github.io/docling-graph/ .
-The present release compiles completed source annotations without another LLM
-extraction call. The domain library supplies scientific definitions and governance.
+## Agent procedure
 
-Static Pages use the existing configure/upload/deploy Actions workflow, as described
-at https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages .
-The atlas remains at the repository site's root; the catalog is `/component-library/`.
+Read the complete evidence and the pinned operation catalog. Establish record,
+model variant, task, one lifecycle phase and receiving component. Preserve the
+source descriptions, evidence, task-specific paths, state updates and uncertainty.
 
-## Shared annotation contract
+For each documented transformation:
+1. Search existing operations by computation and port signature.
+2. Reuse the operation ID. Put method, biological source, axes, vocabulary, table
+   learning/freeze status and other documented choices on its actual invocation.
+3. Connect concrete input node IDs to named ports and concrete output IDs to results.
+4. Decompose a multi-operation source step only when the source states the operations
+   and their order. Preserve the original step and cite evidence for the decomposition.
+5. Introduce a documented intermediate node when necessary. Leave unknown shape and
+   axes unspecified. Mark an implicit component parameter separately from measured
+   data and computed features.
+6. Preserve conditional bypasses, parallel branches, aligned indices and repeated
+   motifs. Shared operation type establishes no shared tensor or weight identity.
+7. Retain opaque module boundaries with `operation_id: null` when internal computation
+   cannot be established. Submit a scientific decomposition question rather than
+   creating a model-specific operation name.
 
-Each source-backed assembly pins the contract version, library release and hash,
-record, input packet and original artifact hashes. Representations, operations and
-receipts form a graph; task/phase contexts refer to graph IDs. A receiving operand
-identifies the actual data node and its port role. Concrete model/module names stay
-on instances; library definitions describe reusable mechanisms.
+Return an `OperationAssembly`. Its nodes, operation calls, original source steps,
+conditional bypasses and receiving operands form one evidence-backed graph. Every
+call pins the release, refers to its source step and carries unchanged evidence.
 
-Representation descriptions retain information content, contextual role, symbolic
-shape, axis semantics, evidence and uncertainty. Concrete architecture widths,
-codebook sizes and layer counts remain in unchanged quotations. Axis equality is
-asserted only when established by evidence. Matching dimensions establish neither
-node identity nor shared parameters.
+## Granularity examples
 
-Operation definitions describe their supported input/output roles. Preserve the
-paper's port names on instances. A normalized role needs source-backed matching;
-the pilot leaves unreviewed normalized-role assignments empty. A generic projection
-type can have a documented linear or MLP specialization. Preserve that instance's
-operation description and evidence.
+- Numerical normalization method is an invocation property. TPM, CP10K and LayerNorm
+  have explicit method/axis semantics. Log1p is a separate operation.
+- Numeric binning yields interval IDs. Strategy, scope and zero handling are explicit.
+- Lookup requires keys and a table operand. A trainable embedding matrix, frozen
+  matrix, vocabulary map and precomputed feature table reuse the lookup interface.
+  Preserve their distinct resources and training status.
+- `lookup followed by LayerNorm` produces two calls and an intermediate data node.
+- A documented MLP followed by normalization yields projection then normalization.
+  Preserve activation and other known details in the MLP invocation. Expand layers
+  further only when their documented interfaces/order are recoverable.
+- Unknown gene/value/mask fusion algebra stays an unexpanded boundary. Never assign
+  addition or concatenation from a plausible architectural convention.
+- Pre-normalized datasets preserve the explicitly documented bypass of scaling/log
+  preprocessing. Missing reference features preserve imputation and availability.
 
-Only documented internal operations are expanded. A composite module can retain
-unknown internals. Composition examples list actual steps and operand bindings;
-reusing a motif does not assert that all instances share its implementation.
+Use symbolic dimensions with meaningful axes. Concrete architecture widths remain
+in source quotations. No source/prompt/response caps, size filters or shortening.
+Preserve full data and request author approval when a provider limit blocks access.
+Recovered Markdown headings/section hashes retain their actual provenance; native
+PDF coordinates are unavailable here. VLM-only observations require corroboration.
 
-## Reconstruction-agent procedure
+## Steward and extension
 
-1. Read this guide, the pinned library release and the complete supplied evidence.
-2. Establish model variant, task, one lifecycle phase and named receiving component.
-3. Reconstruct each source-to-receiver use, preserving branches, joint operands,
-   successive generators, evolving states and question-dependent transformations.
-4. Search library definitions and aliases. Check mechanism, axis meanings and port
-   semantics. Record `reuse` or `specialization` with an explicit rationale.
-5. When a match is unsupported, keep the complete local instance and submit an
-   extension proposal. Preserve missing transformations as unresolved links.
-6. Preserve learned parameters, computed features, distribution parameters and
-   sampled values as distinct objects. Distinguish actual model inputs, training
-   supervision, auxiliary processing, ablations, baselines and generated outputs.
-7. Cite unchanged quotations in their own source sections for every scientific
-   assertion. VLM descriptions can locate evidence; corroboration is required for
-   a final mechanism claim. Keep source conflict and uncertainty visible.
-8. Reuse a node across contexts only with documented identity. Use an explicit
-   evidence-backed identity link for shared values, shared weights or repeated
-   computation. Preserve step-specific state updates and phase availability.
-9. Return `AssemblyDocument`, extension proposals and the public decision record.
-   Validate the schema, graph references and source quotations before delivery.
+One library steward owns catalog changes. Before adding an operation compare its
+input/output behavior with every plausible existing primitive. Reuse and instance
+parameters are the default for equivalent computations. Different math justifies
+different operations even when present in a single paper. Frequency is an audit
+measure; it is never an acceptance quota.
 
-Do not apply size-dependent caps, shortening, source ratios, splitting or exclusions.
-If a provider limit prevents processing, preserve the full input and request the
-author's approval. Do not infer absence from incomplete evidence. Never force a
-mechanism into the nearest available block.
+The steward may add a source-backed new operation autonomously. It records the
+compared operation IDs, evidence, definition, ports and decision. Changes of existing
+scientific meaning/signature or merges require author approval and affected-call
+review. Frozen releases and previous identities remain in Git history. Freeze new
+releases with hashes; existing annotated chains retain their own release.
 
-## Library-steward procedure and authority
+Never create a separate block merely for a gene name, a modality, a vector width,
+a named model, an initial/intermediate state label or a task-specific role. These
+are graph-instance properties. Traceability logs contain visible decisions,
+responses and tool events; hidden reasoning is excluded.
 
-One steward owns the candidate seed. Reconstruction agents consume pinned releases
-and submit proposals; they do not edit shared definitions concurrently.
-
-For each proposal the steward records the compared IDs, source instances and one
-decision: `reuse`, `alias`, `compatible_enrichment`, `new_block`, or `unresolved`.
-Search by existing definition, input/output semantics, composition and aliases.
-Similarity of words or tensor shapes alone cannot establish equivalence.
-
-The steward may autonomously add source-backed examples, genuine aliases, compatible
-descriptive enrichment and independently justified new blocks. Generalization must
-be justified by the mechanism; one documented instance can support a rare block.
-Retain precise specialization in instance metadata. A source label receives a
-global mapping only when its applications have compatible meanings. Context-bound
-meanings require explicit instance-level bindings in future extraction.
-
-Changes to existing scientific meaning, port contracts, composition, mappings or
-merges require author approval and an affected-instance review. Never silently widen
-a definition to absorb a conflict. Deprecation/merging retains old IDs and lineage.
-Run `review_representation_library_change.py` before approving a release.
-
-Every published release is frozen in a version directory and pinned by hashes.
-Existing assemblies retain their release. Reannotation creates a new artifact and
-an explicit migration ledger. Keep visible prompts, responses, decisions, errors,
-source hashes and validation; exclude hidden chain-of-thought.
-
-## Build and checks
-
-Run from the canonical repository root. Use any Python environment with Pydantic v2:
+## Build and verification
 
 ```bash
 python scripts/build_representation_library.py
@@ -118,23 +95,18 @@ python scripts/build_representation_library.py --check
 python -m unittest discover -s tests -p test_representation_library.py
 ```
 
-`--capture-inputs` is the explicit initial snapshot operation. It verifies packet
-hashes and every own-section quotation against local source packets, preserving the
-complete original trajectories. Ordinary builds use the frozen input/evidence
-snapshot and need no model endpoint. Snapshots contain full evidence quotations and
-capture-time hashes/offsets; original PDF/Docling profiles remain in their existing
-storage. A successful snapshot build does not revalidate unavailable originals.
+The builder adapts the complete frozen four-paper pilot. Source restoration checks
+verify every original trajectory field. Port checks verify IDs, required arguments,
+results and graph references. Tests cover shared lookup, separate normalization/log
+steps, conditional bypasses and unresolved fusion algebra. Source entailment remains
+a scientific review responsibility.
 
-Before release inspect: schema and reference integrity; source restoration equality;
-phase boundaries; asymmetric attention ports; distribution/sample distinction;
-shared resources; evolving states; and visible unresolved links. Review ChatNT,
-MUPAD, X-Cell and InstructCell explicitly. Test desktop/mobile search, filters,
-examples, source figures, assembly context selection and the extension queue.
+The supplemental OKR-Cell expression-binning example was reconstructed from a
+complete existing selected section. Its inventory title is marked WITHDRAWN. The
+page retains that status and keeps this section example outside the four-record
+assembly/reuse denominator. No eligibility or taxonomy count changes are made.
 
-## Extension sequence
-
-Stabilize the four-paper descriptions first. Test further known hard cases against
-the frozen definitions and log counterexamples. Extend to remaining selected packets
-only after structural defects are addressed. Report each source-review disposition.
-Catalog completeness and scientific entailment require continued source review;
-passing mechanical checks does not settle them.
+The failed 91-entry description catalog is removed from the active tree. It remains
+recoverable through commit `a61f9c2b`. Canonical atlas data and source evidence are
+unchanged. Further papers must be reconstructed with this operation-level guide
+and independently reviewed before corpus-wide use.

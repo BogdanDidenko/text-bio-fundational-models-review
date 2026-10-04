@@ -1,141 +1,105 @@
-/* Source-backed catalog; all matching and evidence remain in downloadable data. */
-const state = { view: "blocks", selected: null, query: "", kind: "", paper: "", context: null };
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-let catalog, assemblies, evidence, atlas;
-let blocks, evidenceMap;
-const paperName = (id) => catalog.records[id]?.paper || id;
+const state = {view:"blocks", selected:null, query:"", reuse:"", paper:"", context:null};
+let catalog, assemblies, evidence, atlas, operations;
+const paper = (id) => catalog.records[id]?.paper || (id === "full_2026-07-06__rec_001277" ? "OKR-Cell (WITHDRAWN source)" : id);
 const icons = () => window.lucide?.createIcons();
-const format = (value) => esc(String(value).replaceAll("_", " "));
+const key = (item) => item.operation_id || item.record_id || item.source_operation;
+const title = (item) => item.label || (item.record_id ? paper(item.record_id) : item.source_operation.replaceAll("_"," "));
 
-function recordsFor(item) {
-  if (state.view === "blocks") return [...(item.examples || []), ...(item.usage || [])].map((example) => example.record_id);
-  if (state.view === "assemblies") return [item.record_id];
-  if (state.view === "proposals") return item.occurrences.map((example) => example.record_id);
-  return item.affected_block_ids.flatMap((id) => blocks.get(id)?.examples.map((example) => example.record_id) || []);
-}
-
-function items() {
-  const source = { blocks: catalog.blocks, assemblies, proposals: catalog.proposals, decisions: catalog.decisions }[state.view];
-  return source.filter((item) => (!state.kind || item.kind === state.kind || state.view === "assemblies" || state.view === "decisions") &&
-    (!state.paper || recordsFor(item).includes(state.paper)) &&
-    JSON.stringify(item).toLowerCase().includes(state.query.toLowerCase()));
-}
-
-function key(item) { return item.block_id || item.record_id || item.proposal_id || item.decision_id; }
-function label(item) { return item.label || (item.record_id ? paperName(item.record_id) : item.source_label || item.subject); }
-function drawList() {
-  const filtered = items();
-  if (!filtered.some((item) => key(item) === state.selected)) state.selected = filtered[0] ? key(filtered[0]) : null;
-  $("count").textContent = filtered.length;
-  $("list-label").textContent = { blocks: "CATALOG", assemblies: "SOURCE ASSEMBLIES", proposals: "PENDING REVIEW", decisions: "DECISION LEDGER" }[state.view];
-  $("catalog-list").innerHTML = filtered.map((item) => {
-    const meta = state.view === "assemblies" ? `${item.contexts.length} use contexts` :
-      state.view === "blocks" ? `${new Set(recordsFor(item)).size} papers` :
-      state.view === "proposals" ? `${item.occurrences.length} instances` : item.action.replaceAll("_", " ");
-    return `<button class="list-entry ${state.selected === key(item) ? "active" : ""}" data-select="${esc(key(item))}" aria-pressed="${state.selected === key(item)}"><strong>${esc(label(item))}</strong><span class="list-meta"><span>${esc(item.kind || "model")}</span><span>${esc(meta)}</span></span></button>`;
-  }).join("") || '<div class="empty">No matching entries.</div>';
-  drawDetail();
+function listItems() {
+  let source = state.view === "blocks" || state.view === "reuse" ? catalog.blocks : state.view === "assemblies" ?
+    Object.keys(catalog.records).map((id) => ({record_id:id, chains:assemblies.filter((item) => item.record_id === id)})) : catalog.pending;
+  if (state.view === "reuse") source = source.filter((item) => item.reuse_record_ids.length > 1);
+  return source.filter((item) => {
+    const records = item.reuse_record_ids || (item.record_id ? [item.record_id] : item.occurrences.map((use) => use.record_id));
+    const matchesReuse = !state.reuse || state.view === "assemblies" || state.view === "proposals" ||
+      (state.reuse === "shared" && records.length > 1) || (state.reuse === "single" && records.length === 1) ||
+      (state.reuse === "supplemental" && item.supplemental_examples?.length);
+    return matchesReuse && (!state.paper || records.includes(state.paper)) && JSON.stringify(item).toLowerCase().includes(state.query.toLowerCase());
+  });
 }
 
 function quotePanel(item) {
-  return `<blockquote class="quote">${esc(item.quote)}</blockquote><div class="provenance">${esc(paperName(item.record_id))} / ${esc(item.heading_path.join(" › "))}<br>${esc(item.section_id)} · ${esc(item.kind)} · exact section match<br>section sha256 ${esc(item.section_sha256)}</div>`;
+  return `<blockquote class="quote">${esc(item.quote)}</blockquote><div class="provenance">${esc(paper(item.record_id))} / ${esc(item.heading_path.join(" › "))}<br>${esc(item.section_id)} · ${esc(item.kind)} · exact section match<br>section sha256 ${esc(item.section_sha256)}</div>`;
 }
-
-function evidenceFor(record, value) {
-  const found = [];
-  function visit(obj) {
-    if (Array.isArray(obj)) return obj.forEach(visit);
-    if (!obj || typeof obj !== "object") return;
-    if (obj.quote) {
-      const item = evidence.find((entry) => entry.record_id === record && entry.section_id === obj.section_id && entry.quote === obj.quote && entry.kind === obj.kind);
-      if (item && !found.some((entry) => entry.evidence_id === item.evidence_id)) found.push(item);
-    }
-    Object.values(obj).forEach(visit);
-  }
-  visit(value);
-  return found;
+function sourceEvidence(record, items) {
+  const found = evidence.filter((entry) => entry.record_id === record && items.some((item) => item.quote === entry.quote && item.section_id === entry.section_id));
+  return found.map(quotePanel).join("");
 }
-
 function sourceFigure(record) {
-  const model = atlas.architectures?.find((item) => item.record_id === record && item.figure?.asset);
-  if (!model) return "";
-  return `<details class="source-panel"><summary>Original-paper figure · ${esc(model.model_name)}</summary><figure><img class="source-image" src="../${esc(model.figure.asset)}" alt="${esc(model.figure.caption)}" loading="lazy"><figcaption>${esc(model.figure.caption)}</figcaption></figure><div class="provenance">page ${esc(model.figure.page_no)} · sha256 ${esc(model.figure.sha256)}</div><a href="${esc(model.paper_url)}" target="_blank" rel="noreferrer">Source paper</a></details>`;
+  const model = atlas.architectures.find((item) => item.record_id === record && item.figure?.asset);
+  return model ? `<details class="source-panel"><summary>Original-paper figure · ${esc(model.model_name)}</summary><img class="source-image" src="../${esc(model.figure.asset)}" alt="${esc(model.figure.caption)}" loading="lazy"><p class="small">${esc(model.figure.caption)}</p><a href="${esc(model.paper_url)}" target="_blank" rel="noreferrer">Source paper</a></details>` : "";
+}
+function ports(heading, specs) {
+  return `<div><h3>${heading}</h3><ul class="port-list">${specs.map((port) => `<li><b>${esc(port.name)}</b>${port.optional ? " · optional" : ""}${port.variadic ? " · multiple operands" : ""}<br><span class="small">${esc(port.meaning)}</span></li>`).join("")}</ul></div>`;
+}
+function callView(call, assembly) {
+  const name = call.operation_id ? operations.get(call.operation_id).label : "Unexpanded: " + call.parameters.source_operation.replaceAll("_", " ");
+  return `<article class="graph-operation ${call.operation_id ? "" : "unexpanded"}"><h4>${call.operation_id ? `<button class="inline-link" data-block="${esc(call.operation_id)}">${esc(name)}</button>` : esc(name)}</h4><div class="provenance">${esc(call.call_id)} / ${esc(call.component)}</div><div class="operand-list">${Object.entries(call.inputs).map(([port, nodes]) => `${esc(nodes.join(" + "))} → ${esc(port)}`).join("<br>")}<br>→ ${Object.entries(call.outputs).map(([port,nodes]) => `${esc(port)}: ${esc(nodes.join(" + "))}`).join("<br>")}</div><div class="small">${Object.entries(call.parameters).filter(([key]) => key !== "source_port_roles").map(([key,value]) => `${esc(key)}: ${esc(typeof value === "object" ? JSON.stringify(value) : value)}`).join(" · ")}</div>${call.condition ? `<p class="state">When: ${esc(call.condition)}</p>` : ""}${call.uncertainty ? `<details><summary>Uncertainty</summary><p class="small">${esc(call.uncertainty)}</p></details>` : ""}<details><summary>Source evidence</summary>${sourceEvidence(assembly.record_id,call.evidence)}</details></article>`;
 }
 
-function blockDetail(block) {
-  const records = new Set(recordsFor(block));
-  const ports = (name, roles) => `<div><h3>${name}</h3><ul class="port-list">${roles.map((role) => `<li>${esc(role)}</li>`).join("")}</ul>${roles.length ? "" : '<p class="small">No computational port declared for this description type.</p>'}</div>`;
-  return `<span class="kind ${esc(block.kind)}">${esc(block.kind)}</span><span class="badge">reviewed candidate</span><h2>${esc(block.label)}</h2><div class="block-id">${esc(block.block_id)} @ ${esc(block.version)}</div><p class="definition">${esc(block.definition)}</p><p class="boundary">${esc(block.boundaries)}</p><div class="metrics"><span><b>${records.size}</b> source papers</span><span><b>${block.usage.length}</b> mapped instances</span></div><div class="section ports">${ports("Input roles", block.input_roles)}${ports("Output roles", block.output_roles)}</div>
-    ${block.composition.length ? `<div class="section"><h3>Constituent types</h3><div class="flow">${block.composition.map((id) => `<button class="flow-step" data-block="${esc(id)}">${esc(blocks.get(id)?.label || id)}</button>`).join("")}</div></div>` : ""}
-    <div class="section"><h3>Source examples</h3>${block.examples.map((example) => `<article class="example"><div class="example-heading"><strong>${esc(example.paper)}</strong><span class="phase">${format(example.lifecycle_phase)}</span></div><div class="provenance">${esc(example.trajectory_id)} / ${esc(example.element_ids.join(" · "))}</div><p class="rationale">${esc(example.rationale)}</p>${example.elements.filter((item) => item.symbolic_shape).map((item) => `<p class="shape">${esc(item.representation_type)} [${esc(item.symbolic_shape.join(", "))}]<br>${esc((item.axis_semantics || []).join(" / "))}</p>`).join("")}${example.elements.filter((item) => item.inputs).map((item) => `<div class="operand-list">${item.inputs.map((input) => `${esc(input.port_role)} ← ${esc(input.node_id)}`).join("<br>")}<br>→ ${esc((item.outputs || []).join(" / "))}</div>`).join("")}${example.evidence_ids.map((id) => quotePanel(evidenceMap.get(id))).join("")}<div class="nav-inline"><button class="inline-link" data-assembly="${esc(example.record_id)}" data-context="${esc(example.trajectory_id)}">View source assembly</button></div>${sourceFigure(example.record_id)}</article>`).join("")}</div>
-    ${block.aliases.length ? `<div class="section"><h3>Aliases</h3><div class="provenance">${block.aliases.map(esc).join(" · ")}</div></div>` : ""}<details><summary>Complete block JSON</summary><pre>${esc(JSON.stringify(block, null, 2))}</pre></details>`;
+function chainView(assembly, supplemental = false) {
+  return `<span class="kind">${supplemental ? "Supplemental section example · WITHDRAWN source" : "Model chain"}</span><h2>${esc(paper(assembly.record_id))}</h2><div class="block-id">${esc(assembly.trajectory_id)} · ${esc(assembly.lifecycle_phase.replaceAll("_"," "))}</div>${supplemental ? "" : `<select id="context-select" class="context-select" aria-label="Task and phase">${assemblies.filter((item) => item.record_id === assembly.record_id).map((item) => `<option value="${esc(item.trajectory_id)}" ${item.trajectory_id === assembly.trajectory_id ? "selected" : ""}>${esc(item.trajectory_id)} · ${esc(item.lifecycle_phase)}</option>`).join("")}</select>`}<p class="definition">${esc(assembly.task_configuration)}</p><p class="small">${esc(assembly.model_variant)}</p><div class="section"><h3>Data transformations</h3>${assembly.calls.map((call) => callView(call,assembly)).join("")}</div>${assembly.bypasses.length ? `<div class="section"><h3>Conditional bypasses</h3>${assembly.bypasses.map((edge) => `<p class="operand-list">${esc(edge.source_node_id)} → ${esc(edge.target_node_id)}<br>${esc(edge.condition)}</p>`).join("")}</div>` : ""}<div class="section"><h3>Model input</h3><p class="rationale">${esc(assembly.recipient_component)}</p>${assembly.receipt_inputs.map((item) => `<div class="operand-list">${esc(item.node_id)} → ${esc(item.port_role)}</div>`).join("")}</div><details><summary>Data nodes and parameter resources</summary>${assembly.nodes.map((node) => `<p class="shape">${esc(node.node_id)} · ${esc(node.representation_type)}${node.symbolic_shape ? ` [${esc(node.symbolic_shape.join(", "))}]` : ""}</p><p class="small">${esc(node.information_content)}</p>`).join("")}</details><div class="section">${assembly.open_questions.map((question) => `<p class="small">${esc(question)}</p>`).join("")}${sourceFigure(assembly.record_id)}</div><details><summary>Complete chain JSON</summary><pre>${esc(JSON.stringify(assembly,null,2))}</pre></details>`;
 }
 
-function bindingLabel(binding) {
-  if (!binding.block_id) return '<span class="state">Extension proposal pending</span>';
-  return `<button class="inline-link" data-block="${esc(binding.block_id)}">${esc(blocks.get(binding.block_id)?.label || binding.block_id)}</button> <span class="small">${esc(binding.relation)}</span>`;
-}
-
-function assemblyDetail(assembly) {
-  let context = assembly.contexts.find((item) => item.trajectory_id === state.context) || assembly.contexts[0];
-  state.context = context.trajectory_id;
-  const nodeMap = new Map(assembly.nodes.map((item) => [item.node_id, item]));
-  const selectedNodes = context.node_ids.map((id) => nodeMap.get(id));
-  const operations = context.step_ids.map((id) => assembly.operations.find((item) => item.step_id === id));
-  const recipient = assembly.recipients.find((item) => item.recipient_id === context.recipient_id);
-  const nodeName = (id) => nodeMap.get(id)?.original_node_id || id;
-  return `<span class="kind component">Model assembly</span><h2>${esc(paperName(assembly.record_id))}</h2><div class="block-id">${esc(assembly.record_id)} · library ${esc(assembly.library_release)}</div><select class="context-select" id="context-select" aria-label="Task and phase">${assembly.contexts.map((item) => `<option value="${esc(item.trajectory_id)}" ${item.trajectory_id === context.trajectory_id ? "selected" : ""}>${esc(item.trajectory_id)} · ${format(item.lifecycle_phase)}</option>`).join("")}</select><p class="definition">${esc(context.task_configuration)}</p><p class="small">${esc(context.model_variant)} · ${format(context.model_role)}</p>
-    <div class="section"><h3>Documented transformations</h3><div class="diagram">${operations.map((step, index) => `<article class="graph-operation"><h4>${index + 1}. ${esc(step.original_step_id)} · ${bindingLabel(step.binding)}</h4><div class="small">${esc(step.component)}</div><div class="operand-list">${step.inputs.map((item) => `${esc(nodeName(item.node_id))} → ${esc(item.port_role)}`).join("<br>")}<br>→ ${step.outputs.map((id) => esc(nodeName(id))).join(" / ")}</div>${step.uncertainty ? `<p class="state">${esc(step.uncertainty)}</p>` : ""}<details><summary>Source evidence</summary>${evidenceFor(assembly.record_id, step).map(quotePanel).join("")}</details></article>`).join("")}</div></div>
-    <div class="section"><h3>Receiving component</h3><p class="rationale">${esc(recipient.component)}</p><div class="operand-list">${recipient.inputs.map((item) => `${esc(nodeName(item.node_id))} → ${esc(item.port_role)}`).join("<br>")}</div>${evidenceFor(assembly.record_id, context.evidence).map(quotePanel).join("")}</div>
-    <div class="section"><h3>Representations</h3><div class="node-list">${selectedNodes.map((node) => `<article class="node"><strong>${esc(node.original_node_id)}</strong><div class="small">${bindingLabel(node.binding)}</div><div class="shape">${esc(node.representation_type)}${node.symbolic_shape ? ` [${esc(node.symbolic_shape.join(", "))}]` : " · shape unresolved"}</div><p class="small">${esc(node.information_content)}</p><div class="provenance">${esc((node.axis_semantics || []).join(" / "))}<br>${format(node.contextual_role)}</div>${node.uncertainty ? `<p class="state">${esc(node.uncertainty)}</p>` : ""}<details><summary>Source evidence</summary>${evidenceFor(assembly.record_id, node).map(quotePanel).join("")}</details></article>`).join("")}</div></div>
-    ${context.open_questions.length ? `<div class="section"><h3>Open questions</h3>${context.open_questions.map((question) => `<p class="rationale">${esc(question)}</p>`).join("")}</div>` : ""}<div class="section">${sourceFigure(assembly.record_id)}</div><details><summary>Complete assembly JSON</summary><pre>${esc(JSON.stringify(assembly, null, 2))}</pre></details>`;
-}
-
-function proposalDetail(item) {
-  return `<span class="kind ${esc(item.kind)}">${esc(item.kind)}</span><h2>${format(item.source_label)}</h2><p class="boundary">Awaiting steward review</p><div class="block-id">${esc(item.proposal_id)}</div><div class="section"><h3>Preserved source instances</h3>${item.occurrences.map((occurrence) => `<article class="example"><strong>${esc(paperName(occurrence.record_id))}</strong><div class="provenance">${esc(occurrence.trajectory_id)} / ${esc(occurrence.element_id)}</div><p><button class="inline-link" data-assembly="${esc(occurrence.record_id)}" data-context="${esc(occurrence.trajectory_id)}">Inspect documented mechanism</button></p></article>`).join("")}</div>`;
+function operationView(block) {
+  const byPaper = new Map();
+  for (const use of block.usage) if (!byPaper.has(use.record_id)) byPaper.set(use.record_id,use);
+  return `<span class="kind">Reusable operation</span><h2>${esc(block.label)}</h2><div class="block-id">${esc(block.operation_id)} @ ${esc(catalog.release)}</div><p class="definition">${esc(block.definition)}</p><p class="boundary">${esc(block.boundaries)}</p><div class="metrics"><span><b>${block.reuse_record_ids.length}</b> pilot papers</span><span><b>${block.usage.length}</b> operation calls</span></div><div class="section ports">${ports("Inputs",block.inputs)}${ports("Outputs",block.outputs)}</div><div class="section"><h3>Instance parameters</h3><div class="provenance">${block.parameters.map(esc).join(" · ")}</div></div><div class="section"><h3>Applications across papers</h3>${[...byPaper.values()].map((use) => {
+    const assembly = assemblies.find((item) => item.record_id === use.record_id && item.trajectory_id === use.trajectory_id);
+    const call = assembly.calls.find((item) => item.call_id === use.call_id);
+    return `<article class="example"><div class="example-heading"><strong>${esc(paper(use.record_id))}</strong><span class="phase">${esc(assembly.lifecycle_phase)}</span></div>${callView(call,assembly)}${use.evidence_ids.map((id) => quotePanel(evidence.find((entry) => entry.evidence_id === id))).join("")}<button class="inline-link" data-assembly="${esc(use.record_id)}" data-context="${esc(use.trajectory_id)}">Open full chain</button>${sourceFigure(use.record_id)}</article>`;
+  }).join("")}${block.supplemental_examples.map((item,index) => `<article class="example"><strong>${esc(item.paper)} · ${esc(item.source_status)}</strong><p class="small">${esc(item.scope)}</p><div class="flow">${item.assembly.calls.map((call) => `<span class="flow-step">${esc(operations.get(call.operation_id).label)}</span>`).join("")}</div><button class="inline-link" data-supplement="${esc(block.operation_id)}" data-example="${index}">Inspect branched expression / gene-ID chain</button></article>`).join("")}</div>${block.official_reference ? `<div class="section"><a href="${esc(block.official_reference)}" target="_blank" rel="noreferrer">Official operation reference</a></div>` : ""}<details><summary>All uses and operation JSON</summary><pre>${esc(JSON.stringify(block,null,2))}</pre></details>`;
 }
 
 function drawDetail() {
-  const item = items().find((entry) => key(entry) === state.selected);
-  if (!item) { $("detail").innerHTML = '<p class="empty">No matching entries.</p>'; return; }
-  $("detail").innerHTML = state.view === "blocks" ? blockDetail(item) : state.view === "assemblies" ? assemblyDetail(item) : state.view === "proposals" ? proposalDetail(item) : `<span class="kind">${format(item.action)}</span><h2>${esc(item.subject)}</h2><div class="block-id">${esc(item.decision_id)}</div><p class="definition">${esc(item.rationale)}</p>${item.affected_block_ids.map((id) => `<p><button class="inline-link" data-block="${esc(id)}">${esc(blocks.get(id)?.label || id)}</button></p>`).join("")}`;
+  const item = listItems().find((entry) => key(entry) === state.selected);
+  if (!item) { $("detail").innerHTML='<p class="empty">No matching entries.</p>'; return; }
+  if (state.view === "blocks" || state.view === "reuse") $("detail").innerHTML = operationView(item);
+  else if (state.view === "assemblies") {
+    const assembly = item.chains.find((chain) => chain.trajectory_id === state.context) || item.chains[0];
+    state.context = assembly.trajectory_id;
+    $("detail").innerHTML = chainView(assembly);
+  } else $("detail").innerHTML = `<span class="kind">Documented boundary awaiting decomposition</span><h2>${esc(title(item))}</h2>${item.occurrences.map((use) => `<article class="example"><strong>${esc(paper(use.record_id))}</strong><div class="provenance">${esc(use.trajectory_id)} / ${esc(use.source_step_id)}</div><button class="inline-link" data-assembly="${esc(use.record_id)}" data-context="${esc(use.trajectory_id)}">Inspect complete source chain</button></article>`).join("")}`;
   icons();
 }
-
-function navigate(view, selected, context = null) {
-  state.view = view; state.selected = selected; state.context = context;
-  state.query = ""; state.kind = ""; state.paper = "";
-  $("search").value = ""; $("kind").value = ""; $("paper").value = "";
-  document.querySelectorAll("[data-view]").forEach((button) => button.setAttribute("aria-selected", button.dataset.view === view));
-  $("kind").disabled = view === "assemblies" || view === "decisions";
-  history.replaceState(null, "", `#${view}/${encodeURIComponent(selected || "")}${context ? `/${encodeURIComponent(context)}` : ""}`);
+function drawList() {
+  const filtered=listItems();
+  if (!filtered.some((item) => key(item) === state.selected)) state.selected=filtered[0] ? key(filtered[0]) : null;
+  $("count").textContent=filtered.length;
+  $("list-label").textContent={blocks:"OPERATIONS",assemblies:"MODEL CHAINS",proposals:"UNEXPANDED BOUNDARIES",reuse:"REUSED ACROSS PAPERS"}[state.view];
+  $("catalog-list").innerHTML=filtered.map((item) => `<button class="list-entry ${key(item) === state.selected ? "active" : ""}" data-select="${esc(key(item))}"><strong>${esc(title(item))}</strong><span class="list-meta"><span>${item.operation_id ? `${item.reuse_record_ids.length} pilot papers` : item.chains ? `${item.chains.length} contexts` : `${item.occurrences.length} source uses`}</span><span>${item.operation_id ? item.usage.length ? `${item.usage.length} calls` : `${item.supplemental_examples.length} section example` : ""}</span></span></button>`).join("") || '<p class="empty">No matching entries.</p>';
+  drawDetail();
+}
+function navigate(view,id,context=null) {
+  Object.assign(state,{view,selected:id,context,query:"",reuse:"",paper:""});
+  $("search").value=""; $("reuse").value=""; $("paper").value="";
+  $("reuse").disabled=view === "assemblies" || view === "proposals";
+  document.querySelectorAll("[data-view]").forEach((button) => button.setAttribute("aria-selected",button.dataset.view === view));
+  history.replaceState(null,"",`#${view}/${encodeURIComponent(id || "")}${context ? "/"+encodeURIComponent(context) : ""}`);
   drawList();
 }
-
-document.addEventListener("click", (event) => {
-  const target = event.target.closest("button");
-  if (!target) return;
-  if (target.dataset.view) navigate(target.dataset.view, null);
-  if (target.dataset.select) { state.selected = target.dataset.select; state.context = null; drawList(); history.replaceState(null, "", `#${state.view}/${encodeURIComponent(state.selected)}`); }
-  if (target.dataset.block) navigate("blocks", target.dataset.block);
-  if (target.dataset.assembly) navigate("assemblies", target.dataset.assembly, target.dataset.context);
+document.addEventListener("click",(event) => {
+  const button=event.target.closest("button"); if(!button)return;
+  if(button.dataset.view)navigate(button.dataset.view,null);
+  if(button.dataset.select){state.selected=button.dataset.select;state.context=null;drawList();}
+  if(button.dataset.block)navigate("blocks",button.dataset.block);
+  if(button.dataset.assembly)navigate("assemblies",button.dataset.assembly,button.dataset.context);
+  if(button.dataset.supplement){const item=operations.get(button.dataset.supplement).supplemental_examples[Number(button.dataset.example)];$("detail").innerHTML=chainView(item.assembly,true);icons();}
 });
-$("search").addEventListener("input", (event) => { state.query = event.target.value; drawList(); });
-$("kind").addEventListener("change", (event) => { state.kind = event.target.value; drawList(); });
-$("paper").addEventListener("change", (event) => { state.paper = event.target.value; drawList(); });
-document.addEventListener("change", (event) => { if (event.target.id === "context-select") { state.context = event.target.value; drawDetail(); } });
-
-async function start() {
-  const read = async (url) => { const response = await fetch(url); if (!response.ok) throw new Error(`${url}: ${response.status}`); return response.json(); };
-  [catalog, assemblies, evidence, atlas] = await Promise.all([read("data/catalog.json"), read("data/assemblies.json"), read("data/evidence.json"), read("../data/atlas.json")]);
-  blocks = new Map(catalog.blocks.map((block) => [block.block_id, block]));
-  evidenceMap = new Map(evidence.map((item) => [item.evidence_id, item]));
-  $("release").textContent = `RELEASE ${catalog.release} / DEVELOPMENT CANDIDATE`;
-  $("totals").textContent = `${catalog.blocks.length} blocks · ${assemblies.length} papers · ${catalog.report.trajectory_count} use contexts`;
-  $("paper").innerHTML += Object.entries(catalog.records).map(([id, item]) => `<option value="${esc(id)}">${esc(item.paper)}</option>`).join("");
-  const [view, id, context] = location.hash.substring(1).split("/").map(decodeURIComponent);
-  navigate(["blocks", "assemblies", "proposals", "decisions"].includes(view) ? view : "blocks", id || null, context || null);
-  icons();
+$("search").addEventListener("input",(event)=>{state.query=event.target.value;drawList();});
+$("reuse").addEventListener("change",(event)=>{state.reuse=event.target.value;drawList();});
+$("paper").addEventListener("change",(event)=>{state.paper=event.target.value;drawList();});
+document.addEventListener("change",(event)=>{if(event.target.id === "context-select"){state.context=event.target.value;drawDetail();}});
+async function start(){
+  const read=async(url)=>{const response=await fetch(url);if(!response.ok)throw new Error(`${url}: ${response.status}`);return response.json();};
+  [catalog,assemblies,evidence,atlas]=await Promise.all([read("data/catalog.json"),read("data/assemblies.json"),read("data/evidence.json"),read("../data/atlas.json")]);
+  operations=new Map(catalog.blocks.map((block)=>[block.operation_id,block]));
+  $("release").textContent=`RELEASE ${catalog.release} / OPERATION CONSTRUCTOR`;
+  $("totals").textContent=`${catalog.blocks.length} operations · ${catalog.report.cross_paper_reused_types} reused across pilot papers`;
+  $("paper").innerHTML+=Object.entries(catalog.records).map(([id,item])=>`<option value="${esc(id)}">${esc(item.paper)}</option>`).join("");
+  const [view,id,context]=location.hash.substring(1).split("/").map(decodeURIComponent);
+  navigate(["blocks","assemblies","proposals","reuse"].includes(view)?view:"blocks",id || "lookup",context);icons();
 }
-start().catch((error) => { $("detail").innerHTML = `<h2 class="error">Library unavailable</h2><p>${esc(error.message)}</p>`; console.error(error); });
+start().catch((error)=>{$("detail").innerHTML=`<h2 class="error">Library unavailable</h2><p>${esc(error.message)}</p>`;console.error(error);});

@@ -1,130 +1,115 @@
 import copy
-import json
 import unittest
 
 from pydantic import ValidationError
 
 from scripts.build_representation_library import BASE, compile_release, objects
-from scripts.docling_graph_templates.representation_library import AssemblyDocument, CatalogSeed
+from scripts.docling_graph_templates.representation_library import (
+    OperationAssembly, OperationCatalog, restore_source, validate_operation_ports,
+)
 from scripts.review_representation_library_change import review
 
 
-def seed():
-    return {"release": "0.1.0", "blocks": [{
-        "block_id": "operation.lookup", "kind": "operation", "label": "Lookup",
-        "definition": "Select rows by identifiers.", "boundaries": "Input identifiers refer to the declared table.",
-        "input_roles": ["indices", "table"], "output_roles": ["selected_rows"],
-        "aliases": [], "status": "reviewed_candidate", "composition": [],
-        "examples": [{"record_id": "paper", "trajectory_id": "use", "element_kind": "step", "element_ids": ["lookup"], "rationale": "Documented."}],
-    }], "mappings": [{"kind": "operation", "source_label": "embedding_lookup", "block_id": "operation.lookup", "relation": "specialization", "rationale": "Embedding table lookup."}], "decisions": []}
-
-
-class LibraryContractTests(unittest.TestCase):
-    def test_source_alias_cannot_have_two_meanings(self):
-        value = seed()
-        value["mappings"].append(copy.deepcopy(value["mappings"][0]))
-        with self.assertRaises(ValidationError):
-            CatalogSeed.model_validate(value)
-
-    def test_unknown_composition_rejected(self):
-        value = seed()
-        value["blocks"][0]["composition"] = ["operation.absent"]
-        with self.assertRaises(ValidationError):
-            CatalogSeed.model_validate(value)
-
-    def test_kind_mismatch_rejected(self):
-        value = seed()
-        value["mappings"][0]["kind"] = "representation"
-        with self.assertRaises(ValidationError):
-            CatalogSeed.model_validate(value)
-
-    def test_no_source_size_constraints(self):
-        banned = {"maxLength", "minLength", "maxItems", "minItems", "maxProperties", "minProperties"}
-        for model in (CatalogSeed, AssemblyDocument):
-            for obj in objects(model.model_json_schema()):
-                self.assertFalse(set(obj) & banned)
-
-    def test_new_example_is_compatible_and_requires_new_release(self):
-        before = seed()
-        after = copy.deepcopy(before)
-        after["release"] = "0.1.1"
-        after["blocks"][0]["aliases"].append("table_lookup")
-        result = review(before, after)
-        self.assertFalse(result["requires_author_approval"])
-        self.assertTrue(result["new_release_required"])
-        self.assertFalse(result["same_release_modified"])
-
-    def test_definition_change_requires_author_review(self):
-        before = seed()
-        after = copy.deepcopy(before)
-        after["release"] = "0.2.0"
-        after["blocks"][0]["definition"] = "Generate a sampled latent."
-        self.assertTrue(review(before, after)["requires_author_approval"])
-
-    def test_changed_mapping_and_deletion_require_review(self):
-        before = seed()
-        after = copy.deepcopy(before)
-        after["mappings"] = []
-        self.assertTrue(review(before, after)["requires_author_approval"])
-
-
-class PilotCompilationTests(unittest.TestCase):
+class OperationLibraryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.output = compile_release(BASE)
+        cls.catalog = cls.output["catalog.json"]
+        cls.assemblies = cls.output["assemblies.json"]
 
-    def test_complete_pilot_and_round_trip(self):
-        report = self.output["validation.json"]
-        self.assertEqual(report["record_count"], 4)
-        self.assertEqual(report["trajectory_count"], 47)
-        self.assertTrue(report["lossless_round_trip"])
-        self.assertFalse(report["canonical_migration"])
+    def test_catalog_contains_operations_only(self):
+        for block in self.catalog["blocks"]:
+            self.assertIn("operation_id", block)
+            self.assertNotIn("kind", block)
+        self.assertIn("lookup", {item["operation_id"] for item in self.catalog["blocks"]})
 
-    def test_all_assemblies_pin_release_and_validate(self):
-        for assembly in self.output["assemblies.json"]:
-            AssemblyDocument.model_validate(assembly)
-            self.assertEqual(assembly["library_sha256"], self.output["catalog.json"]["library_sha256"])
+    def test_all_original_trajectories_preserved(self):
+        import json
+        original = {(row["record_id"], row["trajectory"]["trajectory_id"]): row["trajectory"]
+                    for row in (json.loads(line) for line in (BASE / "pilot_input.jsonl").read_text().splitlines())}
+        self.assertEqual(len(self.assemblies), 47)
+        for assembly in self.assemblies:
+            self.assertEqual(restore_source(assembly), original[(assembly["record_id"], assembly["trajectory_id"])])
 
-    def test_dangling_operand_rejected(self):
-        assembly = copy.deepcopy(self.output["assemblies.json"][0])
-        assembly["operations"][0]["inputs"][0]["node_id"] = "absent"
+    def test_every_call_has_valid_ports_and_refs(self):
+        for assembly in self.assemblies:
+            OperationAssembly.model_validate(assembly)
+            validate_operation_ports(assembly, self.catalog)
+
+    def test_lookup_has_explicit_table_and_reuses_type(self):
+        lookup = next(block for block in self.catalog["blocks"] if block["operation_id"] == "lookup")
+        self.assertGreaterEqual(len(lookup["reuse_record_ids"]), 3)
+        for assembly in self.assemblies:
+            for call in assembly["calls"]:
+                if call["operation_id"] == "lookup":
+                    self.assertTrue(call["inputs"]["keys"])
+                    self.assertEqual(len(call["inputs"]["table"]), 1)
+
+    def test_lookup_and_layernorm_are_separate_calls(self):
+        for assembly in self.assemblies:
+            for source in assembly["source_steps"]:
+                if source["operation_type"] == "embedding_lookup_layer_norm":
+                    calls = [call for call in assembly["calls"] if call["source_step_id"] == source["step_id"]]
+                    self.assertEqual([call["operation_id"] for call in calls], ["lookup", "normalize"])
+                    self.assertEqual(calls[0]["outputs"]["values"], calls[1]["inputs"]["values"])
+
+    def test_expression_scaling_and_log_are_separate_with_bypass(self):
+        for assembly in self.assemblies:
+            for source in assembly["source_steps"]:
+                if source["operation_type"] == "dataset_aware_expression_normalization":
+                    calls = [call for call in assembly["calls"] if call["source_step_id"] == source["step_id"]]
+                    self.assertEqual([call["operation_id"] for call in calls], ["normalize", "log_transform"])
+                    self.assertTrue(all(call["condition"] for call in calls))
+                    self.assertTrue(any(edge["source_step_id"] == source["step_id"] for edge in assembly["bypasses"]))
+
+    def test_same_operation_keeps_different_methods(self):
+        methods = {call["parameters"].get("method") for assembly in self.assemblies for call in assembly["calls"] if call["operation_id"] == "normalize"}
+        self.assertTrue({"TPM", "CP10K", "LayerNorm"} <= methods)
+
+    def test_unknown_fusion_algebra_is_preserved(self):
+        for assembly in self.assemblies:
+            for source in assembly["source_steps"]:
+                if source["operation_type"] == "combine_identity_value_and_mask":
+                    calls = [call for call in assembly["calls"] if call["source_step_id"] == source["step_id"]]
+                    self.assertEqual(len(calls), 1)
+                    self.assertIsNone(calls[0]["operation_id"])
+
+    def test_missing_or_unknown_port_fails(self):
+        assembly = copy.deepcopy(next(item for item in self.assemblies if any(call["operation_id"] == "lookup" for call in item["calls"])))
+        call = next(call for call in assembly["calls"] if call["operation_id"] == "lookup")
+        call["inputs"].pop("table")
+        with self.assertRaises(ValueError):
+            validate_operation_ports(assembly, self.catalog)
+
+    def test_dangling_operand_fails(self):
+        assembly = copy.deepcopy(self.assemblies[0])
+        assembly["calls"][0]["inputs"] = {"values": ["absent"]}
         with self.assertRaises(ValidationError):
-            AssemblyDocument.model_validate(assembly)
+            OperationAssembly.model_validate(assembly)
 
-    def test_numeric_width_rejected(self):
-        assembly = copy.deepcopy(self.output["assemblies.json"][0])
-        assembly["nodes"][0]["symbolic_shape"] = ["768"]
-        with self.assertRaises(ValidationError):
-            AssemblyDocument.model_validate(assembly)
+    def test_no_size_constraints(self):
+        for schema in (OperationAssembly.model_json_schema(), OperationCatalog.model_json_schema()):
+            for item in objects(schema):
+                self.assertFalse(set(item) & {"minLength", "maxLength", "minItems", "maxItems"})
 
-    def test_same_shape_does_not_create_shared_identity(self):
-        self.assertTrue(all(not assembly["identity_links"] for assembly in self.output["assemblies.json"]))
+    def test_binning_supplement_keeps_two_lookup_branches(self):
+        example = next(block for block in self.catalog["blocks"] if block["operation_id"] == "bin")["supplemental_examples"][0]
+        assembly = example["assembly"]
+        OperationAssembly.model_validate(assembly)
+        validate_operation_ports(assembly, self.catalog)
+        self.assertEqual(example["source_status"], "WITHDRAWN")
+        self.assertEqual(len([call for call in assembly["calls"] if call["operation_id"] == "lookup"]), 3)
+        fusion = next(call for call in assembly["calls"] if call["operation_id"] == "add")
+        self.assertEqual(fusion["inputs"]["values"], ["gene_vectors", "value_vectors"])
+        self.assertNotIn(example["record_id"], self.catalog["records"])
 
-    def test_unknown_bindings_are_preserved_as_proposals(self):
-        proposals = {item["proposal_id"] for item in self.output["catalog.json"]["proposals"]}
-        for assembly in self.output["assemblies.json"]:
-            for obj in objects(assembly):
-                if obj.get("relation") == "unresolved" and "proposal_id" in obj:
-                    self.assertIn(obj["proposal_id"], proposals)
-
-    def test_evidence_snapshot_contains_full_quotes_and_native_id_gap(self):
-        for item in self.output["evidence.json"]:
-            self.assertTrue(item["quote"])
-            self.assertEqual(item["verification"], "literal_own_section_match_at_capture")
-            self.assertIsNone(item["native_pdf_item"])
-
-    def test_composites_preserve_real_ports_and_branches(self):
-        composites = [block for block in self.output["catalog.json"]["blocks"] if block["kind"] == "composite"]
-        self.assertTrue(composites)
-        for block in composites:
-            for example in block["examples"]:
-                graph = example["source_subgraph"]
-                self.assertTrue(graph)
-                nodes = {node["node_id"] for node in graph["nodes"]}
-                for step in graph["operations"]:
-                    self.assertTrue(set(step["outputs"]) <= nodes)
-                    self.assertTrue({item["node_id"] for item in step["inputs"]} <= nodes)
-                self.assertEqual(graph["status"], "documented_source_instance")
+    def test_semantic_change_requires_author_review(self):
+        raw = {key: self.catalog[key] for key in ("contract_version", "release")}
+        raw["blocks"] = [{key: value for key,value in block.items() if key not in {"usage", "supplemental_examples", "reuse_record_ids", "status"}} for block in self.catalog["blocks"]]
+        changed = copy.deepcopy(raw)
+        changed["release"] = "1.1.0"
+        changed["blocks"][0]["definition"] = "Different scientific meaning"
+        self.assertTrue(review(raw,changed)["requires_author_approval"])
 
 
 if __name__ == "__main__":
