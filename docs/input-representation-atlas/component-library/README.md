@@ -13,3 +13,14 @@ JSON and schemas. The shared agent protocol is `protocol/REPRESENTATION_LIBRARY_
 The same existing Pages workflow publishes `/component-library/`. Current atlas
 data remain unchanged. The previous 91-entry catalog has been removed from the
 active tree and is recoverable in Git history.
+
+Model input paths are rendered as directed diagrams. Arrows are computed from actual
+recorded data operands, with branches and convergence preserved. Dashed arrows show
+conditional bypasses. Selecting a node reveals complete parameters and source
+evidence. The textual path and complete transformation graph remain available.
+
+Layout uses the upstream Dagre 1.1.5 browser bundle and its documented graphlib/layout
+API: https://github.com/dagrejs/dagre/wiki . The unchanged vendored distribution
+is from https://cdn.jsdelivr.net/npm/@dagrejs/dagre@1.1.5/dist/dagre.min.js . The
+upstream MIT license is preserved beside it. The renderer measures full displayed
+labels before layout and changes no source annotation or frozen release.

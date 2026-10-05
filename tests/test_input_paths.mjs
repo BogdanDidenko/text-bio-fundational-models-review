@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {inputPath,availableSources,groupPathCalls} from "../docs/input-representation-atlas/component-library/input-paths.mjs";
+import {inputPath,availableSources,groupPathCalls,pathDiagram} from "../docs/input-representation-atlas/component-library/input-paths.mjs";
 
 const assemblies=JSON.parse(fs.readFileSync(new URL("../docs/input-representation-atlas/component-library/data/assemblies.json",import.meta.url),"utf8"));
 const xcell=assemblies.find((item)=>item.trajectory_id==="xcell_pisces_pretraining_cross_attention");
@@ -54,6 +54,30 @@ test("Every existing receiving operand has a recoverable source boundary",()=>{
       const sources=availableSources(assembly,receipt.node_id);
       assert.ok(sources.defaultSource);
       assert.equal(inputPath(assembly,sources.defaultSource,receipt.node_id).connected,true);
+    }
+  }
+});
+
+test("Diagram connects source, actual operations, forks, joins and receiver",()=>{
+  const diagram=pathDiagram(inputPath(xcell,"control_pool","query_state"));
+  assert.ok(diagram.edges.some((edge)=>edge.from==="source"&&edge.to==="step:control_normalization"));
+  assert.ok(diagram.edges.some((edge)=>edge.from==="step:preceding_layers"&&edge.to==="receiver"));
+  assert.ok(diagram.edges.some((edge)=>edge.from==="step:value_encoder"&&edge.to==="step:combine_tokens"));
+  assert.ok(diagram.edges.some((edge)=>edge.from==="step:mask_encoder"&&edge.to==="step:combine_tokens"));
+  assert.ok(diagram.edges.some((edge)=>edge.from==="step:identity_encoder"&&edge.to==="step:combine_tokens"));
+  assert.ok(diagram.edges.some((edge)=>edge.condition));
+  assert.ok(!diagram.nodes.some((node)=>node.id==="step:esm_lookup"));
+});
+
+test("Every diagram edge has real data identity and existing vertices",()=>{
+  for(const assembly of assemblies){
+    for(const receipt of assembly.receipt_inputs){
+      const sources=availableSources(assembly,receipt.node_id);
+      const diagram=pathDiagram(inputPath(assembly,sources.defaultSource,receipt.node_id));
+      const ids=new Set(diagram.nodes.map((node)=>node.id));
+      for(const edge of diagram.edges){
+        assert.ok(ids.has(edge.from));assert.ok(ids.has(edge.to));assert.ok(edge.dataIds.length);
+      }
     }
   }
 });

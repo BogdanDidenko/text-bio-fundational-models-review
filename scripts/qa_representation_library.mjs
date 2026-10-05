@@ -45,6 +45,22 @@ try{
     if(await page.locator("#full-graph").getAttribute("open") !== null)throw new Error("Full transformation dump expanded by default");
     if(await page.locator('#focused-path [data-source-step="esm_lookup"]').count())throw new Error("Independent prior preparation leaked into expression path");
     if(!await page.locator("#focused-path .parallel-band").count())throw new Error("Expression branches flattened");
+    if(!await page.locator('#path-diagram .dependency-arrow[data-from="source"][data-to="step:control_normalization"]').count())throw new Error("Source arrow absent");
+    for(const branch of ["identity_encoder","value_encoder","mask_encoder"]){
+      if(!await page.locator(`#path-diagram .dependency-arrow[data-from="step:${branch}"][data-to="step:combine_tokens"]`).count())throw new Error("Missing merge edge: "+branch);
+    }
+    await page.locator('#path-diagram [data-diagram-node="step:value_encoder"]').click();
+    if(!await page.locator("#diagram-inspector").textContent().then((value)=>value.includes("Learned projection")))throw new Error("Diagram inspection failed");
+    const diagramGeometry=await page.evaluate(()=>{
+      const boxes=[...document.querySelectorAll('#path-diagram foreignObject[data-graph-node]')].map((node)=>({x:Number(node.getAttribute('x')),y:Number(node.getAttribute('y')),w:Number(node.getAttribute('width')),h:Number(node.getAttribute('height'))}));
+      let overlaps=0;
+      for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+        const a=boxes[i],b=boxes[j];if(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>1)overlaps++;
+      }
+      const clipped=[...document.querySelectorAll('#path-diagram .diagram-node')].filter((node)=>node.scrollHeight>node.clientHeight+1||node.scrollWidth>node.clientWidth+1).length;
+      return {nodes:boxes.length,overlaps,clipped};
+    });
+    if(diagramGeometry.overlaps || diagramGeometry.clipped)throw new Error('Diagram geometry failure: '+JSON.stringify(diagramGeometry));
     await page.screenshot({path:path.join(output,`${name}-xcell-input-path.png`),fullPage:true});
     await page.locator("#path-receipt").selectOption("context");
     await page.locator("#path-source").selectOption("esm_reference");
@@ -58,7 +74,7 @@ try{
       clipped:[...document.querySelectorAll("h1,h2,h3,.quote,.definition,.list-entry strong")].filter((item)=>item.scrollWidth>item.clientWidth+1).map((item)=>item.textContent)}));
     if(layout.overflow>1 || layout.clipped.length || errors.length)throw new Error(JSON.stringify({layout,errors}));
     report.push({name,viewport,operation_types:catalog.blocks.length,reused_types:catalog.report.cross_paper_reused_types,
-      search:true,evidence:true,source_image:true,contexts:true,binning_lookup_branches:true,supplement_status:true,xcell_expression_path:true,xcell_prior_path:true,complete_graph_preserved:true,layout,errors});
+      search:true,evidence:true,source_image:true,contexts:true,binning_lookup_branches:true,supplement_status:true,xcell_expression_path:true,xcell_prior_path:true,complete_graph_preserved:true,arrows_and_merges:true,node_inspection:true,diagramGeometry,layout,errors});
     await page.close();
   }
 }finally{await browser.close();}

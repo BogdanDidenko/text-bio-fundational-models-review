@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const state = {view:"blocks", selected:null, query:"", reuse:"", paper:"", context:null, source:null, receipt:null};
-let catalog, assemblies, evidence, atlas, operations, pathTools, activeAssembly;
+let catalog, assemblies, evidence, atlas, operations, pathTools, diagramTools, activeAssembly;
 const paper = (id) => catalog.records[id]?.paper || (id === "full_2026-07-06__rec_001277" ? "OKR-Cell (WITHDRAWN source)" : id);
 const icons = () => window.lucide?.createIcons();
 const key = (item) => item.operation_id || item.record_id || item.source_operation;
@@ -63,7 +63,8 @@ function pathView(assembly){
   const option=(node)=>`<option value="${esc(node.node_id)}" ${node.node_id===state.source ? "selected" : ""}>${esc(nodeLabel(node))} · ${esc(node.node_id)}</option>`;
   const dataLabel=(id)=>`<span class="path-data" title="${esc(nodes.get(id)?.information_content)}">${esc(nodeLabel(nodes.get(id)))}<small class="node-reference">${esc(id)}</small></span>`;
   return `<div class="path-controls"><label>Source / input boundary<select id="path-source"><optgroup label="Source and parameter boundaries">${available.roots.map(option).join("")}</optgroup><optgroup label="Intermediate representations">${available.intermediates.map(option).join("")}</optgroup></select></label><label>Receiving port<select id="path-receipt">${assembly.receipt_inputs.map((item)=>`<option value="${esc(item.node_id)}" ${item.node_id===state.receipt ? "selected" : ""}>${esc(item.port_role)}</option>`).join("")}</select></label></div>
-    <div class="path-endpoint"><span class="phase">SOURCE</span><strong>${esc(nodeLabel(nodes.get(state.source)))}</strong><p class="small">${esc(nodes.get(state.source)?.information_content)}</p></div>
+    <div id="path-diagram" class="diagram-viewport"></div><section id="diagram-inspector" class="diagram-inspector"></section>
+    <details class="textual-path"><summary>Textual path and step evidence</summary><div class="path-endpoint"><span class="phase">SOURCE</span><strong>${esc(nodeLabel(nodes.get(state.source)))}</strong><p class="small">${esc(nodes.get(state.source)?.information_content)}</p></div>
     <div id="focused-path">${levels.map((level)=>{
       const band=groups.filter((group)=>group.level===level);
       return `<div class="path-band ${band.length>1 ? "parallel-band" : ""}">${band.length>1 ? '<div class="branch-heading">Parallel dependency branches</div>' : ""}<div class="path-stage-grid">${band.map((group)=>{
@@ -73,7 +74,24 @@ function pathView(assembly){
       }).join("")}</div></div>`;
     }).join("")}${groups.length ? "" : '<p class="small">This representation is supplied directly at the selected receiving boundary.</p>'}</div>
     ${path.bypasses.length ? `<details class="path-bypasses"><summary>Conditional bypasses on this path</summary>${path.bypasses.map((edge)=>`<p class="small">${esc(nodeLabel(nodes.get(edge.source_node_id)))} → ${esc(nodeLabel(nodes.get(edge.target_node_id)))}<br>${esc(edge.condition)}</p>`).join("")}</details>` : ""}
-    <div class="path-endpoint receipt-endpoint"><span class="phase">RECEIVER</span><strong>${esc(assembly.recipient_component)}</strong><p class="small">${esc(receipt.port_role)} ← ${esc(nodeLabel(nodes.get(receipt.node_id)))}</p></div>`;
+    <div class="path-endpoint receipt-endpoint"><span class="phase">RECEIVER</span><strong>${esc(assembly.recipient_component)}</strong><p class="small">${esc(receipt.port_role)} ← ${esc(nodeLabel(nodes.get(receipt.node_id)))}</p></div></details>`;
+}
+
+function drawDiagram(){
+  const container=$("path-diagram");if(!container||!activeAssembly)return;
+  const assembly=activeAssembly;
+  const path=pathTools.inputPath(assembly,state.source,state.receipt);
+  const diagram=pathTools.pathDiagram(path);
+  const select=(node)=>{
+    const panel=$("diagram-inspector");
+    if(node.kind==="step")panel.innerHTML=`<h4>${esc(node.group.calls.map((call)=>call.operation_id ? operations.get(call.operation_id).label : boundaryNames[call.parameters.source_operation] || call.parameters.source_operation.replaceAll("_"," ")).join(" → "))}</h4>${node.group.sideInputs.length?`<details><summary>Additional inputs · ${node.group.sideInputs.length}</summary>${node.group.sideInputs.map((id)=>`<div class="side-input-row"><span>${esc(nodeLabel(assembly.nodes.find((item)=>item.node_id===id)))}</span><button class="inline-link" data-path-source="${esc(id)}">Trace this input</button></div>`).join("")}</details>`:""}${node.group.calls.map((call)=>callView(call,assembly)).join("")}`;
+    else{
+      const data=assembly.nodes.find((item)=>item.node_id===node.dataId);
+      panel.innerHTML=`<h4>${esc(nodeLabel(data))}</h4><p class="small">${esc(data?.information_content)}</p>${node.kind==="receiver"?`<p class="small">${esc(assembly.receipt_inputs.find((item)=>item.node_id===node.dataId)?.port_role)}</p>`:""}<details><summary>Source evidence</summary>${sourceEvidence(assembly.record_id,data?.evidence || [])}</details>`;
+    }
+  };
+  diagramTools.renderDiagram(container,{diagram,assembly,operations,boundaryNames,onSelect:select});
+  select(diagram.nodes[0]);
 }
 
 function chainView(assembly, supplemental = false) {
@@ -102,7 +120,7 @@ function drawDetail() {
     state.context = assembly.trajectory_id;
     $("detail").innerHTML = chainView(assembly);
   } else $("detail").innerHTML = `<span class="kind">Documented boundary awaiting decomposition</span><h2>${esc(title(item))}</h2>${item.occurrences.map((use) => `<article class="example"><strong>${esc(paper(use.record_id))}</strong><div class="provenance">${esc(use.trajectory_id)} / ${esc(use.source_step_id)}</div><button class="inline-link" data-assembly="${esc(use.record_id)}" data-context="${esc(use.trajectory_id)}">Inspect complete source chain</button></article>`).join("")}`;
-  icons();
+  icons();drawDiagram();
 }
 function drawList() {
   const filtered=listItems();
@@ -126,20 +144,20 @@ document.addEventListener("click",(event) => {
   if(button.dataset.select){state.selected=button.dataset.select;state.context=null;state.source=null;state.receipt=null;drawList();}
   if(button.dataset.block)navigate("blocks",button.dataset.block);
   if(button.dataset.assembly)navigate("assemblies",button.dataset.assembly,button.dataset.context);
-  if(button.dataset.supplement){const item=operations.get(button.dataset.supplement).supplemental_examples[Number(button.dataset.example)];$("detail").innerHTML=chainView(item.assembly,true);icons();}
-  if(button.dataset.pathSource){state.source=button.dataset.pathSource;$("path-panel").innerHTML=pathView(activeAssembly);}
+  if(button.dataset.supplement){const item=operations.get(button.dataset.supplement).supplemental_examples[Number(button.dataset.example)];$("detail").innerHTML=chainView(item.assembly,true);icons();drawDiagram();}
+  if(button.dataset.pathSource){state.source=button.dataset.pathSource;$("path-panel").innerHTML=pathView(activeAssembly);drawDiagram();}
 });
 $("search").addEventListener("input",(event)=>{state.query=event.target.value;drawList();});
 $("reuse").addEventListener("change",(event)=>{state.reuse=event.target.value;drawList();});
 $("paper").addEventListener("change",(event)=>{state.paper=event.target.value;drawList();});
 document.addEventListener("change",(event)=>{
   if(event.target.id === "context-select"){state.context=event.target.value;state.source=null;state.receipt=null;drawDetail();}
-  if(event.target.id === "path-source"){state.source=event.target.value;$("path-panel").innerHTML=pathView(activeAssembly);}
-  if(event.target.id === "path-receipt"){state.receipt=event.target.value;state.source=null;$("path-panel").innerHTML=pathView(activeAssembly);}
+  if(event.target.id === "path-source"){state.source=event.target.value;$("path-panel").innerHTML=pathView(activeAssembly);drawDiagram();}
+  if(event.target.id === "path-receipt"){state.receipt=event.target.value;state.source=null;$("path-panel").innerHTML=pathView(activeAssembly);drawDiagram();}
 });
 async function start(){
   const read=async(url)=>{const response=await fetch(url);if(!response.ok)throw new Error(`${url}: ${response.status}`);return response.json();};
-  [catalog,assemblies,evidence,atlas,pathTools]=await Promise.all([read("data/catalog.json"),read("data/assemblies.json"),read("data/evidence.json"),read("../data/atlas.json"),import("./input-paths.mjs")]);
+  [catalog,assemblies,evidence,atlas,pathTools,diagramTools]=await Promise.all([read("data/catalog.json"),read("data/assemblies.json"),read("data/evidence.json"),read("../data/atlas.json"),import("./input-paths.mjs"),import("./diagram-view.mjs")]);
   operations=new Map(catalog.blocks.map((block)=>[block.operation_id,block]));
   $("release").textContent=`RELEASE ${catalog.release} / OPERATION CONSTRUCTOR`;
   $("totals").textContent=`${catalog.blocks.length} operations · ${catalog.report.cross_paper_reused_types} reused across pilot papers`;
