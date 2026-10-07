@@ -15,6 +15,7 @@ from scripts.docling_graph_templates.representation_library import (
 
 BASE = ROOT / "analysis/representation_block_library_2026-10-04"
 PUBLIC = ROOT / "docs/input-representation-atlas/component-library/data"
+CORPUS_PATH = ROOT / "analysis/operation_decomposition_2026-10-07/corpus_assemblies.json"
 PACKETS = ROOT / "analysis/nickerson_taxonomy_2026-09-20/object_unit_reassessment_2026-09-22/section_id_corpus_55_2026-10-04/records"
 
 
@@ -243,6 +244,21 @@ def compile_release(base):
     snapshot = json.loads((base / "evidence_snapshot.json").read_text())
     evidence = {item["evidence_id"]: item for item in snapshot["evidence"]}
     assemblies = [decompose(row, library_hash, catalog["release"]) for row in rows]
+    records = dict(snapshot["records"])
+    if base == BASE and CORPUS_PATH.exists():
+        # Agent-decomposed, independently reviewed records (scripts/run_operation_decomposition.py ->
+        # scripts/build_operation_corpus.py). They already are OperationAssemblies; only the release pins change.
+        corpus = json.loads(CORPUS_PATH.read_text())
+        overlap = set(corpus["records"]) & set(records)
+        if overlap:
+            raise ValueError(f"Corpus repeats pilot records: {sorted(overlap)}")
+        for assembly in corpus["assemblies"]:
+            assembly = {**assembly, "library_release": catalog["release"], "library_sha256": library_hash}
+            OperationAssembly.model_validate(assembly)
+            assemblies.append(assembly)
+        for item in corpus["evidence"]:
+            evidence[item["evidence_id"]] = item
+        records.update(corpus["records"])
     usage = defaultdict(list)
     pending = defaultdict(list)
     examples = []
@@ -284,7 +300,7 @@ def compile_release(base):
                   for label, uses in sorted(pending.items())]
     reused = [block for block in public_blocks if len(block["reuse_record_ids"]) > 1]
     report = {"status": "operation_constructor_pilot", "release": catalog["release"],
-        "record_count": len(snapshot["records"]), "trajectory_count": len(assemblies),
+        "record_count": len(records), "trajectory_count": len(assemblies),
         "operation_types": len(public_blocks), "cross_paper_reused_types": len(reused),
         "primitive_calls": sum(len(item["usage"]) for item in public_blocks),
         "unexpanded_source_steps": sum(len(item["occurrences"]) for item in unresolved),
@@ -292,8 +308,10 @@ def compile_release(base):
         "library_sha256": library_hash, "source_sizes_modified": False, "canonical_migration": False,
         "pilot_input_sha256": digest((base / "pilot_input.jsonl").read_bytes()),
         "evidence_snapshot_sha256": digest((base / "evidence_snapshot.json").read_bytes())}
+    if len(records) != len(snapshot["records"]):
+        report["pilot_record_count"] = len(snapshot["records"])
     return {"catalog.json": {**catalog, "library_sha256": library_hash, "blocks": public_blocks,
-                "records": snapshot["records"], "pending": unresolved, "report": report},
+                "records": records, "pending": unresolved, "report": report},
             "assemblies.json": assemblies, "evidence.json": list(evidence.values()),
             "validation.json": report, "assembly.schema.json": OperationAssembly.model_json_schema(),
             "catalog-seed.schema.json": OperationCatalog.model_json_schema(), "supplemental-examples.json": examples}

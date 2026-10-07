@@ -1,0 +1,754 @@
+[
+  {
+    "note": "Tokenization, a lookup with an implicit parameter table, a documented intermediate, and unexpanded module boundaries.",
+    "source": "reviewed pilot, ChatNT (full_2026-07-06__rec_000771); quotes are from that paper",
+    "trajectory": {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The ChatNT architecture is made of three parts: a pretrained DNA encoder, a projection model that projects the DNA embeddings into the English tokens embedding spaces and a pretrained English decoder. While our architecture is general and could work with any choice of DNA encoder and English decoder, we decided to use the pretrained Nucleotide Transformer v2 (500-million-parameter model pretrained on genomes from 850 species) 15 and Vicuna-7b (instruction fine-tuned Llama model with 7 billion parameters) 32 models, respectively. During training, we keep the English decoder frozen and update only the weights of the DNA encoder and the projection model. The projection model is initialized from scratch at the beginning of the training.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "ChatNT is trained to solve all tasks simultaneously, with a uniform sampling over tasks per batch. Multitasking is achieved by ChatNT by prompting in natural language, where the question asked by the user will guide the agent towards the task of interest. Given a text prompt and one or multiple DNA sequences as input, ChatNT is trained to minimize a unified objective for all tasks, which takes the form of the cross-entropy loss between ChatNT predictions and the target answer tokens, as in other instruction fine-tuning works 32,33 . This single objective allows one to learn seamlessly across tasks without introducing conflicting gradients or scale issues coming from different objectives and loss functions (for example, cross-entropy for classification versus mean squared error (MSE) for regression). In addition, it allows us to extend the model with additional tasks in the future without requiring changes in the model architecture or training it from scratch. In summary, ChatNT provides a general genomics AI system that solves multiple tasks in a conversational manner, thus providing a different paradigm for genomics models.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Instructions for the Nucleotide Transformer benchmark . We created an instructions version of the Nucleotide Transformer benchmark 15 (Supplementary Table 1). To convert the DNA sequence datasets into instructions datasets, we curated dozens of English questions and answers for each task and sampled a question-answer pair per input DNA sequence. We used the DNA token placeholder &lt;DNA&gt; in the question when referring to the input DNA sequences. The answer contains the classification label for the respective input sequence. We converted all 18 binary and multilabel classification datasets into diverse question-answer instructions for each DNA sequence. We provide for each task train and test sets containing different DNA sequences as well as different questions to assess the performance and English generalization capabilities of the model. We kept the same train and test sets as in the original dataset.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "ChatNT: Nucleotide Transformer v2 + English-aware Perceiver + Vicuna-7b",
+      "nodes": [
+        {
+          "axis_semantics": null,
+          "contextual_role": "external_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Architecture . ChatNT is a multimodal agent that takes as input one or multiple DNA sequences and an English prompt and returns a distribution over English words that is used to autoregressively produce an answer in English. We introduce a DNA English token placeholder &lt;DNA&gt; that is added in the input English prompt for the user to refer to the DNA sequence. The architecture is also extended to handle several DNA sequences. In this case, each DNA sequence is processed independently by the DNA encoder, and the input English prompt is expected to contain as many DNA English token placeholders as sequences are inputted.",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "ChatNT processes species and cell type information implicitly through natural language prompts rather than as structured inputs. When a query specifies a species or cell type, the model extracts and integrates this contextual information directly from the text. This approach leverages the pretrained language model's ability to interpret and condition predictions based on linguistic context.",
+              "section_id": "sec_0011"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We converted the DNA sequence datasets into instructions datasets as described above for the Nucleotide Transformer benchmark. The answer contains the classification label or regression score (up to decimal cases) for the respective input sequence. In addition to simple examples with a single turn of question-answer with a single sequence, we also added more complex examples with multiple turns with consecutive questions that can be related or not, and exchanges where the question refers to multiple sequences. The final genomics instructions dataset contains a total of 605 million DNA tokens, that is, 3.6 billion base pairs, and 273 million English tokens (including questions and answers).",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Task question with DNA placeholders; species/cell-type metadata where specified. Multiple-turn examples may contain preceding conversation.",
+          "node_id": "prompt",
+          "representation_type": "english_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact prompt serialization and conversation boundaries are unspecified. This is the documented prompt-side embedding receipt, not a complete fine-tuning serialized decoder receipt. Target-answer prefix/teacher-forcing receipt, turn delimiters, role/system tokens, positional encoding, attention masks and loss masks are unspecified. Gold answer tokens are not fabricated as verified decoder inputs."
+        },
+        {
+          "axis_semantics": [
+            "ordered English token positions, including placeholder positions"
+          ],
+          "contextual_role": "instruction_tokens",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "English question-answer instructions are tokenized with the LLaMA tokenizer 30 , while DNA sequences are tokenized using the Nucleotide Transformer tokenizer 15 .",
+              "section_id": "sec_0004"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "LLaMA-tokenized English instruction.",
+          "node_id": "english_tokens",
+          "representation_type": "english_token_ids",
+          "symbolic_shape": [
+            "n_english_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "English token positions",
+            "English embedding coordinates"
+          ],
+          "contextual_role": "instruction_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Instruction embeddings, retaining placeholder locations before substitution.",
+          "node_id": "english_embeddings",
+          "representation_type": "english_token_embeddings",
+          "symbolic_shape": [
+            "n_english_tokens",
+            "d_english"
+          ],
+          "uncertainty": "English token embeddings for the decoder prompt are documented. Their provisional reuse as the resampler question-context input is unverified: the packet does not identify the actual question representation, its producer, tensor layout, attention port, or whether it is identical to these embeddings. The provisional graph edge must not be treated as a supported implementation fact."
+        },
+        {
+          "axis_semantics": [
+            "ordered nucleotide positions in sequence a"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Architecture . ChatNT is a multimodal agent that takes as input one or multiple DNA sequences and an English prompt and returns a distribution over English words that is used to autoregressively produce an answer in English. We introduce a DNA English token placeholder &lt;DNA&gt; that is added in the input English prompt for the user to refer to the DNA sequence. The architecture is also extended to handle several DNA sequences. In this case, each DNA sequence is processed independently by the DNA encoder, and the input English prompt is expected to contain as many DNA English token placeholders as sequences are inputted.",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We further added state-of-the-art and challenging regression tasks related to promoter activity 37 , enhancer activity 7 , RNA polyadenylation 11 and degradation 10 , and multiple protein properties 39 . These are reference datasets in the respective fields and are related to very complex properties of biological DNA, RNA and protein sequences. All RNA and protein tasks are predicted from the corresponding DNA and coding sequences (CDS) instead of the RNA and protein sequences, respectively. Getting the matching DNA sequence is trivial for RNA sequences but more challenging for protein sequences owing to the complexity of codon usage. Therefore, we used the CDS annotations for protein tasks curated by Boshar et al. 39 .",
+              "section_id": "sec_0006"
+            }
+          ],
+          "information_content": "Supplied nucleotide sequence. RNA tasks use matching DNA; protein tasks use curated CDS annotations.",
+          "node_id": "sequence_a",
+          "representation_type": "nucleotide_sequence",
+          "symbolic_shape": [
+            "n_nucleotides_a"
+          ],
+          "uncertainty": "No native amino-acid encoder or RNA encoder is used in this variant; matching/curation procedures are outside the selected packet."
+        },
+        {
+          "axis_semantics": [
+            "ordered nucleotide-token positions before padding"
+          ],
+          "contextual_role": "encoder_input_tokens",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "English question-answer instructions are tokenized with the LLaMA tokenizer 30 , while DNA sequences are tokenized using the Nucleotide Transformer tokenizer 15 .",
+              "section_id": "sec_0004"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Nucleotide Transformer tokenizer output.",
+          "node_id": "tokens_a",
+          "representation_type": "nucleotide_token_ids",
+          "symbolic_shape": [
+            "n_dna_tokens_a"
+          ],
+          "uncertainty": "Terminal partial-token and special-token behavior is not specified."
+        },
+        {
+          "axis_semantics": [
+            "ordered DNA-token positions including padding"
+          ],
+          "contextual_role": "encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "DNA tokens padded when needed to the reported input length.",
+          "node_id": "padded_tokens_a",
+          "representation_type": "padded_nucleotide_token_ids",
+          "symbolic_shape": [
+            "n_padded_tokens_a"
+          ],
+          "uncertainty": "Padding symbol, attention/availability mask, and behavior for overlength inputs are not documented. No mask is fabricated."
+        },
+        {
+          "axis_semantics": [
+            "DNA-token positions",
+            "DNA encoder feature coordinates"
+          ],
+          "contextual_role": "preprojection_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "One contextual encoder embedding per input token.",
+          "node_id": "encoded_a",
+          "representation_type": "nucleotide_token_embeddings",
+          "symbolic_shape": [
+            "n_padded_tokens_a",
+            "d_dna"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "DNA-token positions",
+            "English embedding coordinates"
+          ],
+          "contextual_role": "resampler_source_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Dense-projected DNA embeddings before resampling.",
+          "node_id": "projected_a",
+          "representation_type": "projected_nucleotide_embeddings",
+          "symbolic_shape": [
+            "n_padded_tokens_a",
+            "d_english"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "learnable query parameter slots; cardinality not equated to resampled output slots",
+            "learned query feature coordinates"
+          ],
+          "contextual_role": "learned_parameter_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Learnable queries; their identity remains distinct from their transformed resampler output.",
+          "node_id": "queries_a",
+          "representation_type": "learnable_resampler_queries",
+          "symbolic_shape": [
+            "n_learnable_queries",
+            "d_query"
+          ],
+          "uncertainty": "Query width and initialization are unspecified; model-level parameters are distinct from biological samples. The packet gives K output vectors but does not explicitly establish that the learnable-query count equals K. n_learnable_queries and n_resampled_slots are independent unresolved cardinality symbols; neither equality nor inequality is asserted."
+        },
+        {
+          "axis_semantics": [
+            "resampled output slots (source K) for sequence a; cardinality independent of learnable-query parameter slots",
+            "English embedding coordinates"
+          ],
+          "contextual_role": "placeholder_replacement_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Question-conditioned DNA representations.",
+          "node_id": "resampled_a",
+          "representation_type": "resampled_nucleotide_embeddings",
+          "symbolic_shape": [
+            "n_resampled_slots",
+            "d_english"
+          ],
+          "uncertainty": "Internal cross-attention ordering, intermediate query states, repetition count and residual/gating details require Supplementary Fig. 2/pseudocode. The operation below is composite and does not invent those states. Output K is represented by n_resampled_slots without inferring a query-count identity."
+        },
+        {
+          "axis_semantics": [
+            "ordered English positions after each placeholder is replaced by sequence-specific resampled slots",
+            "English embedding coordinates"
+          ],
+          "contextual_role": "decoder_external_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Architecture . ChatNT is a multimodal agent that takes as input one or multiple DNA sequences and an English prompt and returns a distribution over English words that is used to autoregressively produce an answer in English. We introduce a DNA English token placeholder &lt;DNA&gt; that is added in the input English prompt for the user to refer to the DNA sequence. The architecture is also extended to handle several DNA sequences. In this case, each DNA sequence is processed independently by the DNA encoder, and the input English prompt is expected to contain as many DNA English token placeholders as sequences are inputted.",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "English embeddings with resampled DNA embeddings substituted at the respective placeholders.",
+          "node_id": "fused_input",
+          "representation_type": "interleaved_multimodal_embeddings",
+          "symbolic_shape": [
+            "n_interleaved_positions",
+            "d_english"
+          ],
+          "uncertainty": "This is the documented prompt-side embedding receipt, not a complete fine-tuning serialized decoder receipt. Target-answer prefix/teacher-forcing receipt, turn delimiters, role/system tokens, positional encoding, attention masks and loss masks are unspecified. Gold answer tokens are not fabricated as verified decoder inputs."
+        }
+      ],
+      "open_questions": [
+        "Which question token representation enters the added English cross-attention, and in what order are queries updated?",
+        "What padding attention/availability mask is actually supplied?",
+        "What are the resampler internal intermediate states and shared query parameter references?",
+        "How are target answers, previous answer tokens and conversation turns serialized during supervised instruction tuning? Cross-entropy and frozen-decoder status are explicit; teacher-forcing details are absent.",
+        "Does the number of learnable query parameters equal K resampled output slots? The selected packet does not explicitly establish that identity.",
+        "This is the documented prompt-side embedding receipt, not a complete fine-tuning serialized decoder receipt. Target-answer prefix/teacher-forcing receipt, turn delimiters, role/system tokens, positional encoding, attention masks and loss masks are unspecified. Gold answer tokens are not fabricated as verified decoder inputs.",
+        "Is the actual English-question context identical to the decoder prompt embeddings, or produced by another representation stage, and which attention port consumes it? The English-embedding graph edge is provisional only."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "fused_input",
+          "port_role": "multimodal_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "Vicuna-7b English decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "LLaMA tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "english_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "segmentation",
+                  "value": "source tokenizer"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "text"
+                },
+                {
+                  "name": "vocabulary",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "English question-answer instructions are tokenized with the LLaMA tokenizer 30 , while DNA sequences are tokenized using the Nucleotide Transformer tokenizer 15 .",
+              "section_id": "sec_0004"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "prompt",
+              "port_role": "instruction_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "english_tokenization",
+          "outputs": [
+            "english_tokens"
+          ],
+          "step_id": "tokenize_english",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "English token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "english_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_english::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "english_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "LLaMA English tokenizer vocabulary indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified at this component/phase boundary"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "english_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+                  "section_id": "sec_0013"
+                }
+              ],
+              "information_content": "embedding matrix belonging to English token embedding lookup; values and sharing are unasserted",
+              "node_id": "embed_english::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "lookup_table",
+              "symbolic_shape": null,
+              "uncertainty": "Exact internal shape and axes are unspecified at this reconstructed boundary."
+            }
+          ],
+          "operation_type": "token_embedding",
+          "outputs": [
+            "english_embeddings"
+          ],
+          "step_id": "embed_english",
+          "uncertainty": "The selected prose does not specify the embedding lookup implementation."
+        },
+        {
+          "bypasses": [],
+          "component": "Nucleotide Transformer tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "sequence_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "tokens_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "segmentation",
+                  "value": "source tokenizer"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "nucleotide"
+                },
+                {
+                  "name": "vocabulary",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "English question-answer instructions are tokenized with the LLaMA tokenizer 30 , while DNA sequences are tokenized using the Nucleotide Transformer tokenizer 15 .",
+              "section_id": "sec_0004"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "sequence_a",
+              "port_role": "nucleotide_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "nucleotide_tokenization",
+          "outputs": [
+            "tokens_a"
+          ],
+          "step_id": "tokenize_dna_a",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "ChatNT DNA input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "tokens_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "pad",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "padded_tokens_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "target_length",
+                  "value": "n_target_tokens"
+                },
+                {
+                  "name": "value",
+                  "value": "source padding token"
+                },
+                {
+                  "name": "side",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "tokens_a",
+              "port_role": "unpadded_token_ids"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "token_padding",
+          "outputs": [
+            "padded_tokens_a"
+          ],
+          "step_id": "pad_dna_a",
+          "uncertainty": "Only padding is documented; no data truncation rule or availability mask is inferred."
+        },
+        {
+          "bypasses": [],
+          "component": "Nucleotide Transformer v2 DNA encoder",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The ChatNT architecture is made of three parts: a pretrained DNA encoder, a projection model that projects the DNA embeddings into the English tokens embedding spaces and a pretrained English decoder. While our architecture is general and could work with any choice of DNA encoder and English decoder, we decided to use the pretrained Nucleotide Transformer v2 (500-million-parameter model pretrained on genomes from 850 species) 15 and Vicuna-7b (instruction fine-tuned Llama model with 7 billion parameters) 32 models, respectively. During training, we keep the English decoder frozen and update only the weights of the DNA encoder and the projection model. The projection model is initialized from scratch at the beginning of the training.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "padded_tokens_a",
+              "port_role": "input_token_ids"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "contextual_sequence_encoding",
+          "outputs": [
+            "encoded_a"
+          ],
+          "step_id": "encode_dna_a",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Dense neural network in ChatNT projection model",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "encoded_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_a"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "source-defined learned projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "encoded_a",
+              "port_role": "dna_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "feature_projection",
+          "outputs": [
+            "projected_a"
+          ],
+          "step_id": "project_dna_a",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "English-aware Perceiver resampler",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The DNA encoder processes the DNA sequence and returns one embedding vector per input token, one token representing a nucleotide 6-mer in the case of the Nucleotide Transformer model. We note L the number of nucleotides in the DNA sequence and N the number of DNA tokens (with roughly N ≈ L 6 ). Every input DNA sequence was padded if needed until a final length of 2,048 tokens, representing approximately 12 kb. As the output embedding dimension of the DNA encoder can be different from the words embedding dimensions of the English language model, we first use a dense neural network to project each DNA token embedding to the English word dimension. In a second phase, we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries, to resample the N DNA tokens embedding to K embedding vectors (Supplementary Fig. 2a). We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence (Supplementary Fig. 2b).",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "However, similar to all other projection layers 26,34,35 , the current implementation of the Perceiver resampler generates the same fixed set of embeddings for the encoder tokens independently of the question asked, and therefore it needs to capture in this set of embeddings all relevant information for every downstream task. We hypothesized that this feature can create an information bottleneck in genomics when scaling the model for multiple downstream tasks given the diversity of potential sequences, from different lengths and species, and biological properties. Therefore, we developed an English-aware Perceiver projection that extracts representations from the input sequence dependent on the English question asked by the user, which allows one to leverage contextual information encoded in the input DNA sequences that are relevant for the specific question (Methods and Supplementary Fig. 2b). We observed significantly improved performance by accounting for the question when projecting the DNA embeddings into the English decoder space (average MCC of 0.77 versus 0.71; Fig. 2a and Supplementary Fig. 2c,d). This can be explained by the very context- and task-specific information in DNA sequences that we must retain in order to tackle diverse genomics tasks. Because the decoder remains frozen, the projection layer needs to not only bring the sequence embeddings into the embedding space of the English decoder but also to perform the operations to extract the relevant information from the embedding to answer the question. Our results show that making the projection aware of the question facilitates both aspects, thus achieving a better performance and transfer across tasks.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "queries_a",
+              "port_role": "learnable_queries"
+            },
+            {
+              "node_id": "projected_a",
+              "port_role": "dna_source_embeddings"
+            },
+            {
+              "node_id": "english_embeddings",
+              "port_role": "provisional_question_context_representation_and_port"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "question_conditioned_cross_attention_resampling",
+          "outputs": [
+            "resampled_a"
+          ],
+          "step_id": "resample_dna_a",
+          "uncertainty": "Question-conditioned extraction and an added cross-attention involving learnable queries and the English question are source-supported. The edge from english_embeddings is a provisional provenance linkage only; actual question representation/producer, attention port (including key/value assignment), token selection, and identity with decoder prompt embeddings are unresolved. No source-supported English-embedding-to-resampler implementation is asserted. DNA-source/query roles remain asymmetric, but attention substep order, repeated query updates and internal transformed-query states are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "ChatNT placeholder substitution",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Architecture . ChatNT is a multimodal agent that takes as input one or multiple DNA sequences and an English prompt and returns a distribution over English words that is used to autoregressively produce an answer in English. We introduce a DNA English token placeholder &lt;DNA&gt; that is added in the input English prompt for the user to refer to the DNA sequence. The architecture is also extended to handle several DNA sequences. In this case, each DNA sequence is processed independently by the DNA encoder, and the input English prompt is expected to contain as many DNA English token placeholders as sequences are inputted.",
+              "section_id": "sec_0013"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Meanwhile, the English prompt is tokenized and English tokens embeddings are produced for each tokens. The K resampled DNA embedding vectors are then inserted in place of the DNA sequence placeholder tokens in the English input sequence. In the case of multiple input DNA sequences, these operations are applied consecutively and independently for each DNA sequence. We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "english_embeddings",
+              "port_role": "english_positions_and_placeholder_layout"
+            },
+            {
+              "node_id": "resampled_a",
+              "port_role": "replacement_for_sequence_a_placeholder"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_embedding_interleaving",
+          "outputs": [
+            "fused_input"
+          ],
+          "step_id": "insert_sequences",
+          "uncertainty": "This is the documented prompt-side embedding receipt, not a complete fine-tuning serialized decoder receipt. Target-answer prefix/teacher-forcing receipt, turn delimiters, role/system tokens, positional encoding, attention masks and loss masks are unspecified. Gold answer tokens are not fabricated as verified decoder inputs."
+        }
+      ],
+      "task_configuration": "Nucleotide Transformer instruction benchmark; binary/multilabel classification; single DNA sequence",
+      "trajectory_id": "benchmark_fine_tuning"
+    }
+  }
+]
