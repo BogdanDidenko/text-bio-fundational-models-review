@@ -67,6 +67,32 @@ DIRECT = {
 LOOKUPS = {"embedding_lookup", "token_embedding", "gene_identifier_to_vocabulary_index",
            "ensembl_to_hgnc_reference_mapping", "gene_keyed_reference_lookup", "read_shared_gene_output_parameters"}
 
+# The declared `key_space` instance parameter names the identifier space the supplied keys
+# live in. It is read from the recorded representation type of each actual key operand, so
+# the value stays a source annotation rather than an architectural assumption. An unmapped
+# key representation is a steward decision, not a silent omission: the build fails instead.
+KEY_SPACES = {
+    "english_token_ids": "LLaMA English tokenizer vocabulary indices",
+    "text_token_sequence": "source text tokenizer vocabulary indices",
+    "ensembl_gene_identifiers": "Ensembl gene identifiers",
+    "perturbation_gene_identifier": "protein-coding gene identifiers",
+    "selected_gene_identifiers": "protein-coding gene identifiers",
+    "gene_vocabulary_indices": "gene vocabulary indices",
+    "training_reveal_mask": "binary per-position reveal states",
+    "no_reveal_mask": "binary per-position reveal states",
+}
+
+
+def key_space(keys, source_nodes):
+    spaces = []
+    for ref in keys:
+        representation = source_nodes[ref]["representation_type"] if ref in source_nodes else None
+        if representation not in KEY_SPACES:
+            raise ValueError(f"Unmapped lookup key representation requires source review: {representation}")
+        if KEY_SPACES[representation] not in spaces:
+            spaces.append(KEY_SPACES[representation])
+    return "; ".join(spaces)
+
 
 def decompose(row, library_hash, release):
     t = row["trajectory"]
@@ -118,7 +144,8 @@ def decompose(row, library_hash, release):
                 table = declared_tables[0] if declared_tables else node("lookup_table", "implicit_parameter",
                     f"{kind} belonging to {step['component']}; values and sharing are unasserted")
             call("lookup", {"keys": keys, "table": [table]}, {"values": output},
-                 {"resource_kind": kind, "trainability": "unspecified at this component/phase boundary"})
+                 {"key_space": key_space(keys, source_nodes), "resource_kind": kind,
+                  "trainability": "unspecified at this component/phase boundary"})
 
         if label in DIRECT:
             op, params = DIRECT[label]

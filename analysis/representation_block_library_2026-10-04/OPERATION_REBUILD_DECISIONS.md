@@ -24,6 +24,25 @@ are preserved in full. Added intermediate shapes are left unspecified when the
 source does not establish them. Required-port and reference tests check graph
 integrity. Source entailment and complete module decomposition remain review tasks.
 
+## Release 1.0.2 completion
+
+The `lookup` contract declares three instance parameters. Invocations carried only two.
+`key_space` was declared in the catalog, rendered in the operation page's instance-parameter
+line and absent from all 103 pilot calls and all 15 curated supplemental calls, so the
+published applications could not state what the supplied keys identify.
+
+| Decision | Source support and resulting representation |
+| --- | --- |
+| Read the key space from the key operand | Every lookup key operand already carries a recorded `representation_type` and information content. Map that recorded type to a key-space value; never infer one from the component or table. |
+| Fail on an unmapped key representation | A key type outside the reviewed mapping raises during the build. A new record cannot silently publish a lookup without its key space. |
+| Keep the same value for the same identifier space | `perturbation_gene_identifier` and `selected_gene_identifiers` are both protein-coding gene identifiers and receive one value; the distinct resources and chains stay separated by `resource_kind` and the graph. |
+| Preserve the two mask key operands as one space | `training_reveal_mask` and `no_reveal_mask` are both binary per-position reveal states. The distinction between them is the recorded node and its evidence, not the key space. |
+| Leave trainability unasserted but explicit | The source does not establish the training status of these tables at the component/phase boundary. The 1.0.1 placeholder stands and remains source-review work. The five supplemental gene-vocabulary calls that omitted the slot entirely now carry the same explicit `unspecified` value as their sibling calls in that curated example, which asserts nothing new and removes a silent omission. |
+
+Source trajectories, evidence, call counts, hashes and restoration tests are unchanged.
+Two regression tests cover the realized parameter and the unmapped-key failure. No new
+model inference, PDF conversion or eligibility change was performed.
+
 ## Release 1.0.1 correction
 
 Source review of X-Cell confirmed that `gene_table_raw` is already supplied to the

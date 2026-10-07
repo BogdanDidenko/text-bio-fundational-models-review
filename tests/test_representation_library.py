@@ -3,7 +3,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from scripts.build_representation_library import BASE, compile_release, objects
+from scripts.build_representation_library import BASE, KEY_SPACES, compile_release, key_space, objects
 from scripts.docling_graph_templates.representation_library import (
     OperationAssembly, OperationCatalog, restore_source, validate_operation_ports,
 )
@@ -54,6 +54,30 @@ class OperationLibraryTests(unittest.TestCase):
                     self.assertNotIn("gene_table_raw", call["inputs"]["keys"])
                     checked += 1
         self.assertTrue(checked)
+
+    def test_every_lookup_call_declares_its_key_space(self):
+        lookup = next(block for block in self.catalog["blocks"] if block["operation_id"] == "lookup")
+        self.assertIn("key_space", lookup["parameters"])
+        checked = 0
+        for assembly in self.assemblies:
+            nodes = {node["node_id"]: node for node in assembly["nodes"]}
+            for call in assembly["calls"]:
+                if call["operation_id"] != "lookup":
+                    continue
+                self.assertTrue(call["parameters"].get("key_space"))
+                for ref in call["inputs"]["keys"]:
+                    self.assertIn(KEY_SPACES[nodes[ref]["representation_type"]], call["parameters"]["key_space"])
+                checked += 1
+        for example in (item for block in self.catalog["blocks"] for item in block["supplemental_examples"]):
+            for call in example["assembly"]["calls"]:
+                if call["operation_id"] == "lookup":
+                    self.assertTrue(call["parameters"].get("key_space"))
+                    checked += 1
+        self.assertEqual(checked, 103 + 15)
+
+    def test_unmapped_lookup_key_requires_source_review(self):
+        with self.assertRaises(ValueError):
+            key_space(["unreviewed"], {"unreviewed": {"representation_type": "undocumented_identifier"}})
 
     def test_lookup_and_layernorm_are_separate_calls(self):
         for assembly in self.assemblies:
