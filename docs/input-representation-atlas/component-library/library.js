@@ -97,9 +97,12 @@ function drawDiagram(){
 function reviewPanel(assembly) {
   const record = catalog.records[assembly.record_id];
   if (!record?.decomposition_status) return "";
+  const chains = new Set(assemblies.filter((item) => item.record_id === assembly.record_id).map((item) => item.trajectory_id));
   const own = (record.open_findings || []).filter((item) => item.trajectory_id === assembly.trajectory_id);
+  const paperLevel = (record.open_findings || []).filter((item) => !chains.has(item.trajectory_id));
   const blocking = own.filter((item) => item.severity === "blocking").length;
-  return `<details class="source-panel review-panel"><summary>Agent-decomposed candidate · independent review: ${record.open_blocking_findings} open blocking findings in this paper, ${blocking} on this path</summary>${own.map((item) => `<article class="example"><strong>${esc(item.severity)} · ${esc(item.issue_type.replaceAll("_", " "))}</strong>${item.step_id ? `<div class="provenance">${esc(item.step_id)}</div>` : ""}<p class="small">${esc(item.detail)}</p><p class="small"><b>Required change:</b> ${esc(item.required_change)}</p></article>`).join("") || '<p class="small">No open findings on this path.</p>'}</details>`;
+  const card = (item) => `<article class="example"><strong>${esc(item.severity)} · ${esc(item.issue_type.replaceAll("_", " "))}</strong>${item.step_id ? `<div class="provenance">${esc(item.step_id)}</div>` : ""}<p class="small">${esc(item.detail)}</p><p class="small"><b>Required change:</b> ${esc(item.required_change)}</p></article>`;
+  return `<details class="source-panel review-panel"><summary>Agent-decomposed candidate · independent review: ${record.open_blocking_findings} open blocking findings in this paper, ${blocking} on this path</summary>${own.map(card).join("") || '<p class="small">No open findings on this path.</p>'}${paperLevel.length ? `<h4 class="paper-level">Paper-level findings · ${paperLevel.length} (paths the paper documents but this reconstruction lacks)</h4>${paperLevel.map(card).join("")}` : ""}</details>`;
 }
 
 function chainView(assembly, supplemental = false) {
