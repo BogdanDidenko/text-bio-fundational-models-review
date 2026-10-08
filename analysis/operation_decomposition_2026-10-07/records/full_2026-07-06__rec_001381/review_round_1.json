@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "Most preprocessing and explicitly documented projector paths are grounded, and unresolved internal model computations are appropriately left opaque. Blocking issues remain around unsupported tokenization, objective outputs, omitted training objectives, missing fine-tuning coverage, and documented padding.",
+  "findings": [
+    {
+      "detail": "The alignment objective is documented as producing a combined InfoNCE and cross-entropy loss, but this step outputs a node representing paired alignment features. The graph therefore reverses the documented transformation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We compute the alignment loss as a combination of the cell-text contrastive InfoNCE loss L InfoNCE and a cross-entropy cell-text matching loss L CE",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent the opaque objective as producing a combined alignment-loss node. Keep cell and text features as its inputs; do not use the loss step to produce paired features.",
+      "severity": "blocking",
+      "step_id": "stage1_align_modalities",
+      "trajectory_id": "scmmgpt_stage1_discriminative"
+    },
+    {
+      "detail": "The quoted source assumes that the description is already represented by a token sequence and only states that BERT produces an embedding. It does not document a raw-description-to-token operation for this branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Similarly, for a textual description represented by the token sequence t ( i ) = { t 1 , . . . , t L } , we extract the text embedding via the BERT module within the Q-Former as h text = BERT ( t ( i ) ).",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Treat the token sequence as the documented input to the BERT boundary, or add evidence from the tokenizer description before retaining a tokenize call from the raw description.",
+      "severity": "blocking",
+      "step_id": "stage1_tokenize_text",
+      "trajectory_id": "scmmgpt_stage1_discriminative"
+    },
+    {
+      "detail": "The generation step binds the target description as an input to autoregressive generation. The paper documents the target as the generated output/training reference, while only the projected cell feature is described as the conditioning input.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Given a cell embedding processed by the cell encoder and projected via the cell-to-text module, we condition the decoder-only text LLM to autoregressively generate corresponding textual descriptions.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Keep the projected cell feature as the decoder conditioning input. Represent the target description as a separate supervision operand in an opaque translation-loss step.",
+      "severity": "blocking",
+      "step_id": "c2t_generate_description",
+      "trajectory_id": "scmmgpt_stage2_cell_to_text"
+    },
+    {
+      "detail": "The Stage 2 cell-to-text training objective is omitted. The route contains generation and a target node but no documented L_c2t loss or combined Stage 2 optimization step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The objective is defined as:",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During this generative pre-training phase, we freeze the parameters of the cell-to-text projector and update the parameters of the text LLM, scLLM, and the text-to-cell projector by minimizing the combined loss L c2t + L t2c .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque Stage 2 training-objective step for L_c2t, retain the target-token supervision, and preserve the combined L_c2t + L_t2c update and freeze states. Keep inference generation separate.",
+      "severity": "blocking",
+      "step_id": "c2t_generate_description",
+      "trajectory_id": "scmmgpt_stage2_cell_to_text"
+    },
+    {
+      "detail": "The text-to-cell trajectory is labeled inference and omits the documented pretraining MSE objective, normalized-expression target, and gene-head optimization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The scLLM then predicts a pseudo-cell expression vector x ′ = scGPT ( c ′ ) ∈ R M . We optimize the gene prediction head of scGPT with a mean squared error (MSE) loss:",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where ˜ x j denotes the ground-truth normalized expression.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a separate Stage 2 text-to-cell pretraining trajectory or objective branch with the normalized-expression target and opaque MSE loss. Retain the current inference trajectory separately.",
+      "severity": "blocking",
+      "step_id": "pseudo_predict_expression",
+      "trajectory_id": "scmmgpt_text_to_cell_inference"
+    },
+    {
+      "detail": "The paper documents downstream fine-tuning for cell type annotation, but the reconstruction includes only the zero-shot annotation route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the fine-tuning scenario, we continue training scMMGPT on the downstream dataset using the alignment loss L align, and employ the same inference approach as in the zero-shot case.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a fine-tuning annotation trajectory or branch with the downstream alignment-loss objective and subsequent combined-loss class selection.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "scmmgpt_zero_shot_annotation"
+    },
+    {
+      "detail": "The source explicitly specifies a gene padding policy and maximum length, but the scGPT input path ends after top-value selection and contains no padding operation or invocation metadata.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Gene padding function | High value; Gene padding max len | 2,048",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented padding step or record its high-value padding policy and maximum length on the input-construction boundary, preserving alignment of gene symbols and expression values.",
+      "severity": "blocking",
+      "step_id": "construct_scgpt_input",
+      "trajectory_id": "scgpt_pretraining_input"
+    },
+    {
+      "detail": "The Q-Former cross-attention schedule is left unspecified even though the paper reports that cross-attention is activated every two layers.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Crossmodal alignment is achieved through a Q-Former [33] module with 32 query tokens, where the cross-attention mechanisms are activated every two layers.",
+          "section_id": "sec_0030"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the documented cross-attention frequency of every two layers on the Q-Former invocation or its opaque surrounding schedule.",
+      "severity": "minor",
+      "step_id": "stage1_project_cell_feature",
+      "trajectory_id": "scmmgpt_stage1_discriminative"
+    },
+    {
+      "detail": "The same documented Q-Former cross-attention frequency is omitted from the Stage 2 cell-to-text projector invocation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Crossmodal alignment is achieved through a Q-Former [33] module with 32 query tokens, where the cross-attention mechanisms are activated every two layers.",
+          "section_id": "sec_0030"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the every-two-layers cross-attention schedule for the Stage 2 Q-Former, while preserving the frozen parameter state.",
+      "severity": "minor",
+      "step_id": "c2t_project_cell_feature",
+      "trajectory_id": "scmmgpt_stage2_cell_to_text"
+    },
+    {
+      "detail": "The paper documents construction of cell descriptions by merging free-form explanations with CellxGene metadata, but the graph starts with a completed textual description and omits this documented upstream input-construction boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We construct textual descriptions of cells by merging the free-form cell explanations and the cell metadata from CellxGenes.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque description-construction boundary with free-text and metadata inputs, or explicitly scope the trajectory as beginning after this documented dataset transformation.",
+      "severity": "minor",
+      "step_id": "tokenize_cell_description",
+      "trajectory_id": "llama2_text_pretraining"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001381",
+  "verdict": "revise"
+}

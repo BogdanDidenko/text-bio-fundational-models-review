@@ -1,0 +1,172 @@
+{
+  "coverage_summary": "The reconstruction captures the main DNA tokenization, task-prompt serialization, opaque transformer boundaries, classification projection, and VQ-VAE boundary. Blocking omissions and unsupported response-token operations affect the multi-task fine-tuning routes.",
+  "findings": [
+    {
+      "detail": "The response-preparation step binds an already-tokenized response node as input to tokenize and returns the same node. The paper only says responses are treated as tokens; it does not establish a separate tokenization call.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The corresponding response ˜ y ( i ) is treated as tokens and the typical transformation is shown in Table 1.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Remove the self-bound tokenize call. Retain the response-token node as a documented but unresolved target representation, or add a textual response node only if separately supported.",
+      "severity": "blocking",
+      "step_id": "prepare_classification_response_tokens",
+      "trajectory_id": "multitask_classification_fine_tuning"
+    },
+    {
+      "detail": "The multi-task path represents an expanded tokenizer vocabulary but omits the explicitly documented model-state update that dynamically modifies the embedding matrix during vocabulary expansion.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Cross-modal multi-task finetuning expands the vocabulary in the model's tokenizer by dynamically modifying the embedding matrix.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "As the multi-task dataset unification introduces new tokens (i.e., prompt and response tokens), it is necessary to expand the vocabulary during SFT stage.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Preserve vocabulary expansion and embedding-matrix modification as an explicit model-state/context update associated with this fine-tuning route, without inventing its internal algebra.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "multitask_classification_fine_tuning"
+    },
+    {
+      "detail": "The multi-task fine-tuning graph omits NEFTune, although the paper explicitly documents random noise injection into embedding vectors during fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "NEFTune introduces random noise to embedding vectors during finetuning, reducing overfitting.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We employ two simple yet effective techniques: NEFTune ... and Key Token Replication.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an explicit NEFTune model-input/context boundary or parameterized state update, preserving that the noise is applied during fine-tuning and avoiding unsupported placement details.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "multitask_classification_fine_tuning"
+    },
+    {
+      "detail": "The DNA2Function response path decomposes 'treated as tokens' into a tokenize operation from response text, but the paper does not state that this response transformation is performed by the tokenizer or establish its order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The corresponding response ˜ y ( i ) is treated as tokens and the typical transformation is shown in Table 1.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "DNA2Text | AT...T | It encodes H-box helicase protein | AT...Twhat is the function? | It encodes H-box helicase protein",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Replace the unsupported response-tokenization call with an unresolved response-token preparation boundary, or provide a source-backed textual-to-token transformation.",
+      "severity": "blocking",
+      "step_id": "tokenize_function_response",
+      "trajectory_id": "dna2function_fine_tuning"
+    },
+    {
+      "detail": "The DNA2Function trajectory omits one of the two documented objectives: generating concise short annotations. It represents only the detailed natural-language response.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This is a multi-task scenario with two objectives: (1) generating concise short annotations for DNA sequences and (2) further explaining the corresponding functions by natural language.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a separate short-annotation response/task branch, or explicitly preserve the documented two-objective route if the serialization between the two responses is unresolved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "dna2function_fine_tuning"
+    },
+    {
+      "detail": "The DNA2Function multi-task route omits the documented vocabulary-expansion embedding update and NEFTune embedding noise used in cross-modal multi-task fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Cross-modal multi-task finetuning expands the vocabulary in the model's tokenizer by dynamically modifying the embedding matrix.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "NEFTune introduces random noise to embedding vectors during finetuning, reducing overfitting.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Preserve both fine-tuning state/context changes on this route without asserting an undocumented teacher-forcing or transformer-internal order.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "dna2function_fine_tuning"
+    },
+    {
+      "detail": "The DNA2Image trajectory claims a two-task configuration but contains only the image-generation response path. The documented DNA classification task and its label branch are absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "It leverages a multi-task setting with two tasks: (1) classify the DNA sequences, and (2) generate the corresponding handwritten digit image.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each sequence contains one of four functional motifs ... and is labeled 0, 1, 2, or 3 accordingly.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the DNA classification label branch and preserve its relation to the image-generation branch; leave exact joint response serialization unresolved where the paper is silent.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "dna2image_fine_tuning"
+    },
+    {
+      "detail": "The DNA2Image multi-task route omits the documented vocabulary-expansion embedding update and NEFTune embedding noise used during cross-modal multi-task fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Cross-modal multi-task finetuning expands the vocabulary in the model's tokenizer by dynamically modifying the embedding matrix.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "NEFTune introduces random noise to embedding vectors during finetuning, reducing overfitting.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Preserve both fine-tuning state/context changes on this route without fabricating their exact location inside the autoregressive transformer.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "dna2image_fine_tuning"
+    },
+    {
+      "detail": "The pretraining path starts directly with tokenization and omits the explicitly documented removal of non-{A,T,G,C} characters from raw genome data during preprocessing.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These characters were removed during preprocessing to retain only the core nucleotide sequences ( { A, T, G, C } ), ensuring consistency and facilitating the deduplication process.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the retained core-nucleotide input as the post-preprocessing node or add a documented filtering/preprocessing boundary before tokenization.",
+      "severity": "minor",
+      "step_id": "tokenize_pretraining_dna",
+      "trajectory_id": "pretraining_bpe_dna"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001773",
+  "verdict": "revise"
+}

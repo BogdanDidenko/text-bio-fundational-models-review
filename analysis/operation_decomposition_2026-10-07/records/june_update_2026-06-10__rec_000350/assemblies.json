@@ -1,0 +1,2130 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "initialize_biological_rows::1",
+        "component": "Biological vocabulary embedding initialization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "New rows of the embedding matrix are initialized by averaging the embeddings of their constituent pretrained tokens (mean-initialization from BPE fragments [33, 50]).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrained_embedding_table",
+            "constituent_token_selection"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "new_embedding_rows"
+          ]
+        },
+        "parameters": {
+          "source_operation": "mean_initialization_from_bpe_fragments",
+          "source_port_roles": [
+            "pretrained_table",
+            "constituent_token_selection"
+          ]
+        },
+        "source_step_id": "initialize_biological_rows",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source documents averaging constituent pretrained embeddings into new rows. The pretrained embedding table and constituent-token mapping are step inputs, and the BPE-initialized rows are produced values, but the catalog has no averaging operation."
+      },
+      {
+        "call_id": "initialize_control_rows::1",
+        "component": "Pure control-token embedding initialization",
+        "condition": "For the remaining 8 pure control tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pure_control_tokens",
+            "control_noise_distribution"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "control_embedding_rows"
+          ]
+        },
+        "parameters": {
+          "source_operation": "conditional_gaussian_noise_initialization",
+          "source_port_roles": [
+            "control_token_selector",
+            "noise_distribution"
+          ]
+        },
+        "source_step_id": "initialize_control_rows",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source documents small Gaussian-noise initialization with σ = 0.02. The catalog has no Gaussian-noise table initialization operation."
+      },
+      {
+        "call_id": "assemble_extended_table::1",
+        "component": "Extended embedding-table assembly",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrained_embedding_table",
+            "new_embedding_rows",
+            "control_embedding_rows"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "extended_embedding_table"
+          ]
+        },
+        "parameters": {
+          "source_operation": "assemble_extended_embedding_table",
+          "source_port_roles": [
+            "pretrained_table",
+            "bpe_initialized_rows",
+            "control_initialized_rows"
+          ]
+        },
+        "source_step_id": "assemble_extended_table",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states the final extended vocabulary and embedding table but does not specify a separate catalog operation for assembling pretrained and newly initialized rows."
+      },
+      {
+        "call_id": "inherit_tied_lm_head::1",
+        "component": "Tied language-model head inheritance",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "extended_embedding_table"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "tied_lm_head_table"
+          ]
+        },
+        "parameters": {
+          "source_operation": "tied_output_embedding_inheritance",
+          "source_port_roles": [
+            "input_embedding_table"
+          ]
+        },
+        "source_step_id": "inherit_tied_lm_head",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states automatic inheritance through tied embeddings but does not specify a separate catalog operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "We extend the tokenizer with 28,028 biological tokens, all prefixed to prevent collisions with natural language (Table 1).",
+        "section_id": "sec_0008"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "New rows of the embedding matrix are initialized by averaging the embeddings of their constituent pretrained tokens (mean-initialization from BPE fragments [33, 50]).",
+        "section_id": "sec_0008"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+        "section_id": "sec_0008"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+        "section_id": "sec_0008"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniGene-4 vocabulary-extended Gemma-4-26B-A4B-Instruct",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "pretrained vocabulary entries",
+          "embedding coordinates"
+        ],
+        "contextual_role": "pretrained_parameter_table",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "New rows of the embedding matrix are initialized by averaging the embeddings of their constituent pretrained tokens (mean-initialization from BPE fragments [33, 50]).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Existing pretrained token embedding table.",
+        "node_id": "pretrained_embedding_table",
+        "origin": "source_annotation",
+        "representation_type": "token_embedding_matrix",
+        "symbolic_shape": [
+          "n_pretrained_vocab",
+          "d_embedding"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "new biological vocabulary entries",
+          "constituent-token indices"
+        ],
+        "contextual_role": "vocabulary_mapping_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "New rows of the embedding matrix are initialized by averaging the embeddings of their constituent pretrained tokens (mean-initialization from BPE fragments [33, 50]).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Mapping from each new biological token to its constituent pretrained-token entries.",
+        "node_id": "constituent_token_selection",
+        "origin": "source_annotation",
+        "representation_type": "constituent_token_index_mapping",
+        "symbolic_shape": null,
+        "uncertainty": "The constituent-token selection procedure is not specified."
+      },
+      {
+        "axis_semantics": [
+          "BPE-initialized biological vocabulary entries",
+          "embedding coordinates"
+        ],
+        "contextual_role": "new_parameter_rows",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "New biological-token rows initialized from constituent pretrained-token embeddings.",
+        "node_id": "new_embedding_rows",
+        "origin": "source_annotation",
+        "representation_type": "biological_token_embedding_rows",
+        "symbolic_shape": [
+          "n_bpe_initialized_rows",
+          "d_embedding"
+        ],
+        "uncertainty": "The row-wise averaging operation is not represented by a catalog operation."
+      },
+      {
+        "axis_semantics": [
+          "pure control-token entries",
+          "embedding coordinates"
+        ],
+        "contextual_role": "control_parameter_rows",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Eight pure control-token embedding rows initialized from Gaussian noise.",
+        "node_id": "control_embedding_rows",
+        "origin": "source_annotation",
+        "representation_type": "control_token_embedding_rows",
+        "symbolic_shape": [
+          "n_control_tokens",
+          "d_embedding"
+        ],
+        "uncertainty": "The exact noise realization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "pure control-token entries"
+        ],
+        "contextual_role": "control_token_selector",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "The eight pure control tokens receiving the Gaussian-noise branch.",
+        "node_id": "pure_control_tokens",
+        "origin": "source_annotation",
+        "representation_type": "control_token_identifiers",
+        "symbolic_shape": [
+          "n_control_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "noise samples",
+          "embedding coordinates"
+        ],
+        "contextual_role": "implicit_initialization_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Small Gaussian-noise initialization distribution for pure control tokens.",
+        "node_id": "control_noise_distribution",
+        "origin": "source_annotation",
+        "representation_type": "gaussian_initialization_distribution",
+        "symbolic_shape": null,
+        "uncertainty": "Only σ = 0.02 is documented; mean and implementation details are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "extended vocabulary entries",
+          "embedding coordinates"
+        ],
+        "contextual_role": "generator_parameter_table",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Extended input embedding table used by the model and tied output head.",
+        "node_id": "extended_embedding_table",
+        "origin": "source_annotation",
+        "representation_type": "extended_token_embedding_matrix",
+        "symbolic_shape": [
+          "n_extended_vocab",
+          "d_embedding"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "output vocabulary entries",
+          "logit coordinates"
+        ],
+        "contextual_role": "tied_output_parameter_table",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Language-model head inherited from the extended input embedding table.",
+        "node_id": "tied_lm_head_table",
+        "origin": "source_annotation",
+        "representation_type": "tied_output_embedding_matrix",
+        "symbolic_shape": [
+          "n_extended_vocab",
+          "d_embedding"
+        ],
+        "uncertainty": "The tie is documented; the runtime lookup and output-logit operation are not expanded."
+      }
+    ],
+    "open_questions": [
+      "How are constituent pretrained tokens selected for each new row?",
+      "Are all new biological rows initialized before CPT and then updated jointly with the documented unfrozen input embedding matrix?",
+      "How is the tied output head exposed at runtime?",
+      "How are the eight pure control-token rows incorporated with the 28,020 BPE-initialized rows into the final extended table?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "extended_embedding_table",
+        "port_role": "input_embedding_table"
+      },
+      {
+        "node_id": "tied_lm_head_table",
+        "port_role": "output_head_table"
+      }
+    ],
+    "recipient_component": "Gemma-4 input embedding table and tied language-model head",
+    "record_id": "june_update_2026-06-10__rec_000350",
+    "source_steps": [
+      {
+        "component": "Biological vocabulary embedding initialization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "New rows of the embedding matrix are initialized by averaging the embeddings of their constituent pretrained tokens (mean-initialization from BPE fragments [33, 50]).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrained_embedding_table",
+            "port_role": "pretrained_table"
+          },
+          {
+            "node_id": "constituent_token_selection",
+            "port_role": "constituent_token_selection"
+          }
+        ],
+        "operation_type": "mean_initialization_from_bpe_fragments",
+        "outputs": [
+          "new_embedding_rows"
+        ],
+        "step_id": "initialize_biological_rows",
+        "uncertainty": "The operation is left unexpanded because no catalog primitive represents row-wise averaging."
+      },
+      {
+        "component": "Pure control-token embedding initialization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Of 28,028 new tokens, 28,020 could be initialized this way; the remaining 8 (pure control tokens) were initialized with small Gaussian noise ( σ = 0 . 02).",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pure_control_tokens",
+            "port_role": "control_token_selector"
+          },
+          {
+            "node_id": "control_noise_distribution",
+            "port_role": "noise_distribution"
+          }
+        ],
+        "operation_type": "conditional_gaussian_noise_initialization",
+        "outputs": [
+          "control_embedding_rows"
+        ],
+        "step_id": "initialize_control_rows",
+        "uncertainty": "Mean, realization, and exact row-construction implementation are unspecified beyond σ = 0.02."
+      },
+      {
+        "component": "Extended embedding-table assembly",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrained_embedding_table",
+            "port_role": "pretrained_table"
+          },
+          {
+            "node_id": "new_embedding_rows",
+            "port_role": "bpe_initialized_rows"
+          },
+          {
+            "node_id": "control_embedding_rows",
+            "port_role": "control_initialized_rows"
+          }
+        ],
+        "operation_type": "assemble_extended_embedding_table",
+        "outputs": [
+          "extended_embedding_table"
+        ],
+        "step_id": "assemble_extended_table",
+        "uncertainty": "Row ordering and the explicit assembly mechanism are unspecified."
+      },
+      {
+        "component": "Tied language-model head inheritance",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "extended_embedding_table",
+            "port_role": "input_embedding_table"
+          }
+        ],
+        "operation_type": "tied_output_embedding_inheritance",
+        "outputs": [
+          "tied_lm_head_table"
+        ],
+        "step_id": "inherit_tied_lm_head",
+        "uncertainty": "The tied parameter identity is documented; the forward computation is not."
+      }
+    ],
+    "task_configuration": "Vocabulary expansion and biological embedding-table initialization",
+    "trajectory_id": "omnigene4_pretraining_vocab_extension"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "select_dna_corpus::1",
+        "component": "DNA corpus subset selection",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "dna_raw_corpus"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "dna_corpus"
+          ]
+        },
+        "parameters": {
+          "criterion": "8GB selected from 31GB raw DNA corpus; sampled 25%",
+          "forced_inclusions": "unspecified",
+          "method": "unspecified corpus subset-selection method",
+          "source_port_roles": [
+            "raw_dna_corpus"
+          ]
+        },
+        "source_step_id": "select_dna_corpus",
+        "status": "documented_operation",
+        "uncertainty": "The paper reports the 25%/8GB selected subset but does not document a probability distribution, sampling algorithm, selection unit, or boundary policy."
+      },
+      {
+        "call_id": "tokenize_dna::1",
+        "component": "Extended biological tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We extend the tokenizer with 28,028 biological tokens, all prefixed to prevent collisions with natural language (Table 1).",
+            "section_id": "sec_0008"
+          },
+          {
+            "kind": "table",
+            "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "dna_corpus"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "dna_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "DNA BPE",
+          "source_alphabet": "DNA",
+          "source_port_roles": [
+            "dna_sequences"
+          ],
+          "vocabulary": "20,000 DNA BPE tokens within the biological extension"
+        },
+        "source_step_id": "tokenize_dna",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "chunk_dna::1",
+        "component": "CPT chunking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "dna_tokens"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "dna_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered token positions",
+          "method": "fixed-length chunking",
+          "partition_rule": "1,024 tokens",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "chunk_dna",
+        "status": "documented_operation",
+        "uncertainty": "Padding, overlap, and boundary handling are unspecified."
+      },
+      {
+        "call_id": "generate_dna::1",
+        "component": "Gemma-4 decoder-only MoE generator",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "dna_chunks"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "dna_chunks"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_model_generation",
+          "source_port_roles": [
+            "token_ids"
+          ]
+        },
+        "source_step_id": "generate_dna",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The decoder forward computation and causal-training receipt are not expanded."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "table",
+        "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+        "section_id": "sec_0008"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+        "section_id": "sec_0010"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniGene-4 with extended biological vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered DNA substring positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Raw DNA corpus.",
+        "node_id": "dna_raw_corpus",
+        "origin": "source_annotation",
+        "representation_type": "dna_sequences",
+        "symbolic_shape": [
+          "n_dna_characters"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered DNA substring positions"
+        ],
+        "contextual_role": "sampled_biological_corpus",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Selected DNA corpus used for CPT.",
+        "node_id": "dna_corpus",
+        "origin": "source_annotation",
+        "representation_type": "selected_dna_sequences",
+        "symbolic_shape": [
+          "n_selected_dna_characters"
+        ],
+        "uncertainty": "The selection algorithm and selection unit are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered biological-token positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "DNA BPE token identifiers.",
+        "node_id": "dna_tokens",
+        "origin": "source_annotation",
+        "representation_type": "biological_token_ids",
+        "symbolic_shape": [
+          "n_dna_tokens"
+        ],
+        "uncertainty": "Exact merge behavior, special-token handling, and sequence boundaries are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "chunk index",
+          "token positions within each chunk"
+        ],
+        "contextual_role": "generator_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Chunked DNA token sequences received by the CPT generator.",
+        "node_id": "dna_chunks",
+        "origin": "source_annotation",
+        "representation_type": "token_id_chunks",
+        "symbolic_shape": [
+          "n_chunks",
+          "n_chunk_tokens"
+        ],
+        "uncertainty": "Padding, overlap, boundary handling, and causal target construction are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Does selection preserve DNA sequence boundaries?",
+      "Does chunking preserve DNA sequence boundaries?",
+      "What decoder input/target shift and loss mask are used during CPT?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "dna_chunks",
+        "port_role": "generator_token_ids"
+      }
+    ],
+    "recipient_component": "Gemma-4 decoder-only MoE generator",
+    "record_id": "june_update_2026-06-10__rec_000350",
+    "source_steps": [
+      {
+        "component": "DNA corpus subset selection",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "dna_raw_corpus",
+            "port_role": "raw_dna_corpus"
+          }
+        ],
+        "operation_type": "select_dna_cpt_subset",
+        "outputs": [
+          "dna_corpus"
+        ],
+        "step_id": "select_dna_corpus",
+        "uncertainty": "Only the used volume and reported sampling fraction are documented."
+      },
+      {
+        "component": "Extended biological tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We extend the tokenizer with 28,028 biological tokens, all prefixed to prevent collisions with natural language (Table 1).",
+            "section_id": "sec_0008"
+          },
+          {
+            "kind": "table",
+            "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "dna_corpus",
+            "port_role": "dna_sequences"
+          }
+        ],
+        "operation_type": "dna_bpe_tokenization",
+        "outputs": [
+          "dna_tokens"
+        ],
+        "step_id": "tokenize_dna",
+        "uncertainty": null
+      },
+      {
+        "component": "CPT chunking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "dna_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "token_chunking",
+        "outputs": [
+          "dna_chunks"
+        ],
+        "step_id": "chunk_dna",
+        "uncertainty": "Only the fixed chunk size is documented."
+      },
+      {
+        "component": "Gemma-4 decoder-only MoE generator",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "dna_chunks",
+            "port_role": "token_ids"
+          }
+        ],
+        "operation_type": "causal_language_model_generation",
+        "outputs": [
+          "dna_chunks"
+        ],
+        "step_id": "generate_dna",
+        "uncertainty": "Internal embedding, positional, attention, router, FFN, and output-label operations are unspecified."
+      }
+    ],
+    "task_configuration": "DNA CPT corpus",
+    "trajectory_id": "omnigene4_pretraining_dna_cpt"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "tokenize_protein::1",
+        "component": "Extended biological tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": " Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "protein_corpus"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "protein_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "protein BPE",
+          "source_alphabet": "protein sequence",
+          "source_port_roles": [
+            "protein_sequences"
+          ],
+          "vocabulary": "8,000 protein BPE tokens within the biological extension"
+        },
+        "source_step_id": "tokenize_protein",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "chunk_protein::1",
+        "component": "CPT chunking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "protein_tokens"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "protein_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered token positions",
+          "method": "fixed-length chunking",
+          "partition_rule": "1,024 tokens",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "chunk_protein",
+        "status": "documented_operation",
+        "uncertainty": "Padding, overlap, and boundary handling are unspecified."
+      },
+      {
+        "call_id": "generate_protein::1",
+        "component": "Gemma-4 decoder-only MoE generator",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_chunks"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_chunks"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_model_generation",
+          "source_port_roles": [
+            "token_ids"
+          ]
+        },
+        "source_step_id": "generate_protein",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The decoder forward computation and causal-training receipt are not expanded."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| Protein 1 ( protein_uni_16.txt )      | 16GB  | 4GB               |",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "table",
+        "quote": "| Protein 2 ( protein_lucaone_15g.txt ) | 15GB  | 4GB               |",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "table",
+        "quote": " Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+        "section_id": "sec_0008"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniGene-4 with extended biological vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered protein-residue positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Protein 1 ( protein_uni_16.txt )      | 16GB  | 4GB               |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| Protein 2 ( protein_lucaone_15g.txt ) | 15GB  | 4GB               |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Protein sequence corpora.",
+        "node_id": "protein_corpus",
+        "origin": "source_annotation",
+        "representation_type": "protein_sequences",
+        "symbolic_shape": [
+          "n_protein_residues"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered biological-token positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": " Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Protein BPE token identifiers.",
+        "node_id": "protein_tokens",
+        "origin": "source_annotation",
+        "representation_type": "biological_token_ids",
+        "symbolic_shape": [
+          "n_protein_tokens"
+        ],
+        "uncertainty": "Exact merge and special-token behavior are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "chunk index",
+          "token positions within each chunk"
+        ],
+        "contextual_role": "generator_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Chunked protein-token sequences.",
+        "node_id": "protein_chunks",
+        "origin": "source_annotation",
+        "representation_type": "token_id_chunks",
+        "symbolic_shape": [
+          "n_chunks",
+          "n_chunk_tokens"
+        ],
+        "uncertainty": "Padding, overlap, sequence-boundary handling, and causal target construction are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Are the two protein corpora tokenized identically?",
+      "Are protein pairs represented in CPT, and if so, what separators or alignment markers are used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "protein_chunks",
+        "port_role": "generator_token_ids"
+      }
+    ],
+    "recipient_component": "Gemma-4 decoder-only MoE generator",
+    "record_id": "june_update_2026-06-10__rec_000350",
+    "source_steps": [
+      {
+        "component": "Extended biological tokenizer",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": " Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_corpus",
+            "port_role": "protein_sequences"
+          }
+        ],
+        "operation_type": "protein_bpe_tokenization",
+        "outputs": [
+          "protein_tokens"
+        ],
+        "step_id": "tokenize_protein",
+        "uncertainty": null
+      },
+      {
+        "component": "CPT chunking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "token_chunking",
+        "outputs": [
+          "protein_chunks"
+        ],
+        "step_id": "chunk_protein",
+        "uncertainty": "Only the fixed chunk size is documented."
+      },
+      {
+        "component": "Gemma-4 decoder-only MoE generator",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_chunks",
+            "port_role": "token_ids"
+          }
+        ],
+        "operation_type": "causal_language_model_generation",
+        "outputs": [
+          "protein_chunks"
+        ],
+        "step_id": "generate_protein",
+        "uncertainty": "Internal embedding, positional, attention, router, FFN, and output-label operations are unspecified."
+      }
+    ],
+    "task_configuration": "Protein CPT corpora",
+    "trajectory_id": "omnigene4_pretraining_protein_cpt"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "format_four_tracks::1",
+        "component": "Four-track formatting and correspondence boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "four_track_records"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "four_track_formatted"
+          ]
+        },
+        "parameters": {
+          "source_operation": "four_track_structural_formatting_and_alignment",
+          "source_port_roles": [
+            "parallel_structural_records"
+          ]
+        },
+        "source_step_id": "format_four_tracks",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states a four-track parallel representation in the order text description, amino-acid sequence, DSSP backbone, and Foldseek letters, but does not establish its exact serialization or alignment operation."
+      },
+      {
+        "call_id": "tokenize_four_tracks::1",
+        "component": "Extended structural tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "four_track_formatted"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "four_track_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "source/model tokenizer; exact segmentation unspecified",
+          "source_alphabet": "mixed text, amino-acid, DSSP, and Foldseek structural stream",
+          "source_port_roles": [
+            "formatted_structural_stream"
+          ],
+          "vocabulary": "extended biological vocabulary including Foldseek 3Di and DSSP tokens"
+        },
+        "source_step_id": "tokenize_four_tracks",
+        "status": "documented_operation",
+        "uncertainty": "The paper states tokenization but does not specify the complete tokenizer behavior."
+      },
+      {
+        "call_id": "chunk_four_tracks::1",
+        "component": "CPT chunking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "four_track_tokens"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "four_track_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered token positions",
+          "method": "fixed-length chunking",
+          "partition_rule": "1,024 tokens",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "chunk_four_tracks",
+        "status": "documented_operation",
+        "uncertainty": "Padding, overlap, and boundary handling are unspecified."
+      },
+      {
+        "call_id": "generate_four_tracks::1",
+        "component": "Gemma-4 decoder-only MoE generator",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "four_track_chunks"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "four_track_chunks"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_model_generation",
+          "source_port_roles": [
+            "token_ids"
+          ]
+        },
+        "source_step_id": "generate_four_tracks",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Internal generator operations are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+        "section_id": "sec_0010"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniGene-4 with extended biological vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered structural-record positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Text description, amino-acid sequence, DSSP backbone, and Foldseek 3Di letters in the documented order.",
+        "node_id": "four_track_records",
+        "origin": "source_annotation",
+        "representation_type": "parallel_structural_symbol_streams",
+        "symbolic_shape": [
+          "n_structural_positions"
+        ],
+        "uncertainty": "Exact separators, field order beyond the prose list, and correspondence encoding are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered structural-stream positions"
+        ],
+        "contextual_role": "formatted_structural_stream",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque formatted four-track stream retaining the documented track order.",
+        "node_id": "four_track_formatted",
+        "origin": "source_annotation",
+        "representation_type": "formatted_parallel_structural_stream",
+        "symbolic_shape": [
+          "n_structural_units"
+        ],
+        "uncertainty": "Separators, alignment encoding, and exact serialization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered token positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Extended-vocabulary token identifiers for the structural records.",
+        "node_id": "four_track_tokens",
+        "origin": "source_annotation",
+        "representation_type": "mixed_biological_text_token_ids",
+        "symbolic_shape": [
+          "n_structural_tokens"
+        ],
+        "uncertainty": "Exact tokenization and structural separators are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "chunk index",
+          "token positions within each chunk"
+        ],
+        "contextual_role": "generator_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Chunked four-track token sequences.",
+        "node_id": "four_track_chunks",
+        "origin": "source_annotation",
+        "representation_type": "token_id_chunks",
+        "symbolic_shape": [
+          "n_chunks",
+          "n_chunk_tokens"
+        ],
+        "uncertainty": "Padding, overlap, and cross-record partitioning are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What delimiters identify the four tracks?",
+      "Are track positions explicitly aligned in the token stream or merely placed in parallel fields?",
+      "What exact tokenizer vocabulary entries represent text, amino-acid, DSSP, and Foldseek components?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "four_track_chunks",
+        "port_role": "generator_token_ids"
+      }
+    ],
+    "recipient_component": "Gemma-4 decoder-only MoE generator",
+    "record_id": "june_update_2026-06-10__rec_000350",
+    "source_steps": [
+      {
+        "component": "Four-track formatting and correspondence boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "four_track_records",
+            "port_role": "parallel_structural_records"
+          }
+        ],
+        "operation_type": "four_track_structural_formatting_and_alignment",
+        "outputs": [
+          "four_track_formatted"
+        ],
+        "step_id": "format_four_tracks",
+        "uncertainty": "Exact serialization and correspondence alignment are unresolved."
+      },
+      {
+        "component": "Extended structural tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "four_track_formatted",
+            "port_role": "formatted_structural_stream"
+          }
+        ],
+        "operation_type": "four_track_tokenization",
+        "outputs": [
+          "four_track_tokens"
+        ],
+        "step_id": "tokenize_four_tracks",
+        "uncertainty": "Exact token boundaries and special-token behavior are unspecified."
+      },
+      {
+        "component": "CPT chunking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "four_track_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "token_chunking",
+        "outputs": [
+          "four_track_chunks"
+        ],
+        "step_id": "chunk_four_tracks",
+        "uncertainty": "Only the fixed chunk size is documented."
+      },
+      {
+        "component": "Gemma-4 decoder-only MoE generator",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "four_track_chunks",
+            "port_role": "token_ids"
+          }
+        ],
+        "operation_type": "causal_language_model_generation",
+        "outputs": [
+          "four_track_chunks"
+        ],
+        "step_id": "generate_four_tracks",
+        "uncertainty": "Internal generator operations are unspecified."
+      }
+    ],
+    "task_configuration": "Four-track structural CPT: text description, amino-acid sequence, DSSP backbone, and Foldseek 3Di letters",
+    "trajectory_id": "omnigene4_pretraining_structural_cpt"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "select_openwebtext::1",
+        "component": "OpenWebText selection and CPT mixing policy",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| OpenWebText                           | 37GB  | 8GB               |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "OpenWebText [16] is retained at a 1 : 3 ratio against biological corpora to serve as a 'logical anchor' and prevent catastrophic forgetting of natural-language reasoning.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "openwebtext_raw"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "openwebtext"
+          ]
+        },
+        "parameters": {
+          "criterion": "8GB used subset retained at a 1:3 ratio against biological corpora",
+          "forced_inclusions": "unspecified",
+          "method": "unspecified selection/sampling method",
+          "source_port_roles": [
+            "raw_text_corpus"
+          ]
+        },
+        "source_step_id": "select_openwebtext",
+        "status": "documented_operation",
+        "uncertainty": "The used volume and retention ratio are documented; the exact selection and mixing mechanics are not."
+      },
+      {
+        "call_id": "prepare_instruction_replay::1",
+        "component": "Instruction-replay corpus preparation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "instruction_replay_corpus"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "instruction_replay_mixed_corpus"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_replay_mixture_preparation",
+          "source_port_roles": [
+            "instruction_replay_source"
+          ]
+        },
+        "source_step_id": "prepare_instruction_replay",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source identifies 12 open corpora, 5GB raw material, and an 8GB mixed used component, but does not establish the mixing or resampling operation."
+      },
+      {
+        "call_id": "tokenize_openwebtext::1",
+        "component": "Gemma SentencePiece tokenizer for OpenWebText",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "openwebtext"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "openwebtext_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "SentencePiece",
+          "source_alphabet": "natural language",
+          "source_port_roles": [
+            "text"
+          ],
+          "vocabulary": "pretrained vocabulary extended with biological tokens"
+        },
+        "source_step_id": "tokenize_openwebtext",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_instruction_replay::1",
+        "component": "Gemma tokenizer for instruction replay",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "instruction_replay_mixed_corpus"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "instruction_replay_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "model tokenizer; exact segmentation unspecified",
+          "source_alphabet": "instruction-replay text",
+          "source_port_roles": [
+            "instruction_replay_text"
+          ],
+          "vocabulary": "extended biological vocabulary"
+        },
+        "source_step_id": "tokenize_instruction_replay",
+        "status": "documented_operation",
+        "uncertainty": "The paper documents instruction replay as a CPT mixture component but does not specify its tokenizer treatment separately."
+      },
+      {
+        "call_id": "chunk_openwebtext::1",
+        "component": "CPT chunking for OpenWebText",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "openwebtext_tokens"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "openwebtext_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered token positions",
+          "method": "fixed-length chunking",
+          "partition_rule": "1,024 tokens",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "chunk_openwebtext",
+        "status": "documented_operation",
+        "uncertainty": "Padding, overlap, and boundary handling are unspecified."
+      },
+      {
+        "call_id": "chunk_instruction_replay::1",
+        "component": "CPT chunking for instruction replay",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "instruction_replay_tokens"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "instruction_replay_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered token positions",
+          "method": "fixed-length chunking",
+          "partition_rule": "1,024 tokens",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "chunk_instruction_replay",
+        "status": "documented_operation",
+        "uncertainty": "Padding, overlap, mixing boundaries, and record-boundary handling are unspecified."
+      },
+      {
+        "call_id": "generate_text_and_replay::1",
+        "component": "Gemma-4 decoder-only MoE generator",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "openwebtext_chunks",
+            "instruction_replay_chunks"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "openwebtext_chunks",
+            "instruction_replay_chunks"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_model_generation",
+          "source_port_roles": [
+            "token_ids",
+            "instruction_replay_token_ids"
+          ]
+        },
+        "source_step_id": "generate_text_and_replay",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The decoder forward computation, mixture scheduling, and causal-training receipt are not expanded."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "OpenWebText [16] is retained at a 1 : 3 ratio against biological corpora to serve as a 'logical anchor' and prevent catastrophic forgetting of natural-language reasoning.",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "table",
+        "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+        "section_id": "sec_0010"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+        "section_id": "sec_0007"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+        "section_id": "sec_0010"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniGene-4 with extended biological vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered natural-language positions"
+        ],
+        "contextual_role": "external_text_corpus",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| OpenWebText                           | 37GB  | 8GB               |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Raw natural-language OpenWebText corpus.",
+        "node_id": "openwebtext_raw",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_text",
+        "symbolic_shape": [
+          "n_raw_text_units"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered natural-language positions"
+        ],
+        "contextual_role": "sampled_external_text_corpus",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| OpenWebText                           | 37GB  | 8GB               |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "OpenWebText [16] is retained at a 1 : 3 ratio against biological corpora to serve as a 'logical anchor' and prevent catastrophic forgetting of natural-language reasoning.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "8GB OpenWebText subset retained at the documented 1:3 ratio against biological corpora.",
+        "node_id": "openwebtext",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_text_subset",
+        "symbolic_shape": [
+          "n_used_text_units"
+        ],
+        "uncertainty": "Exact selection and mixing mechanics are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered instruction-replay positions"
+        ],
+        "contextual_role": "external_instruction_replay_corpus",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Instruction-replay material from 12 open corpora before the reported mixed used component.",
+        "node_id": "instruction_replay_corpus",
+        "origin": "source_annotation",
+        "representation_type": "instruction_replay_text_raw",
+        "symbolic_shape": [
+          "n_instruction_replay_units"
+        ],
+        "uncertainty": "The paper does not specify the mixing or resampling mechanics producing the used component."
+      },
+      {
+        "axis_semantics": [
+          "ordered instruction-replay positions"
+        ],
+        "contextual_role": "sampled_instruction_replay_corpus",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Distinct 8GB mixed instruction-replay component used in CPT.",
+        "node_id": "instruction_replay_mixed_corpus",
+        "origin": "source_annotation",
+        "representation_type": "instruction_replay_text_mixture",
+        "symbolic_shape": [
+          "n_mixed_instruction_replay_units"
+        ],
+        "uncertainty": "The transformation from the 5GB source to the 8GB mixed component is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered tokenizer positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "SentencePiece token identifiers for OpenWebText.",
+        "node_id": "openwebtext_tokens",
+        "origin": "source_annotation",
+        "representation_type": "sentencepiece_token_ids",
+        "symbolic_shape": [
+          "n_text_tokens"
+        ],
+        "uncertainty": "Exact tokenizer vocabulary after biological extension and special-token behavior are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered tokenizer positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Token identifiers for instruction-replay material.",
+        "node_id": "instruction_replay_tokens",
+        "origin": "source_annotation",
+        "representation_type": "sentencepiece_or_extended_token_ids",
+        "symbolic_shape": [
+          "n_instruction_replay_tokens"
+        ],
+        "uncertainty": "The tokenizer treatment of instruction-replay sources is not separately specified."
+      },
+      {
+        "axis_semantics": [
+          "chunk index",
+          "token positions within each chunk"
+        ],
+        "contextual_role": "generator_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Chunked natural-language token sequences.",
+        "node_id": "openwebtext_chunks",
+        "origin": "source_annotation",
+        "representation_type": "token_id_chunks",
+        "symbolic_shape": [
+          "n_chunks",
+          "n_chunk_tokens"
+        ],
+        "uncertainty": "Padding, overlap, and causal label construction are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "chunk index",
+          "token positions within each chunk"
+        ],
+        "contextual_role": "generator_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Chunked instruction-replay token sequences.",
+        "node_id": "instruction_replay_chunks",
+        "origin": "source_annotation",
+        "representation_type": "token_id_chunks",
+        "symbolic_shape": [
+          "n_instruction_replay_chunks",
+          "n_chunk_tokens"
+        ],
+        "uncertainty": "Padding, overlap, mixing, and causal label construction are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Are OpenWebText samples concatenated before chunking?",
+      "Are instruction-replay examples tokenized under exactly the same procedure?",
+      "How is the 1:3 OpenWebText retention ratio operationalized against the biological corpus?",
+      "How does the 5GB raw instruction-replay source become the reported 8GB mixed component?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "openwebtext_chunks",
+        "port_role": "generator_token_ids"
+      },
+      {
+        "node_id": "instruction_replay_chunks",
+        "port_role": "instruction_replay_token_ids"
+      }
+    ],
+    "recipient_component": "Gemma-4 decoder-only MoE generator",
+    "record_id": "june_update_2026-06-10__rec_000350",
+    "source_steps": [
+      {
+        "component": "OpenWebText selection and CPT mixing policy",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| OpenWebText                           | 37GB  | 8GB               |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "OpenWebText [16] is retained at a 1 : 3 ratio against biological corpora to serve as a 'logical anchor' and prevent catastrophic forgetting of natural-language reasoning.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "openwebtext_raw",
+            "port_role": "raw_text_corpus"
+          }
+        ],
+        "operation_type": "select_openwebtext_cpt_subset",
+        "outputs": [
+          "openwebtext"
+        ],
+        "step_id": "select_openwebtext",
+        "uncertainty": "The selection unit and exact ratio-enforcement procedure are unspecified."
+      },
+      {
+        "component": "Instruction-replay corpus preparation",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_replay_corpus",
+            "port_role": "instruction_replay_source"
+          }
+        ],
+        "operation_type": "instruction_replay_mixture_preparation",
+        "outputs": [
+          "instruction_replay_mixed_corpus"
+        ],
+        "step_id": "prepare_instruction_replay",
+        "uncertainty": "The reported used volume is preserved; the source-to-mixture transformation is unresolved."
+      },
+      {
+        "component": "Gemma SentencePiece tokenizer for OpenWebText",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "openwebtext",
+            "port_role": "text"
+          }
+        ],
+        "operation_type": "sentencepiece_tokenization",
+        "outputs": [
+          "openwebtext_tokens"
+        ],
+        "step_id": "tokenize_openwebtext",
+        "uncertainty": null
+      },
+      {
+        "component": "Gemma tokenizer for instruction replay",
+        "evidence": [
+          {
+            "kind": "table",
+            "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_replay_mixed_corpus",
+            "port_role": "instruction_replay_text"
+          }
+        ],
+        "operation_type": "instruction_replay_tokenization",
+        "outputs": [
+          "instruction_replay_tokens"
+        ],
+        "step_id": "tokenize_instruction_replay",
+        "uncertainty": "Exact tokenizer, vocabulary coverage, and special-token behavior are unspecified."
+      },
+      {
+        "component": "CPT chunking for OpenWebText",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "openwebtext_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "token_chunking",
+        "outputs": [
+          "openwebtext_chunks"
+        ],
+        "step_id": "chunk_openwebtext",
+        "uncertainty": "Only the fixed chunk size is documented."
+      },
+      {
+        "component": "CPT chunking for instruction replay",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_replay_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "token_chunking",
+        "outputs": [
+          "instruction_replay_chunks"
+        ],
+        "step_id": "chunk_instruction_replay",
+        "uncertainty": "Only the fixed chunk size is documented."
+      },
+      {
+        "component": "Gemma-4 decoder-only MoE generator",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OmniGene-4 is built on Gemma-4-26B-A4B-Instruct [17], a sparse mixture-of-experts transformer with the following characteristics:",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "openwebtext_chunks",
+            "port_role": "token_ids"
+          },
+          {
+            "node_id": "instruction_replay_chunks",
+            "port_role": "instruction_replay_token_ids"
+          }
+        ],
+        "operation_type": "causal_language_model_generation",
+        "outputs": [
+          "openwebtext_chunks",
+          "instruction_replay_chunks"
+        ],
+        "step_id": "generate_text_and_replay",
+        "uncertainty": "Internal embedding, positional, attention, router, FFN, corpus-mixing, and output-label operations are unspecified."
+      }
+    ],
+    "task_configuration": "OpenWebText natural-language CPT with instruction-replay corpus branch",
+    "trajectory_id": "omnigene4_pretraining_openwebtext_cpt"
+  }
+]

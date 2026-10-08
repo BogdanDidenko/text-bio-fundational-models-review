@@ -1,0 +1,232 @@
+{
+  "coverage_summary": "Reviewed all five trajectories against the supplied paper text. The main prompt construction is generally supported, but several documented routes, data-preparation steps, tokenizer claims, model variants, and embedding configurations are missing or unsupported.",
+  "findings": [
+    {
+      "detail": "The stage-2 trajectory collapses six documented relation/function subformats into one generic biological-context serialization. The paper explicitly describes gene-protein relation, protein-function inference, gene-function inference, protein-molecular features, protein-pathogenesis features, and gene-inheritance features, including positive and artificial negative pairs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The second part of the training set focuses on excavated gene-protein relationships (Fig. 4).",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This format contains two sub-formats. The first sub-format focuses on identifying the function of protein given its coding gene and gene function, while the second sub-format focuses on identifying gene products. Protein-function inferring formulated both protein entities and their functions. This sub-format focuses on training the model to identify the protein entity based on relevant molecular functions. Gene-function inferring formulated the gene entity and its functions. This sub-format focuses on training the model to identify the gene entity based on the gene's functions.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To be noted that the three kinds of contexts in this dataset contain both positive pairs and artificial negative pairs.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented stage-2 subformats and positive/negative context branches, or explicitly mark them as unrepresented rather than treating them as one undifferentiated route.",
+      "severity": "blocking",
+      "step_id": "serialize_stage2",
+      "trajectory_id": "gpgpt_small_fine_tuning"
+    },
+    {
+      "detail": "The QA trajectory represents only disease-to-gene prompts. The paper also documents the reversed question-answer direction for testing phenotype-to-gene and gene-to-phenotype association, but no gene-name input or reverse prompt branch is present.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The testing of disease-gene association was designed in the same style by reversing a question and answer from the above case.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The accuracy gene-phenotype (ACC.G-P) and the accuracy phenotype-gene (ACC.P-G) are calculated by matching the exact gene or phenotype name in the generated sentence.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the reverse-direction input and prompt-construction branch, with its distinct source entity and output direction.",
+      "severity": "blocking",
+      "step_id": "construct_evaluation_prompts",
+      "trajectory_id": "gpgpt_small_evaluation_qa"
+    },
+    {
+      "detail": "The QA graph records the randomly selected disease names but does not represent the documented random-selection and OMIM ground-truth preparation step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The ground truth of gene-disease association was downloaded from OMIM. More than 1000 gene-disease pairs were randomly selected and all genes associated with each disease were recorded.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented sampling/selection step and the OMIM-associated gene records, or state that evaluation-set construction is intentionally outside the assembly.",
+      "severity": "blocking",
+      "step_id": "construct_evaluation_prompts",
+      "trajectory_id": "gpgpt_small_evaluation_qa"
+    },
+    {
+      "detail": "The evaluation tokenizer calls are unsupported by the cited evidence. Section 3.2 documents tokenization for training genomics entities, while the QA evidence only documents textual prompt construction and does not establish the tokenizer or tokenization operation used at evaluation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Similarly, GP-GPT adopts this character-based tokenization method for bio-factor entities, including gene IDs, protein names, and disease abbreviations.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the question-answering tasks, a question was created by pasting 'What are genes related to ' before the disease name and a question mark after the disease name.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the explicit evaluation tokenize calls or replace them with an opaque model-input boundary unless evaluation-time tokenization is documented by the source.",
+      "severity": "blocking",
+      "step_id": "tokenize_evaluation_prompts",
+      "trajectory_id": "gpgpt_small_evaluation_qa"
+    },
+    {
+      "detail": "The record contains only GP-GPT Small trajectories even though the paper documents GP-GPT Small, Base, and Large as trained model variants and evaluates all three. The missing variants are a coverage omission.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "As a result, we obtained the genomics-specific fine-tuned large language models with different sizes: GP-GPT small (from Llama2 7B), GP-GPT base (from Llama3.1 8B), and GP-GPT large (from Llama3.1 70B).",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For GP-GPT with different sizes, their performances were tested on the four pre-defined metrics: BLEU, BLEU-1, gene-phenotype accuracy, and phenotype-gene accuracy.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add variant-scoped assemblies for Base and Large where their model-visible paths are represented, or explicitly mark those documented variants as outside the reviewed coverage.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "gpgpt_small_fine_tuning"
+    },
+    {
+      "detail": "The relation-determination tokenizer call is likewise unsupported. The relation section establishes an instruction-and-text prompt and text generation, but does not document an evaluation tokenization step or configuration.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The relation determination task was formulated as a text generation task with the proper questionanswer prompt.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The relation determination prompt is composed of instruction and text, models are asked to generate answers in yes/no based on the text.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the explicit evaluation tokenize call or retain an opaque prompt-to-model boundary until evaluation tokenization is source-supported.",
+      "severity": "blocking",
+      "step_id": "tokenize_relation_prompt",
+      "trajectory_id": "gpgpt_small_evaluation_relation"
+    },
+    {
+      "detail": "The relation trajectory omits the documented mixed-prompt branch and final answer selection. It reconstructs one prompt only, although the paper states that each local-model test item uses multiple prompts and that the best answer is selected.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Thus, for GP-GPT, Llama2, Llama3, Llama3.1, and Bio-GPT, each single question-answer testing data is formulated with multiple prompts.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During the results collection, the best answer was selected as the final output of the model for further metric calculations.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the multiple-prompt route and the documented selection step, preserving the selection rule as unspecified if the paper does not define how 'best' is determined.",
+      "severity": "blocking",
+      "step_id": "serialize_relation_prompt",
+      "trajectory_id": "gpgpt_small_evaluation_relation"
+    },
+    {
+      "detail": "The relation input omits the documented screening against DisGeNet. The graph starts from generic TBGA relation text and therefore does not preserve the dataset-checking/alignment step that defines the evaluated records.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use the test set from TBGA [32] data. We screened the testing data by checking the gene-disease pairs with their corresponding pairs in DisGeNet data, to ensure the knowledge correctness and testing effectiveness.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the TBGA source, the DisGeNet correspondence check, and the resulting selected/aligned evaluation records before prompt serialization.",
+      "severity": "blocking",
+      "step_id": "serialize_relation_prompt",
+      "trajectory_id": "gpgpt_small_evaluation_relation"
+    },
+    {
+      "detail": "The embedding trajectory adds an explicit sentence-to-tokenize operation without evidence that the embedding-probe inputs were tokenized through the documented GP-GPT tokenizer. The paper states hidden-layer extraction but does not specify this intermediate operation for the probe.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "By composing the summaries of gene entities and disease entities into sentences, we obtained the sentence embeddings of the bio-factors inside the model.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In zero-shot mode, the latent embedding was extracted from the outputs of the hidden layers.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the explicit embedding-probe tokenization call or make it an opaque model-input boundary unless the source establishes the tokenizer path.",
+      "severity": "blocking",
+      "step_id": "tokenize_biofactor_sentence",
+      "trajectory_id": "gpgpt_small_evaluation_embeddings"
+    },
+    {
+      "detail": "The embedding trajectory is assigned to GP-GPT Small fine-tuning, while the documented embedding analyses include zero-shot original Llama3.1 and fine-tuned GP-GPT Base representations. The graph therefore misses documented model/phase branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The observations are intended to monitor the static embedding maps of the entities both in zero-shot mode and in a fine-tuned model.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "caption",
+          "quote": "Figure 8: Latent text representations of gene entity and phenotype entity. Representations extracted by sentence embedding of the 30th layer from the model(GP-GPT base).",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "caption",
+          "quote": "Figure 10: Comparable zero-shot embedding of text representations of gene entities and phenotype entities in original Llama3.1(8B).",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Add the zero-shot original-Llama route and the fine-tuned GP-GPT Base route, with their appropriate receiving components and lifecycle context.",
+      "severity": "blocking",
+      "step_id": "extract_biofactor_embedding",
+      "trajectory_id": "gpgpt_small_evaluation_embeddings"
+    },
+    {
+      "detail": "The embedding output leaves layer selection unspecified even though the paper identifies the analyzed layers. Figure 8 uses the 30th layer, while Figures 9 and 10 compare layers 10, 20, and 30.",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "Figure 8: Latent text representations of gene entity and phenotype entity. Representations extracted by sentence embedding of the 30th layer from the model(GP-GPT base).",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "caption",
+          "quote": "Figure 9: Latent text representations of gene entities and phenotype entities in GP-GPT(base). The subplots show the embedding implant in the 2D UMAP space, for layer 10th, layer 20th, and layer 30th.",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "caption",
+          "quote": "Figure 10: Comparable zero-shot embedding of text representations of gene entities and phenotype entities in original Llama3.1(8B). The subplots show the embedding implant in the 2D UMAP space, for layer 10th, layer 20th, and layer 30th.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the documented layer-specific extraction branches or retain separate opaque outputs for the 10th, 20th, and 30th layers.",
+      "severity": "blocking",
+      "step_id": "extract_biofactor_embedding",
+      "trajectory_id": "gpgpt_small_evaluation_embeddings"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003131",
+  "verdict": "revise"
+}

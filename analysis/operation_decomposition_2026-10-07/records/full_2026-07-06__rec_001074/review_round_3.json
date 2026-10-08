@@ -1,0 +1,332 @@
+{
+  "coverage_summary": "Reviewed all 17 trajectories against the supplied paper text. The core BIOREASON construction is partly supported, but several trajectories omit explicitly documented operations or add unsupported attention and DNA-only evaluation behavior. Enformer hybrid and chromatin-task LLM routes are also missing.",
+  "findings": [
+    {
+      "detail": "The Qwen3-4B fine-tuning trajectory collapses the documented Evo2 tokenization, frozen DNA encoding, linear projection, query/special-token embedding lookups, stacking, and RoPE steps into an opaque boundary. The paper explicitly documents these operations, so the decomposition is incomplete.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "is projected by a learnable linear layer",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These components are then stacked along the sequence dimension",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "receive positional information via Rotary Position Embedding (RoPE)",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_evo2_qwen3_input into the documented tokenizer, encoder, projection, embedding lookup, stacking, and RoPE calls, retaining unknown order and mask details as uncertainty.",
+      "severity": "blocking",
+      "step_id": "prepare_evo2_qwen3_input",
+      "trajectory_id": "bioreason_evo2_qwen3_4b_finetuning"
+    },
+    {
+      "detail": "The NT-500M Qwen3-1.7B fine-tuning trajectory omits the documented context-length truncation branch. Section 3.1 states that any tokenized DNA sequence exceeding the defined context length is truncated, independently of the selected DNA encoder.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length (e.g., 2048 DNA tokens), it is truncated.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the conditional truncation/select step and identity-through bypass before NT-500M encoding; preserve the truncation side as unspecified.",
+      "severity": "blocking",
+      "step_id": "encode_DNA",
+      "trajectory_id": "bioreason_nt_qwen3_1_7b_finetuning"
+    },
+    {
+      "detail": "The NT-500M Qwen3-4B fine-tuning trajectory collapses explicitly documented tokenizer, context handling, encoder, projection, query/special-token embedding, stacking, and positional-information steps into one opaque input-preparation boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "is projected by a learnable linear layer",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These components are then stacked along the sequence dimension",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_nt_qwen3_input into the documented operations, including the context truncation branch, while leaving exact ordering and masks unresolved.",
+      "severity": "blocking",
+      "step_id": "prepare_nt_qwen3_input",
+      "trajectory_id": "bioreason_nt_qwen3_4b_finetuning"
+    },
+    {
+      "detail": "The DNA-only Evo2 fine-tuning path represents the input as a single DNA_sequence even though the task input is documented as paired reference and variant sequences. This loses a documented input member or leaves its handling unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Input: paired reference and variant DNA sequences ( S DNA )",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Use a paired DNA input node or explicitly preserve the documented per-sequence handling and alignment relationship.",
+      "severity": "blocking",
+      "step_id": "tokenize_DNA",
+      "trajectory_id": "dna_only_evo2_1b_finetuning"
+    },
+    {
+      "detail": "The DNA-only NT-500M fine-tuning path represents a single DNA sequence and also omits the general DNA context truncation rule stated in Section 3.1.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Input: paired reference and variant DNA sequences ( S DNA )",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length (e.g., 2048 DNA tokens), it is truncated.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Preserve the paired reference/variant input and add the conditional post-tokenization truncation branch before encoding.",
+      "severity": "blocking",
+      "step_id": "encode_DNA",
+      "trajectory_id": "dna_only_nt_500m_finetuning"
+    },
+    {
+      "detail": "The Evo2 Qwen3-1.7B evaluation trajectory replaces the documented multimodal path with an opaque boundary despite explicit paper descriptions of tokenization, contextual DNA encoding, projection, embedding lookups, stacking, and RoPE.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "BIOREASON bridges this gap by deriving contextualized DNA embeddings from the S DNA input(s) and integrating them with the tokenized Q TEXT",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each sequence S DNA,k, its f DNA-generated embedding sequence ... is projected by a learnable linear layer",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose prepare_evaluation_input using the documented operations and retain unspecified component order and mask details.",
+      "severity": "blocking",
+      "step_id": "prepare_evaluation_input",
+      "trajectory_id": "bioreason_evo2_qwen3_1_7b_evaluation"
+    },
+    {
+      "detail": "The Evo2 Qwen3-4B evaluation trajectory omits the documented multimodal input operations by using a single opaque preparation step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These components are then stacked along the sequence dimension to form the multimodal input X LLM for f LLM.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "All constituent embedding vectors within X LLM receive positional information via Rotary Position Embedding (RoPE)",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_evaluation_input into the documented DNA and text preparation, stacking, and RoPE steps; keep unknown ordering and masks unresolved.",
+      "severity": "blocking",
+      "step_id": "prepare_evaluation_input",
+      "trajectory_id": "bioreason_evo2_qwen3_4b_evaluation"
+    },
+    {
+      "detail": "The NT-500M Qwen3-1.7B evaluation trajectory omits the documented multimodal operations and the general post-tokenization context truncation branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length ... it is truncated.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "is projected by a learnable linear layer",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_evaluation_input with tokenization, conditional truncation, NT encoding, projection, text/special-token embedding, stacking, and RoPE calls.",
+      "severity": "blocking",
+      "step_id": "prepare_evaluation_input",
+      "trajectory_id": "bioreason_nt_qwen3_1_7b_evaluation"
+    },
+    {
+      "detail": "The NT-500M Qwen3-4B evaluation trajectory collapses the explicitly documented multimodal pipeline into an opaque boundary and omits the DNA context-length branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "BIOREASON operates on two primary input streams",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting E′DNA block is obtained by stacking all E′DNA,k sequences along the sequence dimension.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length ... it is truncated.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose prepare_evaluation_input into the documented operations and add the conditional truncation branch before NT encoding.",
+      "severity": "blocking",
+      "step_id": "prepare_evaluation_input",
+      "trajectory_id": "bioreason_nt_qwen3_4b_evaluation"
+    },
+    {
+      "detail": "The Evo2 DNA-only evaluation trajectory collapses the documented tokenizer, frozen encoder, single-query attention head, and classifier into an opaque input path. It also treats the representation as the output of an input-preparation step rather than preserving the documented sequence of operations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For downstream predictions, f DNA models were adapted with an attention head where a single learnable query vector attends to the sequence token embeddings to produce a final sequence representation.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "only a task-specific attention head and classifier were trained.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Reuse the fine-tuning decomposition for evaluation: tokenize, encode, apply single-query attention, then pass the representation to the opaque classifier.",
+      "severity": "blocking",
+      "step_id": "prepare_DNA_only_evaluation_input",
+      "trajectory_id": "dna_only_evo2_1b_evaluation"
+    },
+    {
+      "detail": "The Evo2 DNA-only evaluation trajectory assigns the paper's deterministic-generation statement to DNA-only prediction, although the cited text covers LLM and DNA-LLM generations and does not document deterministic DNA-only generation. The deterministic_decoding control is also represented as a prediction output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All LLM and DNA-LLM generations were deterministic with a decoding temperature of 0.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Remove the unsupported deterministic-generation step from the DNA-only route, or represent only a documented evaluation control if separate evidence establishes it; keep the classifier output as the prediction.",
+      "severity": "blocking",
+      "step_id": "predict_DNA_only",
+      "trajectory_id": "dna_only_evo2_1b_evaluation"
+    },
+    {
+      "detail": "The NT-500M DNA-only evaluation trajectory omits the documented tokenizer, context truncation, frozen encoder, single-query attention head, and classifier sequence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length ... it is truncated.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "a single learnable query vector attends to the sequence token embeddings",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand the evaluation path with tokenization, conditional truncation, NT encoding, attention pooling, and the opaque classifier.",
+      "severity": "blocking",
+      "step_id": "prepare_DNA_only_evaluation_input",
+      "trajectory_id": "dna_only_nt_500m_evaluation"
+    },
+    {
+      "detail": "The NT-500M DNA-only evaluation trajectory uses the LLM/DNA-LLM deterministic-generation statement as evidence for DNA-only prediction and emits a deterministic_decoding control as the prediction output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All LLM and DNA-LLM generations were deterministic with a decoding temperature of 0.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Remove this unsupported deterministic-generation step or document it as a separate control; retain the classifier as the prediction-producing boundary.",
+      "severity": "blocking",
+      "step_id": "predict_DNA_only",
+      "trajectory_id": "dna_only_nt_500m_evaluation"
+    },
+    {
+      "detail": "The Enformer attention step invents a single learnable query vector and binds it as cross-attention input. The paper documents only a trained attention head; it does not establish query/key-value structure. The step also overwrites enformer_representation instead of introducing an attention-head output node.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Enformer (DNA-only): Standalone Enformer with frozen weights and a trained attention head for classification.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Represent the Enformer attention head as an opaque operation_id:null boundary receiving the Enformer output, or add a separate query only if the paper explicitly supports it; create a distinct output node if an output is claimed.",
+      "severity": "blocking",
+      "step_id": "attend_to_Enformer_representation",
+      "trajectory_id": "enformer_dna_only_evaluation"
+    },
+    {
+      "detail": "The paper evaluates Qwen3-1.7B and Qwen3-4B LLM-only models and Enformer-Qwen3 hybrid models on the chromatin-accessibility task, but the assembly contains only the Enformer DNA-only trajectory for this task.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Qwen3-1.7B and Qwen3-4B (LLM-only): Qwen3 models fine-tuned on the task with DNA sequences treated as text.",
+          "section_id": "sec_0043"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Enformer-Qwen3-1.7B and Enformer-Qwen3-4B (DNA-LLM): BIOREASON hybrids integrating Enformer embeddings with Qwen3 backbones.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the documented LLM-only and Enformer-Qwen3 chromatin-accessibility trajectories, using opaque boundaries for the unspecified Enformer embedding integration path.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "enformer_dna_only_evaluation"
+    },
+    {
+      "detail": "The BIOREASON fine-tuning trajectories mention conditional GRPO in task_configuration but contain no conditional GRPO branch or phase. The paper states that selected BIOREASON models were subsequently optimized with GRPO, while the selected configurations are unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Reinforcement Learning (RL) fine-tuning using the GRPO algorithm was subsequently applied to select DNA-LLM models.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Select BIOREASON models were further optimized with GRPO.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a conditional, configuration-unspecified GRPO branch or remove the GRPO claim from the trajectory task configuration; preserve the selection uncertainty.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "bioreason_evo2_qwen3_1_7b_finetuning"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001074",
+  "verdict": "revise"
+}

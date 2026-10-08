@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "Coverage includes the Clinical-LongFormer routes, RAG curation route, and both OKR-CELL RNA/cell-text routes. Several blocking graph errors remain in branch connectivity, retrieval-node identity, ontology mapping, and explicit sequence construction.",
+  "findings": [
+    {
+      "detail": "The retrieval graph reuses knowledge_snippets for two different resources: the complete chunked corpus and the top-K snippets returned for a query. The paper distinguishes corpus chunking from query-specific retrieval.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "split into small, semantically coherent snippets",
+          "section_id": "sec_0025"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "retrieving the topK most semantically similar knowledge snippets ( K i )",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Create a separate retrieved-snippets node. Connect top_k_semantic_retrieval to that node and use it as the prompt input; retain knowledge_snippets for the indexed corpus entries.",
+      "severity": "blocking",
+      "step_id": "retrieve_knowledge",
+      "trajectory_id": "deepseek_v3_rag_augmentation"
+    },
+    {
+      "detail": "The 1200-gene sampling branch is disconnected from the final tokenization, binning, and fusion path. The bypass points selected_expression to sampled_expression rather than to a common downstream sequence, while fusion still consumes hvg_expression and hvg_gene_identifiers.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "only feed genes exhibiting non-zero expression levels into the model",
+          "section_id": "sec_0033"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration",
+          "section_id": "sec_0033"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the sampled and unsampled branches with a shared downstream sequence boundary, connect the selected outputs when the threshold is not exceeded, and preserve the paper's unresolved relationship between filtering, sampling, and zero-retaining binning.",
+      "severity": "blocking",
+      "step_id": "sample_nonzero_genes",
+      "trajectory_id": "okr_cell_cell_only_route"
+    },
+    {
+      "detail": "The paired route has the same disconnected 1200-gene branch. Its tokenization and binning consume the HVG nodes directly, so the documented non-zero filtering and conditional random sampling do not reach cell_input_embedding.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "only feed genes exhibiting non-zero expression levels into the model",
+          "section_id": "sec_0033"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "1200 genes were randomly sampled in each training iteration",
+          "section_id": "sec_0033"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Non-zero expression values of each cell are partitioned into O equal-interval bins, while zero values are retained as 0",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Connect both conditional sampling outcomes to the aligned gene-token and expression-binning inputs, or retain explicitly separated alternative branches through the receiving cell encoder input.",
+      "severity": "blocking",
+      "step_id": "sample_nonzero_genes",
+      "trajectory_id": "okr_cell_paired_cross_modal_route"
+    },
+    {
+      "detail": "Gene tokenization lists <pad> and <cls> in the vocabulary but does not represent the documented padding operation or the stated leading <cls> placement. The catalog contains a dedicated pad operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "< cls > for aggregating cell-level representations and < pad > for padding sequences to a uniform length",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a special < cls > token at the beginning of genes tokens",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented padding step with a symbolic target length and encode the leading <cls> position/order before the Transformer receipt; leave unspecified details unresolved.",
+      "severity": "blocking",
+      "step_id": "tokenize_genes",
+      "trajectory_id": "okr_cell_cell_only_route"
+    },
+    {
+      "detail": "The paired route lists special tokens in the vocabulary without constructing the documented padded sequence or explicitly placing <cls> at the sequence beginning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "< cls > for aggregating cell-level representations and < pad > for padding sequences to a uniform length",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the embedding corresponding to the < cls > token in the final output",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent padding and the leading <cls> placement as documented sequence transformations before self-attention, with unknown target details kept symbolic.",
+      "severity": "blocking",
+      "step_id": "tokenize_genes",
+      "trajectory_id": "okr_cell_paired_cross_modal_route"
+    },
+    {
+      "detail": "The ontology-based standardization is left as a wholly opaque custom boundary even though the paper documents mapping metadata to standardized descriptions by referencing a database. This supports at least a lookup interface with metadata keys and a Cell Ontology table operand.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "information including disease, gender, tissue and cell type is mapped to corresponding standardized textual descriptions by referencing the Cell Ontology database",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Model the documented ontology mapping with lookup and an explicit Cell Ontology table operand, adding only a separate serialization boundary if the text reconstruction is documented; otherwise explain why direct lookup cannot be established.",
+      "severity": "blocking",
+      "step_id": "standardize_source_text",
+      "trajectory_id": "deepseek_v3_rag_augmentation"
+    },
+    {
+      "detail": "The knowledge-snippet encoder is labeled as BioBERT-specific, although the source qualifies BioBERT as an example for snippet encoding. The exact biomedical text encoder is unresolved for this branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using a biomedical text encoder (e.g., BioBERT [48])",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Change the component and representation metadata to an unspecified biomedical text encoder, retaining BioBERT only as an example unless the paper establishes it as the actual encoder.",
+      "severity": "minor",
+      "step_id": "encode_knowledge_snippets",
+      "trajectory_id": "deepseek_v3_rag_augmentation"
+    },
+    {
+      "detail": "The prompt serializer marks field order as unspecified despite the supplementary template presenting Standardized Cell Metadata before Retrieved Reference Information.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "# Input Data: Standardized Cell Metadata",
+          "section_id": "sec_0058"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Retrieved Reference Information (Contextual Knowledge Snippets)",
+          "section_id": "sec_0059"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set the documented prompt-section order to standardized metadata followed by retrieved reference information, while leaving delimiters unspecified.",
+      "severity": "minor",
+      "step_id": "assemble_rag_prompt",
+      "trajectory_id": "deepseek_v3_rag_augmentation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001277",
+  "verdict": "revise"
+}

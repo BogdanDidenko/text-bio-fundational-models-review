@@ -1,0 +1,5158 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "sample_task_and_prompt::1",
+        "component": "Task-family and prompt-length sampling",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "distribution": [
+            "task_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "task_index"
+          ]
+        },
+        "parameters": {
+          "distribution": "π over T1-T6",
+          "method": "categorical sampling of task index",
+          "origin": "pretraining task balancing",
+          "source_port_roles": [
+            "task_distribution",
+            "prompt_length_distribution"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_task_and_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "sample_task_and_prompt::2",
+        "component": "Task-family and prompt-length sampling",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "distribution": [
+            "prompt_length_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "prompt_length_variant"
+          ]
+        },
+        "parameters": {
+          "distribution": "π_len over LONG/MEDIUM/SHORT",
+          "method": "annealed categorical sampling",
+          "origin": "prompt-length curriculum annealing",
+          "source_port_roles": [
+            "task_distribution",
+            "prompt_length_distribution"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_task_and_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "construct_task_prompt::1",
+        "component": "Task-specific prompt construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Free OCR. Return only the DNA sequence (A/C/G/T/N). Keep line breaks if present. No extra words.",
+            "section_id": "sec_0042"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "task_index",
+            "prompt_length_variant"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "task_prompt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "select_and_serialize_task_prompt",
+          "source_port_roles": [
+            "task_family",
+            "prompt_length_variant"
+          ]
+        },
+        "source_step_id": "construct_task_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Prompt-template selection and serialization are not represented by a catalog operation."
+      },
+      {
+        "call_id": "render_document::1",
+        "component": "DNA document renderer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We rasterize S as monospace-like text onto a fixed-resolution canvas, writing nucleotides row-by-row (left-to-right within each row, then top-to-bottom across rows).",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genomic_sequence"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "page_images"
+          ]
+        },
+        "parameters": {
+          "source_operation": "render_sequence_to_annotated_pages",
+          "source_port_roles": [
+            "source_sequence"
+          ]
+        },
+        "source_step_id": "render_document",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Glyph rendering, page construction, and annotation generation have no catalog primitive."
+      },
+      {
+        "call_id": "patchify_pages::1",
+        "component": "Page patchification",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "page_images"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "page_patches"
+          ]
+        },
+        "parameters": {
+          "axis": "page height and page width",
+          "method": "non-overlapping image patches",
+          "partition_rule": "non-overlapping 16 × 16 grid",
+          "source_port_roles": [
+            "page_images"
+          ]
+        },
+        "source_step_id": "patchify_pages",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "encode_visual_frontend::1",
+        "component": "SAM-Conv-CLIP-L visual front-end",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We freeze the DeepSeek-OCR visual front-end (SAM-Conv-CLIP-L).",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "page_patches"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "frontend_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "frozen_visual_frontend_encoding_and_downsampling",
+          "source_port_roles": [
+            "patches"
+          ]
+        },
+        "source_step_id": "encode_visual_frontend",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The learned visual feature extraction is not represented by a catalog operation."
+      },
+      {
+        "call_id": "project_page_features::1",
+        "component": "Learned projector",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "frontend_features"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "projected_page_tokens"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "learned projector Π θ",
+          "parameter_state": "stage-dependent",
+          "source_port_roles": [
+            "visual_features"
+          ]
+        },
+        "source_step_id": "project_page_features",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "fuse_pages_attention::1",
+        "component": "Multi-page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "table",
+            "quote": "F θ update strategy                    | full                                 | full",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "projected_page_tokens"
+          ]
+        },
+        "operation_id": "self_attention",
+        "outputs": {
+          "values": [
+            "attended_page_tokens"
+          ]
+        },
+        "parameters": {
+          "head_count": "20",
+          "mask_semantics": "unspecified",
+          "parameter_state": "Stage 1 full; Stage 2 conflicting statements",
+          "repeat_schedule": "one attention layer",
+          "source_port_roles": [
+            "projected_page_tokens"
+          ]
+        },
+        "source_step_id": "fuse_pages_attention",
+        "status": "documented_operation",
+        "uncertainty": "Stage 2 trainability is unresolved."
+      },
+      {
+        "call_id": "reduce_pages::1",
+        "component": "Mean page reduction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension, yielding a compact token sequence invariant to the number of pages.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "attended_page_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "mean_reduce_pages_to_fused_tokens",
+          "source_port_roles": [
+            "page_fusion_attention_output"
+          ]
+        },
+        "source_step_id": "reduce_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Mean reduction has no catalog primitive."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T1 multimodal decoder receipt",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the loss is computed only over the assistant span.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "task_prompt",
+            "page_images",
+            "fused_visual_tokens",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "task_prompt",
+            "ordered_images_field",
+            "fused_visual_tokens",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete conversation serialization and teacher-forced decoder receipt are opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T1 performs free-form DNA transcription",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 ) , we optimize the standard teacher-forced autoregressive objective on the assistant response tokens y = ( y 1 , . . . , y T )",
+        "section_id": "sec_0013"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T1 free-form transcription",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Categorical task distribution.",
+        "node_id": "task_distribution",
+        "origin": "source_annotation",
+        "representation_type": "categorical_task_distribution",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "one sampled task-family index"
+        ],
+        "contextual_role": "sampled_task_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Sampled T1 task index.",
+        "node_id": "task_index",
+        "origin": "source_annotation",
+        "representation_type": "task_family_index",
+        "symbolic_shape": [
+          "n_task_index"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Prompt-length distribution.",
+        "node_id": "prompt_length_distribution",
+        "origin": "source_annotation",
+        "representation_type": "prompt_length_distribution",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "one sampled prompt-length variant"
+        ],
+        "contextual_role": "sampled_prompt_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Sampled prompt-length variant.",
+        "node_id": "prompt_length_variant",
+        "origin": "source_annotation",
+        "representation_type": "prompt_length_label",
+        "symbolic_shape": [
+          "n_prompt_variant"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Free OCR. Return only the DNA sequence (A/C/G/T/N). Keep line breaks if present. No extra words.",
+            "section_id": "sec_0042"
+          }
+        ],
+        "information_content": "T1 transcription prompt.",
+        "node_id": "task_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_task_prompt",
+        "symbolic_shape": null,
+        "uncertainty": "Exact selected prompt-length variant is instance-specific."
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each page is a 640 × 640 3-channel image",
+            "section_id": "sec_0039"
+          }
+        ],
+        "information_content": "Ordered rendered DNA pages.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": "Image encoding and decoder-side preprocessing are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Non-overlapping page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Frozen visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": "Internal feature layout is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected page features.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page tokens after fusion attention.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": "Masking and residual details are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension, yielding a compact token sequence invariant to the number of pages.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": "Reduction implementation is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a DNA document D and a prompt q ∈ Q , we construct the user message as m ( u ) = ( &lt;|User|&gt; , q, pages( D )) and the assistant message as m ( a ) = ( &lt;|Assistant|&gt; , y, ∅ )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Two-turn T1 multimodal conversation.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact lexical serialization and image-placeholder expansion are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "assistant response token positions"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output contains only nucleotide characters from the alphabet A/C/G/T/N and preserves the line breaks induced by the page layout.",
+            "section_id": "sec_0042"
+          }
+        ],
+        "information_content": "T1 transcription response tokens.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "assistant_response_token_ids",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": "Decoder tokenization and shifted-input construction are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the loss is computed only over the assistant span.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Teacher-forced multimodal decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Decoder shift, image-token injection, attention masks, and loss-mask implementation are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are task and prompt-length choices serialized?",
+      "What exact visual-token and image-placeholder injection path is used?",
+      "How are target answers and teacher-forced decoder inputs serialized?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "Task-family and prompt-length sampling",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "task_distribution",
+            "port_role": "task_distribution"
+          },
+          {
+            "node_id": "prompt_length_distribution",
+            "port_role": "prompt_length_distribution"
+          }
+        ],
+        "operation_type": "sample_task_and_prompt_variant",
+        "outputs": [
+          "task_index",
+          "prompt_length_variant"
+        ],
+        "step_id": "sample_task_and_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Task-specific prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Free OCR. Return only the DNA sequence (A/C/G/T/N). Keep line breaks if present. No extra words.",
+            "section_id": "sec_0042"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "task_index",
+            "port_role": "task_family"
+          },
+          {
+            "node_id": "prompt_length_variant",
+            "port_role": "prompt_length_variant"
+          }
+        ],
+        "operation_type": "select_and_serialize_task_prompt",
+        "outputs": [
+          "task_prompt"
+        ],
+        "step_id": "construct_task_prompt",
+        "uncertainty": "Exact template lookup is opaque."
+      },
+      {
+        "component": "DNA document renderer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We rasterize S as monospace-like text onto a fixed-resolution canvas, writing nucleotides row-by-row (left-to-right within each row, then top-to-bottom across rows).",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          }
+        ],
+        "operation_type": "render_sequence_to_annotated_pages",
+        "outputs": [
+          "page_images"
+        ],
+        "step_id": "render_document",
+        "uncertainty": "The renderer and page-break implementation are opaque."
+      },
+      {
+        "component": "Page patchification",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "page_images",
+            "port_role": "page_images"
+          }
+        ],
+        "operation_type": "partition_pages_into_patches",
+        "outputs": [
+          "page_patches"
+        ],
+        "step_id": "patchify_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "SAM-Conv-CLIP-L visual front-end",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We freeze the DeepSeek-OCR visual front-end (SAM-Conv-CLIP-L).",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "page_patches",
+            "port_role": "patches"
+          }
+        ],
+        "operation_type": "frozen_visual_frontend_encoding_and_downsampling",
+        "outputs": [
+          "frontend_features"
+        ],
+        "step_id": "encode_visual_frontend",
+        "uncertainty": null
+      },
+      {
+        "component": "Learned projector",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "frontend_features",
+            "port_role": "visual_features"
+          }
+        ],
+        "operation_type": "project_visual_features_to_decoder_width",
+        "outputs": [
+          "projected_page_tokens"
+        ],
+        "step_id": "project_page_features",
+        "uncertainty": null
+      },
+      {
+        "component": "Multi-page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "table",
+            "quote": "F θ update strategy                    | full                                 | full",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "projected_page_tokens",
+            "port_role": "projected_page_tokens"
+          }
+        ],
+        "operation_type": "multi_page_self_attention",
+        "outputs": [
+          "attended_page_tokens"
+        ],
+        "step_id": "fuse_pages_attention",
+        "uncertainty": null
+      },
+      {
+        "component": "Mean page reduction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension, yielding a compact token sequence invariant to the number of pages.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "attended_page_tokens",
+            "port_role": "page_fusion_attention_output"
+          }
+        ],
+        "operation_type": "mean_reduce_pages_to_fused_tokens",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "reduce_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T1 multimodal decoder receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the loss is computed only over the assistant span.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "task_prompt",
+            "port_role": "task_prompt"
+          },
+          {
+            "node_id": "page_images",
+            "port_role": "ordered_images_field"
+          },
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization, shifted labels, image-token injection, attention masks, and loss masking are unspecified."
+      }
+    ],
+    "task_configuration": "T1 free-form DNA transcription; ordered rendered pages; assistant returns the full DNA transcription.",
+    "trajectory_id": "opticaldna_pretraining_t1"
+  },
+  {
+    "bypasses": [
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "roi_boxes",
+        "source_step_id": "tail_truncate_roi_items",
+        "target_node_id": "model_roi_boxes"
+      },
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "page_images",
+        "source_step_id": "tail_truncate_roi_items",
+        "target_node_id": "model_pages"
+      },
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "bbox_annotations",
+        "source_step_id": "tail_truncate_roi_items",
+        "target_node_id": "model_bbox_annotations"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "sample_task_and_prompt::1",
+        "component": "Task-family and prompt-length sampling",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "distribution": [
+            "task_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "task_index"
+          ]
+        },
+        "parameters": {
+          "distribution": "π over T1-T6",
+          "method": "categorical sampling",
+          "origin": "task balancing",
+          "source_port_roles": [
+            "task_distribution",
+            "prompt_length_distribution"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_task_and_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "sample_task_and_prompt::2",
+        "component": "Task-family and prompt-length sampling",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "distribution": [
+            "prompt_length_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "prompt_length_variant"
+          ]
+        },
+        "parameters": {
+          "distribution": "π_len over LONG/MEDIUM/SHORT",
+          "method": "annealed categorical sampling",
+          "origin": "prompt-length curriculum",
+          "source_port_roles": [
+            "task_distribution",
+            "prompt_length_distribution"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_task_and_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "sample_line_spans::1",
+        "component": "T2 line-span sampler",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We first sample a span length n base ∼ Uniform { n min base , . . . , n max base } , and then sample the number of spans n samp ∼ Uniform { n min samp , . . . , n max samp } .",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "context": [
+            "genomic_sequence"
+          ],
+          "distribution": [
+            "line_span_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "roi_boxes"
+          ]
+        },
+        "parameters": {
+          "distribution": "uniform span length and span count: n base ∼ Uniform { n min base , . . . , n max base } and n samp ∼ Uniform { n min samp , . . . , n max samp }",
+          "method": "sample line-span supervision regions",
+          "origin": "line-/block-based supervision randomization",
+          "source_port_roles": [
+            "distribution",
+            "context"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_line_spans",
+        "status": "documented_operation",
+        "uncertainty": "Box construction is not represented."
+      },
+      {
+        "call_id": "tail_truncate_roi_items::1",
+        "component": "Optional T2 tail truncation and page repair",
+        "condition": "Tail truncation is applied.",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "roi_boxes"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "model_roi_boxes",
+            "truncated_roi_boxes"
+          ]
+        },
+        "parameters": {
+          "axis": "ordered ROI-item axis",
+          "method": "split ROI items at retained-prefix boundary",
+          "partition_rule": "retain prefix and delete suffix",
+          "source_port_roles": [
+            "roi_items",
+            "rendered_pages",
+            "page_annotations",
+            "white_out_values"
+          ]
+        },
+        "source_step_id": "tail_truncate_roi_items",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tail_truncate_roi_items::2",
+        "component": "Optional T2 tail truncation and page repair",
+        "condition": "Tail truncation is applied.",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "indices": [
+            "truncated_roi_boxes"
+          ],
+          "replacements": [
+            "white_mask_values"
+          ],
+          "state": [
+            "page_images"
+          ]
+        },
+        "operation_id": "update",
+        "outputs": {
+          "values": [
+            "truncated_page_images"
+          ]
+        },
+        "parameters": {
+          "method": "white out corresponding bounding-box regions",
+          "preserve_unselected": "true",
+          "source_port_roles": [
+            "roi_items",
+            "rendered_pages",
+            "page_annotations",
+            "white_out_values"
+          ]
+        },
+        "source_step_id": "tail_truncate_roi_items",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tail_truncate_roi_items::3",
+        "component": "Optional T2 tail truncation and page repair",
+        "condition": "Tail truncation is applied.",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "truncated_page_images",
+            "bbox_annotations"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "nonempty_pages",
+            "nonempty_bbox_annotations"
+          ]
+        },
+        "parameters": {
+          "criterion": "retain nonempty pages and aligned annotations",
+          "forced_inclusions": "unspecified",
+          "method": "drop empty pages",
+          "source_port_roles": [
+            "roi_items",
+            "rendered_pages",
+            "page_annotations",
+            "white_out_values"
+          ]
+        },
+        "source_step_id": "tail_truncate_roi_items",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tail_truncate_roi_items::4",
+        "component": "Optional T2 tail truncation and page repair",
+        "condition": "Tail truncation is applied.",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "nonempty_pages",
+            "nonempty_bbox_annotations"
+          ]
+        },
+        "operation_id": "align",
+        "outputs": {
+          "values": [
+            "model_pages",
+            "model_bbox_annotations"
+          ]
+        },
+        "parameters": {
+          "basis": "remaining page order and image-annotation correspondence",
+          "method": "re-index remaining pages",
+          "source_port_roles": [
+            "roi_items",
+            "rendered_pages",
+            "page_annotations",
+            "white_out_values"
+          ]
+        },
+        "source_step_id": "tail_truncate_roi_items",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "construct_t2_targets::1",
+        "component": "T2 target construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_roi_boxes",
+            "model_bbox_annotations"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "assistant_response_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_t2_sequence_box_targets",
+          "source_port_roles": [
+            "retained_roi_items",
+            "retained_page_annotations"
+          ]
+        },
+        "source_step_id": "construct_t2_targets",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Grounded sequence-box response serialization is unspecified."
+      },
+      {
+        "call_id": "encode_and_fuse_pages::1",
+        "component": "Visual encoder and page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_pages"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "encode_and_fuse_document_pages",
+          "source_port_roles": [
+            "selected_pages"
+          ]
+        },
+        "source_step_id": "encode_and_fuse_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete encoder/fusion boundary is retained as documented but opaque."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T2 multimodal decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "fused_visual_tokens",
+            "user_message",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "fused_visual_tokens",
+            "multimodal_user_message",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The autoregressive decoder remains opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T2 couples transcription with spatial grounding",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "For line-/block-based supervision, we randomize region construction using a line-span sampler.",
+        "section_id": "sec_0049"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T2 transcription with spatial grounding",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Categorical task distribution.",
+        "node_id": "task_distribution",
+        "origin": "source_annotation",
+        "representation_type": "categorical_task_distribution",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "one sampled task-family index"
+        ],
+        "contextual_role": "sampled_task_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Sampled T2 task index.",
+        "node_id": "task_index",
+        "origin": "source_annotation",
+        "representation_type": "task_family_index",
+        "symbolic_shape": [
+          "n_task_index"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Prompt-length distribution.",
+        "node_id": "prompt_length_distribution",
+        "origin": "source_annotation",
+        "representation_type": "prompt_length_distribution",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "one sampled prompt-length variant"
+        ],
+        "contextual_role": "sampled_prompt_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Sampled T2 prompt-length variant.",
+        "node_id": "prompt_length_variant",
+        "origin": "source_annotation",
+        "representation_type": "prompt_length_label",
+        "symbolic_shape": [
+          "n_prompt_variant"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered region records",
+          "box coordinates"
+        ],
+        "contextual_role": "sampled_supervision_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each span is instantiated by selecting a source line and taking a contiguous character span of length n base within that line.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Sampled line-span regions represented as page-coordinate boxes.",
+        "node_id": "roi_boxes",
+        "origin": "source_annotation",
+        "representation_type": "sampled_page_bounding_boxes",
+        "symbolic_shape": [
+          "n_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": "The span-to-box conversion is opaque."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "conditional_supervision_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we randomly delete a suffix of items",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Region items retained after optional tail truncation.",
+        "node_id": "model_roi_boxes",
+        "origin": "source_annotation",
+        "representation_type": "retained_page_bounding_boxes",
+        "symbolic_shape": [
+          "n_retained_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": "Exact suffix-sampling and retained-item representation are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We first sample a span length n base ∼ Uniform { n min base , . . . , n max base } , and then sample the number of spans n samp ∼ Uniform { n min samp , . . . , n max samp } .",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Uniform line-span sampling distributions.",
+        "node_id": "line_span_distribution",
+        "origin": "source_annotation",
+        "representation_type": "line_span_sampling_distribution",
+        "symbolic_shape": null,
+        "uncertainty": "The joint representation of the two uniform distributions is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each page is a 640 × 640 3-channel image",
+            "section_id": "sec_0039"
+          }
+        ],
+        "information_content": "Ordered rendered DNA pages.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "nucleotide annotation"
+        ],
+        "contextual_role": "annotation_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each page p , we store an ordered list of nucleotide annotations",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Dense nucleotide annotations.",
+        "node_id": "bbox_annotations",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_bounding_box_annotations",
+        "symbolic_shape": [
+          "n_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "mask height",
+          "mask width",
+          "RGB channel"
+        ],
+        "contextual_role": "mask_replacement_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we additionally white out their corresponding bounding-box regions on the rendered pages",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "White replacement values.",
+        "node_id": "white_mask_values",
+        "origin": "source_annotation",
+        "representation_type": "white_pixel_replacement_values",
+        "symbolic_shape": [
+          "mask_height",
+          "mask_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Pages after optional tail truncation and repair.",
+        "node_id": "model_pages",
+        "origin": "source_annotation",
+        "representation_type": "conditionally_truncated_rgb_page_images",
+        "symbolic_shape": [
+          "n_model_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "n_annotations_per_page"
+        ],
+        "contextual_role": "conditional_annotation_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Annotations aligned to retained pages.",
+        "node_id": "model_bbox_annotations",
+        "origin": "source_annotation",
+        "representation_type": "reindexed_page_bounding_box_annotations",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Selected page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected visual tokens.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page tokens after fusion attention.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": "Reduction implementation is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The user message contains a single reserved &lt;image&gt; placeholder, whose images fi eld carries an ordered list of P page images { page p } P -1 p =0 .",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "T2 multimodal user message.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact lexical serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "assistant response token positions"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Grounded sequence-box response tokens.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "grounded_assistant_response_token_ids",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Conditioned on the fused visual tokens Z and a task prompt q ∈ Q , the decoder autoregressively generates the task-dependent output sequence",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Teacher-forced T2 decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Shifted input and loss-mask construction are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered truncated region records",
+          "box coordinates"
+        ],
+        "contextual_role": "conditional_truncation_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we randomly delete a suffix of items",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Deleted ROI suffix.",
+        "node_id": "truncated_roi_boxes",
+        "origin": "documented_intermediate",
+        "representation_type": "truncated_page_bounding_boxes",
+        "symbolic_shape": [
+          "n_truncated_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_truncation_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we additionally white out their corresponding bounding-box regions on the rendered pages",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Whiteout-modified pages.",
+        "node_id": "truncated_page_images",
+        "origin": "documented_intermediate",
+        "representation_type": "whiteout_modified_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_truncation_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Nonempty pages.",
+        "node_id": "nonempty_pages",
+        "origin": "documented_intermediate",
+        "representation_type": "nonempty_page_images",
+        "symbolic_shape": [
+          "n_nonempty_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "n_annotations_per_page"
+        ],
+        "contextual_role": "conditional_truncation_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Aligned nonempty-page annotations.",
+        "node_id": "nonempty_bbox_annotations",
+        "origin": "documented_intermediate",
+        "representation_type": "nonempty_page_annotations",
+        "symbolic_shape": [
+          "n_nonempty_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      }
+    ],
+    "open_questions": [
+      "How are line spans converted to boxes through dense annotations?",
+      "How are grounded targets serialized?",
+      "What exact image-token injection path is used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "Task-family and prompt-length sampling",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "task_distribution",
+            "port_role": "task_distribution"
+          },
+          {
+            "node_id": "prompt_length_distribution",
+            "port_role": "prompt_length_distribution"
+          }
+        ],
+        "operation_type": "sample_task_and_prompt_variant",
+        "outputs": [
+          "task_index",
+          "prompt_length_variant"
+        ],
+        "step_id": "sample_task_and_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "T2 line-span sampler",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We first sample a span length n base ∼ Uniform { n min base , . . . , n max base } , and then sample the number of spans n samp ∼ Uniform { n min samp , . . . , n max samp } .",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "line_span_distribution",
+            "port_role": "distribution"
+          },
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "context"
+          }
+        ],
+        "operation_type": "sample_line_span_items",
+        "outputs": [
+          "roi_boxes"
+        ],
+        "step_id": "sample_line_spans",
+        "uncertainty": null
+      },
+      {
+        "component": "Optional T2 tail truncation and page repair",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "roi_boxes",
+            "port_role": "roi_items"
+          },
+          {
+            "node_id": "page_images",
+            "port_role": "rendered_pages"
+          },
+          {
+            "node_id": "bbox_annotations",
+            "port_role": "page_annotations"
+          },
+          {
+            "node_id": "white_mask_values",
+            "port_role": "white_out_values"
+          }
+        ],
+        "operation_type": "optionally_tail_truncate_roi_items_whiteout_regions_drop_empty_pages_and_reindex",
+        "outputs": [
+          "model_roi_boxes",
+          "model_pages",
+          "model_bbox_annotations"
+        ],
+        "step_id": "tail_truncate_roi_items",
+        "uncertainty": null
+      },
+      {
+        "component": "T2 target construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_roi_boxes",
+            "port_role": "retained_roi_items"
+          },
+          {
+            "node_id": "model_bbox_annotations",
+            "port_role": "retained_page_annotations"
+          }
+        ],
+        "operation_type": "construct_t2_sequence_box_targets",
+        "outputs": [
+          "assistant_response_tokens"
+        ],
+        "step_id": "construct_t2_targets",
+        "uncertainty": null
+      },
+      {
+        "component": "Visual encoder and page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_pages",
+            "port_role": "selected_pages"
+          }
+        ],
+        "operation_type": "encode_and_fuse_document_pages",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "encode_and_fuse_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T2 multimodal decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "user_message",
+            "port_role": "multimodal_user_message"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization, shifted labels, image-token injection, and loss masking are unspecified."
+      }
+    ],
+    "task_configuration": "T2 transcription with spatial grounding; sampled line/block ROIs, optional tail truncation with white-out and page repair, ordered rendered pages, and grounded sequence-box outputs.",
+    "trajectory_id": "opticaldna_pretraining_t2"
+  },
+  {
+    "bypasses": [
+      {
+        "condition": "T3 uses the supplied boxes directly.",
+        "source_node_id": "user_roi_boxes",
+        "source_step_id": "prepare_t3_roi_boxes",
+        "target_node_id": "model_roi_boxes"
+      },
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "page_images",
+        "source_step_id": "tail_truncate_t3",
+        "target_node_id": "model_pages"
+      },
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "bbox_annotations",
+        "source_step_id": "tail_truncate_t3",
+        "target_node_id": "model_bbox_annotations"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "render_document::1",
+        "component": "DNA document renderer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a DNA sequence S of length N loaded from FASTA, we convert it into a DNA document D ( S ) .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genomic_sequence"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "page_images",
+            "bbox_annotations"
+          ]
+        },
+        "parameters": {
+          "source_operation": "render_sequence_to_annotated_pages",
+          "source_port_roles": [
+            "source_sequence"
+          ]
+        },
+        "source_step_id": "render_document",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Glyph rendering, page construction, and annotation generation have no catalog primitive."
+      },
+      {
+        "call_id": "prepare_t3_roi_boxes::1",
+        "component": "T3 ROI input preparation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T3 assumes that the regions of interest are provided explicitly as a set of predefined bounding boxes.",
+            "section_id": "sec_0044"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Bounding boxes are processed strictly in the order provided by the user.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "user_roi_boxes"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "model_roi_boxes"
+          ]
+        },
+        "parameters": {
+          "criterion": "retain all user-provided boxes in supplied order",
+          "forced_inclusions": "all supplied boxes",
+          "method": "ordered pass-through selection",
+          "source_port_roles": [
+            "provided_roi_boxes"
+          ]
+        },
+        "source_step_id": "prepare_t3_roi_boxes",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tail_truncate_t3::1",
+        "component": "Optional T3 tail truncation and page repair",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_roi_boxes",
+            "page_images",
+            "bbox_annotations"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_pages",
+            "model_bbox_annotations"
+          ]
+        },
+        "parameters": {
+          "source_operation": "optionally_tail_truncate_t3_roi_items_and_repair_pages",
+          "source_port_roles": [
+            "roi_items",
+            "rendered_pages",
+            "page_annotations"
+          ]
+        },
+        "source_step_id": "tail_truncate_t3",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Tail truncation is documented for T3, but the exact truncation and repair implementation is not fully established."
+      },
+      {
+        "call_id": "construct_t3_targets::1",
+        "component": "T3 target construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The model is required to transcribe the nucleotide sequence contained within each specified region",
+            "section_id": "sec_0044"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_roi_boxes",
+            "model_bbox_annotations"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "assistant_response_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_t3_roi_transcription_targets",
+          "source_port_roles": [
+            "ordered_roi_boxes",
+            "page_annotations"
+          ]
+        },
+        "source_step_id": "construct_t3_targets",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper specifies ordered ROI transcription targets but not their serializer."
+      },
+      {
+        "call_id": "encode_and_fuse_pages::1",
+        "component": "Visual encoder and page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_pages"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "encode_and_fuse_document_pages",
+          "source_port_roles": [
+            "selected_pages"
+          ]
+        },
+        "source_step_id": "encode_and_fuse_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete encoder/fusion boundary is opaque."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T3 multimodal decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "given a set of boxes { b i } N i =1 on a DNA document page, the model outputs a list of transcriptions { ˆ Y i } ˆ N i =1",
+            "section_id": "sec_0068"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "fused_visual_tokens",
+            "user_message",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "fused_visual_tokens",
+            "multimodal_user_message",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The autoregressive decoder remains opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T3 transcribes DNA within given ROIs",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Task T3 focuses on region-of-interest (ROI) based DNA transcription.",
+        "section_id": "sec_0044"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T3 ROI transcription",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered user-provided regions",
+          "box coordinates"
+        ],
+        "contextual_role": "external_region_specification",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Task T3 assumes that the regions of interest are provided explicitly as a set of predefined bounding boxes.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "information_content": "Ordered user-provided ROI boxes.",
+        "node_id": "user_roi_boxes",
+        "origin": "source_annotation",
+        "representation_type": "ordered_bounding_box_list",
+        "symbolic_shape": [
+          "n_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered retained region records",
+          "box coordinates"
+        ],
+        "contextual_role": "model_region_specification",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Bounding boxes are processed strictly in the order provided by the user.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "information_content": "User boxes retained in supplied order.",
+        "node_id": "model_roi_boxes",
+        "origin": "source_annotation",
+        "representation_type": "ordered_bounding_box_list",
+        "symbolic_shape": [
+          "n_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each page is a 640 × 640 3-channel image",
+            "section_id": "sec_0039"
+          }
+        ],
+        "information_content": "Rendered DNA pages.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "nucleotide annotation"
+        ],
+        "contextual_role": "annotation_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each page p , we store an ordered list of nucleotide annotations",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Nucleotide annotations.",
+        "node_id": "bbox_annotations",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_bounding_box_annotations",
+        "symbolic_shape": [
+          "n_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Pages after optional T3 repair.",
+        "node_id": "model_pages",
+        "origin": "source_annotation",
+        "representation_type": "conditionally_truncated_rgb_page_images",
+        "symbolic_shape": [
+          "n_model_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "n_annotations_per_page"
+        ],
+        "contextual_role": "conditional_annotation_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Annotations after optional page repair.",
+        "node_id": "model_bbox_annotations",
+        "origin": "source_annotation",
+        "representation_type": "reindexed_page_bounding_box_annotations",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "OCR DNA for boxes (in order): { boxes }",
+            "section_id": "sec_0044"
+          }
+        ],
+        "information_content": "T3 ROI transcription instruction.",
+        "node_id": "task_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_roi_prompt",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected visual tokens.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page tokens after fusion attention.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For Task T3, the user instruction includes an explicit list of bounding boxes specifying the regions of interest.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "information_content": "T3 user message.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "assistant response token positions"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The assistant outputs exactly one response line for each bounding box.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "information_content": "Ordered T3 ROI transcription tokens.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "roi_transcription_response_token_ids",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "given a set of boxes { b i } N i =1 on a DNA document page, the model outputs a list of transcriptions { ˆ Y i } ˆ N i =1",
+            "section_id": "sec_0068"
+          }
+        ],
+        "information_content": "Teacher-forced T3 decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Shifted input and loss-mask implementation are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are user-provided boxes serialized?",
+      "What exact image-token injection path is used?",
+      "What are the stage-specific fusion trainability states?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "DNA document renderer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a DNA sequence S of length N loaded from FASTA, we convert it into a DNA document D ( S ) .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          }
+        ],
+        "operation_type": "render_sequence_to_annotated_pages",
+        "outputs": [
+          "page_images",
+          "bbox_annotations"
+        ],
+        "step_id": "render_document",
+        "uncertainty": null
+      },
+      {
+        "component": "T3 ROI input preparation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T3 assumes that the regions of interest are provided explicitly as a set of predefined bounding boxes.",
+            "section_id": "sec_0044"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Bounding boxes are processed strictly in the order provided by the user.",
+            "section_id": "sec_0044"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "user_roi_boxes",
+            "port_role": "provided_roi_boxes"
+          }
+        ],
+        "operation_type": "retain_ordered_user_roi_boxes",
+        "outputs": [
+          "model_roi_boxes"
+        ],
+        "step_id": "prepare_t3_roi_boxes",
+        "uncertainty": null
+      },
+      {
+        "component": "Optional T3 tail truncation and page repair",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_roi_boxes",
+            "port_role": "roi_items"
+          },
+          {
+            "node_id": "page_images",
+            "port_role": "rendered_pages"
+          },
+          {
+            "node_id": "bbox_annotations",
+            "port_role": "page_annotations"
+          }
+        ],
+        "operation_type": "optionally_tail_truncate_t3_roi_items_and_repair_pages",
+        "outputs": [
+          "model_pages",
+          "model_bbox_annotations"
+        ],
+        "step_id": "tail_truncate_t3",
+        "uncertainty": null
+      },
+      {
+        "component": "T3 target construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The model is required to transcribe the nucleotide sequence contained within each specified region",
+            "section_id": "sec_0044"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_roi_boxes",
+            "port_role": "ordered_roi_boxes"
+          },
+          {
+            "node_id": "model_bbox_annotations",
+            "port_role": "page_annotations"
+          }
+        ],
+        "operation_type": "construct_t3_roi_transcription_targets",
+        "outputs": [
+          "assistant_response_tokens"
+        ],
+        "step_id": "construct_t3_targets",
+        "uncertainty": null
+      },
+      {
+        "component": "Visual encoder and page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_pages",
+            "port_role": "selected_pages"
+          }
+        ],
+        "operation_type": "encode_and_fuse_document_pages",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "encode_and_fuse_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T3 multimodal decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "given a set of boxes { b i } N i =1 on a DNA document page, the model outputs a list of transcriptions { ˆ Y i } ˆ N i =1",
+            "section_id": "sec_0068"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "user_message",
+            "port_role": "multimodal_user_message"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization and shifted teacher-forcing details are unspecified."
+      }
+    ],
+    "task_configuration": "T3 ROI-based DNA transcription; user-provided ordered bounding boxes; optional ROI tail truncation; ordered ROI transcription outputs.",
+    "trajectory_id": "opticaldna_pretraining_t3"
+  },
+  {
+    "bypasses": [
+      {
+        "condition": "T4 does not apply random tail truncation.",
+        "source_node_id": "masked_page_images",
+        "source_step_id": "bypass_t4_tail_truncation",
+        "target_node_id": "model_pages"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "render_document::1",
+        "component": "DNA document renderer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a DNA sequence S of length N loaded from FASTA, we convert it into a DNA document D ( S ) .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genomic_sequence"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "page_images"
+          ]
+        },
+        "parameters": {
+          "source_operation": "render_sequence_to_annotated_pages",
+          "source_port_roles": [
+            "source_sequence"
+          ]
+        },
+        "source_step_id": "render_document",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Rasterization and annotation are outside the catalog."
+      },
+      {
+        "call_id": "mask_page_regions::1",
+        "component": "T4 image-level masking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Prior to inference, the DNA text inside each target bounding box is masked at the image level by replacing the corresponding rectangular region with a uniform white background.",
+            "section_id": "sec_0045"
+          }
+        ],
+        "inputs": {
+          "indices": [
+            "masked_boxes"
+          ],
+          "replacements": [
+            "white_mask_values"
+          ],
+          "state": [
+            "page_images"
+          ]
+        },
+        "operation_id": "update",
+        "outputs": {
+          "values": [
+            "masked_page_images"
+          ]
+        },
+        "parameters": {
+          "method": "replace target boxes by uniform white background",
+          "preserve_unselected": "true",
+          "source_port_roles": [
+            "source_pages",
+            "white_background",
+            "masked_box_indices"
+          ]
+        },
+        "source_step_id": "mask_page_regions",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "bypass_t4_tail_truncation::1",
+        "component": "T4 tail-truncation bypass",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Unlike T2/T3, we do not apply random tail truncation for T4, because mask completion is inherently context-dependent and requires sufficient surrounding DNA evidence.",
+            "section_id": "sec_0070"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "masked_page_images"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_pages"
+          ]
+        },
+        "parameters": {
+          "source_operation": "bypass_tail_truncation_for_mask_completion",
+          "source_port_roles": [
+            "masked_pages"
+          ]
+        },
+        "source_step_id": "bypass_t4_tail_truncation",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The no-tail-truncation protocol is documented without a catalog transformation."
+      },
+      {
+        "call_id": "construct_t4_targets::1",
+        "component": "T4 target construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T4 outputs K masked-completion pairs (˜ s k , b k )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genomic_sequence",
+            "masked_boxes"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "assistant_response_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_t4_mask_completion_targets",
+          "source_port_roles": [
+            "source_sequence",
+            "masked_regions"
+          ]
+        },
+        "source_step_id": "construct_t4_targets",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Recovery and serialization of original masked strings are unspecified."
+      },
+      {
+        "call_id": "encode_and_fuse_pages::1",
+        "component": "Visual encoder and page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_pages"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "encode_and_fuse_document_pages",
+          "source_port_roles": [
+            "masked_pages"
+          ]
+        },
+        "source_step_id": "encode_and_fuse_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete encoder/fusion boundary is opaque."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T4 multimodal decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T4 completes masked regions within given ROIs",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "fused_visual_tokens",
+            "user_message",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "fused_visual_tokens",
+            "multimodal_user_message",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The autoregressive decoder remains opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T4 completes masked regions within given ROIs",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "the nucleotide content within the masked boxes is not directly observable",
+        "section_id": "sec_0045"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T4 masked DNA completion",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered masked regions",
+          "box coordinates"
+        ],
+        "contextual_role": "external_region_specification",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial extents of the masked regions are provided explicitly as bounding boxes",
+            "section_id": "sec_0045"
+          }
+        ],
+        "information_content": "Ordered masked ROI boxes.",
+        "node_id": "masked_boxes",
+        "origin": "source_annotation",
+        "representation_type": "ordered_masked_bounding_box_list",
+        "symbolic_shape": [
+          "n_masked_rois",
+          "box_coordinates"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "mask height",
+          "mask width",
+          "RGB channel"
+        ],
+        "contextual_role": "mask_replacement_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "by replacing the corresponding rectangular region with a uniform white background",
+            "section_id": "sec_0045"
+          }
+        ],
+        "information_content": "Uniform white replacement values.",
+        "node_id": "white_mask_values",
+        "origin": "source_annotation",
+        "representation_type": "white_pixel_replacement_values",
+        "symbolic_shape": [
+          "mask_height",
+          "mask_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images fi eld provides the visual context for all DNA-centric tasks in our conversation interface",
+            "section_id": "sec_0039"
+          }
+        ],
+        "information_content": "Rendered pages before masking.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "masked_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Prior to inference, the DNA text inside each target bounding box is masked at the image level",
+            "section_id": "sec_0045"
+          }
+        ],
+        "information_content": "White-masked rendered pages.",
+        "node_id": "masked_page_images",
+        "origin": "source_annotation",
+        "representation_type": "masked_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Unlike T2/T3, we do not apply random tail truncation for T4",
+            "section_id": "sec_0070"
+          }
+        ],
+        "information_content": "Masked pages passed without tail truncation.",
+        "node_id": "model_pages",
+        "origin": "source_annotation",
+        "representation_type": "masked_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Masked-page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected visual tokens.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused page tokens.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predict masked DNA for boxes (in order): { boxes }",
+            "section_id": "sec_0045"
+          }
+        ],
+        "information_content": "T4 masked-completion prompt.",
+        "node_id": "task_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_mask_completion_prompt",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "task. In T4, the model is given a DNA document (potentially multi-page) with masked regions",
+            "section_id": "sec_0070"
+          }
+        ],
+        "information_content": "T4 multimodal user message.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact lexical serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "assistant response token positions"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The only difference is that the output sequence corresponds to the original nucleotide content of each masked region.",
+            "section_id": "sec_0045"
+          }
+        ],
+        "information_content": "Masked-region completion response tokens.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "masked_completion_response_token_ids",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": "Exact tokenization and formatting are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T4 completes masked regions within given ROIs",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Teacher-forced T4 decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Shifted input and loss-mask implementation are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are masked pages and box lists serialized?",
+      "How are original masked sequences generated as targets?",
+      "What exact visual-token injection path is used?",
+      "How is the no-tail-truncation rule implemented?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "DNA document renderer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a DNA sequence S of length N loaded from FASTA, we convert it into a DNA document D ( S ) .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          }
+        ],
+        "operation_type": "render_sequence_to_annotated_pages",
+        "outputs": [
+          "page_images"
+        ],
+        "step_id": "render_document",
+        "uncertainty": null
+      },
+      {
+        "component": "T4 image-level masking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Prior to inference, the DNA text inside each target bounding box is masked at the image level by replacing the corresponding rectangular region with a uniform white background.",
+            "section_id": "sec_0045"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "page_images",
+            "port_role": "source_pages"
+          },
+          {
+            "node_id": "white_mask_values",
+            "port_role": "white_background"
+          },
+          {
+            "node_id": "masked_boxes",
+            "port_role": "masked_box_indices"
+          }
+        ],
+        "operation_type": "mask_dna_regions_in_page_images",
+        "outputs": [
+          "masked_page_images"
+        ],
+        "step_id": "mask_page_regions",
+        "uncertainty": null
+      },
+      {
+        "component": "T4 tail-truncation bypass",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Unlike T2/T3, we do not apply random tail truncation for T4, because mask completion is inherently context-dependent and requires sufficient surrounding DNA evidence.",
+            "section_id": "sec_0070"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "masked_page_images",
+            "port_role": "masked_pages"
+          }
+        ],
+        "operation_type": "bypass_tail_truncation_for_mask_completion",
+        "outputs": [
+          "model_pages"
+        ],
+        "step_id": "bypass_t4_tail_truncation",
+        "uncertainty": null
+      },
+      {
+        "component": "T4 target construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T4 outputs K masked-completion pairs (˜ s k , b k )",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          },
+          {
+            "node_id": "masked_boxes",
+            "port_role": "masked_regions"
+          }
+        ],
+        "operation_type": "construct_t4_mask_completion_targets",
+        "outputs": [
+          "assistant_response_tokens"
+        ],
+        "step_id": "construct_t4_targets",
+        "uncertainty": null
+      },
+      {
+        "component": "Visual encoder and page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_pages",
+            "port_role": "masked_pages"
+          }
+        ],
+        "operation_type": "encode_and_fuse_document_pages",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "encode_and_fuse_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T4 multimodal decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T4 completes masked regions within given ROIs",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "user_message",
+            "port_role": "multimodal_user_message"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization, shifted labels, image-token injection, and loss masking are unspecified."
+      }
+    ],
+    "task_configuration": "T4 masked DNA completion; user-provided masked ROI boxes; white image-level masking; no tail truncation; ordered masked-sequence outputs.",
+    "trajectory_id": "opticaldna_pretraining_t4"
+  },
+  {
+    "bypasses": [
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "matched_boxes",
+        "source_step_id": "tail_truncate_t5",
+        "target_node_id": "model_matched_boxes"
+      },
+      {
+        "condition": "Tail truncation is not applied.",
+        "source_node_id": "page_images",
+        "source_step_id": "tail_truncate_t5",
+        "target_node_id": "model_pages"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "sample_query::1",
+        "component": "T5 query sampler",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For subsequence localization (T5), we sample the query length ℓ ∼ Uniform { ℓ min , . . . , ℓ max }",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "context": [
+            "genomic_sequence"
+          ],
+          "distribution": [
+            "query_length_distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "query_sequence"
+          ]
+        },
+        "parameters": {
+          "distribution": "uniform ℓ over {ℓ_min,...,ℓ_max}",
+          "method": "sample subsequence query",
+          "origin": "subsequence localization sampling",
+          "source_port_roles": [
+            "distribution",
+            "context"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "sample_query",
+        "status": "documented_operation",
+        "uncertainty": "Exact interval extraction is unspecified."
+      },
+      {
+        "call_id": "enumerate_query_matches::1",
+        "component": "T5 match enumeration and annotation mapping",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then enumerate matches across lines to form localization targets. We allow overlapping matches by using a unit stride; otherwise we advance by ℓ to prevent overlap, controlling the match density (Table S18).",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "query_sequence",
+            "genomic_sequence",
+            "bbox_annotations"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "matched_boxes"
+          ]
+        },
+        "parameters": {
+          "source_operation": "enumerate_query_matches_and_map_to_boxes",
+          "source_port_roles": [
+            "query_subsequence",
+            "source_sequence",
+            "dense_page_annotations"
+          ]
+        },
+        "source_step_id": "enumerate_query_matches",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Symbolic subsequence matching and spatial box enumeration have no catalog primitive."
+      },
+      {
+        "call_id": "tail_truncate_t5::1",
+        "component": "Optional T5 tail truncation and page repair",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "we randomly delete a suffix of items",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "matched_boxes",
+            "page_images"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_matched_boxes",
+            "model_pages"
+          ]
+        },
+        "parameters": {
+          "source_operation": "optionally_tail_truncate_query_match_items_and_repair_pages",
+          "source_port_roles": [
+            "matched_region_items",
+            "rendered_pages"
+          ]
+        },
+        "source_step_id": "tail_truncate_t5",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Tail truncation is documented for T5, but the exact truncation and page-repair implementation is not fully established."
+      },
+      {
+        "call_id": "construct_t5_targets::1",
+        "component": "T5 target construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T5 outputs a query q ∈ Σ ∗ with a list of matched boxes",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "query_sequence",
+            "model_matched_boxes"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "assistant_response_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_t5_query_box_targets",
+          "source_port_roles": [
+            "query_subsequence",
+            "retained_matched_boxes"
+          ]
+        },
+        "source_step_id": "construct_t5_targets",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The query-and-box response serializer is unspecified."
+      },
+      {
+        "call_id": "encode_and_fuse_pages::1",
+        "component": "Visual encoder and page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_pages"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "encode_and_fuse_document_pages",
+          "source_port_roles": [
+            "selected_pages"
+          ]
+        },
+        "source_step_id": "encode_and_fuse_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete encoder/fusion boundary is opaque."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T5 multimodal decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "If the query subsequence appears one or more times in the rendered DNA content, the assistant outputs all bounding boxes corresponding to the matched regions.",
+            "section_id": "sec_0046"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "fused_visual_tokens",
+            "user_message",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "fused_visual_tokens",
+            "multimodal_user_message",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The autoregressive decoder remains opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T5 localizes all occurrences of a query subsequence",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "For subsequence localization (T5), we sample the query length ℓ ∼ Uniform { ℓ min , . . . , ℓ max }",
+        "section_id": "sec_0013"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T5 query-driven subsequence localization",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "query_sampling_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For subsequence localization (T5), we sample the query length ℓ ∼ Uniform { ℓ min , . . . , ℓ max }",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Uniform query-length distribution.",
+        "node_id": "query_length_distribution",
+        "origin": "source_annotation",
+        "representation_type": "query_length_sampling_distribution",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions within query"
+        ],
+        "contextual_role": "external_symbolic_query",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given one or multiple rendered DNA pages and a query nucleotide sequence",
+            "section_id": "sec_0046"
+          }
+        ],
+        "information_content": "Sampled nucleotide query.",
+        "node_id": "query_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_query_sequence",
+        "symbolic_shape": [
+          "n_query_nucleotides"
+        ],
+        "uncertainty": "Exact sampled source interval is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images fi eld provides the visual context for all DNA-centric tasks in our conversation interface",
+            "section_id": "sec_0039"
+          }
+        ],
+        "information_content": "Rendered DNA pages.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "nucleotide annotation"
+        ],
+        "contextual_role": "annotation_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each page p , we store an ordered list of nucleotide annotations",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Nucleotide-to-page-coordinate annotations.",
+        "node_id": "bbox_annotations",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_bounding_box_annotations",
+        "symbolic_shape": [
+          "n_pages",
+          "n_annotations_per_page"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered matched regions",
+          "box coordinates"
+        ],
+        "contextual_role": "retrieval_supervision_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then enumerate matches across lines to form localization targets.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Boxes corresponding to query occurrences.",
+        "node_id": "matched_boxes",
+        "origin": "source_annotation",
+        "representation_type": "matched_subsequence_bounding_boxes",
+        "symbolic_shape": [
+          "n_matches",
+          "box_coordinates"
+        ],
+        "uncertainty": "Match enumeration and box construction are opaque."
+      },
+      {
+        "axis_semantics": [
+          "ordered retained region records",
+          "box coordinates"
+        ],
+        "contextual_role": "conditional_supervision_resource",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we randomly delete a suffix of items",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Retained matched boxes.",
+        "node_id": "model_matched_boxes",
+        "origin": "source_annotation",
+        "representation_type": "retained_matched_bounding_boxes",
+        "symbolic_shape": [
+          "n_retained_matches",
+          "box_coordinates"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+            "section_id": "sec_0049"
+          }
+        ],
+        "information_content": "Pages after optional T5 repair.",
+        "node_id": "model_pages",
+        "origin": "source_annotation",
+        "representation_type": "conditionally_truncated_rgb_page_images",
+        "symbolic_shape": [
+          "n_model_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Selected page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected visual tokens.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page tokens after fusion attention.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_model_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Locate <&#124;ref&#124;> { query } <&#124;/ref&#124;>.",
+            "section_id": "sec_0046"
+          }
+        ],
+        "information_content": "T5 query-localization prompt.",
+        "node_id": "task_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_subsequence_localization_prompt",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given one or multiple rendered DNA pages and a query nucleotide sequence",
+            "section_id": "sec_0046"
+          }
+        ],
+        "information_content": "T5 multimodal user message.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact lexical serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "assistant response token positions"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "If the query subsequence appears one or more times in the rendered DNA content, the assistant outputs all bounding boxes corresponding to the matched regions.",
+            "section_id": "sec_0046"
+          }
+        ],
+        "information_content": "Query-and-box response tokens.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "subsequence_localization_response_token_ids",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T5 outputs a query q ∈ Σ ∗ with a list of matched boxes",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Teacher-forced T5 decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Shifted input and loss-mask implementation are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How is a sampled query interval selected?",
+      "How are overlapping matches converted to boxes?",
+      "How are matched-box targets changed by tail truncation?",
+      "What exact image-token injection path is used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "T5 query sampler",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For subsequence localization (T5), we sample the query length ℓ ∼ Uniform { ℓ min , . . . , ℓ max }",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "query_length_distribution",
+            "port_role": "distribution"
+          },
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "context"
+          }
+        ],
+        "operation_type": "sample_query_subsequence",
+        "outputs": [
+          "query_sequence"
+        ],
+        "step_id": "sample_query",
+        "uncertainty": null
+      },
+      {
+        "component": "T5 match enumeration and annotation mapping",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then enumerate matches across lines to form localization targets. We allow overlapping matches by using a unit stride; otherwise we advance by ℓ to prevent overlap, controlling the match density (Table S18).",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "query_sequence",
+            "port_role": "query_subsequence"
+          },
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          },
+          {
+            "node_id": "bbox_annotations",
+            "port_role": "dense_page_annotations"
+          }
+        ],
+        "operation_type": "enumerate_query_matches_and_map_to_boxes",
+        "outputs": [
+          "matched_boxes"
+        ],
+        "step_id": "enumerate_query_matches",
+        "uncertainty": null
+      },
+      {
+        "component": "Optional T5 tail truncation and page repair",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+            "section_id": "sec_0049"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "we randomly delete a suffix of items",
+            "section_id": "sec_0049"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "matched_boxes",
+            "port_role": "matched_region_items"
+          },
+          {
+            "node_id": "page_images",
+            "port_role": "rendered_pages"
+          }
+        ],
+        "operation_type": "optionally_tail_truncate_query_match_items_and_repair_pages",
+        "outputs": [
+          "model_matched_boxes",
+          "model_pages"
+        ],
+        "step_id": "tail_truncate_t5",
+        "uncertainty": null
+      },
+      {
+        "component": "T5 target construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "T5 outputs a query q ∈ Σ ∗ with a list of matched boxes",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "query_sequence",
+            "port_role": "query_subsequence"
+          },
+          {
+            "node_id": "model_matched_boxes",
+            "port_role": "retained_matched_boxes"
+          }
+        ],
+        "operation_type": "construct_t5_query_box_targets",
+        "outputs": [
+          "assistant_response_tokens"
+        ],
+        "step_id": "construct_t5_targets",
+        "uncertainty": null
+      },
+      {
+        "component": "Visual encoder and page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a prompt q ∈ Q and fused visual tokens Z = E θ ( { page p } P -1 p =0 )",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_pages",
+            "port_role": "selected_pages"
+          }
+        ],
+        "operation_type": "encode_and_fuse_document_pages",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "encode_and_fuse_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T5 multimodal decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "If the query subsequence appears one or more times in the rendered DNA content, the assistant outputs all bounding boxes corresponding to the matched regions.",
+            "section_id": "sec_0046"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "user_message",
+            "port_role": "multimodal_user_message"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization, shifted labels, and loss masking are unspecified."
+      }
+    ],
+    "task_configuration": "T5 query-driven DNA subsequence localization; sampled query length; overlapping matches allowed; optional tail truncation; matched boxes returned in reading order.",
+    "trajectory_id": "opticaldna_pretraining_t5"
+  },
+  {
+    "bypasses": [
+      {
+        "condition": "T6 does not use tail truncation.",
+        "source_node_id": "page_images",
+        "source_step_id": "bypass_t6_tail_truncation",
+        "target_node_id": "model_pages"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "bypass_t6_tail_truncation::1",
+        "component": "T6 tail-truncation bypass",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Following the T4 setting (Appendix K.5), we do not apply tail truncation and perform prediction with multi-page fusion",
+            "section_id": "sec_0071"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "page_images"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_pages"
+          ]
+        },
+        "parameters": {
+          "source_operation": "bypass_tail_truncation_for_chromosome_classification",
+          "source_port_roles": [
+            "rendered_pages"
+          ]
+        },
+        "source_step_id": "bypass_t6_tail_truncation",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source explicitly documents the no-tail-truncation protocol."
+      },
+      {
+        "call_id": "construct_t6_targets::1",
+        "component": "T6 classification target construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output must be a single token selected from the predefined label set:",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genomic_sequence"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "assistant_response_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_t6_chromosome_label_target",
+          "source_port_roles": [
+            "source_sequence"
+          ]
+        },
+        "source_step_id": "construct_t6_targets",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Label construction for teacher forcing is unspecified."
+      },
+      {
+        "call_id": "encode_and_fuse_pages::1",
+        "component": "Visual encoder and page fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "st of one or more rendered DNA pages corresponding to a single DNA sequence",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "model_pages"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "fused_visual_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "encode_and_fuse_document_pages",
+          "source_port_roles": [
+            "page_images"
+          ]
+        },
+        "source_step_id": "encode_and_fuse_pages",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The complete encoder/fusion boundary is opaque."
+      },
+      {
+        "call_id": "condition_document_decoder::1",
+        "component": "T6 multimodal decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The assistant outputs exactly one label indicating the predicted chromosome identity.",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "fused_visual_tokens",
+            "user_message",
+            "assistant_response_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "teacher_forced_multimodal_decoder_conditioning",
+          "source_port_roles": [
+            "fused_visual_tokens",
+            "multimodal_user_message",
+            "teacher_forced_assistant_tokens"
+          ]
+        },
+        "source_step_id": "condition_document_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The autoregressive decoder remains opaque."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "T6 predicts a chromosome-level class label.",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "it does not require spatial localization, region reasoning, or bounding box prediction.",
+        "section_id": "sec_0036"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OpticalDNA shared architecture; HG38 and rice pretraining variants; T6 chromosome classification",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "ordered nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given a genomic sequence S = ( s 1 , . . . , s N ) of length N , where each s i ∈ { A,C,G,T,N }",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Input genomic DNA sequence.",
+        "node_id": "genomic_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotides"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "st of one or more rendered DNA pages corresponding to a single DNA sequence",
+            "section_id": "sec_0047"
+          }
+        ],
+        "information_content": "Rendered DNA pages.",
+        "node_id": "page_images",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "pixel height",
+          "pixel width",
+          "RGB channel"
+        ],
+        "contextual_role": "conditional_visual_document_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Following the T4 setting (Appendix K.5), we do not apply tail truncation",
+            "section_id": "sec_0071"
+          }
+        ],
+        "information_content": "Pages passed without tail truncation.",
+        "node_id": "model_pages",
+        "origin": "source_annotation",
+        "representation_type": "ordered_rgb_page_images",
+        "symbolic_shape": [
+          "n_pages",
+          "height",
+          "width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Classify this DNA sequence: which human chromosome does it belong to? Answer with one label only: chr1-chr22, chrX, chrY, or unknown.",
+            "section_id": "sec_0047"
+          }
+        ],
+        "information_content": "T6 chromosome-classification prompt.",
+        "node_id": "task_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_classification_prompt",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "patch position",
+          "patch height",
+          "patch width",
+          "RGB channel"
+        ],
+        "contextual_role": "visual_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We partition each page into non-overlapping 16 × 16 patches",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page patches.",
+        "node_id": "page_patches",
+        "origin": "source_annotation",
+        "representation_type": "image_patches",
+        "symbolic_shape": [
+          "n_pages",
+          "n_patches_per_page",
+          "patch_height",
+          "patch_width",
+          "channels"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "visual-token position",
+          "front-end feature coordinates"
+        ],
+        "contextual_role": "visual_encoder_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Conv stage performs a fixed downsampling with ratio 16 along the token axis.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Visual-front-end features.",
+        "node_id": "frontend_features",
+        "origin": "source_annotation",
+        "representation_type": "visual_frontend_features",
+        "symbolic_shape": [
+          "n_pages",
+          "n_frontend_tokens",
+          "d_frontend"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "projected visual-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "projected_page_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then apply a learned projector Π θ to align the resulting features to the decoder width d",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Projected visual tokens.",
+        "node_id": "projected_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "projected_visual_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "page",
+          "token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "page_fusion_intermediate",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Page tokens after fusion attention.",
+        "node_id": "attended_page_tokens",
+        "origin": "source_annotation",
+        "representation_type": "self_attended_page_tokens",
+        "symbolic_shape": [
+          "n_pages",
+          "n_page_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "fused document-token position",
+          "decoder feature coordinates"
+        ],
+        "contextual_role": "decoder_visual_conditioning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "followed by a mean reduction over the page dimension",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Fused visual tokens.",
+        "node_id": "fused_visual_tokens",
+        "origin": "source_annotation",
+        "representation_type": "fused_document_visual_tokens",
+        "symbolic_shape": [
+          "n_document_tokens",
+          "d_decoder"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered message fields"
+        ],
+        "contextual_role": "decoder_user_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "it does not require spatial localization, region reasoning, or bounding box prediction.",
+            "section_id": "sec_0036"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The user message contains a single reserved &lt;image&gt; placeholder",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "T6 multimodal user message without ROI fields.",
+        "node_id": "user_message",
+        "origin": "source_annotation",
+        "representation_type": "structured_multimodal_user_message",
+        "symbolic_shape": [
+          "n_message_fields"
+        ],
+        "uncertainty": "Exact lexical serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "one chromosome label token"
+        ],
+        "contextual_role": "teacher_forcing_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output must be a single token selected from the predefined label set:",
+            "section_id": "sec_0047"
+          }
+        ],
+        "information_content": "Chromosome label response token.",
+        "node_id": "assistant_response_tokens",
+        "origin": "source_annotation",
+        "representation_type": "chromosome_label_token_ids",
+        "symbolic_shape": [
+          "n_label_tokens"
+        ],
+        "uncertainty": "Exact vocabulary mapping is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "decoder conditioning fields",
+          "decoder time positions"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The assistant outputs exactly one label indicating the predicted chromosome identity.",
+            "section_id": "sec_0047"
+          }
+        ],
+        "information_content": "Teacher-forced T6 decoder receipt.",
+        "node_id": "decoder_input_receipt",
+        "origin": "source_annotation",
+        "representation_type": "teacher_forced_multimodal_decoder_input",
+        "symbolic_shape": [
+          "decoder_conditioning",
+          "decoder_time"
+        ],
+        "uncertainty": "Shifted input and loss-mask implementation are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How is chromosome-label supervision serialized?",
+      "What exact decoder image-token injection path is used?",
+      "How are multi-page visual tokens aggregated?",
+      "How is no-tail-truncation implemented?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input_receipt",
+        "port_role": "teacher_forced_multimodal_decoder_input"
+      }
+    ],
+    "recipient_component": "DeepSeek-3B autoregressive document decoder",
+    "record_id": "full_2026-07-06__rec_001830",
+    "source_steps": [
+      {
+        "component": "T6 tail-truncation bypass",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Following the T4 setting (Appendix K.5), we do not apply tail truncation and perform prediction with multi-page fusion",
+            "section_id": "sec_0071"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "page_images",
+            "port_role": "rendered_pages"
+          }
+        ],
+        "operation_type": "bypass_tail_truncation_for_chromosome_classification",
+        "outputs": [
+          "model_pages"
+        ],
+        "step_id": "bypass_t6_tail_truncation",
+        "uncertainty": null
+      },
+      {
+        "component": "T6 classification target construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output must be a single token selected from the predefined label set:",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genomic_sequence",
+            "port_role": "source_sequence"
+          }
+        ],
+        "operation_type": "construct_t6_chromosome_label_target",
+        "outputs": [
+          "assistant_response_tokens"
+        ],
+        "step_id": "construct_t6_targets",
+        "uncertainty": null
+      },
+      {
+        "component": "Visual encoder and page fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "st of one or more rendered DNA pages corresponding to a single DNA sequence",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "model_pages",
+            "port_role": "page_images"
+          }
+        ],
+        "operation_type": "encode_and_fuse_document_pages",
+        "outputs": [
+          "fused_visual_tokens"
+        ],
+        "step_id": "encode_and_fuse_pages",
+        "uncertainty": null
+      },
+      {
+        "component": "T6 multimodal decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The assistant outputs exactly one label indicating the predicted chromosome identity.",
+            "section_id": "sec_0047"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fused_visual_tokens",
+            "port_role": "fused_visual_tokens"
+          },
+          {
+            "node_id": "user_message",
+            "port_role": "multimodal_user_message"
+          },
+          {
+            "node_id": "assistant_response_tokens",
+            "port_role": "teacher_forced_assistant_tokens"
+          }
+        ],
+        "operation_type": "teacher_forced_multimodal_decoder_conditioning",
+        "outputs": [
+          "decoder_input_receipt"
+        ],
+        "step_id": "condition_document_decoder",
+        "uncertainty": "Decoder tokenization, shifted labels, image-token injection, and loss masking are unspecified."
+      }
+    ],
+    "task_configuration": "T6 chromosome-level classification; ordered rendered pages; no spatial grounding; no tail truncation; one chromosome label output.",
+    "trajectory_id": "opticaldna_pretraining_t6"
+  }
+]

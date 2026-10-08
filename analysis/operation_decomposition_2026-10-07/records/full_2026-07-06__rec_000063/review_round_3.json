@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "Reviewed all eight trajectories. Most documented transformations and opaque model boundaries are supported, but the graph omits spatial-neighborhood segmentation, misbinds traversal order, loses optional-input branches, and misrepresents conversational fine-tuning/inference state and task branching.",
+  "findings": [
+    {
+      "detail": "The fine-tuning path starts from all cell sentences and sends them directly into traversal. The paper explicitly documents segmenting each tissue section into square L×L spatial neighborhoods before assembling one sentence per neighborhood.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each tissue section, we segmented the entire section into square regions of size L × L micrometers, referred to as spatial neighborhoods.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each spatial neighborhood j , cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented section-to-spatial-neighborhood partition/selection and connect neighborhood-specific cell sentences to traversal and assembly; retain L×L as a source parameter.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The spatial assembly call binds traversal_order to the serialize operation's values port alongside cell_sentences. The paper describes σ as the traversal order controlling assembly, not as textual content being serialized.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where σ = ( σ 1 , σ 2 , . . . , σ n ) denotes the traversal order of cells within the frame.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Pass cell sentences as the serialized values and represent traversal_order as the order/control parameter or an explicitly documented ordering port; do not treat it as another serialized value.",
+      "severity": "blocking",
+      "step_id": "assemble_spatial_sentence",
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The cell serializer always receives cell_metadata despite the paper describing metadata as optional. No bypass or conditional serializer branch represents cells without metadata.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent metadata as a conditional input with a bypass for the absent-metadata case, or explicitly scope this trajectory to the metadata-present configuration.",
+      "severity": "blocking",
+      "step_id": "serialize_cells",
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The conditional-generation receipt treats target_cell_metadata as an unconditional required input, although metadata is optional in the documented framework.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "While the location of the cell and the information from neighboring cells are essential, TISSUENARRATOR can also condition on optional metadata such as cell type.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the conditional generation mode, users can specify the target cell type or other metadata (e.g., tissue region or disease state)",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the metadata-present condition and an absent-metadata bypass, while retaining the neighboring-cell and target-location inputs as essential inputs.",
+      "severity": "blocking",
+      "step_id": "conditional_generate_target_cell",
+      "trajectory_id": "conditional_cell_generation"
+    },
+    {
+      "detail": "The conversational fine-tuning trajectory is labeled as fine-tuning Qwen3-4B-Base directly and has no prior spatial-sentence-trained model state. The paper states that task-specific fine-tuning follows large-scale spatial-sentence training and fine-tunes TISSUENARRATOR.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following large-scale training on spatial sentences, TISSUENARRATOR can be fine-tuned on smaller, task-specific datasets to extend its functionality beyond cell generation.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Record the spatial-sentence-trained TISSUENARRATOR state as the initialization/context for conversational Q&A fine-tuning, rather than presenting the route as a direct base-model fine-tune.",
+      "severity": "blocking",
+      "step_id": "fine_tune_conversational_qa",
+      "trajectory_id": "conversational_qa_fine_tuning"
+    },
+    {
+      "detail": "The inference trajectory invents a prepare_conversational_query transformation and maps qa_query to itself. The paper documents natural-language queries and held-out-structure evaluation, but no query-preparation operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "TISSUENARRATOR generalizes to unseen anatomical structure names in natural language queries",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the unsupported preparation step or retain a direct opaque model-input boundary for the documented natural-language query.",
+      "severity": "blocking",
+      "step_id": "prepare_qa_query_inference",
+      "trajectory_id": "conversational_qa_inference"
+    },
+    {
+      "detail": "The inference route presents top-five cell types, top-twenty genes, and description generation as three unconditional outputs from the same query. The paper defines these as distinct task types, so the graph needs task-specific conditions or an unresolved task-selection boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we constructed a proof-of-concept dataset covering three tasks: given the name of an anatomical structure, (1) return the top 5 most abundant cell types, (2) list the top 20 highly expressed genes, and (3) generate a natural-language description of the structure.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "table",
+          "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "table",
+          "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Mark the three outputs as mutually exclusive task branches with task-specific query conditions, or retain a single opaque conversational-Q&A boundary whose task selection is explicitly unresolved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "conversational_qa_inference"
+    },
+    {
+      "detail": "The held-out Q&A inference variant again identifies only a Qwen3-4B-Base model fine-tuned for Q&A, without preserving that inference uses the model after spatial-sentence training and subsequent task-specific fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following large-scale training on spatial sentences, TISSUENARRATOR can be fine-tuned on smaller, task-specific datasets to extend its functionality beyond cell generation.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Identify the receiving model as the sequentially spatial-trained and Q&A-fine-tuned TISSUENARRATOR variant, preserving the preceding training state in the inference context.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "conversational_qa_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000063",
+  "verdict": "revise"
+}

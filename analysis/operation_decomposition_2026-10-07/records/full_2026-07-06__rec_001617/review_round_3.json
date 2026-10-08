@@ -1,0 +1,102 @@
+{
+  "coverage_summary": "The represented evaluation prompt paths are broadly supported, but the assembly omits several documented models, answer-only routes, and the model’s training lifecycle and sampling branches.",
+  "findings": [
+    {
+      "detail": "The assembly represents only Cell-o1 and GPT-4o, while the paper evaluates Llama3.1-8B-Instruct, Qwen2.5-7B-Instruct, Llama3.3-70B-Instruct, GPT-4o-mini, o3-mini, and o1. The atlas warnings also identify several omitted variants.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Llama3.3-70B-Instruct ... GPT-4o-mini ... GPT-4o ... o3-mini ... o1 ... Cell-o1",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Instruction-tuned (without reasoning) : To test the value of reasoning, we fine-tune LLaMA3.1-8B-Instruct and Qwen2.5-7B-Instruct ... without reasoning traces.",
+          "section_id": "sec_0038"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add trajectories for the documented model variants, or explicitly document their exclusion and explain the atlas coverage mismatch.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "Documented training phases are absent. The record contains only evaluation trajectories despite the paper describing reasoning distillation, SFT, and GRPO/RL for Cell-o1.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We begin by performing reasoning distillation ... This distilled dataset is then used for SFT ... for the subsequent RL.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "SFT serves as a cold start mechanism ... in the RL stage.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each training input, 5 rollouts are sampled per prompt. The actor model is Qwen2.5-7B-Instruct, initialized from the SFT checkpoint.",
+          "section_id": "sec_0039"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add phase-scoped trajectories for distillation, SFT, and RL, including their receiving models and documented input paths.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The documented distillation and RL branches are missing: eight candidate responses per distillation input are filtered by format and exact-label correctness, and GRPO samples grouped responses and computes rewards.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each instance, we generate 8 candidate responses. We then apply rejection sampling to filter out low-quality outputs.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A response is accepted only if it (1) adheres to the expected format and (2) yields a cell-type assignment that exactly matches the ground-truth labels.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "GRPO samples a group of G candidate responses ... from the old policy.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The batch-level reward is computed ... A reward of 1 is given only when all cell types in the batch are correctly predicted.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent rejection sampling/selection, accepted-dataset formation, rollout sampling, and documented reward evaluation in training trajectories; retain unspecified internal policy algebra as opaque.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The Cell-o1 batch prompt-construction step binds candidate_labels, but its cited step quote mentions only ranked genes and donor information. The candidate-label and one-to-one constraints are supported elsewhere in the paper, not by this step citation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each cell, the top-expressed genes are provided in descending order of expression. Using both the gene expression data and donor information, determine the correct cell type for each cell.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "You will also receive a list of N candidate cell types, and each candidate must be assigned to exactly one cell.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Add the candidate-label and one-to-one constraint evidence to the construct_prompt step citation.",
+      "severity": "minor",
+      "step_id": "construct_prompt",
+      "trajectory_id": "cell_o1_batch_reasoning"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001617",
+  "verdict": "revise"
+}

@@ -1,0 +1,182 @@
+{
+  "coverage_summary": "The reconstruction captures the main documented preprocessing, tokenization, projector, and generative branches, while preserving several genuinely unresolved internals. Revision is required for phase/role labeling, an unsupported ranking decomposition, omitted negative-sample supervision, missing Stage 2 update states, and absent downstream inference/fine-tuning trajectories.",
+  "findings": [
+    {
+      "detail": "This trajectory is labeled and configured as LLaMA-2 pretraining, but the paper only identifies LLaMA-2 as an externally pretrained model used by scMMGPT. The cell-description construction and tokenization describe scMMGPT data preparation or model use, not LLaMA-2's original pretraining input pipeline.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To leverage the strengths of both modalities, we utilize pre-trained models for unimodal cell representation learning and natural language generation.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the text LLM, we utilize LLaMA-2 7B [47], a decoder-only transformer that excels at text generation. Its extensive pre-training and generative architecture make it well-suited for biomedical text understanding and generation.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During this generative pre-training phase, we freeze the parameters of the cell-to-text projector and update the parameters of the text LLM, scLLM, and the text-to-cell projector by minimizing the combined loss L c2t + L t2c .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Relabel this as the LLaMA-2 component used during scMMGPT pretraining, with external pretrained initialization, or remove it as a reconstruction of LLaMA-2's own pretraining input flow.",
+      "severity": "blocking",
+      "step_id": "construct_cell_description",
+      "trajectory_id": "llama2_text_pretraining"
+    },
+    {
+      "detail": "This trajectory describes the normalized/top-value input as scGPT pretraining, although the paper presents scGPT as an already pretrained model used inside scMMGPT. The documented normalization and top-value preparation are scMMGPT input preparation; the paper does not expose scGPT's original pretraining pipeline.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To obtain high-quality cell representations, we employ scGPT [9], a state-of-the-art single-cell language model pre-trained on large-scale scRNA-seq data.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Since absolute gene expression values can vary across measurement platforms, we apply row-wise normalization before feeding into the model:",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To mitigate data sparsity, we retain the top 2,048 most expressed genes per cell, which captures the majority of meaningful signals.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Relabel the trajectory as scMMGPT pretraining input preparation for an externally pretrained scGPT initialization; do not present it as scGPT's original pretraining data flow.",
+      "severity": "blocking",
+      "step_id": "normalize_expression",
+      "trajectory_id": "scgpt_pretraining_input"
+    },
+    {
+      "detail": "The paper documents retaining/selecting the top 2,048 genes, but does not state a separate rank operation followed by a separate selection operation or establish that order as two model-input transformations. The explicit source operation is top-value selection.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To mitigate data sparsity, we retain the top 2,048 most expressed genes per cell, which captures the majority of meaningful signals.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For cellular input representation, we implement a top-value alignment strategy that selects the 2,048 highest-expressed genes along with their expression values.",
+          "section_id": "sec_0030"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Collapse the unsupported rank→select decomposition into a documented top-value selection call, retaining the descending/highest-expression criterion and count. Keep a separate rank call only if the paper or verified implementation explicitly documents it.",
+      "severity": "blocking",
+      "step_id": "rank_expression",
+      "trajectory_id": "scgpt_pretraining_input"
+    },
+    {
+      "detail": "The alignment objective omits the documented negative-sample branch/count and similarity configuration. The trajectory marks negative-sample arrangement as unspecified, although the paper explicitly states two negative samples per sample for InfoNCE; the architecture table also specifies cosine similarity.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We compute the alignment loss as a combination of the cell-text contrastive InfoNCE loss L InfoNCE and a cross-entropy cell-text matching loss L CE, thereby bringing paired representations closer while pushing unpaired ones apart:",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We select 2 negative samples for each sample to calculate the InfoNCE [74] loss.",
+          "section_id": "sec_0030"
+        },
+        {
+          "kind": "table",
+          "quote": "Similarity function | Cosine similarity",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented two-negative-sample control/branch and cosine-similarity parameter to the alignment objective while leaving the unrecovered score algebra and loss reduction opaque.",
+      "severity": "blocking",
+      "step_id": "stage1_align_modalities",
+      "trajectory_id": "scmmgpt_stage1_discriminative"
+    },
+    {
+      "detail": "The Stage 2 phase explicitly updates the text LLM and scLLM, but the cell-to-text trajectory leaves the opaque text-generation and cell-encoding calls without the documented update state. Only the frozen cell-to-text projector state is preserved.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During this generative pre-training phase, we freeze the parameters of the cell-to-text projector and update the parameters of the text LLM, scLLM, and the text-to-cell projector by minimizing the combined loss L c2t + L t2c .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the Stage 2 update state on the opaque text-LLM generation and scLLM encoding boundaries, and link it to the shared Stage 2 optimization state.",
+      "severity": "minor",
+      "step_id": "c2t_generate_description",
+      "trajectory_id": "scmmgpt_stage2_cell_to_text"
+    },
+    {
+      "detail": "The Stage 2 text-to-cell trajectory records the MLP as updated but omits the documented update state for the text-to-cell cross-attention projector and scGPT/scLLM pseudo-cell predictor.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During this generative pre-training phase, we freeze the parameters of the cell-to-text projector and update the parameters of the text LLM, scLLM, and the text-to-cell projector by minimizing the combined loss L c2t + L t2c .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Preserve the text-to-cell projector and scLLM update states on their opaque boundaries, while retaining the unresolved query/key/value and gene-head internals.",
+      "severity": "minor",
+      "step_id": "t2c_project_soft_prompt",
+      "trajectory_id": "scmmgpt_stage2_text_to_cell_pretraining"
+    },
+    {
+      "detail": "The assembly contains only pretraining trajectories and omits documented downstream inference and fine-tuning contexts. The paper describes cell-type annotation by minimizing combined losses over candidate text descriptions, scGPT representation extraction for clustering, and text-LLM fine-tuning for cell-description generation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "After two-stage pre-training, scMMGPT can be applied to various single-cell analysis tasks, either in a zero-shot manner or with additional fine-tuning.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Given a cell x ( i ) , we calculate its contrastive and matching losses against textual descriptions { t j } of all possible cell types, and select the class that minimizes the combined loss λ L InfoNCE +(1 -λ ) L CE as prediction.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we leverage the fully pre-trained scLLM ( i.e., scGPT) from both stages for zero-shot cell feature extraction. Formally, given a set of cells { x ( i ) } , we obtain their representations as c ( i ) = scGPT ( x ( i ) ) , which are then utilized for clustering.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For cell description generation tasks, we further fine-tune the text LLM with the cell-to-text translation loss L c2t, while freezing both the scLLM and the Q-former.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add separate inference and fine-tuning trajectories for annotation, clustering, and cell-description generation, including the documented candidate-text selection and freeze/update states.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "document-wide-coverage"
+    },
+    {
+      "detail": "The graph leaves out directly documented configuration metadata relevant to the modeled input/output boundaries, including the 60,697-entry gene vocabulary and the language-model output maximum length of 128.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Gene vocab size | 60,697",
+          "section_id": "sec_0029"
+        },
+        {
+          "kind": "table",
+          "quote": "LM output max length | 128",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach the gene-vocabulary size to the scGPT input boundary and the documented maximum output length to the relevant text-generation boundary, distinguishing the latter from unspecified decoding and stopping behavior.",
+      "severity": "minor",
+      "step_id": "c2t_generate_description",
+      "trajectory_id": "scmmgpt_stage2_cell_to_text"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001381",
+  "verdict": "revise"
+}

@@ -1,0 +1,112 @@
+{
+  "coverage_summary": "Reviewed all 11 trajectories. The reconstruction preserves most unresolved tokenizer, fusion, GCN, and confidence details, but several documented preprocessing steps and one model branch are missing or overasserted.",
+  "findings": [
+    {
+      "detail": "The pan-cancer graph is supplied as an already-formed node/edge object, although the paper documents protein-to-gene mapping, PPI collection, GO-term retrieval, protein–GO linking, and graph construction. This leaves a documented input-construction path absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To capture physical and functional relationships between proteins, we compiled 2,813,799 PPI edges from seven public databases.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Meanwhile, we retrieved 47,922 GO terms from the GO database.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Using NetworkX v.2.5, we constructed the complete knowledge graph comprising 621,152 nodes and 6,094,282 edges.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque documented knowledge-graph construction boundary, including the mapped protein/gene resources, PPI edges, GO terms, and protein–GO associations, before the GCN receives protein_go_graph.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The documented study-wise standardization followed by same-condition sample averaging is bundled into one unresolved boundary with no intermediate or operation call. The order of these two transformations is stated even though modality assembly remains unresolved.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Expression values were standardized within each study and averaged across samples under the same condition.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Split the documented standardization from the subsequent sample averaging: reuse normalize for within-study standardization and retain sample averaging as an opaque or source-backed aggregation boundary with an intermediate node.",
+      "severity": "blocking",
+      "step_id": "integrate_standardize_and_average_pan_cancer_features",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The pan-cancer trajectory omits documented dataset harmonization and identifier alignment before integrative modeling. This is especially relevant because the assembly later combines modality-specific features without an align call.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All datasets were subsequently deduplicated, standardized and reformatted to ensure compatibility for downstream integrative modelling and computational analysis.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we harmonized them to a common reference annotation, mapped to consistent gene identifiers (Ensembl IDs to gene symbols) and normalized for integration with uniformly processed datasets.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "provided quantification matrices were harmonized with reprocessed datasets through standardized identifier mapping, intensity normalization and alignment to a unified protein reference database",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented upstream harmonization/alignment boundary, reusing align where the correspondence is explicit, before modality integration and graph feature construction.",
+      "severity": "blocking",
+      "step_id": "integrate_standardize_and_average_pan_cancer_features",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The GCN step includes binary-classifier training in its component description and receives labels, but outputs only node embeddings. The paper explicitly documents a gene-cancer prediction result, so the graph omits a documented result operand.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The graph model was trained as a binary classifier, predicting whether each gene plays a functional role in cancer.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The final model was optimized using the binary cross-entropy loss over labelled gene nodes:",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Retain the final node embeddings for downstream fine-tuning and add a separate opaque classifier prediction/training-result output for the labelled gene nodes.",
+      "severity": "blocking",
+      "step_id": "propagate_pan_cancer_graph",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The PD-kinase trajectory asserts a separate kinase-specific pretrained embedding branch, kinase omics branch, kinase subgraph, and fusion path. The paper documents one PD-specific subgraph and says the PD model was later refined for kinase prediction, without establishing a separate pathway or tensor construction.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To identify functional regulators in PD, we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features. We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Collapse the unsupported kinase-specific feature path into an opaque refinement of the documented PD model, retaining only the explicitly supported kinase selection/labels and prediction task.",
+      "severity": "blocking",
+      "step_id": "combine_pd_kinase_features",
+      "trajectory_id": "xunzim_fine_tuning_pd_kinases"
+    }
+  ],
+  "record_id": "update_2026-08-09__manual_recall_xunzi",
+  "verdict": "revise"
+}

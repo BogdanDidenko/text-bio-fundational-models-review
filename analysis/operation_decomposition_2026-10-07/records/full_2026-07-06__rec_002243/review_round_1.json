@@ -1,0 +1,217 @@
+{
+  "coverage_summary": "Revise. Several documented branches are missing, and multiple decompositions assert serialization or prompt handling that the paper does not establish. Some opaque model boundaries are appropriately preserved.",
+  "findings": [
+    {
+      "detail": "The pretraining tokenizer call binds DNA, protein, and English sources to one reconstructed token stream. The paper establishes a shared BPE tokenizer and training data sources, but does not state that the modalities are jointly interleaved or packed into one stream.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A  pre-trained  model  was  built  using  English  data,  DNA  sequences,  and  protein  sequences,  with  a unied BPE tokenizer.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In  this  study,  we  trained  a  BPE  tokenizer from scratch using DNA, protein, and English data, resulting in a vocabulary of approximately 100,000 tokens.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent modality branches or a genuinely opaque multimodal input boundary, preserving the shared tokenizer resource without asserting joint stream packing or interleaving.",
+      "severity": "blocking",
+      "step_id": "tokenize_multimodal_pretraining_data",
+      "trajectory_id": "gpt2_gene_eng_pretraining_multimodal"
+    },
+    {
+      "detail": "The documented sentence-splitting model and its genome-processing use are absent from the assembly.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Based on this model, we  further  trained  three  new  models  using  English datasets  for  sentence  splitting,  paragraph segmentation, and summarization tasks, respectively.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After completing the segmentation and chapter division, we used a sentence segmentation model to process each paragraph into sentences.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Therefore, for  sentence segmentation, it is sucient to use the model to predict the probability that the next token in a given text is a period, thereby completing the sentence segmentation.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the sentence-splitting model branch, including its documented period-prediction behavior and the inference path from DNA paragraphs to sentences.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "missing_sentence_segmentation_model"
+    },
+    {
+      "detail": "The assembly omits documented paragraph-vector generation and both dynamic-clustering stages used to construct DNA Sections and DNA Chapters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Using a pre-trained model, we generated vector representations for each paragraph from Step 2. We then  performed  dynamic  clustering  on  these  vectors  to  form  a  second-level  directory.",
+          "section_id": "sec_0027"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Utilizing  the  centroid  vectors  from  the  second-level  paragraphs,  we  executed  another  round  of dynamic clustering to form third-level paragraphs.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add opaque or appropriately documented boundaries for paragraph-vector generation, first clustering, centroid production, and second clustering; do not invent the pooling or clustering algorithms.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "missing_genome_hierarchy_construction"
+    },
+    {
+      "detail": "The PAWS-X preparation step assigns a serialize operation and ordered template despite the cited paper text documenting only the dataset/task, not pair serialization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following  the  approach  described  in  reference [30] ,  we  ne-tuned  the  pre-trained  model  using  the English semantic similarity task from the PAWSX dataset to enable language transfer capabilities.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the serialize decomposition or retain pair formatting as an opaque unresolved boundary until the paper establishes the serialization template, separators, and order.",
+      "severity": "blocking",
+      "step_id": "prepare_pawsx_pair",
+      "trajectory_id": "gpt2_gene_eng_ft_pawsx_finetuning"
+    },
+    {
+      "detail": "The DNA similarity-pair preparation step outputs a serialized pair, although the cited evidence only establishes evaluation on DNA similarity datasets and does not document serialization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "DNA150s,  DNA150,  and  DNA50  are  DNA  sequence  similarity  judgment  datasets  constructed  with varying lengths and strategies.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The model ne-tuned on the English semantic similarity dataset was tested on these DNA datasets, achieving an accuracy of over 79% across all cases.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Keep the dataset-pair input and model-evaluation boundary opaque; do not label the intermediate as serialized unless the paper supports that transformation.",
+      "severity": "blocking",
+      "step_id": "prepare_dna_similarity_pair",
+      "trajectory_id": "gpt2_gene_eng_ft_dna_similarity_inference"
+    },
+    {
+      "detail": "The summary-model training graph omits the documented filtering of short or noisy samples before training serialization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "After preprocessing,  we  ltered  out  samples  that  were  too  short  or  contained  excessive  noise,  ensuring high-quality training data and consistency in the task.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a selection/filtering step before template serialization, preserving the paper's qualitative criterion without inventing thresholds.",
+      "severity": "blocking",
+      "step_id": "serialize_review_summary_training_sample",
+      "trajectory_id": "gene_eng_gpt2_summary_amazon_finetuning"
+    },
+    {
+      "detail": "The DNA summary-generation call outputs the input prompt node `dna_summary_prompt`, so the graph has no distinct generated-summary result and creates a self-referential output binding.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "User  inputs,  such  as  DNA  sequences,  were  formatted  as  '[Original  Text] TL;DR:'. However, during summary generation, we constrained the model's output.",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "ensuring that the  model  only  outputs  vocabulary  pertinent  to  the  DNA  theme.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Create a separate generated-summary output node and connect the constrained-generation boundary to that result rather than to the prompt node.",
+      "severity": "blocking",
+      "step_id": "generate_dna_summary",
+      "trajectory_id": "gene_eng_gpt2_summary_dna_summary_inference"
+    },
+    {
+      "detail": "The section-title route applies the deployment prompt template to concatenated paragraph summaries, but the paper does not state that this non-DNA summary sequence is formatted as `[Original Text] TL;DR:`.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Extract summaries from all DNA paragraphs within the section. Concatenate these summaries in order to form a long sequence.",
+          "section_id": "sec_0029"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "User  inputs,  such  as  DNA  sequences,  were  formatted  as  '[Original  Text] TL;DR:'.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the asserted serialize call or represent prompt formatting as an unresolved model-input boundary for this route.",
+      "severity": "blocking",
+      "step_id": "format_section_summary_prompt",
+      "trajectory_id": "gene_eng_gpt2_summary_section_title_inference"
+    },
+    {
+      "detail": "The section-title graph treats `paragraph_summaries` as an unproduced input even though the paper explicitly documents extracting summaries from every DNA paragraph. The upstream summary-generation boundary is therefore missing.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Extract summaries from all DNA paragraphs within the section.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque summary-generation step producing paragraph summaries, while leaving its exact tokenization, decoding, and stopping behavior unresolved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "gene_eng_gpt2_summary_section_title_inference"
+    },
+    {
+      "detail": "The volume-title route applies the deployment prompt template to concatenated section titles, but the cited text does not establish that this route uses that template.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Similar to the above method, concatenate the titles of all 'DNA Sections' within the volume to form a long sequence.",
+          "section_id": "sec_0030"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "User  inputs,  such  as  DNA  sequences,  were  formatted  as  '[Original  Text] TL;DR:'.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the asserted volume prompt-serialization operation or retain the input formatting as an opaque unresolved boundary.",
+      "severity": "blocking",
+      "step_id": "format_volume_summary_prompt",
+      "trajectory_id": "gene_eng_gpt2_summary_volume_title_inference"
+    },
+    {
+      "detail": "The first-256 selection is bound to `volume_summary_prompt` and produces token IDs, although the paper states only that the first 256 tokens of the concatenated sequence are used. The graph therefore asserts both an unsupported prompt-placement order and a text-to-token type transition inside `select`.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Similar to the above method, concatenate the titles of all 'DNA Sections' within the volume to form a long sequence.",
+          "section_id": "sec_0030"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Most summarization algorithms require processing only a portion of the core text. In this case, our pre-trained model has a maximum input size of 256 tokens, meaning that the rst 256 tokens of the sequence are used for summary extraction.",
+          "section_id": "sec_0030"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Bind selection to a documented token sequence, preserve whether prompt formatting precedes selection as unresolved, and add a separate tokenization boundary if needed; do not make `select` perform tokenization.",
+      "severity": "blocking",
+      "step_id": "select_volume_summary_prefix",
+      "trajectory_id": "gene_eng_gpt2_summary_volume_title_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_002243",
+  "verdict": "revise"
+}

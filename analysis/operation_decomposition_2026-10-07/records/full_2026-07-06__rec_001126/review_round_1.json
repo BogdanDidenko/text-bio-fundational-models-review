@@ -1,0 +1,147 @@
+{
+  "coverage_summary": "Revise. The four pretraining routes are partially grounded, but the assembly omits explicit transcriptome filtering, collapses documented autoregressive preprocessing, omits corpus augmentation/sampling, and does not cover the documented encoder, predictor, explainer, and fine-tuning/inference routes.",
+  "findings": [
+    {
+      "detail": "The assembly contains only four pretraining trajectories. It omits the documented gene-embedding encoder, both cell-embedding strategies, BioUniBench predictor routes, attention/text explainer route, and the instruction-fine-tuning lifecycle stage.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To encode genes, we used CellHermes as an encoder by taking the hidden embedding of the last token",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For cell-level representation learning, we considered two strategies",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "All of these heterogeneous biological knowledge sources, despite differing input formats, were converted into a unified instruction-response format.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To explain predictions, we use both attention-based and text-based reasoning approaches.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We built CellHermes by instruction fine-tuning a pretrained LLaMA-3.1-8B-Instruct model using LoRA adaptation.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add trajectories for gene embedding, CellHermes-s and CellHermes-w cell embedding, BioUniBench task configurations, attention-based explanation, text-based explanation, and the documented LoRA fine-tuning/inference phases.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The transcriptome MLM path connects the preprocessed matrix directly to ranking, omitting the documented gene filtering. The paper filters mitochondrial and ribosomal genes, removes genes without symbols, and retains protein-coding genes before ranking; the current matrix shape and path therefore do not represent the stated model input vocabulary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For the Tabula Sapiens dataset, which contains 61,759 genes, we filtered out mitochondrial and ribosome genes, as well as genes without gene symbols.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We then only retained the protein-encoding genes, resulting in a final set of 19,306 genes.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Insert a documented selection/filtering step between preprocessing and ranking, preserve its criteria and retained-gene resource, and connect ranking to the filtered matrix.",
+      "severity": "blocking",
+      "step_id": "preprocess_transcriptome",
+      "trajectory_id": "pretraining_transcriptome_mlm"
+    },
+    {
+      "detail": "The autoregressive trajectory uses an opaque null-operation boundary from the raw count matrix to ranked genes even though the paper explicitly states the ordered normalization, gene filtering, ranking, and top-gene truncation operations. This also bypasses the documented intermediate preprocessed matrix.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Then the count matrix was row-normalized (summing to 10,000) and log-normalized by Scanpy, yielding the preprocessed transcript matrix.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Next, we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand the null boundary into the documented ordered preprocessing, filtering, ranking, and selection calls, or preserve each documented operation in a source-backed boundary with connected inputs and outputs.",
+      "severity": "blocking",
+      "step_id": "prepare_ranked_genes",
+      "trajectory_id": "pretraining_transcriptome_ar"
+    },
+    {
+      "detail": "The corpus-construction path omits documented prompt augmentation and random corpus sampling. These operations determine the textual inputs used for CellHermes training and are absent from all trajectories.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To enhance linguistic diversity, we used ChatGPT-4o to generate 20 paraphrased prompt variants for sequence-level instruction templates.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We randomly subsampled different numbers of samples from each dataset to test its impact on model performance.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The final corpus, consisting of randomly sampled 0.1 million sequence-based instructions and 0.2 million graph-based instructions, was used to pretrain CellHermes.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add dataset-level augmentation and sampling stages, preserving the 20 prompt variants and the documented final sequence/graph corpus sampling as invocation parameters or explicit source boundaries.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The masked-node route does not preserve the documented graph-template depth constraint. Its invocation leaves hop-level context unspecified even though the paper states that graph templates vary by hop level and the maximum neighborhood depth is three.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For graph-based data, we designed five templates for masked node prediction",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the maximum neighborhood depth in our graph templates in this study was set to three.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the five-template family, hop-level variation, and maximum depth of three while leaving the selected per-example hop unknown if the text does not identify it.",
+      "severity": "minor",
+      "step_id": "serialize_masked_node_graph",
+      "trajectory_id": "pretraining_ppi_masked_node"
+    },
+    {
+      "detail": "The masked-link route uses a generic template description and omits the documented ten-template family and maximum three-hop neighborhood constraint. Its stated graph-context order is also not a concrete order established by the supplied text.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we designed five templates for masked node prediction and ten templates for mask link prediction, each varying by hop-level neighborhood information",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the maximum neighborhood depth in our graph templates in this study was set to three.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the ten masked-link templates, hop-level variation, and maximum depth of three; mark lexical/order details as unspecified unless supplementary evidence establishes them.",
+      "severity": "minor",
+      "step_id": "construct_masked_link_instruction",
+      "trajectory_id": "pretraining_ppi_masked_link"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001126",
+  "verdict": "revise"
+}

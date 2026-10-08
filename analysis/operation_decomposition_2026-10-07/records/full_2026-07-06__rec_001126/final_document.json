@@ -1,0 +1,1402 @@
+{
+  "coverage_questions": [
+    "The atlas specifies 14 routes, while the supplied paper text groups several predictor configurations and does not enumerate every route separately.",
+    "Exact BioUniBench prompt templates, field order, answer serialization, and tokenizer receipt are deferred to supplementary information not supplied here.",
+    "The exact weighting and normalization used by CellHermes-w are unspecified."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "add",
+        "project",
+        "concatenate"
+      ],
+      "source_operation": "expression_weighted_gene_embedding_average",
+      "why_no_existing_operation": "The paper documents a weighted average using expression levels, while the catalog has no weighted-average operation and the supplied text does not establish an equivalent ordered decomposition."
+    },
+    {
+      "compared_operation_ids": [
+        "add",
+        "rank",
+        "select"
+      ],
+      "source_operation": "aggregate_subtoken_attention_to_gene_scores",
+      "why_no_existing_operation": "The paper documents aggregation of sub-token attention weights into gene-level scores, but the aggregation algebra is not represented by an existing catalog operation."
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001126",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Then the count matrix was row-normalized (summing 𝑗 𝑖 to 10,000) and log-normalized by Scanpy, yielding the preprocessed transcript matrix .",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In MLM, the instruction specifies which tokens  are  masked,  and  the  answer  corresponds  to  the  missing  tokens.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellHermes transcriptome MLM",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell rows",
+            "gene columns"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For a single-cell transcriptome dataset, we transform it into a gene sequence structure for each  cell  to  enable  the  use  of  LLMs.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Single-cell transcriptome count matrix.",
+          "node_id": "count_matrix",
+          "representation_type": "transcriptome_count_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell rows",
+            "gene columns"
+          ],
+          "contextual_role": "preprocessed_biological_data",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then the count matrix was row-normalized (summing 𝑗 𝑖 to 10,000) and log-normalized by Scanpy, yielding the preprocessed transcript matrix .",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Preprocessed transcript matrix.",
+          "node_id": "preprocessed_matrix",
+          "representation_type": "normalized_log_transcript_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": "Exact Scanpy parameters are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "ranked gene positions"
+          ],
+          "contextual_role": "selected_biological_sequence",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Ranked and selected gene identities.",
+          "node_id": "ranked_genes",
+          "representation_type": "ranked_gene_sequence",
+          "symbolic_shape": [
+            "n_cells",
+            "n_ranked_genes"
+          ],
+          "uncertainty": "The source states top 100 for the described dataset."
+        },
+        {
+          "axis_semantics": [
+            "text positions"
+          ],
+          "contextual_role": "textualized_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For sequence data, we  designed  four  templates  for  masked  language  modeling  (MLM)  and  autoregressive prediction, where gene identities were serialized into natural language 'sentences' based on gene expression levels.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Natural-language gene-expression sentence.",
+          "node_id": "gene_sentence",
+          "representation_type": "natural_language_gene_sentence",
+          "symbolic_shape": [
+            "n_text_positions"
+          ],
+          "uncertainty": "Exact lexical template is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "masking_control",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, given a tokenized sequence of genes , a 𝑆 = 𝑠 1 , 𝑠 2 , …, 𝑆 𝑇 ( ) subset  of  tokens was  replaced  with  a  mask  token .",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Selected token positions for masking.",
+          "node_id": "mask_positions",
+          "representation_type": "token_position_selector",
+          "symbolic_shape": [
+            "n_masked_positions"
+          ],
+          "uncertainty": "Mask-selection rule is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "model_input_symbol",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, given a tokenized sequence of genes , a 𝑆 = 𝑠 1 , 𝑠 2 , …, 𝑆 𝑇 ( ) subset  of  tokens was  replaced  with  a  mask  token .",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Mask token.",
+          "node_id": "mask_token",
+          "representation_type": "special_mask_token",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "masked_language_model_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, given a tokenized sequence of genes , a 𝑆 = 𝑠 1 , 𝑠 2 , …, 𝑆 𝑇 ( ) subset  of  tokens was  replaced  with  a  mask  token .",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Tokenized gene sequence with selected tokens replaced by the mask token.",
+          "node_id": "masked_gene_tokens",
+          "representation_type": "masked_gene_token_ids",
+          "symbolic_shape": [
+            "n_token_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "instruction token positions"
+          ],
+          "contextual_role": "instruction_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, the instruction specifies which tokens  are  masked,  and  the  answer  corresponds  to  the  missing  tokens.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "MLM instruction supplied to the LLM.",
+          "node_id": "mlm_instruction",
+          "representation_type": "textual_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens"
+          ],
+          "uncertainty": "Answer serialization is unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact Scanpy normalization parameters were used?",
+        "What mask-selection distribution and instruction template were used?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "mlm_instruction",
+          "port_role": "textual_instruction"
+        }
+      ],
+      "recipient_component": "LLaMA-3.1-8B-Instruct with LoRA adapter",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Transcriptome preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "count_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "normalize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "preprocess_transcriptome::normalized_counts"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "row normalization summing to 10,000"
+                },
+                {
+                  "name": "axes",
+                  "value": "genes within each cell"
+                },
+                {
+                  "name": "scope",
+                  "value": "each cell"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "preprocess_transcriptome::normalized_counts"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "preprocessed_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "Scanpy log-normalization"
+                },
+                {
+                  "name": "offset",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "base",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then the count matrix was row-normalized (summing 𝑗 𝑖 to 10,000) and log-normalized by Scanpy, yielding the preprocessed transcript matrix .",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "count_matrix",
+              "port_role": "count_matrix"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "cell rows",
+                "gene columns"
+              ],
+              "contextual_role": "documented_intermediate",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Then the count matrix was row-normalized (summing 𝑗 𝑖 to 10,000) and log-normalized by Scanpy, yielding the preprocessed transcript matrix .",
+                  "section_id": "sec_0014"
+                }
+              ],
+              "information_content": "Row-normalized count matrix.",
+              "node_id": "preprocess_transcriptome::normalized_counts",
+              "origin": "documented_intermediate",
+              "representation_type": "row_normalized_count_matrix",
+              "symbolic_shape": [
+                "n_cells",
+                "n_genes"
+              ],
+              "uncertainty": null
+            }
+          ],
+          "operation_type": "row_and_log_normalization",
+          "outputs": [
+            "preprocessed_matrix"
+          ],
+          "step_id": "preprocess_transcriptome",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Gene ranking and top-gene selection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "preprocessed_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "rank",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "rank_genes::ranked_values"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "order",
+                  "value": "descending expression"
+                },
+                {
+                  "name": "tie_handling",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "scope",
+                  "value": "within each cell"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "rank_genes::ranked_values"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "ranked_genes"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "top 100 genes per cell"
+                },
+                {
+                  "name": "method",
+                  "value": "truncate after ranking"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "preprocessed_matrix",
+              "port_role": "expression_values"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "cells",
+                "ranked gene positions"
+              ],
+              "contextual_role": "documented_intermediate",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+                  "section_id": "sec_0014"
+                }
+              ],
+              "information_content": "Gene identities ordered by expression rank.",
+              "node_id": "rank_genes::ranked_values",
+              "origin": "documented_intermediate",
+              "representation_type": "ranked_gene_identifiers",
+              "symbolic_shape": [
+                "n_cells",
+                "n_ranked_genes"
+              ],
+              "uncertainty": null
+            }
+          ],
+          "operation_type": "rank_and_select_top_genes",
+          "outputs": [
+            "ranked_genes"
+          ],
+          "step_id": "rank_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Sequence serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ranked_genes"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_sentence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "sequence-specific instruction template"
+                },
+                {
+                  "name": "order",
+                  "value": "ranked gene order"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene identities to natural-language sentence"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For sequence data, we  designed  four  templates  for  masked  language  modeling  (MLM)  and  autoregressive prediction, where gene identities were serialized into natural language 'sentences' based on gene expression levels.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ranked_genes",
+              "port_role": "ranked_gene_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_gene_sequence",
+          "outputs": [
+            "gene_sentence"
+          ],
+          "step_id": "serialize_gene_sentence",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Tokenization and MLM masking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_sentence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "tokenize_and_mask::gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "LLaMA-3.1-8B-Instruct tokenizer"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "source tokenizer"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language gene sentence"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "tokenize_and_mask::gene_tokens"
+                  ],
+                  "port": "state"
+                },
+                {
+                  "node_ids": [
+                    "mask_token"
+                  ],
+                  "port": "replacements"
+                },
+                {
+                  "node_ids": [
+                    "mask_positions"
+                  ],
+                  "port": "indices"
+                }
+              ],
+              "operation_id": "update",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "masked_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "replace selected token positions with mask token"
+                },
+                {
+                  "name": "preserve_unselected",
+                  "value": "true"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, given a tokenized sequence of genes , a 𝑆 = 𝑠 1 , 𝑠 2 , …, 𝑆 𝑇 ( ) subset  of  tokens was  replaced  with  a  mask  token .",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_sentence",
+              "port_role": "gene_sentence"
+            },
+            {
+              "node_id": "mask_positions",
+              "port_role": "mask_positions"
+            },
+            {
+              "node_id": "mask_token",
+              "port_role": "mask_token"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "token positions"
+              ],
+              "contextual_role": "documented_intermediate",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "In MLM, given a tokenized sequence of genes , a 𝑆 = 𝑠 1 , 𝑠 2 , …, 𝑆 𝑇 ( ) subset  of  tokens was  replaced  with  a  mask  token .",
+                  "section_id": "sec_0015"
+                }
+              ],
+              "information_content": "Tokenized gene sequence before masking.",
+              "node_id": "tokenize_and_mask::gene_tokens",
+              "origin": "documented_intermediate",
+              "representation_type": "gene_token_ids",
+              "symbolic_shape": [
+                "n_token_positions"
+              ],
+              "uncertainty": null
+            }
+          ],
+          "operation_type": "tokenize_and_mask",
+          "outputs": [
+            "masked_gene_tokens"
+          ],
+          "step_id": "tokenize_and_mask",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "MLM instruction construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "masked_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "mlm_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "MLM instruction template"
+                },
+                {
+                  "name": "order",
+                  "value": "masked sequence with task instruction"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "mask token and task description to instruction text"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In MLM, the instruction specifies which tokens  are  masked,  and  the  answer  corresponds  to  the  missing  tokens.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "masked_gene_tokens",
+              "port_role": "masked_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_mlm_instruction",
+          "outputs": [
+            "mlm_instruction"
+          ],
+          "step_id": "construct_mlm_instruction",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Transcriptomic sequence masked-language-modeling emulation",
+      "trajectory_id": "pretraining_transcriptome_mlm"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the instruction is the prefix sequence, and the answer is the next tokens.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellHermes transcriptome autoregressive model",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell rows",
+            "gene columns"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For a single-cell transcriptome dataset, we transform it into a gene sequence structure for each  cell  to  enable  the  use  of  LLMs.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Single-cell transcriptome count matrix.",
+          "node_id": "count_matrix",
+          "representation_type": "transcriptome_count_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "ranked gene positions"
+          ],
+          "contextual_role": "selected_biological_sequence",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Ranked gene identities selected for the cell sequence.",
+          "node_id": "ranked_genes",
+          "representation_type": "ranked_gene_sequence",
+          "symbolic_shape": [
+            "n_cells",
+            "n_ranked_genes"
+          ],
+          "uncertainty": "The source states top 100 for the described dataset."
+        },
+        {
+          "axis_semantics": [
+            "text positions"
+          ],
+          "contextual_role": "textualized_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For sequence data, we  designed  four  templates  for  masked  language  modeling  (MLM)  and  autoregressive prediction, where gene identities were serialized into natural language 'sentences' based on gene expression levels.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Natural-language gene sequence sentence.",
+          "node_id": "gene_sentence",
+          "representation_type": "natural_language_gene_sentence",
+          "symbolic_shape": [
+            "n_text_positions"
+          ],
+          "uncertainty": "Exact lexical template is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "instruction token positions"
+          ],
+          "contextual_role": "instruction_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "the instruction is the prefix sequence, and the answer is the next tokens.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Autoregressive prefix instruction.",
+          "node_id": "ar_instruction",
+          "representation_type": "textual_prefix_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens"
+          ],
+          "uncertainty": "Answer concatenation and teacher-forcing receipt are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact preprocessing and autoregressive template were used?",
+        "How are answer tokens concatenated with the prefix?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "ar_instruction",
+          "port_role": "textual_prefix_instruction"
+        }
+      ],
+      "recipient_component": "LLaMA-3.1-8B-Instruct with LoRA adapter",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Ranked sequence preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "count_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The supplied text states normalization, ranking, filtering, and truncation, but this trajectory retains the complete preparation as an unexpanded source boundary."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we ranked the gene expression values for each cell and truncated the top 100 genes for each cell",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "count_matrix",
+              "port_role": "count_matrix"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepare_ranked_gene_sequence",
+          "outputs": [
+            "ranked_genes"
+          ],
+          "step_id": "prepare_ranked_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Sequence serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ranked_genes"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_sentence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "autoregressive sequence template"
+                },
+                {
+                  "name": "order",
+                  "value": "ranked gene order"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene identities to natural-language sentence"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For sequence data, we  designed  four  templates  for  masked  language  modeling  (MLM)  and  autoregressive prediction, where gene identities were serialized into natural language 'sentences' based on gene expression levels.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ranked_genes",
+              "port_role": "ranked_gene_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_gene_sequence",
+          "outputs": [
+            "gene_sentence"
+          ],
+          "step_id": "serialize_gene_sentence",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Autoregressive instruction construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_sentence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "ar_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "autoregressive instruction template"
+                },
+                {
+                  "name": "order",
+                  "value": "prefix sequence order"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "prefix sequence and next-token task"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "the instruction is the prefix sequence, and the answer is the next tokens.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_sentence",
+              "port_role": "prefix_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_autoregressive_instruction",
+          "outputs": [
+            "ar_instruction"
+          ],
+          "step_id": "construct_ar_instruction",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Transcriptomic sequence autoregressive next-token prediction",
+      "trajectory_id": "pretraining_transcriptome_ar"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": " In  masked  node prediction, the instruction encodes the graph context with a masked node, and the answer is the  identity  of  the  node.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellHermes PPI masked-node model",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "gene vertices",
+            "gene vertices"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then the PPI network can be represented as , where is the set 𝐺 = (𝑉, 𝐴) 𝑉 of genes, is the adjacency matrix. 𝐴 ∈ {0, 1} |𝑉|× 𝑉 | |",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Human physical PPI graph.",
+          "node_id": "ppi_graph",
+          "representation_type": "ppi_graph",
+          "symbolic_shape": [
+            "n_genes",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "text positions"
+          ],
+          "contextual_role": "textualized_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For  graph-based  data,  we  designed  five  templates  for  masked  node  prediction  and  ten templates  for  mask  link  prediction,  each  varying  by  hop-level  neighborhood  information",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Natural-language graph context with a masked node.",
+          "node_id": "masked_node_statement",
+          "representation_type": "natural_language_masked_node_context",
+          "symbolic_shape": [
+            "n_text_positions"
+          ],
+          "uncertainty": "Exact hop and lexical layout are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "instruction token positions"
+          ],
+          "contextual_role": "instruction_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": " In  masked  node prediction, the instruction encodes the graph context with a masked node, and the answer is the  identity  of  the  node.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Masked-node instruction.",
+          "node_id": "masked_node_instruction",
+          "representation_type": "textual_graph_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens"
+          ],
+          "uncertainty": "Exact answer serialization is unspecified."
+        }
+      ],
+      "open_questions": [
+        "Which hop-level graph template is used for each example?",
+        "How is the graph context tokenized?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "masked_node_instruction",
+          "port_role": "textual_graph_instruction"
+        }
+      ],
+      "recipient_component": "LLaMA-3.1-8B-Instruct with LoRA adapter",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "PPI graph serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ppi_graph"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "masked_node_statement"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "one of five masked-node templates"
+                },
+                {
+                  "name": "order",
+                  "value": "graph-context order"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene vertices and relations to natural-language graph context"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For  graph-based  data,  we  designed  five  templates  for  masked  node  prediction  and  ten templates  for  mask  link  prediction,  each  varying  by  hop-level  neighborhood  information",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ppi_graph",
+              "port_role": "graph_data"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_masked_node_graph",
+          "outputs": [
+            "masked_node_statement"
+          ],
+          "step_id": "serialize_masked_node_graph",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Masked-node instruction construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "masked_node_statement"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "masked_node_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "masked-node question-answer template"
+                },
+                {
+                  "name": "order",
+                  "value": "graph context followed by masked-node query"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "masked node to natural-language task instruction"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": " In  masked  node prediction, the instruction encodes the graph context with a masked node, and the answer is the  identity  of  the  node.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "masked_node_statement",
+              "port_role": "graph_context"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_masked_node_instruction",
+          "outputs": [
+            "masked_node_instruction"
+          ],
+          "step_id": "construct_masked_node_instruction",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "PPI graph masked node prediction",
+      "trajectory_id": "pretraining_ppi_masked_node"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "  edge was  masked, and the model was trained to (𝑢, 𝑣) ∈ 𝐸 predict its presence given the local context:",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": " instruction  specifies  the  graph neighborhood with a missing edge, and the answer is the predicted link.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellHermes PPI masked-link model",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "gene vertices",
+            "gene vertices"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then the PPI network can be represented as , where is the set 𝐺 = (𝑉, 𝐴) 𝑉 of genes, is the adjacency matrix. 𝐴 ∈ {0, 1} |𝑉|× 𝑉 | |",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Human physical PPI graph.",
+          "node_id": "ppi_graph",
+          "representation_type": "ppi_graph",
+          "symbolic_shape": [
+            "n_genes",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "text positions"
+          ],
+          "contextual_role": "textualized_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "  edge was  masked, and the model was trained to (𝑢, 𝑣) ∈ 𝐸 predict its presence given the local context:",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Graph neighborhood with a missing edge.",
+          "node_id": "masked_link_statement",
+          "representation_type": "natural_language_masked_link_context",
+          "symbolic_shape": [
+            "n_text_positions"
+          ],
+          "uncertainty": "Exact edge masking and lexical layout are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "instruction token positions"
+          ],
+          "contextual_role": "instruction_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": " instruction  specifies  the  graph neighborhood with a missing edge, and the answer is the predicted link.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Masked-link instruction.",
+          "node_id": "masked_link_instruction",
+          "representation_type": "textual_graph_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens"
+          ],
+          "uncertainty": "Exact answer serialization is unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact edge-masking and graph serialization procedure is used?",
+        "Which hop-level template is selected?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "masked_link_instruction",
+          "port_role": "textual_graph_instruction"
+        }
+      ],
+      "recipient_component": "LLaMA-3.1-8B-Instruct with LoRA adapter",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "PPI edge masking and graph-context construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The supplied text states that an edge is masked and local context is used, but does not establish an ordered catalog decomposition."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "  edge was  masked, and the model was trained to (𝑢, 𝑣) ∈ 𝐸 predict its presence given the local context:",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ppi_graph",
+              "port_role": "graph_data"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "mask_and_construct_link_context",
+          "outputs": [
+            "masked_link_statement"
+          ],
+          "step_id": "mask_and_construct_link_context",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Masked-link instruction construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "masked_link_statement"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "masked_link_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "masked-link question-answer template"
+                },
+                {
+                  "name": "order",
+                  "value": "graph neighborhood followed by missing-edge query"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "missing edge and link target to natural-language instruction"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": " instruction  specifies  the  graph neighborhood with a missing edge, and the answer is the predicted link.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "masked_link_statement",
+              "port_role": "graph_context"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_masked_link_instruction",
+          "outputs": [
+            "masked_link_instruction"
+          ],
+          "step_id": "construct_masked_link_instruction",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "PPI graph masked link prediction",
+      "trajectory_id": "pretraining_ppi_masked_link"
+    }
+  ]
+}

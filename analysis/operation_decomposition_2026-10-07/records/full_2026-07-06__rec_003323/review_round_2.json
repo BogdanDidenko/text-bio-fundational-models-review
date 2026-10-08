@@ -1,0 +1,92 @@
+{
+  "coverage_summary": "The opaque router boundaries are justified, but the reconstruction omits documented router supervision, o4-mini verifier coverage, TeamPath task routes, and the reasoning-correction branch.",
+  "findings": [
+    {
+      "detail": "The training graph does not connect the documented solution-setting choice to router training. The paper says the authors train R “with questions and choices,” but only the question is bound as input; router_choice remains unconnected.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We mark the best solution settings (one of the following choices: Reinforcement Learning (RL) (49), Supervised FineTuning (SFT) (50), and Test-Time Scaling (TTS) (39)) of each question, and train R with questions and choices.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Bind router_choice as a training-supervision input or represent an opaque training boundary receiving both the question and choice.",
+      "severity": "blocking",
+      "step_id": "route_training_input",
+      "trajectory_id": "teampath_router_fine_tuning"
+    },
+    {
+      "detail": "o4-mini is identified as a model variant but has no trajectory. The paper documents it as the default verifier in the human-AI collaboration pipeline, including conditional bypass and correction behavior.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Our pipeline utilizes one verifier (a VLM, default as o4-mini) to verify whether the answers and questions proposed by pathologists are correct or not. If it is justified as wrong, we will call the corrector (also a VLM, default as TeamPath used for Pathology VQA) to fix it. Otherwise, the correct answer will be returned.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an o4-mini verifier trajectory covering its documented inputs, conditional return of the human answer, correction call, and iterative verifier-corrector route.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "teampath_router_inference"
+    },
+    {
+      "detail": "The assembly covers only the router and omits documented TeamPath-7B routes for pathology VQA/reasoning, caption summarization, and cross-modality generation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This router accepts questions as input data and outputs the model it selects to solve specific problems.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To summarize the concepts in histopathology images and further generate image caption, we finetune our base model based on the paired image-caption dataset",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To perform the cross-modality generation task, we also finetune our base model based on the paired image-transcriptomic profile dataset",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add separate TeamPath-7B trajectories for pathology VQA/reasoning, caption summarization, and cross-modality generation, preserving unknown internal tokenization and fusion as opaque boundaries.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "teampath_router_inference"
+    },
+    {
+      "detail": "The documented reasoning-correction route is absent. It is a separate branch from router selection and from the verifier-corrector loop.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Here we have a reasoning corrector, which takes the wrong answers and reasoning paths from pathologists, and generates the correct reasoning path with the correct answer.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a reasoning-correction trajectory with wrong answer and reasoning-path inputs and corrected reasoning plus answer outputs.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "teampath_router_inference"
+    },
+    {
+      "detail": "The inference route leaves the solution-setting vocabulary and documented task mapping implicit. The exact dispatch encoding may remain uncertain, but RL, SFT, and TTS and their stated task assignments should be represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Here, RL is used for solving questions that require reasoning, and SFT is used for summarization and cross-modality generation. Since AI Copilot needs interactions with physicians, TTC is used for tasks requiring human-AI collaboration.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the documented setting vocabulary and task mapping as route metadata or downstream branches while retaining uncertainty about the exact encoding.",
+      "severity": "minor",
+      "step_id": "select_downstream_route",
+      "trajectory_id": "teampath_router_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003323",
+  "verdict": "revise"
+}

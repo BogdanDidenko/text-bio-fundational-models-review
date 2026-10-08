@@ -239,6 +239,57 @@ def _all_evidence(doc):
                     yield t["trajectory_id"], f"intermediate {n['node_id']}", e
 
 
+def closest_span_hint(text, quote):
+    """Return the closest exact source span so a repair can copy it verbatim."""
+    import difflib
+    probe = quote[:200]
+    match = difflib.SequenceMatcher(None, text, probe, autojunk=False).find_longest_match(0, len(text), 0, len(probe))
+    if match.size < 20:
+        return " (no close span found in this section; cite the section that states it)"
+    start = max(0, match.a - match.b)
+    return f"; closest exact text in this section: {text[start:start + len(quote)]!r}"
+
+
+def canonicalize_quotes(doc, sections):
+    """Replace quotes that differ from the source ONLY in whitespace with the exact source span.
+
+    Docling text contains irregular runs of spaces around symbols that agents cannot reproduce.
+    Words, punctuation and casing must still match exactly; anything else stays an error.
+    Returns the number of quotes replaced (recorded in the record status).
+    """
+    replaced = 0
+    cache = {}
+
+    def normalized(sid):
+        if sid not in cache:
+            text = sections[sid]["text"]
+            chars, index = [], []
+            for i, ch in enumerate(text):
+                if ch.isspace():
+                    if chars and chars[-1] == " ":
+                        continue
+                    chars.append(" ")
+                else:
+                    chars.append(ch)
+                index.append(i)
+            cache[sid] = ("".join(chars), index)
+        return cache[sid]
+
+    for _, _, e in _all_evidence(doc):
+        section = sections.get(e["section_id"])
+        if section is None or not e["quote"].strip() or e["quote"] in section["text"]:
+            continue
+        probe = re.sub(r"\s+", " ", e["quote"].strip())
+        norm, index = normalized(e["section_id"])
+        hit = norm.find(probe)
+        if hit < 0 or norm.find(probe, hit + 1) >= 0:
+            continue
+        start, end = index[hit], index[hit + len(probe) - 1] + 1
+        e["quote"] = section["text"][start:end]
+        replaced += 1
+    return replaced
+
+
 def validate_document(doc, record_id, sections, catalog, library_sha256, release):
     """Return (errors, warnings, assemblies). Errors block acceptance; warnings go to the reviewer."""
     errors, warnings = [], []
@@ -252,7 +303,8 @@ def validate_document(doc, record_id, sections, catalog, library_sha256, release
         if section is None:
             errors.append(f"{tid} / {where}: unknown section {e['section_id']}")
         elif not e["quote"].strip() or e["quote"] not in section["text"]:
-            errors.append(f"{tid} / {where}: quote is not a literal substring of {e['section_id']}: {e['quote'][:120]!r}")
+            errors.append(f"{tid} / {where}: quote is not a literal substring of {e['section_id']}: {e['quote'][:120]!r}"
+                          + closest_span_hint(section["text"], e["quote"]))
     seen_tids = set()
     for t in doc.get("trajectories", []):
         tid = t["trajectory_id"]
@@ -261,6 +313,30 @@ def validate_document(doc, record_id, sections, catalog, library_sha256, release
         seen_tids.add(tid)
         if not t["evidence"]:
             errors.append(f"{tid}: trajectory needs evidence")
+        for n in t["nodes"] + [n for s in t["steps"] for n in s["intermediate_nodes"]]:
+            shape, axes = n["symbolic_shape"], n["axis_semantics"]
+            if shape is not None and any(ch.isdigit() for axis in shape for ch in axis):
+                errors.append(f"{tid} / node {n['node_id']}: symbolic_shape {shape} contains a digit; use named axes only")
+            if shape is not None and axes is not None and len(shape) != len(axes):
+                errors.append(f"{tid} / node {n['node_id']}: symbolic_shape has {len(shape)} axes but axis_semantics has "
+                              f"{len(axes)}; give one axis_semantics entry per shape axis, or set axis_semantics to null")
+        defined = [n["node_id"] for n in t["nodes"]] + [n["node_id"] for s in t["steps"] for n in s["intermediate_nodes"]]
+        duplicated = sorted({n for n in defined if defined.count(n) > 1})
+        if duplicated:
+            errors.append(f"{tid}: node_id defined more than once {duplicated}")
+        known = set(defined)
+        refs = [("receipt_inputs", o["node_id"]) for o in t["receipt_inputs"]]
+        for s in t["steps"]:
+            refs += [(f"step {s['step_id']} inputs", o["node_id"]) for o in s["inputs"]]
+            refs += [(f"step {s['step_id']} outputs", n) for n in s["outputs"]]
+            for c in s["decomposition"]:
+                refs += [(f"step {s['step_id']} call {c['operation_id']} port {b['port']}", n)
+                         for b in c["inputs"] + c["outputs"] for n in b["node_ids"]]
+            refs += [(f"step {s['step_id']} bypass", n) for b in s["bypasses"] for n in (b["source_node_id"], b["target_node_id"])]
+        for where, node_id in refs:
+            if node_id not in known:
+                errors.append(f"{tid} / {where}: node {node_id!r} is not defined in this trajectory's nodes or any "
+                              "step's intermediate_nodes; define it (with evidence) or reference an existing node")
         for s in t["steps"]:
             if not s["evidence"]:
                 errors.append(f"{tid} / {s['step_id']}: step needs evidence")

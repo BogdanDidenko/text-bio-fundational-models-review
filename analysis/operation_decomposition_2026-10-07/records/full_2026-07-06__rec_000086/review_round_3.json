@@ -1,0 +1,142 @@
+{
+  "coverage_summary": "The reconstruction captures the main encoder, projection, multimodal-prompt, retrieval, generation, QA-filtering, instruction-training, and PROCYON-BIND boundaries. Several documented branches are missing or disconnected, and two bindings/evidence chains are unsupported.",
+  "findings": [
+    {
+      "detail": "The PROCYON-INSTRUCT training trajectories begin at instruction-example construction but omit the documented phenotype-description augmentation step used to create the training data.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To increase the diversity of phenotypes, we rephrase the original descriptions using OpenAI's GPT models. Our augmentation strategy accounts for different levels of description (e.g., rephrasing, summarization, and simplification)",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an upstream augment operation with the documented rephrasing, summarization, and simplification policy, and connect its output to the retrieval, QA, and phenotype-generation instruction datasets.",
+      "severity": "blocking",
+      "step_id": "construct_retrieval_instruction_example",
+      "trajectory_id": "procyon_instruct_fine_tuning_retrieval"
+    },
+    {
+      "detail": "The QA-filtering trajectory has no producing path for candidate_phenotypes or qa_scores. The candidate-generation trajectory ends at generated_phenotype, and no opaque QA-scoring branch emits qa_scores.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These QA scores are also used as a filtering mechanism (Methods Sec. 2.3, Extended Data Figure 2) to improve phenotype generation (Extended Data Figure 3).",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "vlm_description",
+          "quote": "QA filtering selects the highest-confidence outputs;",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Connect generated phenotype candidates to the filtering chain and add an opaque QA-scoring branch that produces qa_scores, while leaving its score and selection algebra unresolved.",
+      "severity": "blocking",
+      "step_id": "filter_phenotypes_with_qa",
+      "trajectory_id": "procyon_evaluation_qa_filtering"
+    },
+    {
+      "detail": "The bupropion route omits two explicitly documented prompt inputs: the novel task definition and the bupropion name. Its assembly currently contains only indication tokens and bupropion structure.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In this example, the input consists of a novel task definition, the description of indications (nicotine addiction or major depressive disorder), and the name and structure of bupropion.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the task-definition and bupropion-name inputs, tokenize or preserve them at the documented opaque boundary, and bind them into the multimodal prompt assembly.",
+      "severity": "blocking",
+      "step_id": "assemble_bupropion_multimodal_prompt",
+      "trajectory_id": "procyon_inference_indication_target_retrieval"
+    },
+    {
+      "detail": "ace2_binding_labels are bound as an input to the PROCYON-BIND prediction operation. The paper documents these labels as experimental evaluation outcomes used to assess separation and AUROC, not as predictor inputs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This dataset includes 58 detected ACE2 peptide binders and 5,072 non-binders [51]; the imbalance creates a challenging retrieval setting that mimics lead discovery in practice.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Despite a small fine-tuning dataset (approx. 1,000 samples), PROCYON-BIND achieves a statistically significant separation between binders and non-binders ... yielding an AUROC of 0.648 on peptide binders",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Remove ace2_binding_labels from the predictor's receipt inputs and retain them as a separate evaluation-side operand/context for AUROC and binder/non-binder comparison.",
+      "severity": "blocking",
+      "step_id": "predict_ace2_peptide_binding",
+      "trajectory_id": "procyon_bind_evaluation"
+    },
+    {
+      "detail": "The PROCYON-SPLIT retrieval step is supported only by a performance-ranking quote, which does not establish that the step compares a prompt with a protein library and emits ranked proteins.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "PROCYON-SPLIT is the top performing model in 5 out of 6 tasks, and is among the best three models in all tasks",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Replace or supplement the step evidence with the paper's explicit retrieval description: “For protein retrieval, a prompt is processed into the LLM and compared against a library of proteins. PROCYON then outputs a ranked list of proteins, domains, peptides, or polypeptides.”",
+      "severity": "blocking",
+      "step_id": "retrieve_split_ranked_proteins",
+      "trajectory_id": "procyon_split_evaluation_retrieval"
+    },
+    {
+      "detail": "The PROCYON-SPLIT QA generation step cites benchmark construction, which does not support the stated yes/no-generation transformation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We assess PROCYON-SPLIT's QA capabilities by constructing benchmarks from the test split of PROCYON-INSTRUCT (Figure 3a).",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Attach the explicit QA input/output evidence: “In QA, PROCYON receives a multimodal prompt (protein + phenotype description) and outputs a yes/no answer.”",
+      "severity": "blocking",
+      "step_id": "generate_split_qa_answer",
+      "trajectory_id": "procyon_split_evaluation_qa"
+    },
+    {
+      "detail": "The documented pleiotropic retrieval branch is absent. The reconstruction contains a generic single-prompt retrieval route but no composite multi-phenotype route, parallel individual-prompt retrieval, or aggregated-individual-ranks comparison.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We design a pleiotropic retrieval task where the model is prompted with descriptions of multiple phenotypes (up to four) and asked to prioritize proteins involved in all phenotypes ('composite prompt'). We compare composite prompts to aggregating retrieved lists from individual phenotype prompts ('aggregated individual ranks')",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the composite-prompt branch and the parallel individual-prompt/aggregated-ranks branch. Keep prompt fusion and aggregation opaque unless the paper specifies their algebra or ordering.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "procyon_inference_retrieval"
+    },
+    {
+      "detail": "The documented multiple-sclerosis inference path is absent. The paper specifies hallmark prompts, MS-related retrieval, four similarity categories, and control-gene comparisons, none of which appear in the reconstructed task-specific paths.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "First, neuropathologists prompted PROCYON using five MS neuropathological hallmarks",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To assess the disease specificity of each candidate, we use PROCYON to retrieve genes based on their association with MS and related disorders, which are grouped into four categories based on similarity to MS",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an MS-specific retrieval trajectory preserving the five hallmark prompts, candidate/control gene context, four similarity categories, and the resulting ranking/permutation-evaluation branch.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "procyon_inference_retrieval"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000086",
+  "verdict": "revise"
+}

@@ -1,0 +1,137 @@
+{
+  "coverage_summary": "Reviewed all supplied trajectories. The unresolved ViT, FiLM, fusion, and loss boundaries are appropriately retained, but benchmark coverage, neighbor-axis bindings, unsupported tokenization parameters, normalization order, and the documented scGPT fine-tuning objective require revision.",
+  "findings": [
+    {
+      "detail": "No trajectory represents the documented H2O-ccRCC and H2O-PRAD benchmark models or the independent HEST-1k-IDC-LymphNode evaluation cohort.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We benchmarked H2O ... on ... ccRCC ... and PRAD",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we trained H2O on predefined HEST-1k subsets, yielding task-specific models H2O-ccRCC and H2O-PRAD",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we additionally tested them on the additional HEST-1k-IDC-LymphNode dataset",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a benchmark evaluation trajectory for H2O-ccRCC, H2O-PRAD, and independent IDC-LymphNode inference, keeping benchmark-time patch extraction and internal H2O receipt opaque where unspecified.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "h2o_benchmark_evaluation"
+    },
+    {
+      "detail": "The neighbor-patch node has only a neighbor axis and does not preserve which K neighbors belong to each central patch. The same loss propagates through neighbor encoding, stacking, and aggregation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For K nearest neighbor patches {𝐼 𝑖,1 , 𝐼 𝑖,2 , … , 𝐼 𝑖,𝐾 }",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we encode them with the same ViT and then stack the resulting embeddings along the neighbor axis",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the central-instance-to-neighbor correspondence explicitly, for example with central-instance and neighbor axes, and preserve it through the context aggregation boundary.",
+      "severity": "blocking",
+      "step_id": "encode_neighbors",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder neighbor input likewise omits the central-instance axis, so the graph cannot establish the correspondence between each decoder patch and its neighboring patches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For K nearest neighbor patches {𝐼 𝑖,1 , 𝐼 𝑖,2 , … , 𝐼 𝑖,𝐾 }",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add the central patch/spot axis to the decoder neighbor representation or retain the complete correspondence as an unresolved aligned boundary.",
+      "severity": "blocking",
+      "step_id": "aggregate_decoder_context",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "The tokenization calls assert a scGPT vocabulary, gene-symbol source alphabet, and gene-token mapping that are not established by the cited paper text.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We follow up scGPT's scale and tokenize the ST expression data.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set vocabulary, segmentation, and source alphabet to unspecified unless directly supported, while retaining the documented tokenization step.",
+      "severity": "blocking",
+      "step_id": "tokenize_genes",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The scGPT tokenization call repeats the same unsupported vocabulary and mapping parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We follow up scGPT's scale and tokenize the ST expression data.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Remove the asserted vocabulary and mapping values or mark them unresolved in the scGPT-FT trajectory.",
+      "severity": "blocking",
+      "step_id": "scgpt_tokenize_genes",
+      "trajectory_id": "scgpt_ft_fine_tuning"
+    },
+    {
+      "detail": "The trajectory orders LayerNorm after concatenation and FiLM while acknowledging that placement is unknown. The supplied text only states that both streams are layer-normalized; it does not establish this order or the exact operands at that point.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Both streams are layer-normalized:",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The formulas are defined as:",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Represent LayerNorm placement as unresolved, or remove the sequential dependency that places it after the concatenation/FiLM steps.",
+      "severity": "blocking",
+      "step_id": "normalize_image_stream",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The scGPT-FT trajectory omits the documented fine-tuning objective that jointly reconstructs gene identity and continuous expression, despite labeling the trajectory as scGPT fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The fine-tuning objective was to jointly reconstruct both gene identity and its associated continuous expression level",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented reconstruction branch as an opaque objective/decoder boundary, or explicitly scope this trajectory to input encoding only and preserve the objective outside the assembly.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "scgpt_ft_fine_tuning"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000152",
+  "verdict": "revise"
+}

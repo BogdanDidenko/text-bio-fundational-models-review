@@ -10,7 +10,7 @@ from scripts import build_operation_corpus, build_representation_library
 from scripts.build_representation_library import BASE, compile_release
 from scripts.docling_graph_templates.representation_library import restore_source
 from scripts.operation_decomposition import (
-    ATLAS, CATALOG, PILOT_RECORDS, build_packet, encoded, evidence_entries, extraction_schema,
+    ATLAS, CATALOG, PILOT_RECORDS, build_packet, canonicalize_quotes, encoded, evidence_entries, extraction_schema,
     pilot_document, review_schema, sha, validate_document,
 )
 
@@ -108,6 +108,18 @@ class OperationDecompositionTests(unittest.TestCase):
         def mutate(doc):
             self._first_library_step(doc)["decomposition"][0]["operation_id"] = "gene_fusion"
         self.assertTrue(any("unknown operation_id" in e for e in self._errors(mutate)))
+
+    def test_only_whitespace_differences_are_canonicalized(self):
+        record, sections, doc = self._pilot()
+        doc = copy.deepcopy(doc)
+        evidence = doc["trajectories"][0]["evidence"][0]
+        original = evidence["quote"]
+        self.assertIn(" ", original)
+        evidence["quote"] = original.replace(" ", "   ", 1)
+        doc["trajectories"][0]["nodes"][0]["evidence"][0]["quote"] = original.upper()
+        self.assertEqual(canonicalize_quotes(doc, sections), 1)
+        self.assertEqual(evidence["quote"], original)
+        self.assertEqual(doc["trajectories"][0]["nodes"][0]["evidence"][0]["quote"], original.upper())
 
     def test_schemas_are_strict_for_structured_output(self):
         def walk(node):

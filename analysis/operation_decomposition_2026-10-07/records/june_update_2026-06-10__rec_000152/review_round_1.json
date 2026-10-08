@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "Reviewed all 8 supplied trajectories against the complete paper text. Several core operations and one benchmark trajectory are missing or misrepresented.",
+  "findings": [
+    {
+      "detail": "The central image step is left as opaque ViT encoding, but the paper explicitly states that the ViT produces a 384-dimensional vector which is then projected to 512 dimensions. The graph lacks this documented projection before FiLM/alignment.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The raw H&E image of cell 𝑖 is encoded by the ViT into a 384-dimension vector and then projected to 512-dimension",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an intermediate 384-dimensional image feature and a project call producing the 512-dimensional image embedding.",
+      "severity": "blocking",
+      "step_id": "encode_central_image",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The source says neighbor embeddings are stacked along a neighbor axis. A concatenate call with one already-stacked input does not represent stacking or creation of that axis.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "same ViT and then stack the resulting embeddings along the neighbor axis",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Replace the concatenate call with an opaque documented stack boundary, or add a source-backed stack operation; do not claim concatenation.",
+      "severity": "blocking",
+      "step_id": "stack_neighbor_embeddings",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The graph creates diameter_embedding and film_parameters nodes without representing the documented diameter embedding and linear mapping that produce FiLM parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a diameter index 𝑑𝑖 ... is embedded to 128-dimension and linearly mapped to FiLM parameters",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the diameter-index embedding and its linear projection to FiLM parameters, or retain them inside an opaque boundary while preserving these documented operations and dimensions.",
+      "severity": "blocking",
+      "step_id": "apply_diameter_film",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The FiLM step outputs one aligned_image_embedding, although the paper states that FiLM is applied to both image and context streams and that the two resulting 512-dimensional vectors are concatenated. The subsequent contrastive step also uses the same node as both input and output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "FiLM parameters ... shared for both streams",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the two 512-dimension vectors are concatenated as 𝑢𝑖",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Separate the conditioned image and context outputs and represent their documented concatenation where applicable; avoid a self-loop that presents contrastive training as an identity data transformation.",
+      "severity": "blocking",
+      "step_id": "apply_diameter_film",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The opaque contrastive step omits documented objective details: temperature-scaled dot-product similarity, paired positives, in-batch negatives, and within-modality cosine similarity.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a contrastive objective based on a temperature-scaled dot product between image embeddings and text embeddings",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "paired image-text embeddings are regarded as positive examples, while all remaining cross-pairs within the batch serve as negative examples",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Preserve these objective parameters and pair semantics on the opaque alignment boundary without inventing an algebraic decomposition.",
+      "severity": "minor",
+      "step_id": "contrastive_align_image_st",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder trajectory likewise collapses the central ViT-to-projection path, despite the paper documenting the 384-to-512 projection.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The raw H&E image of cell 𝑖 is encoded by the ViT into a 384-dimension vector and then projected to 512-dimension",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented projection between the opaque ViT output and decoder_image_embedding.",
+      "severity": "blocking",
+      "step_id": "encode_decoder_patch",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "The scGPT trajectories stop after token, expression, and condition embedding fusion. The paper identifies self-attention as part of the scGPT encoder, so the graph does not establish the documented encoder path to the ST embedding.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In scGPT, the self-attention module learns intra-cellular gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We use the scGPT architecture with pretrained weights, followed by additional fine-tuning, as the gene encoder",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a self-attention operation after the fused embedding, or explicitly retain the full scGPT fusion-plus-encoder boundary as unresolved.",
+      "severity": "blocking",
+      "step_id": "fuse_gene_modalities",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The scGPT-FT trajectory has the same omission: the fused embedding is directly treated as the model output without representing or preserving the documented scGPT self-attention encoder stage.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In scGPT, the self-attention module learns intra-cellular gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We use the scGPT architecture with pretrained weights, followed by additional fine-tuning, as the gene encoder",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add self_attention after fusion, or make the complete scGPT encoder an explicitly opaque boundary rather than ending at multimodal fusion.",
+      "severity": "blocking",
+      "step_id": "scgpt_fuse_inputs",
+      "trajectory_id": "scgpt_ft_fine_tuning"
+    },
+    {
+      "detail": "The documented H2O benchmark context is absent. The paper specifies task-specific H2O-ccRCC and H2O-PRAD models, held-out HEST-1k benchmark samples, and independent IDCLymphNode evaluation, but no benchmark trajectory or corresponding model configurations are represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We benchmarked H2O against HisToGene, BLEEP, and DeepPT, and OmiCLIP",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "yielding task-specific models H2O-ccRCC and H2O-PRAD",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a separate benchmark trajectory covering H2O-ccRCC, H2O-PRAD, held-out HEST-1k samples, and IDCLymphNode evaluation, with the appropriate receiving component and outputs.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "h2o_benchmark_evaluation"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000152",
+  "verdict": "revise"
+}

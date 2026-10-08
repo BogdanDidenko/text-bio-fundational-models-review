@@ -1,0 +1,67 @@
+{
+  "coverage_summary": "Reviewed the single scDiff missing-value-imputation training trajectory. The core projection, lookup, conditioning, cross-attention boundary, and decoding claims are generally supported, but the graph has three blocking lifecycle/context omissions or bindings.",
+  "findings": [
+    {
+      "detail": "The trajectory is labeled training, yet `simulate_dropout` is presented as a training input transformation. The paper explicitly frames the 10% nonzero-count masking as an evaluation corruption procedure; it does not establish that this artificial dropout is applied before training.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For evaluation purposes, existing works typically create the corrupted matrix by dropping out some non-zero entries.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we follow the setting of DCA (Eraslan et al., 2019) and MAGIC (Van Dijk et al., 2018) to mimic the dropout events by masking 10% of the none-zero counts to zeros",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Move this corruption to an evaluation/imputation-input trajectory, or mark its use during training as unsupported unless additional source evidence establishes it.",
+      "severity": "blocking",
+      "step_id": "simulate_dropout",
+      "trajectory_id": "scDiff_missing_value_imputation_training"
+    },
+    {
+      "detail": "`prepare_masked_context` binds `observed_imputation_expression` (the M⊙X route) as the input to the context definition m⊙x. The paper gives these as distinct formulations and does not establish that x is the artificially corrupted M⊙X expression or that the two masks are identical. The existing bypass condition addresses mask identity but leaves the asserted data binding unsupported.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we denote the observed expression as M ⊙ X",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A cell context is a randomly masked expression ˜ x = m ⊙ x",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Remove the unconditional observed-expression-to-context binding, or represent it as an unresolved conditional boundary until the source establishes the relationship between x, M, and m.",
+      "severity": "blocking",
+      "step_id": "prepare_masked_context",
+      "trajectory_id": "scDiff_missing_value_imputation_training"
+    },
+    {
+      "detail": "The decoder path omits the documented batch-conditioning input and fusion. The paper states that the latent embedding is mixed with an additional learnable batch embedding according to the input cell's batch label. The denoising datasets show no documented batch labels, so this route needs an explicit unresolved or unavailable batch branch rather than silently omitting the model component.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We follow Lopez et al. (2018) and mix in an additional learnable batch embedding with the latent embedding according to the batch label of the input cell.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "table",
+          "quote": "| Denoising         | Jurkat                 | 3,258         | 12,635        | -          | -              | -              |",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the batch-label and learnable batch-embedding path before decoding, preserving the fusion algebra as unresolved if necessary; alternatively mark the batch-conditioned decoder as unavailable for these route-specific datasets.",
+      "severity": "blocking",
+      "step_id": "decode_expression",
+      "trajectory_id": "scDiff_missing_value_imputation_training"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001343",
+  "verdict": "revise"
+}

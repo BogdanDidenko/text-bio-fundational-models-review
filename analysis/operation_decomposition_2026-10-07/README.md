@@ -9,9 +9,10 @@ this step: the corpus is the current included set in `docs/input-representation-
 Native `codex exec` (console CLI, not an API client), with the same invocation as
 `scripts/run_taxonomy_semantic_correction.py`: read-only sandbox in an empty temporary
 workspace, `--ephemeral`, shell and other tools disabled, prompt on stdin, strict
-`--output-schema`. Default model `gpt-5.4-mini` for both roles, the repo's standard Codex
-model for text roles (screening, graph route/section extraction, taxonomy correction; see
-`protocol/LIVING_REVIEW_RUNBOOK.md`). `--model` / `--review-model` override it.
+`--output-schema`. Model `gpt-5.6-luna` for both roles (author decision, 2026-10-08). The
+repo's earlier Codex model for text roles, `gpt-5.4-mini`, and `gpt-5.4` are no longer served to
+ChatGPT-account Codex (HTTP 400 on 2026-10-08), so this step necessarily differs from the screening
+and taxonomy steps; report it in the methods. `--model` / `--review-model` override it.
 
 Per paper:
 1. **Extractor** gets the shared protocol (`protocol/REPRESENTATION_LIBRARY_GUIDE.md`), the
@@ -21,11 +22,11 @@ Per paper:
    the cited section, known sections, catalog operation IDs and ports, every declared
    parameter present (`unspecified` when not established), every step operand consumed and
    result produced, no mixed boundary/library steps, Pydantic contracts, lossless source
-   restoration. Errors are returned to the extractor (up to 2 repairs).
+   restoration. Errors are returned to the extractor (up to 4 repairs). Reasoning effort `high`.
 3. **Independent reviewer** in a fresh context audits each step against its quotes and
    flags blocking/minor findings plus coverage gaps.
-4. **Revision**: blocking findings return to the extractor, then validation and a second
-   review. Remaining blocking findings are kept and the record is marked
+4. **Revision**: blocking findings return to the extractor, then validation and another
+   review (up to 2 revision rounds). Remaining blocking findings are kept and the record is marked
    `accepted_with_open_findings`.
 
 ## Packets

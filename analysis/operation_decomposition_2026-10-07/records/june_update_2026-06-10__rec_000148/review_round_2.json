@@ -1,0 +1,347 @@
+{
+  "coverage_summary": "Reviewed all 11 trajectories against the supplied paper text. Several documented preprocessing, training-objective, conditional-branch, evaluation, and reward-flow elements are missing or misbound.",
+  "findings": [
+    {
+      "detail": "The graph filters genes against the encoder vocabulary but omits the separately documented mapping to a common gene-symbol vocabulary. Filtering does not establish identifier correspondence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "raw counts were normalized for library size, logtransformed and mapped to a common gene-symbol vocabulary whenever possible.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an explicit identifier-mapping/alignment or lookup boundary before vocabulary filtering, preserving the 'whenever possible' condition.",
+      "severity": "blocking",
+      "step_id": "filter_gene_vocabulary",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The same common-gene-symbol mapping is missing from the Stage III gene path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "raw counts were normalized for library size, logtransformed and mapped to a common gene-symbol vocabulary whenever possible.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented mapping step and its conditional behavior before gene-encoder vocabulary filtering.",
+      "severity": "blocking",
+      "step_id": "filter_tri_modal_gene_vocabulary",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage II chain treats the gene-text prompt as an external node and omits the documented construction of structured evidence, evidence-constrained prompting, GPT-4 verbalization, and quality filtering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each spot, molecular evidence was summarized using highly expressed genes, representative marker genes, tissue metadata and pathway-enrichment labels.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These structured fields were inserted into an evidence-constrained prompt and verbalized into concise biological descriptions using GPT-4.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Generated descriptions were filtered for missing required evidence fields, malformed gene symbols, unsupported tissue names, formatting failures and obvious violations of the evidence constraints.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add opaque, evidence-backed boundaries for evidence extraction, prompt construction, verbalization, and description quality control before the gene-text prompt/input.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The Stage III text path likewise begins with an already formed text node and omits the documented transcriptome-grounded description-generation and quality-control pipeline.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each local image patch and matched gene expression vector were paired with a transcriptome-grounded description derived from the same spot.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Generated descriptions were filtered for missing required evidence fields, malformed gene symbols, unsupported tissue names, formatting failures and obvious violations of the evidence constraints.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented description-generation and filtering boundary, or explicitly mark the text as an externally supplied post-QC training operand with its provenance.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The training graphs end at autoregressive sequence construction and omit the documented multimodal contrastive branch using projected modality spans and available image-text, gene-text, and image-gene pairs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The main alignment objective combined autoregressive generation with multimodal contrastive alignment:",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Pairwise InfoNCE-style losses were computed across available modality pairs, including image-text, gene-text and image-gene pairs when present.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the contrastive-alignment side branch for the applicable training stages, preserving its projected-token inputs and pair availability conditions.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III tissue-mask and mask-unavailable filters have empty conditions and bypass lists, so both branches appear active simultaneously. The image-only, gene-only, and joint sequence branches also write the same training node without explicit conditional branch semantics.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "When tissue masks were provided by the dataset, patches with substantial background or tissue-fold artefacts were excluded using the available masks.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "When tissue masks were unavailable, background filtering was performed using intensity- and saturation-based heuristics followed by manual spot checks on representative slides.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During this stage, the model was trained on image-only, gene-only and joint imagegene input formats to support flexible downstream use.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Encode mutually exclusive mask-available/mask-unavailable branches and explicit image-only, gene-only, and joint branch conditions or bypasses.",
+      "severity": "blocking",
+      "step_id": "filter_spot_patch_with_tissue_mask",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III text-token node is dangling: tri_modal_text_tokens has no producing step, while prepare_tri_modal_text_embeddings directly maps raw text to embeddings. This is inconsistent with the documented final sequence containing text tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The final multimodal sequence consists of text tokens, optional visual virtual tokens and optional gene virtual tokens, followed by answer tokens for autoregressive decoding.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add the text-tokenization step feeding tri_modal_text_tokens and an opaque embedding boundary, or remove the unused token node and document the combined boundary consistently.",
+      "severity": "blocking",
+      "step_id": "prepare_tri_modal_text_embeddings",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "Coordinate mapping, square patch extraction, and resizing are explicitly stated in order, but the graph collapses them into one opaque operation despite existing alignment and selection primitives. This loses documented intermediate operations and order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "spot coordinates were mapped to the paired H&E image using the coordinate metadata supplied with each dataset. A square histology patch centred on each spot was extracted from the corresponding tissue image and resized to the input resolution required by the visual encoder.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Patch extraction followed coordinate registration so that each local image patch represented the same spatial region as its matched gene expression profile.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose the documented coordinate alignment and patch selection; retain resizing as a separate documented boundary if no catalog primitive exactly represents image resampling.",
+      "severity": "blocking",
+      "step_id": "extract_resize_register_spot_patch",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III chain omits the documented low-proportion general-domain text-only and general-domain image-text/instruction-following training branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To reduce catastrophic forgetting during training, the mixed data in the third stage also retained general text-only and general visionlanguage data, such as UltraChat and Flickr30k.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "General-domain image-text and instructionfollowing samples were mixed at a low proportion to preserve general multimodal and language-following competence.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the retained general-domain data branch and its mixing condition to the Stage III training assembly.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "construct_offline_context has offline_multimodal_context as both its input and output, creating a self-loop and omitting the actual text/image/gene operands and documented gene-placeholder expansion.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For gene-conditioned examples, the molecular input was represented using the same 32-token gene span as in tri-modal training.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "When an instruction example contained a single gene placeholder, the placeholder was expanded to the molecular-token span produced by the gene projection module.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Provide the actual modality/text inputs and a distinct constructed-context output, or remove this redundant step and mark the context as an external already-constructed operand.",
+      "severity": "blocking",
+      "step_id": "construct_offline_context",
+      "trajectory_id": "offline_reward_weighted_refinement"
+    },
+    {
+      "detail": "Rule-based reward assignment is bound only to quality-score fields, although the paper states that rewards depend on each fixed response and structured checks. The resulting scalar reward is also disconnected from the refinement objective.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each fixed response was assigned a scalar reward based on preprocessed quality scores and structured checks for format adherence, language consistency and evidence consistency.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the model was optimized using the token-level likelihood of this fixed response weighted by rule-based quality scores.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Reinforcement learning was applied only to answer tokens.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Bind the fixed response and structured-check context to reward assignment, then add an opaque reward-weighted objective boundary receiving the scalar reward, policy/reference-policy terms, and answer-token positions.",
+      "severity": "blocking",
+      "step_id": "assign_offline_reward",
+      "trajectory_id": "offline_reward_weighted_refinement"
+    },
+    {
+      "detail": "Both gene-expression regression trajectories omit documented quality-control filtering, section-level cross-validation, and train-split target selection of the top 50 genes. The frozen/fine-tuned parameter states are present only in labels, not on the extraction calls.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Before training and evaluation, all spots were subjected to quality-control filtering, retaining only spots with at least 500 detected genes.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The prediction targets were the top 50 genes with the highest expression in the training set.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the frozen-encoder setting, the visual encoder was fixed and only the regression head was trained.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the fine-tuned setting, the regression head and the last six layers of the visual encoder were trainable.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented QC and train-split target-selection paths, preserve section-level split context, and attach frozen versus last-six-layer trainability to the relevant invocation/state.",
+      "severity": "blocking",
+      "step_id": "extract_frozen_visual_embeddings",
+      "trajectory_id": "evaluation_gene_expression_frozen"
+    },
+    {
+      "detail": "The embedding-based spatial-domain trajectory collapses three explicitly evaluated input settings into one optional-input opaque call without conditional branches or explicit bypasses.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For embedding-based evaluation, frozen model embeddings were extracted from image-only, gene-only or joint image-gene input and passed to a lightweight classification head.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent image-only, gene-only, and joint branches separately or encode their conditions and bypasses while leaving the joint fusion algebra unresolved.",
+      "severity": "blocking",
+      "step_id": "extract_domain_embeddings",
+      "trajectory_id": "evaluation_spatial_domain_embedding"
+    },
+    {
+      "detail": "The generative spatial-domain trajectory has the same missing branch topology: one opaque assembly receives optional image and gene inputs, although the paper evaluates image-only, gene-only, and joint settings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For generative evaluation, the model received image-only, gene-only or joint image-gene input and generated a structured biological response.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add explicit conditional input branches or bypasses before the generative sequence and preserve the unspecified fusion implementation as an opaque boundary.",
+      "severity": "blocking",
+      "step_id": "assemble_generative_domain_input",
+      "trajectory_id": "evaluation_spatial_domain_generation"
+    },
+    {
+      "detail": "The PathVQA trajectory represents prompt construction and generation but omits the supervised answer operand and the documented open-ended/closed-ended answer normalization and benchmark matching path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the fine-tuned setting, the model was trained using image-question-answer triples and evaluated using benchmark-standard answer matching.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Closedended questions were scored after normalizing yes/no outputs. For open-ended questions, both predictions and reference answers were normalized.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the answer target for fine-tuning and an opaque evaluation/matching boundary with the documented open-ended and closed-ended normalization conditions.",
+      "severity": "blocking",
+      "step_id": "construct_pathvqa_prompt",
+      "trajectory_id": "evaluation_pathvqa"
+    },
+    {
+      "detail": "The atlas has no evaluation-phase trajectory for the explicitly reported transcriptome-to-language generation task on held-out gene-text pairs. The Stage II trajectory is fine-tuning only.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Transcriptome-to-language generation was evaluated on a held-out validation split of the gene-text paired dataset that was not used for model training.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each model was prompted with transcriptomic input to generate a biological description, which was compared with the corresponding transcriptome-grounded reference description using three complementary metrics.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an evaluation-phase trajectory for held-out transcriptomic input, generated biological description, reference description, and the documented evaluation context.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The Stage II gene input is labeled as a raw count profile for a spatial-transcriptomics spot, although the cited Stage II evidence only establishes gene-text pairs from public transcriptomic resources and does not establish the spot axis or count representation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Approximately 51,602 gene-text pairs were constructed from public transcriptomic resources, including GEO and 10x Genomics datasets.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Gene expression profiles were converted into structured biological evidence, including highly expressed genes, pathway-enrichment labels and tissue metadata.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Use an evidence-supported sample/gene representation for Stage II, or add the specific source evidence establishing spatial spot-level count inputs.",
+      "severity": "minor",
+      "step_id": "encode_gene_profile",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000148",
+  "verdict": "revise"
+}

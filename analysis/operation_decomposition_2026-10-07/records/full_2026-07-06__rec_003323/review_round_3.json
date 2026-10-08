@@ -1,0 +1,192 @@
+{
+  "coverage_summary": "The reconstruction preserves many documented opaque multimodal boundaries and the main ranking, selection, serialization, verification, and correction inputs. Blocking problems remain in the cross-modality decoder, several concatenation bindings/orders, router dispatch semantics, GRPO sampling, and correction-loop control flow.",
+  "findings": [
+    {
+      "detail": "The documented linear-regression decoder is absent from both the cross-modality training and inference paths. The graph stops at generated ranked-gene text and never represents decoding language information back to expression levels.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We then train a linear regressor that takes the natural language information as inputs and original gene expression profiles as outputs based on the training dataset, which finally gives us a method to decode the language information back to gene expression levels.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented linear-regressor training/decoding boundary, preserving the unspecified numerical representation as an opaque input rather than inventing its encoding, and connect generated language to decoded gene-expression output.",
+      "severity": "blocking",
+      "step_id": "generate_ranked_gene_text",
+      "trajectory_id": "teampath_crossmodality_inference"
+    },
+    {
+      "detail": "The verifier concatenation incorrectly treats the pathology image as part of the concatenate operation. The algorithm concatenates the textual fields question, reasoning path, and answer, then supplies the image as a separate argument. The call also supplies unsupported concatenate parameters named template and lexical_mapping.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "if M /u1D463 ( /u1D447 /u1D449 , /u1D444 /u1D440 | | /u1D442 /u1D445 | | /u1D442 /u1D434 , /u1D43C /u1D446 ) is True then",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Use concatenate only for the documented text fields, bind the image to a separate verifier input port, and remove parameters not present in the concatenate catalog signature.",
+      "severity": "blocking",
+      "step_id": "construct_verifier_receipt",
+      "trajectory_id": "teampath_o4_mini_verifier_inference"
+    },
+    {
+      "detail": "The answer-corrector concatenation has the same port error: the image is a separate model argument in the algorithm, not a value concatenated with text. The declared order also folds the correct prompt into the concatenation despite the algorithm passing it separately, and includes unsupported concatenate parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "/u1D442 /u1D456 , /u1D445 /u1D456 = M /u1D450 ( /u1D447 /u1D436 , /u1D444 /u1D440 | | /u1D442 /u1D445 | | /u1D442 /u1D434 , /u1D43C /u1D446 )",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent the correct prompt as its documented prompt argument, concatenate only question, reasoning, and answer, bind the image separately, and remove unsupported concatenate parameters.",
+      "severity": "blocking",
+      "step_id": "construct_answer_corrector_receipt",
+      "trajectory_id": "teampath_answer_corrector_inference"
+    },
+    {
+      "detail": "The reason-correction decomposition asserts an order that conflicts with the supplied prompt text: the paper lists QUESTION, SOLUTION, then REASON, while the graph uses prompt, question, reasoning, answer. It also treats the prompt template as an additional concatenated value and supplies template/lexical_mapping parameters that do not belong to concatenate.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "You are given QUESTION, REASON, and SOLUTION. Your task is to correct the REASON and SOLUTION. QUESTION: question. SOLUTION: solution. REASON: reason The REASON is WRONG. Your solution:",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Preserve the documented field order and model the prompt template/field filling without claiming an unsupported concatenate signature or an extra prompt-plus-fields sequence.",
+      "severity": "blocking",
+      "step_id": "construct_reason_corrector_receipt",
+      "trajectory_id": "teampath_reason_corrector_inference"
+    },
+    {
+      "detail": "The graph identifies the router as a TeamPath-7B router, although the paper only documents a language-model-based router R and separately identifies the current TeamPath base model. The router's exact model identity is not established.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we adopted a method commonly used in current basic model development, namely training a language modelbased router ( R() ) according to tasks and requirements.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Current base model of TeamPath is Patho-R17B (20)",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Use an unspecified language-model router R unless the source explicitly identifies its model, and keep the TeamPath base-model statement separate.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "teampath_router_fine_tuning"
+    },
+    {
+      "detail": "The router inference output is represented as an established solution-setting label, while the paper says that R outputs the model it selects. The relationship between selected model, solution setting, and route is unresolved in the source.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This router accepts questions as input data and outputs the model it selects to solve specific problems.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We mark the best solution settings (one of the following choices: Reinforcement Learning (RL) (49), Supervised FineTuning (SFT) (50), and Test-Time Scaling (TTS) (39)) of each question, and train R with questions and choices.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent the router result as an opaque selected-model/solution-setting control with the documented ambiguity, rather than asserting that its output is definitely a categorical solution-setting label.",
+      "severity": "blocking",
+      "step_id": "select_downstream_route",
+      "trajectory_id": "teampath_router_inference"
+    },
+    {
+      "detail": "The router trajectory does not preserve the documented conditional dispatch branches. The paper maps RL to reasoning, SFT to summarization and cross-modality generation, and TTC to human-AI collaboration, but the graph ends at a label without route branches or downstream bindings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Here, RL is used for solving questions that require reasoning, and SFT is used for summarization and cross-modality generation. Since AI Copilot needs interactions with physicians, TTC is used for tasks requiring human-AI collaboration.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add conditional route branches or an explicitly linked opaque dispatch boundary for reasoning, summarization/cross-modality, and human-AI collaboration, retaining the TTS/TTC inconsistency as source uncertainty.",
+      "severity": "blocking",
+      "step_id": "select_downstream_route",
+      "trajectory_id": "teampath_router_inference"
+    },
+    {
+      "detail": "The verifier trajectory does not connect its false decision branch to the answer-corrector trajectory. The source explicitly calls the corrector when verification is wrong; the graph records only the true bypass and leaves the wrong branch as an unconnected route receipt.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "If it is justified as wrong, we will call the corrector (also a VLM, default as TeamPath used for Pathology VQA) to fix it. Otherwise, the correct answer will be returned.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the false-condition dependency from verification_result to the answer-corrector initial state/receipt, while retaining the verified-answer bypass.",
+      "severity": "blocking",
+      "step_id": "route_verified_or_wrong_solution",
+      "trajectory_id": "teampath_o4_mini_verifier_inference"
+    },
+    {
+      "detail": "The answer-correction trajectory omits the documented iteration-count control and the loop termination/final-return branch. The paper supplies N as an input, limits the loop by a threshold, and returns after the bounded loop.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Input: Question /u1D444 /u1D440 , pathology image /u1D43C /u1D446 , human answer /u1D442 /u1D434 , reasoning path /u1D442 /u1D445 , verify prompt /u1D447 /u1D449 , correct prompt /u1D447 /u1D436 , number of iteration /u1D441 .",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We have a specific threshold to limit the number of epochs in this loop.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the iteration-limit control, the verifier re-entry condition after each correction, and the bounded-loop final return state.",
+      "severity": "blocking",
+      "step_id": "update_correction_loop_state",
+      "trajectory_id": "teampath_answer_corrector_inference"
+    },
+    {
+      "detail": "The VQA fine-tuning path omits the documented GRPO group-sampling step. The output node is described as sampled, but no sample operation or policy-distribution boundary connects the training receipt to those outputs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each pathological query /u1D45E , GRPO samples a group of /u1D43A outputs { /u1D45C 1 , /u1D45C 2 , . . . , /u1D45C /u1D43A } from the current policy /u1D70B /u1D703",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a documented GRPO group-sampling step, using an opaque current-policy distribution if its internal representation is unspecified.",
+      "severity": "blocking",
+      "step_id": "train_vqa_model",
+      "trajectory_id": "teampath_vqa_fine_tuning"
+    },
+    {
+      "detail": "The training graphs retain the count of ten prompt variants but collapse the documented prompt set to one generic node and do not preserve the parallel variant alternatives. This is incomplete source coverage, although the graph correctly marks assignment and inference selection as unknown.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We construct 10 different prompts",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The prompts used for training TeamPath for caption summary include:",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the ten caption and ten cross-modality prompt variants as a documented variant set or parallel alternatives, without inventing example-to-variant assignment or an exact inference choice.",
+      "severity": "minor",
+      "step_id": "construct_caption_training_receipt",
+      "trajectory_id": "teampath_caption_fine_tuning"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003323",
+  "verdict": "revise"
+}

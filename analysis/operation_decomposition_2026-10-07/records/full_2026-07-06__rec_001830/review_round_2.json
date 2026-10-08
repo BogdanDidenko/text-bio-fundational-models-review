@@ -1,0 +1,152 @@
+{
+  "coverage_summary": "T1 and T2 are partially supported, but the record is incomplete for the documented six-task pretraining suite. Stage-specific fusion updates and T2 supervision construction require correction.",
+  "findings": [
+    {
+      "detail": "Only T1 and T2 trajectories are reconstructed, while the paper documents six task families. T3 ROI transcription, T4 masked completion, T5 subsequence localization, and T6 chromosome classification are absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We construct six prompt families (T1-T6) spanning four genomic primitives: recognition, grounding, retrieval, and completion.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "T3 transcribes DNA within given ROIs; T4 completes masked regions within given ROIs; T5 localizes all occurrences of a query subsequence; and T6 predicts a chromosome-level class label.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add trajectories or explicitly mark the record as intentionally limited to T1/T2. If reconstructing the full pretraining flow, include the documented ROI, masking, query, and classification branches.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The pretraining task-selection and prompt-length curriculum are absent from the input graph. The task prompt is treated as an external node, but the paper documents categorical task sampling and annealed LONG/MEDIUM/SHORT prompt selection.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we sample the task index t ∼ Cat( π ) with π = ( π 1 , . . . , π 6 ) for T1-T6.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We anneal the sampling distribution over prompt-length variants (LONG/MEDIUM/SHORT) during training.",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented task-family selection and prompt-variant curriculum, or state clearly that these dataset-level branches are outside the assembly scope.",
+      "severity": "blocking",
+      "step_id": "assemble_user_message",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The fusion trainability is asserted as full-parameter updating across the documented settings, but the prose states that Stage 2 keeps Fθ fixed. The source is internally inconsistent with Table S18, and the graph does not preserve that uncertainty or distinguish stages.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 further tunes the projector Π θ for 190,000 steps ... while keeping F θ fi xed",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "table",
+          "quote": "F θ update strategy                    | full                                 | full",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record stage-specific fusion states and explicitly flag the conflict between the Stage 2 prose and Table S18; do not state one unconditional update state.",
+      "severity": "blocking",
+      "step_id": "fuse_pages_attention",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The fusion trainability is likewise asserted as full-parameter updating for T2 without preserving the paper's Stage 2 conflict. The same source discrepancy applies to this trajectory.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 further tunes the projector Π θ for 190,000 steps ... while keeping F θ fi xed",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "table",
+          "quote": "F θ update strategy                    | full                                 | full",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Split the parameter state by stage and mark the prose/table discrepancy as unresolved.",
+      "severity": "blocking",
+      "step_id": "fuse_pages_attention",
+      "trajectory_id": "opticaldna_pretraining_t2"
+    },
+    {
+      "detail": "The line-span sampler outputs roi_boxes directly, although the paper separately documents selecting a source line, taking a contiguous character span, and mapping intervals to page-coordinate boxes. The graph has no intermediate sampled span or explicit/opaque span-to-box mapping.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each span is instantiated by selecting a source line and taking a contiguous character span of length n base within that line.",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each region is represented as a bounding box b ij ... b ij is extracted from the dense annotations {B ( p ) } in DNA document D.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Have sampling produce the documented line/span items, then add a documented or opaque boundary for conversion through the annotations to ROI boxes before the box resource is used.",
+      "severity": "blocking",
+      "step_id": "sample_line_spans",
+      "trajectory_id": "opticaldna_pretraining_t2"
+    },
+    {
+      "detail": "Tail truncation partitions ROI boxes and modifies pages, but the assistant response target is an unconnected standalone node. The graph does not show that deleted suffix items are removed from the T2 supervision target or that retained boxes/annotations generate the retained sequence-box response.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we randomly delete a suffix of items",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the target-construction boundary from retained ROI supervision and aligned annotations to assistant_response_tokens, with the same truncation bypass conditions as the image path.",
+      "severity": "blocking",
+      "step_id": "tail_truncate_roi_items",
+      "trajectory_id": "opticaldna_pretraining_t2"
+    },
+    {
+      "detail": "The sampler parameter asserts unique source-line sampling, but the step evidence only supports selecting a source line. The paper's table provides the missing support for the reported setting.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each span is instantiated by selecting a source line and taking a contiguous character span of length n base within that line.",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "table",
+          "quote": "Unique lines                           | true",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Add the Table S18 evidence for Unique lines=true, or remove the claimed without-replacement setting from this invocation.",
+      "severity": "minor",
+      "step_id": "sample_line_spans",
+      "trajectory_id": "opticaldna_pretraining_t2"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001830",
+  "verdict": "revise"
+}

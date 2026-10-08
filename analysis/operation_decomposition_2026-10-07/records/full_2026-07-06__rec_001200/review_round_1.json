@@ -1,0 +1,172 @@
+{
+  "coverage_summary": "Opaque boundaries are appropriately retained for unavailable GIN, VGAE, and decoder algebra. Blocking gaps remain in documented normalization, latent-noise binding, evaluation inputs/splits, AML graph resources, fine-tuning parameters, and the training objective.",
+  "findings": [
+    {
+      "detail": "The edge-construction step accepts raw scRNA-seq profiles, while the paper defines E as normalized expression and separately documents normalization of the resulting edge weights. The graph represents only the latter normalization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "E c,i and E c,j represent the normalized expression levels of gene i and gene j in cell c",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Within each individual cell, these weights undergone normalization",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a normalized-expression node or an explicitly documented preprocessing boundary, and distinguish it from per-cell edge-weight normalization.",
+      "severity": "blocking",
+      "step_id": "construct_cell_specific_edges",
+      "trajectory_id": "shusi_pretraining_graph_encoder"
+    },
+    {
+      "detail": "The latent-sampling step binds only latent distribution parameters. The paper explicitly supplies standard-normal noise for the latent variable.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where ϵ ∈ R d is a random variable drawn from a standard normal distribution.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add a standard-normal noise node bound to the sampling boundary, or document the noise as an internally sourced operand.",
+      "severity": "blocking",
+      "step_id": "sample_latent_nodes",
+      "trajectory_id": "shusi_pretraining_decoder"
+    },
+    {
+      "detail": "The evaluation model receives propagation edges and an opaque graph-context node, but no explicit node-feature input. The paper defines network prediction using observed graph structure and node features, including Shusi's dual-encoded features.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Network prediction aims to infer missing edges between nodes in a graph based on observed graph structure and node features.",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The encoder employs a dual-layer GIN structure that analyzes adjacency matrices combined with dual-encoded node features",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Bind the dual-encoded initial node features to the evaluation model, or explicitly define evaluation_cell_graphs as carrying that feature operand through a separate documented port.",
+      "severity": "blocking",
+      "step_id": "predict_heldout_edges",
+      "trajectory_id": "shusi_evaluation_heldout_edges"
+    },
+    {
+      "detail": "The evaluation trajectory omits the documented independent test-cell partition. Its edge partition also labels the allocation random, although the cited edge-allocation sentence does not establish randomization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we randomly partitioned 15,010 single cells (20% of the total dataset) as an independent test set",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the evaluation cell graphs, we likewise allocated 80% of edges for propagation and reserved 20% for performance assessment.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the independent test-cell selection before edge partitioning, and describe edge allocation as source-defined unless random edge selection is separately evidenced.",
+      "severity": "blocking",
+      "step_id": "partition_evaluation_edges",
+      "trajectory_id": "shusi_evaluation_heldout_edges"
+    },
+    {
+      "detail": "AML graph construction lists only AML expression profiles, although the paper's construction integrates expression with the reference PPI network. The node description mentions the reference network, but the step has no corresponding input binding.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The reference PPI network was constructed using experimentally validated interactions from the STRING database",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we integrated gene expression profiles with prior knowledge of protein-protein interactions.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add the reference PPI network as an input to AML graph construction, or explicitly document reuse of the pretraining reference-PPI resource.",
+      "severity": "blocking",
+      "step_id": "construct_aml_graphs",
+      "trajectory_id": "shusi_aml_fine_tuning"
+    },
+    {
+      "detail": "The fine-tuning call has no parameters, despite explicit learning-rate, weight-decay, and architecture settings in the paper.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we employed a reduced learning rate of 1e-5 during fine-tuning process.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We maintained the weight decay parameter at 1e-5 and preserved the two-layer GNN propagation architecture with a hidden dimension of 512.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record learning_rate=1e-5, weight_decay=1e-5, two propagation layers, and hidden dimension 512 on the fine-tuning boundary.",
+      "severity": "blocking",
+      "step_id": "fine_tune_shusi_on_aml",
+      "trajectory_id": "shusi_aml_fine_tuning"
+    },
+    {
+      "detail": "The graph encoder component identifies a two-layer GIN but does not preserve the documented hidden width of 512 in its invocation or evidence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "both the baseline model and Shusi ... utilize ... two layers of GNN propagation with a consistent hidden dimension of 512",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Retain the two-layer schedule and hidden dimension 512 as documented invocation or model-context parameters.",
+      "severity": "minor",
+      "step_id": "gin_message_passing",
+      "trajectory_id": "shusi_pretraining_graph_encoder"
+    },
+    {
+      "detail": "The numerical-ID ablation preserves a symbolic ID-feature width even though the paper specifies 32-dimensional initial ID embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "baseline models utilized 32-dimensional ID embeddings as initial node features",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record d_id=32 while retaining the uncertainty about whether the IDs are learned embeddings or direct numeric features.",
+      "severity": "minor",
+      "step_id": "initialize_numerical_id_features",
+      "trajectory_id": "shusi_ablation_numerical_ids"
+    },
+    {
+      "detail": "The decoder trajectory includes observed_adjacency as a training target but has no receiving loss/objective boundary. The paper documents binary cross-entropy and latent-distribution regularization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Binary cross-entropy loss was used to compute the loss between the predicted edge probabilities and the actual observed edges.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The total loss function combined the link prediction loss with the regularization terms on the latent variable distributions.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque training-objective boundary consuming predicted probabilities and observed adjacency, with the documented regularization term, or remove the target node if loss modeling is intentionally out of scope.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "shusi_pretraining_decoder"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001200",
+  "verdict": "revise"
+}

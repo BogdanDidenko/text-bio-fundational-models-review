@@ -1,0 +1,192 @@
+{
+  "coverage_summary": "Revise. The reconstruction captures several core multimodal boundaries, but it omits documented routes and model variants, asserts an unsupported preprocessing order, hides decomposable genomics preprocessing, and contains an invalid sampling parameter.",
+  "findings": [
+    {
+      "detail": "All trajectories are restricted to Med-PaLM M 12B. The paper explicitly describes three pretrained and fine-tuned variants, so the record lacks the 84B and 562B model contexts.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We consider three different combinations of LLM and vision encoders in our study - PaLM 8B with ViT 4B (PaLM-E 12B), PaLM 62B with ViT 22B (PaLM-E 84B) and PaLM 540B with ViT 22B (PaLM-E 562B).",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We finetuned the pretrained 12B, 84B, and 562B parameter variants of PaLM-E on MultiMedBench tasks with mixture ratios denoted in Table A.1.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add variant-specific model contexts and assemblies for 12B, 84B, and 562B, or explicitly scope the record to 12B instead of presenting it as the paper reconstruction.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "medpalm12b_finetune_multimodal"
+    },
+    {
+      "detail": "The five trajectories do not instantiate the paper's documented task routes. Missing explicit paths include VQA-RAD, Slake-VQA, Path-VQA, PAD-UFES-20, VinDr-Mammo, CBIS-DDSM mass and calcification, MIMIC-CXR report generation and classification, and the TB zero-shot/CoT evaluations. The generic multimodal route does not preserve their distinct inputs, prompt fields, or branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "MultiMedBench is a multi-task, multimodal benchmark comprising 12 de-identified open source datasets and 14 individual tasks.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "table",
+          "quote": "Question Answering; Report Summarization; Visual Question Answering; Report Generation; Medical Image Classification",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We further explored zero-shot chain-of-thought (CoT) multimodal medical reasoning ability of the model by prompting with a text-only exemplar (without the corresponding image) and prompting the model to generate the class prediction and an accompanying report describing the image findings.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add separate task/phase trajectories or documented conditional branches for the omitted routes, preserving their task-specific sources, prompts, preprocessing, and receiving components.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "medpalm12b_finetune_multimodal"
+    },
+    {
+      "detail": "The genomic preparation step is left wholly opaque even though the paper specifies two operations and their order: channel repacking followed by padding. The catalog contains reshape and pad interfaces, and the source supplies the correspondence and target shapes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To reshape the input example to be compatible with the Med-PaLM M input shape of (224, 224, 3), we stacked up channels 1, 2, 3 with channels 4, 5, 6 such that the original tensor of shape (100, 221, 6) became an RGB image of shape (200, 221, 3). We then padded the image on the width and height dimensions to give it a final shape of (224, 224, 3).",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented channel repacking with a reshape-like call or a justified opaque substep, then add a separate pad call with an intermediate node and the documented order.",
+      "severity": "blocking",
+      "step_id": "prepare_genomic_image",
+      "trajectory_id": "medpalm12b_finetune_genomics"
+    },
+    {
+      "detail": "The graph orders task-specific augmentation before common resize, padding, and channel conversion. The paper documents both procedures but does not establish their relative order, as acknowledged in the coverage questions.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We resized all the images in MultiMedBench to 224 × 224 × 3 , while preserving the original aspect ratio with padding if needed. The gray-scale images were converted to 3-channel images by stacking up the same image along the channel dimension.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We applied a series of image augmentation operations using RandAugment [86] to the training set",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Remove the asserted augmentation-to-common-preprocessing order, or represent the order as unresolved while retaining both documented transformations.",
+      "severity": "blocking",
+      "step_id": "prepare_image",
+      "trajectory_id": "medpalm12b_finetune_multimodal"
+    },
+    {
+      "detail": "The two-view prompt path omits image-orientation information, although the paper explicitly identifies orientation as an additional chest X-ray report-generation context field. The generic multimodal text-fields node also does not preserve this concrete input.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For example, as shown in Figure 2, in the chest X-ray report generation task, we included the reason for the study and the image orientation information as additional context information for the model to condition its prediction on.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add image-orientation metadata as a concrete aligned input to the report-generation prompt serialization, including the two-view route where applicable.",
+      "severity": "blocking",
+      "step_id": "serialize_two_view_prompt",
+      "trajectory_id": "medpalm12b_evaluation_two_view_cxr"
+    },
+    {
+      "detail": "The generic multimodal route does not preserve several explicitly documented task inputs and image transformations: PAD-UFES-20's 14 clinical attributes, VinDr-Mammo laterality/view context, and CBIS-DDSM ROI cropping plus view position.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We selected 14 clinical attributes in the metadata for each lesion including: age , gender , smoke , drink , skin cancer history , cancer history , region , fitspatrick , horizontal and vertical diameters , itch , grew , bleed , and elevation .",
+          "section_id": "sec_0035"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We performed a breast-level 5-class BI-RADS classification task similar to the setup in [49], except that the laterality and view position of the image was provided as additional contextual features.",
+          "section_id": "sec_0035"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Abnormality image patch is cropped by the bounding box of the region-of-interest (ROI) from the full mammogram and used as the model input along with its view position (CC or MLO) information.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add route-specific metadata nodes and operations for these documented fields and the CBIS-DDSM ROI crop, or add explicit opaque boundaries that retain them.",
+      "severity": "blocking",
+      "step_id": "serialize_multimodal_prompt",
+      "trajectory_id": "medpalm12b_finetune_multimodal"
+    },
+    {
+      "detail": "Documented MIMIC-III and MIMIC-CXR report preprocessing and selection steps are absent. The graph starts from findings or generic images without representing section extraction, whitespace removal, report/image exclusions, or the stated findings-length filters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we filtered out the reports whose findings section are longer than 600 tokens.",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We preprocessed the radiology reports by extracting the indication, findings, and impression sections, removing redundant white-spaces in the reports, following previous work [99]. We used the official train/validation/test splits. We discarded images without reports and reports where the findings section can not be extracted across train and test. We also filtered out the reports where the length of findings section exceeds 800 characters.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented extraction, selection, and preprocessing boundaries before the corresponding model-input nodes, preserving the source-specific filtering conditions.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "medpalm12b_finetune_mimic_summary"
+    },
+    {
+      "detail": "The class-balancing call supplies a factor parameter that is absent from the pinned sample interface, and it combines factors from distinct task distributions in one invocation. This loses task-specific state and violates the catalog parameter contract.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To mitigate the class imbalance in the training data, we upsampled for each minority class (BI-RADS 2-5) by a factor of 3.",
+          "section_id": "sec_0035"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Due to class imbalance, during training we upsampled the positive class by a factor of 2 for the following conditions: consolidation, enlarged cardiomediastinum, fracture, and pneumonia.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Split the balancing into task-specific invocations and encode the documented factors through supported invocation metadata or an approved catalog extension; do not add an undeclared factor parameter to sample.",
+      "severity": "blocking",
+      "step_id": "sample_balanced_training_examples",
+      "trajectory_id": "medpalm12b_finetune_multimodal"
+    },
+    {
+      "detail": "The two-view route labels the setup as zero-shot without distinguishing zero-shot generalization to a new multi-view task from the prompt's few-shot exemplar configuration. The paper states that evaluation used the training few-shot setup, while most vision-language training routes used a text-only one-shot setup.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we used the same few-shot setup as in training for each task during evaluation.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "While the majority of vision-language tasks were trained with a text-only 1-shot setup (without the corresponding image), the CBIS-DDSM classification and genomic variant calling tasks were trained with a 0-shot setup.",
+          "section_id": "sec_0037"
+        },
+        {
+          "kind": "table",
+          "quote": "Table 5 | Zero-shot generalization to two-view chest X-ray report generation.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Record zero-shot as the novel-task generalization status, while leaving the prompt exemplar status source-defined or explicitly carrying forward the applicable training setup.",
+      "severity": "blocking",
+      "step_id": "serialize_two_view_prompt",
+      "trajectory_id": "medpalm12b_evaluation_two_view_cxr"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001352",
+  "verdict": "revise"
+}

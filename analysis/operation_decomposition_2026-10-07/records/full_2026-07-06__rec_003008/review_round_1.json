@@ -1,0 +1,182 @@
+{
+  "coverage_summary": "The reconstruction correctly preserves several opaque boundaries, including tokenizer/model-input receipt, GeneAgent, VCWorld, text embedding, and weighted cell aggregation. Blocking gaps remain: an incorrectly bound GRPO reward, disconnected profile/embedding graph edges, omitted biological and downstream representation branches, unsupported exact prompt/model claims, and incomplete evaluation coverage.",
+  "findings": [
+    {
+      "detail": "The atlas-listed DeepSeek-R1-Distill series is not represented by that model_variant label, and no coverage question explains the omission. The paper explicitly treats 14B, 32B, and 70B as one jointly trained series.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We employ the DeepSeek-R1-Distill series (14B Qwen, 32B Qwen, and 70B Llama) [1] as our base models.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a trajectory for the series-level model context or explicitly explain in coverage_questions how the 14B, 32B, and 70B trajectories cover this atlas entry.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "deepseek_70b_bft_geneagent_evaluation"
+    },
+    {
+      "detail": "The 70B joint-fine-tuning trajectory contains the medical response-synthesis branch but leaves ncbi_biomedical_corpus unused. The paper documents a separate NCBI/EasyDataset biological instruction-response synthesis branch that contributes to the combined training data.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use the NCBI-derived biological dataset from GenePT [26]: biomedical corpus from NCBI is used as the knowledge source in EasyDataset [30], and GPT-OSS-120B [31] synthesizes instruction-response pairs covering broad biological knowledge.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "All three model sizes are jointly trained on the combined medical and biological datasets described above.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the biological corpus-to-instruction/response synthesis branch, or mark it explicitly as outside the reconstructed path and remove the dangling ncbi_biomedical_corpus node.",
+      "severity": "blocking",
+      "step_id": "synthesize_medical_response",
+      "trajectory_id": "deepseek_70b_bft_joint_finetuning"
+    },
+    {
+      "detail": "sparse_binary_rewards is bound as an input to GRPO rollout conditioning and contributes to grpo_model_context. The paper describes rewards as the GRPO training signal, not as data supplied to the model's rollout prompt.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Starting from the DFT, SFT, BFT-sample, BFT-token, and BFTaligned 70B backbones, we apply GRPO using sparse binary rewards from Tahoe-100M [32] and evaluate again on the held-out VCWorld cell lines.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Keep Tahoe-100M context as the model-conditioning input and represent sparse rewards as a separate GRPO training-side signal or unresolved framework operand; do not connect rewards to the conditioning-context output.",
+      "severity": "blocking",
+      "step_id": "prepare_grpo_context",
+      "trajectory_id": "deepseek_70b_bft_grpo"
+    },
+    {
+      "detail": "The profile-generation trajectory outputs entity_profile_text, while the embedding trajectory independently starts from profile_text_input. The paper states that the generated profile text is then encoded, so the graph currently lacks the required dependency edge.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For clarity, we refer to the representation obtained by first prompting the BFT-aligned 70B LLM to generate an entity profile text and then encoding this text with OpenAI TEXT-EMBEDDINGADA-002 [27] as the BFT embedding",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Reuse the generated profile-text node or add an explicit cross-trajectory edge from entity_profile_text to profile_text_input.",
+      "severity": "blocking",
+      "step_id": "encode_profile_text",
+      "trajectory_id": "bft_profile_text_embedding"
+    },
+    {
+      "detail": "The cell-aggregation trajectory uses corresponding_gene_embeddings, but the preceding embedding trajectory outputs gene_embedding_matrix with a different node identity and no documented connection. This breaks the documented gene-embedding-to-cell-embedding path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following Appendix B.1, we construct cell embeddings by aggregating single-cell expression profiles with the corresponding gene embeddings.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Connect gene_embedding_matrix to the aggregation input, preserving the documented gene correspondence and leaving any alignment implementation unspecified.",
+      "severity": "blocking",
+      "step_id": "aggregate_expression_weighted_gene_embeddings",
+      "trajectory_id": "bft_cell_embedding_aggregation"
+    },
+    {
+      "detail": "The reconstruction omits the documented concatenation branch for multi-gene and multi-protein classifier inputs. This is an explicit catalog-level concatenate operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For GGI, the input embedding of the classifier is directly concatenated from the embeddings of two genes. b : For PPI, the input embedding of the classifier is directly concatenated from the embeddings of two proteins.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add separate GGI and PPI concatenation calls with two aligned embedding inputs and the documented ordering/axis left unspecified where the paper does not state it.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "bft_profile_text_embedding"
+    },
+    {
+      "detail": "The graph stops at cell_embeddings and omits documented downstream branches: protein-profile generation and encoding, combination with RNA-modality cell embeddings, and use of BFT embeddings as STATE decoder input.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For single-cell multimodal integration [40], we used the BFT 70B model to generate protein profiles, encoded them, and combined the resulting protein-modality cell embeddings with RNA-modality cell embeddings.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We also tested perturbation response prediction [44] by the BFT embeddings and using them as input to the STATE decoder [35].",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the protein-profile, text-encoding, modality-combination, and STATE-decoder input branches, preserving any undocumented internals as opaque boundaries.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "bft_cell_embedding_aggregation"
+    },
+    {
+      "detail": "The exact prompt “Tell me about gene.” is supported only by a VLM description. The paper text supports prompting the BFT-aligned 70B LLM to generate an entity profile, but does not state that exact prompt string.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For clarity, we refer to the representation obtained by first prompting the BFT-aligned 70B LLM to generate an entity profile text and then encoding this text with OpenAI TEXT-EMBEDDINGADA-002 [27] as the BFT embedding",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the exact prompt-string claim or mark it as an uncorroborated figure observation; retain only the paper-supported generic profile-prompt boundary.",
+      "severity": "blocking",
+      "step_id": "prepare_profile_prompt",
+      "trajectory_id": "deepseek_70b_bft_profile_generation"
+    },
+    {
+      "detail": "The plain-language trajectory labels its recipient as a generic “DeepSeek inference model,” although the paper documents a BFT-aligned 70B LLM and does not identify a standalone model with that label in the cited evidence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We employ the DeepSeek-R1-Distill series (14B Qwen, 32B Qwen, and 70B Llama) [1] as our base models.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For clarity, we refer to the representation obtained by first prompting the BFT-aligned 70B LLM to generate an entity profile text and then encoding this text with OpenAI TEXT-EMBEDDINGADA-002 [27] as the BFT embedding",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Bind the trajectory to the documented BFT-aligned 70B model, or mark the receiving model unresolved; do not retain the unsupported generic recipient label.",
+      "severity": "blocking",
+      "step_id": "prepare_deepseek_prompt",
+      "trajectory_id": "deepseek_plain_gene_query"
+    },
+    {
+      "detail": "The paper documents additional evaluation input paths that are absent from the assembly, including OpenAI Health Bench, 5-shot MMLU/CMMLU, and the stated representation-task evaluations. These omissions leave documented tasks uncovered.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For Medical Competence , we evaluate LLMs on the OpenAI Health Bench [29] Hard subset, reporting both theme-wise and axis-wise results.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For General Capabilities , we report 5-shot MMLU [33] and CMMLU [34].",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For Representation Tasks , we evaluate text-derived embeddings on gene-level prediction, cell-level clustering and multimodal integration, and perturbation response prediction with STATE datasets [35].",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the missing evaluation trajectories or state explicitly in coverage_questions why these documented tasks are outside scope.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "deepseek_70b_bft_geneagent_evaluation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003008",
+  "verdict": "revise"
+}

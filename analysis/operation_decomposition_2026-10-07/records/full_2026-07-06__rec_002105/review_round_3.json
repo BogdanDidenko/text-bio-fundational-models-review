@@ -1,0 +1,97 @@
+{
+  "coverage_summary": "Reviewed all seven trajectories and their documented steps, including opaque boundaries, ports, parameters, lifecycle phases, and evaluation branches. Four blocking issues require revision.",
+  "findings": [
+    {
+      "detail": "The simple-chat serialization fixes the order as question followed by answer, although the paper establishes the question and annotation roles without documenting serialized field order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using a generic question ... and the transcriptome's generated textual annotation as the answer.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Leave serialization order unspecified unless the supplementary prompt examples are incorporated as evidence.",
+      "severity": "blocking",
+      "step_id": "generate_simple_training_chats",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The interactive hidden top-gene step is decomposed into a full ranking followed by a separate selection. The paper documents provision of the top 50 genes, without stating this intermediate representation or operation order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "provides the 50 top genes for the selected cells/samples (normalized expression across all transcriptomes in the dataset",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Represent this as one documented top-50 selection or an opaque boundary; remove the unsupported full-ranking intermediate and ordered decomposition.",
+      "severity": "blocking",
+      "step_id": "rank_top_genes_for_chat",
+      "trajectory_id": "mistral_interactive_inference"
+    },
+    {
+      "detail": "The four conversation branches are connected directly to the common density-selected pool without documenting branch-specific scopes or selections. The paper gives separate branch counts summing to the stated total, so the current graph leaves the branch allocation unsupported and may imply that every pool item enters every branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We generated 106,610 such conversations for transcriptomes from our training dataset of 1,082,413 GEO and CELLxGENE Census data points.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Simple chats were generated for 10,000 transcriptomes",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Detailed chats were generated for 10,000 transcriptomes",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Complex chats were generated for 5,000 transcriptomes",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Conversational chats for 81,610 transcriptomes were generated",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add branch-specific selection or scope parameters for the four conversation-generation paths, retaining uncertainty about whether branch subsets overlap.",
+      "severity": "blocking",
+      "step_id": "assemble_generated_training_conversations",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The reconstruction omits the documented user-dataset cluster-captioning path: cluster processing, Mistral generation from cluster-averaged transcriptome embeddings, and GPT-4 or Mixtral condensation into brief annotations. This is a distinct inference task described in the paper and is absent from the interactive trajectory.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Next, a UMAP is calculated on the transcriptome embeddings, followed by clustering using the Leiden algorithm and the LLM-based generation of a brief textual annotation for each cluster.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we use CellWhisperer's multimodal LLM on the cluster-averaged transcriptome embedding to generate detailed textual descriptions.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These texts are then condensed into brief textual annotations using an LLM such as GPT-4 ... or Mixtral 8x7B",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a cluster-annotation inference branch or trajectory, keeping UMAP/Leiden and undocumented internal model processing opaque while representing Mistral description generation and GPT-4/Mixtral condensation.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "mistral_interactive_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_002105",
+  "verdict": "revise"
+}

@@ -1,0 +1,4812 @@
+{
+  "coverage_questions": [
+    "The paper documents H2O as an image-to-spatial-omics framework and does not document a natural-language text-input pathway; its text embedding h_i is derived from gene/spot data.",
+    "The equations for scGPT token construction, expression binning, embedding fusion, image projection, FiLM, and decoder computation are not decoded in the supplied text; those boundaries remain unresolved where algebra or exact order is unavailable.",
+    "The paper names task-specific H2O-ccRCC and H2O-PRAD benchmark models and an independent HEST-1k-IDC-LymphNode evaluation cohort; the benchmark trajectory represents their documented image-to-expression evaluation path, while exact benchmark-time patch extraction and internal H2O receipt are unspecified.",
+    "The paper states that the diameter index is embedded and linearly mapped, but does not identify the embedding implementation; no lookup-table operand is asserted.",
+    "The paper documents MSE reconstruction and a weighted joint objective, but the supplied formulas are not decoded."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "project",
+        "reshape",
+        "lookup"
+      ],
+      "source_operation": "Vision Transformer image encoding",
+      "why_no_existing_operation": "The catalog has no operation for encoding raw image pixels with a ViT. project applies after numerical features already exist, while lookup and reshape do not represent the documented ViT computation."
+    },
+    {
+      "compared_operation_ids": [
+        "concatenate",
+        "reshape",
+        "partition"
+      ],
+      "source_operation": "Neighbor embedding stacking along a new neighbor axis",
+      "why_no_existing_operation": "The catalog has no stack operation that creates a new axis from separately encoded neighbor embeddings. concatenate joins inputs along an existing declared axis, while reshape and partition do not establish the documented stack construction."
+    },
+    {
+      "compared_operation_ids": [
+        "project",
+        "reshape",
+        "lookup"
+      ],
+      "source_operation": "1D convolution followed by global average pooling",
+      "why_no_existing_operation": "The catalog has no primitive for the stated convolution-plus-GAP computation."
+    },
+    {
+      "compared_operation_ids": [
+        "lookup",
+        "project"
+      ],
+      "source_operation": "Diameter-index embedding",
+      "why_no_existing_operation": "The paper states that the diameter index is embedded but does not document a table lookup or numerical projection implementation. lookup requires an explicit table operand, while project represents a documented learned numerical mapping rather than an unspecified categorical embedding mechanism."
+    },
+    {
+      "compared_operation_ids": [
+        "project",
+        "add",
+        "update"
+      ],
+      "source_operation": "FiLM feature-wise scaling and shifting conditioned on spot diameter",
+      "why_no_existing_operation": "The catalog has no conditional feature-wise affine modulation operation. project can represent generation of FiLM parameters, but not the subsequent scale-and-shift application."
+    },
+    {
+      "compared_operation_ids": [
+        "align",
+        "cross_attention",
+        "add"
+      ],
+      "source_operation": "Temperature-scaled contrastive alignment loss",
+      "why_no_existing_operation": "align represents correspondence alignment, not the documented positive/negative pair contrastive objective with temperature-scaled similarity and within-modality cosine smoothing."
+    },
+    {
+      "compared_operation_ids": [
+        "align",
+        "project",
+        "add"
+      ],
+      "source_operation": "MSE reconstruction and weighted joint training objective",
+      "why_no_existing_operation": "The catalog has no loss or weighted-objective primitive for the documented MSE reconstruction term and its weighted combination with contrastive loss."
+    },
+    {
+      "compared_operation_ids": [
+        "concatenate",
+        "reshape"
+      ],
+      "source_operation": "Sequential section prediction stacking into a volume",
+      "why_no_existing_operation": "The paper documents sequential volume assembly, while concatenate requires multiple explicit operands and reshape does not establish the section-order assembly operation."
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000152",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "H2O comprises two steps: first,  contrastive  learning  aligns  a  trainable  histopathology foundation model and a parameter-frozen ST foundation model using paired image and gene expression data;",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "image embedding from a DINOv2-trained ViT",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "contrastive alignment with a text embedding ℎ 𝑖",
+          "section_id": "sec_0017"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "H2O trainable histopathology image foundation model aligned to frozen scGPT-FT",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "image-patch rows",
+            "image-patch height",
+            "image-patch width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "image embedding from a DINOv2-trained ViT",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "H&E image patches paired with spatial transcriptomics observations.",
+          "node_id": "h2o_image_patches",
+          "representation_type": "H&E_image_patches",
+          "symbolic_shape": [
+            "n_patches",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor index",
+            "image-patch height",
+            "image-patch width",
+            "color channels"
+          ],
+          "contextual_role": "external_spatial_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "Adjacent H&E patches used to provide neighborhood context.",
+          "node_id": "h2o_neighbor_patches",
+          "representation_type": "neighboring_H&E_image_patches",
+          "symbolic_shape": [
+            "n_neighbors",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spot observations"
+          ],
+          "contextual_role": "conditioning_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "conditioning signal from the spot  diameter  via  FiLM",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "Spot diameter or diameter index used as a scale-conditioning signal.",
+          "node_id": "spot_diameter",
+          "representation_type": "spot_diameter_index",
+          "symbolic_shape": [
+            "n_spots"
+          ],
+          "uncertainty": "The exact categorical encoding tensor is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene columns"
+          ],
+          "contextual_role": "paired_biological_target",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, for ST data, each entry encodes the expression level of gene 𝑗 ∈ {0, 1, …, G} in cell/spot 𝑖 ∈ {0, 1, …, N}.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Raw spatial transcriptomics gene-expression counts used by the frozen ST foundation model.",
+          "node_id": "st_raw_counts",
+          "representation_type": "raw_ST_count_matrix",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene-token positions"
+          ],
+          "contextual_role": "gene_encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens. We follow up scGPT's scale and tokenize the ST expression data.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Gene-token sequence derived from the ST expression representation.",
+          "node_id": "gene_tokens",
+          "representation_type": "gene_token_ids",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_gene_tokens"
+          ],
+          "uncertainty": "The exact token ordering and vocabulary mapping are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "gene_encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied log1p transformation through Scanpyto the raw matrices.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Log-transformed expression values supplied to the ST encoder pathway.",
+          "node_id": "log_expression",
+          "representation_type": "log_transformed_expression",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "gene_encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Binned expression values supplied to the expression embedding layer.",
+          "node_id": "binned_expression",
+          "representation_type": "binned_expression_values",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": "The binning rule, number of bins, and bin edges are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "gene_encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "condition  tokens  encompass  diverse  meta-information",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Position-wise condition tokens and gene-associated metadata.",
+          "node_id": "condition_tokens",
+          "representation_type": "condition_token_ids",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": "The condition vocabulary and exact metadata fields are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene-token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_gene_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed-length embedding vector of dimension D",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Gene-token embeddings.",
+          "node_id": "gene_token_embeddings",
+          "representation_type": "gene_token_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_gene_tokens",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_condition_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed-length embedding vector of dimension D",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Condition-token embeddings.",
+          "node_id": "condition_token_embeddings",
+          "representation_type": "condition_token_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Fully connected expression-value embeddings.",
+          "node_id": "expression_embeddings",
+          "representation_type": "expression_value_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "embedding coordinates"
+          ],
+          "contextual_role": "documented_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Consequently, the final embedding ℎ 𝑖 for cell i is defined as:",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Fused scGPT input embedding before the documented self-attention encoder.",
+          "node_id": "st_fused_embedding",
+          "representation_type": "scGPT_fused_input_embedding",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_embedding"
+          ],
+          "uncertainty": "The fusion algebra and ordering are not decoded."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "embedding coordinates"
+          ],
+          "contextual_role": "ST_foundation_model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "contrastive alignment with a text embedding ℎ 𝑖",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "scGPT,  the  self-attention  module  learns  intra-cellular  gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "ST/gene embedding used as the molecular counterpart in cross-modal alignment.",
+          "node_id": "st_embedding_h",
+          "representation_type": "ST_gene_embedding",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_embedding"
+          ],
+          "uncertainty": "The paper calls this a text embedding, but its inputs are gene tokens, expression values, and condition tokens rather than natural-language text."
+        },
+        {
+          "axis_semantics": [
+            "image instances",
+            "ViT feature coordinates"
+          ],
+          "contextual_role": "documented_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "384-dimension 603 vector",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Raw central-patch ViT feature before the documented projection.",
+          "node_id": "image_vit_features_384",
+          "representation_type": "ViT_image_features_before_projection",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_vit"
+          ],
+          "uncertainty": "The source gives the physical feature width in the quotation; the symbolic feature axis is retained here."
+        },
+        {
+          "axis_semantics": [
+            "image instances",
+            "projected image-feature coordinates"
+          ],
+          "contextual_role": "image_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "then projected to 512-dimen",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Image embedding after the documented ViT-to-512 projection.",
+          "node_id": "image_embedding",
+          "representation_type": "projected_DINOv2_ViT_image_embedding",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_image"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor positions",
+            "ViT feature coordinates"
+          ],
+          "contextual_role": "neighbor_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "same  ViT  and  then  stack  the  resulting  embeddings  along  the  neighbor  axis",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Neighbor ViT embeddings before stacking.",
+          "node_id": "neighbor_vit_embeddings",
+          "representation_type": "neighbor_ViT_embeddings",
+          "symbolic_shape": [
+            "n_neighbors",
+            "d_vit"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor positions",
+            "ViT feature coordinates"
+          ],
+          "contextual_role": "documented_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "same  ViT  and  then  stack  the  resulting  embeddings  along  the  neighbor  axis",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Neighbor embeddings after source-defined stacking along the neighbor axis.",
+          "node_id": "stacked_neighbor_embeddings",
+          "representation_type": "stacked_neighbor_image_embeddings",
+          "symbolic_shape": [
+            "n_neighbors",
+            "d_vit"
+          ],
+          "uncertainty": "The catalog has no stack primitive; the stacking boundary remains opaque."
+        },
+        {
+          "axis_semantics": [
+            "central instances",
+            "context-feature coordinates"
+          ],
+          "contextual_role": "neighborhood_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "  1D 608 convolution  (in\\_channels=384,  out\\_channels=512,  kernel\\_size=9)  and  Global Average  Pooling  (GAP)  to 609 obtain a 512-dimension.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Aggregated neighborhood feature for the central patch.",
+          "node_id": "neighborhood_context",
+          "representation_type": "convolutional_GAP_context_feature",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_context"
+          ],
+          "uncertainty": "The convolution and GAP computation has no catalog primitive."
+        },
+        {
+          "axis_semantics": [
+            "diameter categories",
+            "diameter-embedding coordinates"
+          ],
+          "contextual_role": "conditioning_embedding",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied FiLM module, which a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Embedded spot-diameter condition.",
+          "node_id": "diameter_embedding",
+          "representation_type": "diameter_condition_embedding",
+          "symbolic_shape": [
+            "n_spots",
+            "d_diameter"
+          ],
+          "uncertainty": "The embedding implementation is unspecified; no lookup-table operand is asserted."
+        },
+        {
+          "axis_semantics": [
+            "FiLM parameter rows",
+            "FiLM parameter coordinates"
+          ],
+          "contextual_role": "computed_conditioned_feature",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Per-input diameter-conditioned FiLM scaling and shifting parameters.",
+          "node_id": "film_parameters",
+          "representation_type": "FiLM_gamma_beta_parameters",
+          "symbolic_shape": [
+            "n_spots",
+            "d_film_parameters"
+          ],
+          "uncertainty": "The embedding/projection weights and exact parameter layout are unspecified; the values are computed per input."
+        },
+        {
+          "axis_semantics": [
+            "central instances",
+            "conditioned image-feature coordinates"
+          ],
+          "contextual_role": "conditioned_decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Diameter-conditioned image feature.",
+          "node_id": "conditioned_image_embedding",
+          "representation_type": "FiLM_conditioned_image_feature",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_image"
+          ],
+          "uncertainty": "The exact FiLM application is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "central instances",
+            "conditioned context-feature coordinates"
+          ],
+          "contextual_role": "conditioned_decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Diameter-conditioned context feature.",
+          "node_id": "conditioned_context_feature",
+          "representation_type": "FiLM_conditioned_context_feature",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_context"
+          ],
+          "uncertainty": "The exact FiLM application is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "central instances",
+            "concatenated image/context feature coordinates"
+          ],
+          "contextual_role": "aligned_multimodal_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Finally , the two 512-dimension vectors are concatenated as 𝑢𝑖",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Concatenated image and context representation used as the image-side representation for contrastive alignment and decoding.",
+          "node_id": "aligned_image_embedding",
+          "representation_type": "concatenated_context_conditioned_image_representation",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_shared_latent"
+          ],
+          "uncertainty": "The paper does not establish the operand order in the concatenation."
+        },
+        {
+          "axis_semantics": [
+            "central instances",
+            "normalized image-feature coordinates"
+          ],
+          "contextual_role": "normalized_alignment_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both streams are layer-normalized:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Layer-normalized image-side representation before contrastive alignment.",
+          "node_id": "normalized_image_embedding",
+          "representation_type": "layer_normalized_image_representation",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_shared_latent"
+          ],
+          "uncertainty": "The exact normalization placement relative to the displayed formulas is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "normalized ST-feature coordinates"
+          ],
+          "contextual_role": "normalized_alignment_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both streams are layer-normalized:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Layer-normalized ST-side representation before contrastive alignment.",
+          "node_id": "normalized_st_embedding",
+          "representation_type": "layer_normalized_ST_representation",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_embedding"
+          ],
+          "uncertainty": "The exact normalization placement relative to the displayed formulas is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "batch pair positions"
+          ],
+          "contextual_role": "training_objective",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a contrastive objective based on a temperature-scaled dot  product  between  image  embeddings  and  text  embeddings.",
+              "section_id": "sec_0019"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "image-text embeddings are  regarded  as  positive  examples,  while  all  remaining  cross-pairs  within  the  batch  serve  as negative  examples.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Contrastive alignment objective over paired image/ST embeddings, in-batch cross-pair negatives, and within-modality cosine-similarity smoothing.",
+          "node_id": "contrastive_alignment_loss",
+          "representation_type": "temperature_scaled_contrastive_objective",
+          "symbolic_shape": [
+            "n_batch_pairs"
+          ],
+          "uncertainty": "The formula is not decoded; temperature, weighting, and exact cosine-smoothing algebra remain source-defined."
+        }
+      ],
+      "open_questions": [
+        "What exact scGPT token ordering, expression binning, and multimodal fusion equation produce h_i?",
+        "What exact ViT implementation produces the 384-dimensional image feature?",
+        "What exact neighbor stack layout and convolution/GAP axes are used?",
+        "How are FiLM parameters applied to the image and context streams?",
+        "Does contrastive alignment update only the image foundation model, or additional projection parameters?",
+        "The source describes the ST embedding as a text embedding, but does not document a natural-language text input.",
+        "What embedding implementation produces the diameter embedding?",
+        "What is the exact placement of layer normalization relative to the displayed image/ST formulas?",
+        "What exact weighting and algebra define the contrastive loss?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "aligned_image_embedding",
+          "port_role": "aligned_image_representation"
+        }
+      ],
+      "recipient_component": "Trainable H2O histopathology image foundation model / shared-latent contrastive alignment module",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "DINOv2-trained ViT image encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "Raw image encoding by the ViT is documented, but no catalog operation represents the computation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "raw H&amp;E image of cell 𝑖 is encoded by the ViT",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "h2o_image_patches",
+              "port_role": "H&E_image_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "vit_image_encoding",
+          "outputs": [
+            "image_vit_features_384"
+          ],
+          "step_id": "encode_central_image",
+          "uncertainty": "ViT internals are unresolved; the documented 384-dimensional output is preserved."
+        },
+        {
+          "bypasses": [],
+          "component": "Image feature projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "image_vit_features_384"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "image_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "source-defined projection from ViT image feature to image embedding"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable H2O image pathway"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "then projected to 512-dimen",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "image_vit_features_384",
+              "port_role": "ViT_image_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "image_feature_projection",
+          "outputs": [
+            "image_embedding"
+          ],
+          "step_id": "project_central_image",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Neighbor ViT encoding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that neighboring patches are encoded with the same ViT, but the catalog has no raw-image encoder."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "same  ViT  and  then  stack  the  resulting  embeddings  along  the  neighbor  axis",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "h2o_neighbor_patches",
+              "port_role": "neighbor_image_inputs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "neighbor_vit_encoding",
+          "outputs": [
+            "neighbor_vit_embeddings"
+          ],
+          "step_id": "encode_neighbors",
+          "uncertainty": "ViT encoding is unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Neighbor embedding stacking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source explicitly states stacking along a neighbor axis, but the catalog has no stack operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "same  ViT  and  then  stack  the  resulting  embeddings  along  the  neighbor  axis",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "neighbor_vit_embeddings",
+              "port_role": "neighbor_ViT_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "neighbor_embedding_stack",
+          "outputs": [
+            "stacked_neighbor_embeddings"
+          ],
+          "step_id": "stack_neighbor_embeddings",
+          "uncertainty": "The stack operation and axis creation remain an opaque boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "1D convolution and GAP neighborhood aggregation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source explicitly states convolution and GAP, but no catalog operation represents their combined computation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "  1D 608 convolution  (in\\_channels=384,  out\\_channels=512,  kernel\\_size=9)  and  Global Average  Pooling  (GAP)  to 609 obtain a 512-dimension.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "stacked_neighbor_embeddings",
+              "port_role": "stacked_neighbor_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "convolutional_neighborhood_aggregation",
+          "outputs": [
+            "neighborhood_context"
+          ],
+          "step_id": "aggregate_neighbor_context",
+          "uncertainty": "Convolution and GAP remain an opaque boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "ST gene-token preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "st_raw_counts"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "scGPT gene vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "gene-token mapping"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "gene symbols"
+                }
+              ],
+              "uncertainty": "Exact token order is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens. We follow up scGPT's scale and tokenize the ST expression data.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "st_raw_counts",
+              "port_role": "raw_ST_expression"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_tokenization",
+          "outputs": [
+            "gene_tokens"
+          ],
+          "step_id": "tokenize_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Expression log transformation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "st_raw_counts"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "log1p through Scanpy"
+                },
+                {
+                  "name": "offset",
+                  "value": "1"
+                },
+                {
+                  "name": "base",
+                  "value": "natural logarithm"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied log1p transformation through Scanpyto the raw matrices.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "st_raw_counts",
+              "port_role": "raw_count_matrix"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log1p_expression_preprocessing",
+          "outputs": [
+            "log_expression"
+          ],
+          "step_id": "log_expression_values",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Expression binning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "bin",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "strategy",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "scope",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "zero_handling",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "bin_edges",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": "The binning rule is not decoded."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "log_expression",
+              "port_role": "log_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_binning",
+          "outputs": [
+            "binned_expression"
+          ],
+          "step_id": "bin_expression_values",
+          "uncertainty": "Binning details are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "gene_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_token_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "scGPT gene-token vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "gene-token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen ST foundation model during alignment"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_tokens",
+              "port_role": "gene_token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+                  "section_id": "sec_0018"
+                }
+              ],
+              "information_content": "Frozen gene-token embedding matrix in the alignment phase.",
+              "node_id": "gene_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "frozen_gene_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape is unspecified."
+            }
+          ],
+          "operation_type": "gene_token_embedding",
+          "outputs": [
+            "gene_token_embeddings"
+          ],
+          "step_id": "embed_gene_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Condition token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "condition_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "condition_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "condition_token_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "condition-token vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "condition-token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen ST foundation model during alignment"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "condition_tokens",
+              "port_role": "condition_token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+                  "section_id": "sec_0018"
+                }
+              ],
+              "information_content": "Frozen condition-token embedding matrix in the alignment phase.",
+              "node_id": "condition_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "frozen_condition_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape is unspecified."
+            }
+          ],
+          "operation_type": "condition_token_embedding",
+          "outputs": [
+            "condition_token_embeddings"
+          ],
+          "step_id": "embed_condition_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Binned-expression fully connected embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "fully connected emb_x"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "frozen ST foundation model during alignment"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "binned_expression",
+              "port_role": "binned_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_value_embedding",
+          "outputs": [
+            "expression_embeddings"
+          ],
+          "step_id": "embed_expression_values",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT multimodal embedding fusion",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The final embedding h_i is documented, but the supplied formula is not decoded and the fusion algebra cannot be established."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Consequently, the final embedding ℎ 𝑖 for cell i is defined as:",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_token_embeddings",
+              "port_role": "gene_embeddings"
+            },
+            {
+              "node_id": "expression_embeddings",
+              "port_role": "expression_embeddings"
+            },
+            {
+              "node_id": "condition_token_embeddings",
+              "port_role": "condition_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_gene_embedding_fusion",
+          "outputs": [
+            "st_fused_embedding"
+          ],
+          "step_id": "fuse_gene_modalities",
+          "uncertainty": "Fusion operation and ordering are unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT self-attention encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "st_fused_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "self_attention",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "st_embedding_h"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "mask_semantics",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "repeat_schedule",
+                  "value": "scGPT architecture; exact schedule unspecified"
+                }
+              ],
+              "uncertainty": "The paper identifies self-attention as part of scGPT, but does not expose the exact layer schedule or masks."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "scGPT,  the  self-attention  module  learns  intra-cellular  gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+              "section_id": "sec_0005"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "H2O comprises two steps: first,  contrastive  learning  aligns  a  trainable  histopathology foundation model and a parameter-frozen ST foundation model using paired image and gene expression data;",
+              "section_id": "sec_0003"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "st_fused_embedding",
+              "port_role": "fused_gene_expression_condition_embedding"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "scgpt_self_attention_encoding",
+          "outputs": [
+            "st_embedding_h"
+          ],
+          "step_id": "encode_scgpt_self_attention",
+          "uncertainty": "The ST foundation model is parameter-frozen in this alignment trajectory; exact attention masks, repeated layers, and pooling/readout are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-index embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents embedding the diameter index but does not establish a lookup-table implementation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied FiLM module, which a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension and linearly mapped to FiLM parameters",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "spot_diameter",
+              "port_role": "diameter_index"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_index_embedding",
+          "outputs": [
+            "diameter_embedding"
+          ],
+          "step_id": "embed_diameter_index",
+          "uncertainty": "The embedding mechanism and its parameterization are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-to-FiLM parameter projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "diameter_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "film_parameters"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear mapping from diameter embedding to FiLM parameters"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable H2O parameter"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "diameter_embedding",
+              "port_role": "diameter_embedding"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_to_film_projection",
+          "outputs": [
+            "film_parameters"
+          ],
+          "step_id": "project_diameter_to_film",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-conditioned FiLM",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents diameter-conditioned scaling and shifting shared for both streams, but the catalog has no FiLM application operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "image_embedding",
+              "port_role": "image_feature"
+            },
+            {
+              "node_id": "neighborhood_context",
+              "port_role": "context_feature"
+            },
+            {
+              "node_id": "film_parameters",
+              "port_role": "diameter_conditioned_film_parameters"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_conditioned_feature_modulation",
+          "outputs": [
+            "conditioned_image_embedding",
+            "conditioned_context_feature"
+          ],
+          "step_id": "apply_diameter_film",
+          "uncertainty": "The exact gamma/beta application is unresolved; separate image and context outputs are retained."
+        },
+        {
+          "bypasses": [],
+          "component": "Feature concatenation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "conditioned_image_embedding",
+                    "conditioned_context_feature"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "aligned_image_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "feature axis"
+                },
+                {
+                  "name": "order",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Finally , the two 512-dimension vectors are concatenated as 𝑢𝑖",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "conditioned_image_embedding",
+              "port_role": "conditioned_image_feature"
+            },
+            {
+              "node_id": "conditioned_context_feature",
+              "port_role": "conditioned_context_feature"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "feature_concatenation",
+          "outputs": [
+            "aligned_image_embedding"
+          ],
+          "step_id": "concatenate_aligned_image_features",
+          "uncertainty": "The paper states that the vectors are concatenated but does not establish their operand order."
+        },
+        {
+          "bypasses": [],
+          "component": "Image-stream layer normalization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "aligned_image_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "normalize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "normalized_image_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "LayerNorm"
+                },
+                {
+                  "name": "axes",
+                  "value": "feature coordinates"
+                },
+                {
+                  "name": "scope",
+                  "value": "image stream"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both streams are layer-normalized:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "aligned_image_embedding",
+              "port_role": "image_stream"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "image_stream_layer_normalization",
+          "outputs": [
+            "normalized_image_embedding"
+          ],
+          "step_id": "normalize_image_stream",
+          "uncertainty": "The exact placement relative to the displayed formulas is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "ST-stream layer normalization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "st_embedding_h"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "normalize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "normalized_st_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "LayerNorm"
+                },
+                {
+                  "name": "axes",
+                  "value": "feature coordinates"
+                },
+                {
+                  "name": "scope",
+                  "value": "ST stream"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both streams are layer-normalized:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "st_embedding_h",
+              "port_role": "ST_stream"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "ST_stream_layer_normalization",
+          "outputs": [
+            "normalized_st_embedding"
+          ],
+          "step_id": "normalize_st_stream",
+          "uncertainty": "The exact placement relative to the displayed formulas is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Contrastive image-ST alignment objective",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The contrastive objective is not represented by a catalog operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a contrastive objective based on a temperature-scaled dot  product  between  image  embeddings  and  text  embeddings.",
+              "section_id": "sec_0019"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "image-text embeddings are  regarded  as  positive  examples,  while  all  remaining  cross-pairs  within  the  batch  serve  as negative  examples.",
+              "section_id": "sec_0019"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "To  provide  smoother  targets,  cosine  similarity  within  each  modality  is  additionally incorporated.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "normalized_image_embedding",
+              "port_role": "image_embedding"
+            },
+            {
+              "node_id": "normalized_st_embedding",
+              "port_role": "ST_embedding"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "contrastive_cross_modal_alignment",
+          "outputs": [
+            "contrastive_alignment_loss"
+          ],
+          "step_id": "contrastive_align_image_st",
+          "uncertainty": "Temperature-scaled dot-product similarity, paired positives, in-batch cross-pair negatives, and within-modality cosine similarity are preserved as objective details; the exact loss algebra and weighting are not decomposed."
+        }
+      ],
+      "task_configuration": "Paired H&E-spatial transcriptomics contrastive alignment during H2O training",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "H2O  decoder  predicts  the  omics  expression  for  each  spot",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the two 512-dimension vectors are concatenated as 𝑢𝑖",
+          "section_id": "sec_0019"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "H2O ST-expression decoder",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "central patch height",
+            "central patch width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "image embedding from a DINOv2-trained ViT",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "Central H&E patch.",
+          "node_id": "decoder_central_patch",
+          "representation_type": "H&E_image_patch",
+          "symbolic_shape": [
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_spatial_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "K adjacent H&E patches.",
+          "node_id": "decoder_neighbor_patches",
+          "representation_type": "neighboring_H&E_image_patches",
+          "symbolic_shape": [
+            "n_neighbors",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spot observations"
+          ],
+          "contextual_role": "conditioning_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "conditioning signal from the spot  diameter  via  FiLM",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "Spot-diameter index.",
+          "node_id": "decoder_spot_diameter",
+          "representation_type": "spot_diameter_index",
+          "symbolic_shape": [
+            "n_spots"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "ViT feature coordinates"
+          ],
+          "contextual_role": "documented_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "384-dimension 603 vector",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Central-patch ViT feature before projection.",
+          "node_id": "decoder_vit_features_384",
+          "representation_type": "ViT_image_features_before_projection",
+          "symbolic_shape": [
+            "n_spots",
+            "d_vit"
+          ],
+          "uncertainty": "The physical feature width is stated in the source quotation."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "image-feature coordinates"
+          ],
+          "contextual_role": "image_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "then projected to 512-dimen",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Central-patch image feature after the documented projection.",
+          "node_id": "decoder_image_embedding",
+          "representation_type": "projected_DINOv2_image_embedding",
+          "symbolic_shape": [
+            "n_spots",
+            "d_image"
+          ],
+          "uncertainty": "Exact ViT output interface is otherwise unspecified."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "context-feature coordinates"
+          ],
+          "contextual_role": "neighborhood_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "  1D 608 convolution  (in\\_channels=384,  out\\_channels=512,  kernel\\_size=9)  and  Global Average  Pooling  (GAP)  to 609 obtain a 512-dimension.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Neighborhood context feature.",
+          "node_id": "decoder_context_feature",
+          "representation_type": "neighborhood_context_feature",
+          "symbolic_shape": [
+            "n_spots",
+            "d_context"
+          ],
+          "uncertainty": "Convolution and GAP internals are unresolved."
+        },
+        {
+          "axis_semantics": [
+            "diameter categories",
+            "diameter-embedding coordinates"
+          ],
+          "contextual_role": "conditioning_embedding",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Embedded diameter condition.",
+          "node_id": "decoder_diameter_embedding",
+          "representation_type": "diameter_condition_embedding",
+          "symbolic_shape": [
+            "n_spots",
+            "d_diameter"
+          ],
+          "uncertainty": "The embedding implementation is unspecified; no lookup-table operand is asserted."
+        },
+        {
+          "axis_semantics": [
+            "FiLM parameter rows",
+            "FiLM parameter coordinates"
+          ],
+          "contextual_role": "computed_conditioned_feature",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Per-input diameter-conditioned FiLM parameters.",
+          "node_id": "decoder_film_parameters",
+          "representation_type": "FiLM_gamma_beta_parameters",
+          "symbolic_shape": [
+            "n_spots",
+            "d_film_parameters"
+          ],
+          "uncertainty": "The exact parameter layout and application algebra are unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "conditioned image-feature coordinates"
+          ],
+          "contextual_role": "conditioned_decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Diameter-conditioned image feature.",
+          "node_id": "decoder_image_feature_conditioned",
+          "representation_type": "FiLM_conditioned_image_feature",
+          "symbolic_shape": [
+            "n_spots",
+            "d_image_conditioned"
+          ],
+          "uncertainty": "The exact FiLM application is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "conditioned context-feature coordinates"
+          ],
+          "contextual_role": "conditioned_decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Diameter-conditioned context feature.",
+          "node_id": "decoder_context_feature_conditioned",
+          "representation_type": "FiLM_conditioned_context_feature",
+          "symbolic_shape": [
+            "n_spots",
+            "d_context_conditioned"
+          ],
+          "uncertainty": "The exact FiLM application is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "shared decoder-feature coordinates"
+          ],
+          "contextual_role": "decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "the two 512-dimension vectors are concatenated as 𝑢𝑖",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Concatenated image and context representation after conditioning.",
+          "node_id": "decoder_input_u",
+          "representation_type": "concatenated_H2O_decoder_features",
+          "symbolic_shape": [
+            "n_spots",
+            "d_decoder_input"
+          ],
+          "uncertainty": "The concatenation operand order is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "gene outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "decoded to the 𝐻 -gene space (H = number of HVGs) through a decoder with 3-layer MLP",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Predicted spatial gene-expression profile.",
+          "node_id": "predicted_st_expression",
+          "representation_type": "predicted_ST_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "gene outputs"
+          ],
+          "contextual_role": "paired_biological_target",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The reconstruction objective was formulated as the mean squared error (MSE) between 641 the predicted expression profiles ĝ𝑖 and the original experimental profile",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Original experimentally measured ST expression profile used as the reconstruction target.",
+          "node_id": "experimental_st_expression_target",
+          "representation_type": "observed_ST_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "training examples"
+          ],
+          "contextual_role": "training_objective",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The reconstruction objective was formulated as the mean squared error (MSE) between 641 the predicted expression profiles ĝ𝑖 and the original experimental profile",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "MSE reconstruction loss between predicted and experimentally measured expression.",
+          "node_id": "reconstruction_mse_loss",
+          "representation_type": "MSE_reconstruction_loss",
+          "symbolic_shape": [
+            "n_training_examples"
+          ],
+          "uncertainty": "The supplied formula is not decoded."
+        },
+        {
+          "axis_semantics": [
+            "training examples"
+          ],
+          "contextual_role": "training_objective",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The overall training objective combines the reconstruction loss with the contrastive alignment loss:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Weighted joint objective combining reconstruction and contrastive alignment losses.",
+          "node_id": "joint_training_loss",
+          "representation_type": "weighted_joint_H2O_objective",
+          "symbolic_shape": [
+            "n_training_examples"
+          ],
+          "uncertainty": "The weighting coefficients and formula are source-defined but not decoded."
+        },
+        {
+          "axis_semantics": [
+            "training examples"
+          ],
+          "contextual_role": "training_objective",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The overall training objective combines the reconstruction loss with the contrastive alignment loss:",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Contrastive alignment loss supplied by the paired alignment branch.",
+          "node_id": "decoder_contrastive_alignment_loss",
+          "representation_type": "contrastive_alignment_loss_input",
+          "symbolic_shape": [
+            "n_training_examples"
+          ],
+          "uncertainty": "The exact cross-trajectory materialization is not specified."
+        }
+      ],
+      "open_questions": [
+        "The exact FiLM-modulated image and context representations are not exposed.",
+        "The decoder activation functions and output parameterization are unspecified.",
+        "The source text does not establish whether decoder fine-tuning is a separately staged optimization or part of the joint objective.",
+        "The exact MSE and weighted joint-loss formulas are not decoded.",
+        "The source does not establish the concatenation operand order."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "decoder_input_u",
+          "port_role": "decoder_feature_input"
+        }
+      ],
+      "recipient_component": "H2O ST-expression decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Central-patch image encoding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "Raw H&E patch encoding by the DINOv2-trained ViT is not represented in the catalog."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "raw H&amp;E image of cell 𝑖 is encoded by the ViT",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_central_patch",
+              "port_role": "central_H&E_patch"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "central_patch_vit_encoding",
+          "outputs": [
+            "decoder_vit_features_384"
+          ],
+          "step_id": "encode_decoder_patch",
+          "uncertainty": "ViT internals are unresolved; the documented 384-dimensional output is preserved."
+        },
+        {
+          "bypasses": [],
+          "component": "Central-patch image projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "decoder_vit_features_384"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "decoder_image_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "source-defined projection from ViT image feature to image embedding"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable H2O image pathway"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "then projected to 512-dimen",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_vit_features_384",
+              "port_role": "ViT_image_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "central_patch_feature_projection",
+          "outputs": [
+            "decoder_image_embedding"
+          ],
+          "step_id": "project_decoder_patch",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Neighborhood context extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source states shared ViT encoding, convolution, and GAP; no catalog operation represents that full computation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "  1D 608 convolution  (in\\_channels=384,  out\\_channels=512,  kernel\\_size=9)  and  Global Average  Pooling  (GAP)  to 609 obtain a 512-dimension.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_neighbor_patches",
+              "port_role": "neighbor_H&E_patches"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "neighborhood_context_aggregation",
+          "outputs": [
+            "decoder_context_feature"
+          ],
+          "step_id": "aggregate_decoder_context",
+          "uncertainty": "The convolution and GAP internals are unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-index embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents embedding the diameter index but does not establish a lookup-table implementation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_spot_diameter",
+              "port_role": "diameter_index"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_index_embedding",
+          "outputs": [
+            "decoder_diameter_embedding"
+          ],
+          "step_id": "embed_decoder_diameter",
+          "uncertainty": "The embedding mechanism and its parameterization are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-to-FiLM parameter projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "decoder_diameter_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "decoder_film_parameters"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear mapping from diameter embedding to FiLM parameters"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable H2O parameter"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_diameter_embedding",
+              "port_role": "diameter_embedding"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_to_film_projection",
+          "outputs": [
+            "decoder_film_parameters"
+          ],
+          "step_id": "project_decoder_diameter_to_film",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Diameter-conditioned representation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "FiLM modulation is documented but not represented by a catalog operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "shared for both streams",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_image_embedding",
+              "port_role": "image_feature"
+            },
+            {
+              "node_id": "decoder_context_feature",
+              "port_role": "context_feature"
+            },
+            {
+              "node_id": "decoder_film_parameters",
+              "port_role": "diameter_conditioned_film_parameters"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "diameter_conditioned_film",
+          "outputs": [
+            "decoder_image_feature_conditioned",
+            "decoder_context_feature_conditioned"
+          ],
+          "step_id": "condition_decoder_features",
+          "uncertainty": "The exact FiLM output and application are unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Feature concatenation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "decoder_image_feature_conditioned",
+                    "decoder_context_feature_conditioned"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "decoder_input_u"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "feature axis"
+                },
+                {
+                  "name": "order",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Finally , the two 512-dimension vectors are concatenated as 𝑢𝑖",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_image_feature_conditioned",
+              "port_role": "conditioned_image_feature"
+            },
+            {
+              "node_id": "decoder_context_feature_conditioned",
+              "port_role": "conditioned_context_feature"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "feature_concatenation",
+          "outputs": [
+            "decoder_input_u"
+          ],
+          "step_id": "concatenate_decoder_features",
+          "uncertainty": "The paper states that the vectors are concatenated but does not establish their operand order."
+        },
+        {
+          "bypasses": [],
+          "component": "H2O ST decoder MLP",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "decoder_input_u"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "predicted_st_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "3-layer MLP decoder to H-gene space"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "fine-tuned"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "decoded to the 𝐻 -gene space (H = number of HVGs) through a decoder with 3-layer MLP",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "decoder_input_u",
+              "port_role": "concatenated_decoder_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "MLP_expression_decoding",
+          "outputs": [
+            "predicted_st_expression"
+          ],
+          "step_id": "decode_st_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "MSE reconstruction objective",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no loss primitive for the documented mean squared error objective."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The reconstruction objective was formulated as the mean squared error (MSE) between 641 the predicted expression profiles ĝ𝑖 and the original experimental profile",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "predicted_st_expression",
+              "port_role": "predicted_expression"
+            },
+            {
+              "node_id": "experimental_st_expression_target",
+              "port_role": "original_experimental_profile"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "MSE_reconstruction_loss",
+          "outputs": [
+            "reconstruction_mse_loss"
+          ],
+          "step_id": "compute_reconstruction_mse",
+          "uncertainty": "The MSE formula is not decoded."
+        },
+        {
+          "bypasses": [],
+          "component": "Weighted joint H2O objective",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no weighted joint-loss primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The overall training objective combines the reconstruction loss with the contrastive alignment loss:",
+              "section_id": "sec_0019"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "where α and β are fixed weighting coefficients that balance the two terms.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "reconstruction_mse_loss",
+              "port_role": "reconstruction_loss"
+            },
+            {
+              "node_id": "decoder_contrastive_alignment_loss",
+              "port_role": "contrastive_alignment_loss"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "weighted_joint_training_objective",
+          "outputs": [
+            "joint_training_loss"
+          ],
+          "step_id": "combine_joint_training_loss",
+          "uncertainty": "The weighting coefficients are documented as fixed, but their values and the complete formula are not decoded."
+        }
+      ],
+      "task_configuration": "H2O training for spatial transcriptomics expression prediction from paired H&E and ST data",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To infer transcriptomics profiles from a central image patch",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "fixed  224×224-pixel  patch  together  with  eight immediate neighbors",
+          "section_id": "sec_0014"
+        }
+      ],
+      "lifecycle_phase": "inference",
+      "model_role": "primary_model",
+      "model_variant": "H2O ST prediction model",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed  224×224-pixel  patch  together  with  eight immediate neighbors",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Central H&E image patch.",
+          "node_id": "inference_central_patch",
+          "representation_type": "H&E_image_patch",
+          "symbolic_shape": [
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_spatial_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed  224×224-pixel  patch  together  with  eight immediate neighbors",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Eight immediate neighboring H&E patches.",
+          "node_id": "inference_neighbors",
+          "representation_type": "neighboring_H&E_image_patches",
+          "symbolic_shape": [
+            "n_neighbors",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spot observations"
+          ],
+          "contextual_role": "conditioning_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "conditioning on platform-specific information such as spot diameter",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Platform- or spot-diameter condition.",
+          "node_id": "inference_spot_diameter",
+          "representation_type": "spot_diameter_condition",
+          "symbolic_shape": [
+            "n_spots"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "decoder feature coordinates"
+          ],
+          "contextual_role": "decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To infer transcriptomics profiles from a central image patch",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Context-aware image representation supplied to the H2O decoder.",
+          "node_id": "inference_decoder_features",
+          "representation_type": "H2O_decoder_features",
+          "symbolic_shape": [
+            "n_spots",
+            "d_decoder_input"
+          ],
+          "uncertainty": "Internal encoder, aggregation, and FiLM computations are unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "gene outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To infer transcriptomics profiles from a central image patch",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Predicted spatial transcriptomics profile.",
+          "node_id": "inference_predicted_st",
+          "representation_type": "predicted_ST_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "The inference-time availability of spot diameter for every target image is not specified.",
+        "The exact learned feature dimensions and decoder normalization at inference are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "inference_predicted_st",
+          "port_role": "predicted_ST_profile"
+        }
+      ],
+      "recipient_component": "H2O ST decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "H2O image-to-ST feature extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents ViT, neighborhood convolution/GAP, and FiLM, but the catalog cannot represent the complete image feature computation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To infer transcriptomics profiles from a central image patch",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "inference_central_patch",
+              "port_role": "central_H&E_patch"
+            },
+            {
+              "node_id": "inference_neighbors",
+              "port_role": "neighbor_H&E_context"
+            },
+            {
+              "node_id": "inference_spot_diameter",
+              "port_role": "spot_diameter"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "context_aware_image_feature_extraction",
+          "outputs": [
+            "inference_decoder_features"
+          ],
+          "step_id": "extract_inference_features",
+          "uncertainty": "Internal encoder, aggregation, and FiLM computations remain unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "H2O ST expression decoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "inference_decoder_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "inference_predicted_st"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "3-layer MLP decoder"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "frozen inference checkpoint"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "decoded to the 𝐻 -gene space (H = number of HVGs) through a decoder with 3-layer MLP",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "inference_decoder_features",
+              "port_role": "H2O_decoder_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "ST_expression_prediction",
+          "outputs": [
+            "inference_predicted_st"
+          ],
+          "step_id": "predict_st_expression",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Spatial transcriptomics prediction from central H&E patches with local context",
+      "trajectory_id": "h2o_st_inference"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "HTSA provides Visium-based ST together with H&amp;E images across fetal and early paediatric thymus samples",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "processed by H2O to predict ST across time.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "lifecycle_phase": "inference",
+      "model_role": "primary_model",
+      "model_variant": "H2O applied to HTSA developmental thymus samples",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "HTSA provides Visium-based ST together with H&amp;E images across fetal and early paediatric thymus samples",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "H&E histopathology image from a fetal or paediatric thymus sample.",
+          "node_id": "htsa_h_and_e_image",
+          "representation_type": "H&E_image",
+          "symbolic_shape": [
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_spatial_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed  224×224-pixel  patch  together  with  eight immediate neighbors",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Eight neighboring H&E patches.",
+          "node_id": "htsa_neighbor_patches",
+          "representation_type": "neighboring_H&E_image_patches",
+          "symbolic_shape": [
+            "n_neighbors",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spot observations"
+          ],
+          "contextual_role": "conditioning_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "conditioning on platform-specific information such as spot diameter",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Resolution/spot-diameter condition for Visium data.",
+          "node_id": "htsa_spot_diameter",
+          "representation_type": "spot_diameter_condition",
+          "symbolic_shape": [
+            "n_spots"
+          ],
+          "uncertainty": "The paper does not state whether an explicit diameter index is supplied for every HTSA inference sample."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "decoder feature coordinates"
+          ],
+          "contextual_role": "decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processed by H2O to predict ST across time.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "H2O decoder features for HTSA prediction.",
+          "node_id": "htsa_decoder_features",
+          "representation_type": "H2O_decoder_features",
+          "symbolic_shape": [
+            "n_spots",
+            "d_decoder_input"
+          ],
+          "uncertainty": "Internal feature construction is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "gene outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processed by H2O to predict ST across time.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "H2O-predicted ST expression across developmental stages.",
+          "node_id": "htsa_predicted_st",
+          "representation_type": "predicted_ST_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "The paper does not state whether the HTSA inference input includes an explicit diameter index for each sample.",
+        "The downstream Cell2location and temporal analyses occur after H2O prediction and are outside the model-input receipt."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "htsa_predicted_st",
+          "port_role": "predicted_ST_profile"
+        }
+      ],
+      "recipient_component": "H2O ST decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "HTSA H&E context processing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The internal ViT, neighborhood aggregation, and FiLM computations are not represented by catalog operations."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processed by H2O to predict ST across time.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "htsa_h_and_e_image",
+              "port_role": "HTSA_H&E_image"
+            },
+            {
+              "node_id": "htsa_neighbor_patches",
+              "port_role": "local_neighbor_context"
+            },
+            {
+              "node_id": "htsa_spot_diameter",
+              "port_role": "resolution_condition"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "HTSA_context_aware_image_encoding",
+          "outputs": [
+            "htsa_decoder_features"
+          ],
+          "step_id": "encode_htsa_image_context",
+          "uncertainty": "Internal feature construction is unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "HTSA ST prediction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "htsa_decoder_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "htsa_predicted_st"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "3-layer MLP ST decoder"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "frozen inference checkpoint"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processed by H2O to predict ST across time.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "htsa_decoder_features",
+              "port_role": "H2O_decoder_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "developmental_ST_prediction",
+          "outputs": [
+            "htsa_predicted_st"
+          ],
+          "step_id": "predict_htsa_st",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "HTSA fetal-to-paediatric developmental ST prediction",
+      "trajectory_id": "h2o_htsa_inference"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We first registered the serial sessions to construct a virtual three-dimensional tissue block.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "caption",
+          "quote": "Serial H&amp;E slides from a metastatic lymph node were aligned and processed with H2O to predict spatial gene expression across sections",
+          "section_id": "sec_0012"
+        }
+      ],
+      "lifecycle_phase": "inference",
+      "model_role": "primary_model",
+      "model_variant": "H2O applied to OpenST serial-section reconstruction",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "section index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "This dataset contains 19 serial sections (S2-S38) from a single metastatic lymph node",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Serial H&E sections from a metastatic lymph node.",
+          "node_id": "openst_serial_h_and_e",
+          "representation_type": "serial_H&E_images",
+          "symbolic_shape": [
+            "n_sections",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "registered section index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "registered_spatial_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We first registered the serial sessions to construct a virtual three-dimensional tissue block.",
+              "section_id": "sec_0011"
+            }
+          ],
+          "information_content": "Serial H&E images after spatial registration.",
+          "node_id": "openst_registered_images",
+          "representation_type": "registered_serial_H&E_images",
+          "symbolic_shape": [
+            "n_sections",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": "The registration basis and transform are not specified."
+        },
+        {
+          "axis_semantics": [
+            "registered sections",
+            "spots",
+            "gene outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "aligned and processed with H2O to predict spatial gene expression across sections",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Predicted ST profiles for registered serial sections.",
+          "node_id": "openst_predicted_st_sections",
+          "representation_type": "serial_predicted_ST_expression",
+          "symbolic_shape": [
+            "n_sections",
+            "n_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "z section axis",
+            "x/y spatial axes",
+            "gene outputs"
+          ],
+          "contextual_role": "downstream_assembled_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "stacked  the predictions in sequential section order",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Three-dimensional stack of predicted molecular profiles.",
+          "node_id": "openst_predicted_3d_volume",
+          "representation_type": "stacked_3D_predicted_ST_volume",
+          "symbolic_shape": [
+            "n_sections",
+            "n_spatial_positions",
+            "n_genes"
+          ],
+          "uncertainty": "The sequential assembly implementation is unspecified."
+        }
+      ],
+      "open_questions": [
+        "The paper does not specify whether registration is performed before or after patch extraction in all sections.",
+        "The exact H2O patch, neighborhood, and diameter inputs for each registered section are not detailed."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "openst_predicted_st_sections",
+          "port_role": "predicted_serial_ST_profiles"
+        }
+      ],
+      "recipient_component": "H2O ST decoder and serial-volume assembly",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "OpenST serial-section registration",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "openst_serial_h_and_e"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "align",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "openst_registered_images"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "basis",
+                  "value": "serial-section spatial correspondence"
+                },
+                {
+                  "name": "method",
+                  "value": "source-defined image registration"
+                }
+              ],
+              "uncertainty": "The registration transform and correspondence details are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We first registered the serial sessions to construct a virtual three-dimensional tissue block.",
+              "section_id": "sec_0011"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "openst_serial_h_and_e",
+              "port_role": "serial_H&E_sections"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serial_section_registration",
+          "outputs": [
+            "openst_registered_images"
+          ],
+          "step_id": "register_openst_sections",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "H2O prediction on registered sections",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The internal image encoder, neighborhood context, FiLM conditioning, and decoder receipt are not fully specified for the registered sections."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "aligned and processed with H2O to predict spatial gene expression across sections",
+              "section_id": "sec_0012"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "openst_registered_images",
+              "port_role": "registered_H&E_images"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "registered_section_ST_prediction",
+          "outputs": [
+            "openst_predicted_st_sections"
+          ],
+          "step_id": "predict_openst_sections",
+          "uncertainty": "H2O internal input schedule is unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Sequential 3D prediction volume assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source documents sequential stacking of predictions, but the catalog has no explicit sequential volume-assembly operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": " then  stacked  the predictions in sequential section order and visualized the resulting volume",
+              "section_id": "sec_0012"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "openst_predicted_st_sections",
+              "port_role": "serial_predicted_profiles"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "sequential_3D_profile_stacking",
+          "outputs": [
+            "openst_predicted_3d_volume"
+          ],
+          "step_id": "stack_openst_predictions",
+          "uncertainty": "The assembly operation and its section-wise operand representation are unspecified."
+        }
+      ],
+      "task_configuration": "OpenST serial-section H2O prediction and 3D spatial transcriptomics reconstruction",
+      "trajectory_id": "h2o_openst_3d_inference"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "H&amp;E images from consecutive sections are used to construct both ST and SP profiles using H2O.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This dual-decoder framework enabled the model to simultaneously predict both ST and SP  distributions  from  the  same  histopathological  image  input.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "lifecycle_phase": "inference",
+      "model_role": "primary_model",
+      "model_variant": "H2O dual ST/SP decoder",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "HTAPP dataset includes matched MERFISH transcriptomics, CODEX proteomics, and H&amp;E images from the same samples.",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "H&E image from an HTAPP breast-cancer sample.",
+          "node_id": "htapp_h_and_e_image",
+          "representation_type": "H&E_image",
+          "symbolic_shape": [
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "neighbor index",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_spatial_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed  224×224-pixel  patch  together  with  eight immediate neighbors",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Neighboring H&E patches used for spatial context.",
+          "node_id": "htapp_neighbor_patches",
+          "representation_type": "neighboring_H&E_image_patches",
+          "symbolic_shape": [
+            "n_neighbors",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spot observations"
+          ],
+          "contextual_role": "conditioning_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "conditioning on platform-specific information such as spot diameter",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Resolution/spot-diameter condition.",
+          "node_id": "htapp_spot_diameter",
+          "representation_type": "spot_diameter_condition",
+          "symbolic_shape": [
+            "n_spots"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "shared decoder-feature coordinates"
+          ],
+          "contextual_role": "shared_decoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "from  the  same  histopathological  image  input.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Shared image-derived feature input to the parallel ST and SP decoders.",
+          "node_id": "htapp_shared_decoder_features",
+          "representation_type": "shared_H2O_decoder_features",
+          "symbolic_shape": [
+            "n_spots",
+            "d_decoder_input"
+          ],
+          "uncertainty": "Internal H2O image processing is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "transcriptomic outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "predict both ST and SP  distributions",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Predicted MERFISH-like spatial transcriptomics profile.",
+          "node_id": "htapp_predicted_st",
+          "representation_type": "predicted_ST_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_transcriptomic_features"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "spots",
+            "proteomic outputs"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "predict both ST and SP  distributions",
+              "section_id": "sec_0013"
+            }
+          ],
+          "information_content": "Predicted CODEX-like spatial proteomics profile.",
+          "node_id": "htapp_predicted_sp",
+          "representation_type": "predicted_SP_expression",
+          "symbolic_shape": [
+            "n_spots",
+            "n_proteomic_features"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "The paper does not specify whether the ST and SP decoders share parameters beyond the stated identical architecture.",
+        "The exact H&E patch and neighborhood extraction schedule for HTAPP is not detailed beyond the general patch-plus-context description.",
+        "The protein decoder output normalization and target feature panel are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "htapp_predicted_st",
+          "port_role": "predicted_ST_profile"
+        },
+        {
+          "node_id": "htapp_predicted_sp",
+          "port_role": "predicted_SP_profile"
+        }
+      ],
+      "recipient_component": "H2O parallel ST and SP decoders",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Shared H2O image feature extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The full ViT, neighborhood aggregation, and FiLM computation is not represented by the catalog."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "from  the  same  histopathological  image  input.",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "htapp_h_and_e_image",
+              "port_role": "H&E_image"
+            },
+            {
+              "node_id": "htapp_neighbor_patches",
+              "port_role": "neighbor_context"
+            },
+            {
+              "node_id": "htapp_spot_diameter",
+              "port_role": "diameter_condition"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "shared_image_feature_extraction",
+          "outputs": [
+            "htapp_shared_decoder_features"
+          ],
+          "step_id": "extract_htapp_shared_features",
+          "uncertainty": "Internal H2O image processing is unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "ST decoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "htapp_shared_decoder_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "htapp_predicted_st"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "original 3-layer MLP ST decoder"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "leave-one-out inference checkpoint"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "parallel SP decoder, sharing an identical architecture with the original ST decoder",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "htapp_shared_decoder_features",
+              "port_role": "shared_H2O_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "ST_distribution_prediction",
+          "outputs": [
+            "htapp_predicted_st"
+          ],
+          "step_id": "predict_htapp_st",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Parallel SP decoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "htapp_shared_decoder_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "htapp_predicted_sp"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "parallel MLP SP decoder with architecture identical to original ST decoder"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "leave-one-out inference checkpoint"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "predict both ST and SP  distributions",
+              "section_id": "sec_0013"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "htapp_shared_decoder_features",
+              "port_role": "shared_H2O_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "SP_distribution_prediction",
+          "outputs": [
+            "htapp_predicted_sp"
+          ],
+          "step_id": "predict_htapp_sp",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "HTAPP paired MERFISH transcriptomics and CODEX proteomics prediction from H&E images",
+      "trajectory_id": "h2o_htapp_dual_inference"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first trained an in-house DINO-V2-based histopathology FM using FFPE and fresh frozen tissue samples",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "a checkerboard sampling strategy was employed, with a maximum of 2,000 patches selected per WSI",
+          "section_id": "sec_0005"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "in-house DINO-V2-based histopathology FM",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "all available patches",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "rather than utilizing all available patches from each whole slide image (WSI)",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "H&E image patches extracted from TCGA, GTEx, and in-house breast-cancer whole-slide images.",
+          "node_id": "raw_wsi_patches",
+          "representation_type": "H&E_image_patches",
+          "symbolic_shape": [
+            "n_available_patches",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "candidate patch positions"
+          ],
+          "contextual_role": "selection_control",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a checkerboard sampling strategy was employed",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Checkerboard patch-selection positions or sampling controls.",
+          "node_id": "checkerboard_selectors",
+          "representation_type": "checkerboard_sampling_controls",
+          "symbolic_shape": [
+            "n_available_patches"
+          ],
+          "uncertainty": "The exact checkerboard layout is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected patches",
+            "height",
+            "width",
+            "color channels"
+          ],
+          "contextual_role": "model_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "with a maximum of 2,000 patches selected per WSI",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Selected H&E patches used for DINO-V2-based histopathology pretraining.",
+          "node_id": "selected_wsi_patches",
+          "representation_type": "selected_H&E_image_patches",
+          "symbolic_shape": [
+            "n_selected_patches",
+            "height",
+            "width",
+            "channels"
+          ],
+          "uncertainty": "The exact selected count per WSI is variable."
+        },
+        {
+          "axis_semantics": [
+            "selected patches",
+            "feature coordinates"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we first trained an in-house DINO-V2-based histopathology FM",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "DINO-V2-based histopathology image representations.",
+          "node_id": "dino_histopathology_features",
+          "representation_type": "DINO_V2_histopathology_features",
+          "symbolic_shape": [
+            "n_selected_patches",
+            "d_image_features"
+          ],
+          "uncertainty": "The supplied text does not specify the exact encoder output interface."
+        }
+      ],
+      "open_questions": [
+        "The source does not state whether patch sampling occurs before or after tissue-quality filtering.",
+        "The exact DINO-V2 architecture, augmentation policy, and pretraining objective are not supplied."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "dino_histopathology_features",
+          "port_role": "histopathology_feature_output"
+        }
+      ],
+      "recipient_component": "In-house DINO-V2-based histopathology foundation model",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Checkerboard patch sampling",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_wsi_patches"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "checkerboard_selectors"
+                  ],
+                  "port": "selectors"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "selected_wsi_patches"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "checkerboard sampling with maximum 2,000 patches per WSI"
+                },
+                {
+                  "name": "method",
+                  "value": "source-defined checkerboard sampling"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a checkerboard sampling strategy was employed, with a maximum of 2,000 patches selected per WSI",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_wsi_patches",
+              "port_role": "available_WSI_patches"
+            },
+            {
+              "node_id": "checkerboard_selectors",
+              "port_role": "checkerboard_controls"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "checkerboard_patch_selection",
+          "outputs": [
+            "selected_wsi_patches"
+          ],
+          "step_id": "select_pretraining_patches",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "DINO-V2 histopathology encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no operation for applying a DINO-V2 vision encoder to raw image patches."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we first trained an in-house DINO-V2-based histopathology FM",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "selected_wsi_patches",
+              "port_role": "selected_H&E_patches"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "DINO_V2_histopathology_encoding",
+          "outputs": [
+            "dino_histopathology_features"
+          ],
+          "step_id": "encode_dino_histopathology_patches",
+          "uncertainty": "Encoder internals and pretraining loss are unresolved."
+        }
+      ],
+      "task_configuration": "Histopathology image foundation-model pretraining on TCGA, GTEx, and in-house cohorts",
+      "trajectory_id": "dino_histopathology_pretraining"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We first fine-tuned scGPT on a subset of the HEST-1k dataset to generate scGPT-FT.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The input to fine-tune scGPT consists of three components: (1) gene (or peak) tokens, (2) expression",
+          "section_id": "sec_0018"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "scGPT-FT",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene columns"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, for ST data, each entry encodes the expression level of gene 𝑗 ∈ {0, 1, …, G} in cell/spot 𝑖 ∈ {0, 1, …, N}.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Raw ST gene-expression count matrix.",
+          "node_id": "scgpt_raw_count_matrix",
+          "representation_type": "raw_ST_count_matrix",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene-token positions"
+          ],
+          "contextual_role": "gene_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens. We follow up scGPT's scale and tokenize the ST expression data.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Tokenized gene identifiers or gene-vector positions.",
+          "node_id": "scgpt_gene_tokens",
+          "representation_type": "gene_token_ids",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_gene_tokens"
+          ],
+          "uncertainty": "The formula and exact token order are not decoded."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "expression_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied log1p transformation through Scanpyto the raw matrices.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Log1p-transformed expression values.",
+          "node_id": "scgpt_log_expression",
+          "representation_type": "log_transformed_expression",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "expression_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Binned expression values.",
+          "node_id": "scgpt_binned_expression",
+          "representation_type": "binned_expression_values",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": "Binning strategy and edges are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions"
+          ],
+          "contextual_role": "condition_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "condition  tokens  encompass  diverse  meta-information",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Condition-token vector associated with genes or perturbations.",
+          "node_id": "scgpt_condition_tokens",
+          "representation_type": "condition_token_ids",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes"
+          ],
+          "uncertainty": "Condition vocabulary and values are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene-token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_gene_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed-length embedding vector of dimension D",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Gene-token embeddings.",
+          "node_id": "scgpt_gene_embeddings",
+          "representation_type": "gene_token_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_gene_tokens",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_condition_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fixed-length embedding vector of dimension D",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Condition-token embeddings.",
+          "node_id": "scgpt_condition_embeddings",
+          "representation_type": "condition_token_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "gene positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "embedded_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Fully connected expression-value embeddings.",
+          "node_id": "scgpt_expression_embeddings",
+          "representation_type": "expression_value_embeddings",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "n_genes",
+            "d_embedding"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "embedding coordinates"
+          ],
+          "contextual_role": "documented_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Consequently, the final embedding ℎ 𝑖 for cell i is defined as:",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Fused scGPT embedding before self-attention encoding.",
+          "node_id": "scgpt_fused_embedding",
+          "representation_type": "scGPT_fused_input_embedding",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_embedding"
+          ],
+          "uncertainty": "The final fusion equation is not decoded."
+        },
+        {
+          "axis_semantics": [
+            "cell/spot rows",
+            "embedding coordinates"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "scGPT,  the  self-attention  module  learns  intra-cellular  gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+              "section_id": "sec_0005"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We use the scGPT architecture with pretrained weights, followed by additional fine-tuning, as the gene encoder",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Final scGPT representation for each cell or spot after the documented encoder stage.",
+          "node_id": "scgpt_ft_embedding",
+          "representation_type": "scGPT_cell_or_spot_embedding",
+          "symbolic_shape": [
+            "n_cells_or_spots",
+            "d_embedding"
+          ],
+          "uncertainty": "The exact attention schedule, masks, and readout are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact gene-token ordering and vocabulary are used?",
+        "What binning strategy and bin edges are applied after log1p?",
+        "How are gene, expression, and condition embeddings fused into the self-attention input?",
+        "Which scGPT parameters remain frozen during ST fine-tuning?",
+        "What exact self-attention schedule and readout produce the final scGPT-FT embedding?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "scgpt_ft_embedding",
+          "port_role": "ST_foundation_embedding"
+        }
+      ],
+      "recipient_component": "scGPT-FT gene encoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "scGPT gene-token construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_raw_count_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "scGPT gene vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "gene-token mapping"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "gene symbols"
+                }
+              ],
+              "uncertainty": "Exact mapping and order are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens. We follow up scGPT's scale and tokenize the ST expression data.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_raw_count_matrix",
+              "port_role": "raw_ST_expression"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_tokenization",
+          "outputs": [
+            "scgpt_gene_tokens"
+          ],
+          "step_id": "scgpt_tokenize_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT log1p preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_raw_count_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "log1p through Scanpy"
+                },
+                {
+                  "name": "offset",
+                  "value": "1"
+                },
+                {
+                  "name": "base",
+                  "value": "natural logarithm"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We applied log1p transformation through Scanpyto the raw matrices.",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_raw_count_matrix",
+              "port_role": "raw_count_matrix"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log1p_expression_preprocessing",
+          "outputs": [
+            "scgpt_log_expression"
+          ],
+          "step_id": "scgpt_log1p_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT expression binning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "bin",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "strategy",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "scope",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "zero_handling",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "bin_edges",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": "The supplied text states that expression values are binned, but the formula is not decoded."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_log_expression",
+              "port_role": "log_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_binning",
+          "outputs": [
+            "scgpt_binned_expression"
+          ],
+          "step_id": "scgpt_bin_expression",
+          "uncertainty": "Binning details are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT gene-token embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_gene_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "scgpt_gene_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_gene_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "scGPT gene-token vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "gene embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "pretrained weights with fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_gene_tokens",
+              "port_role": "gene_token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+                  "section_id": "sec_0018"
+                }
+              ],
+              "information_content": "Gene-token embedding matrix.",
+              "node_id": "scgpt_gene_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "gene_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape is unspecified."
+            }
+          ],
+          "operation_type": "gene_token_embedding",
+          "outputs": [
+            "scgpt_gene_embeddings"
+          ],
+          "step_id": "scgpt_embed_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT condition-token embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_condition_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "scgpt_condition_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_condition_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "condition-token vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "condition embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "pretrained weights with fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_condition_tokens",
+              "port_role": "condition_token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens 597 and condition to",
+                  "section_id": "sec_0018"
+                }
+              ],
+              "information_content": "Condition-token embedding matrix.",
+              "node_id": "scgpt_condition_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "condition_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape is unspecified."
+            }
+          ],
+          "operation_type": "condition_token_embedding",
+          "outputs": [
+            "scgpt_condition_embeddings"
+          ],
+          "step_id": "scgpt_embed_conditions",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT expression-value embedding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "fully connected emb_x"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "pretrained weights with fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We use fully connected layers, denoted as emb x , for the binned 599 expression values",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_binned_expression",
+              "port_role": "binned_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_value_embedding",
+          "outputs": [
+            "scgpt_expression_embeddings"
+          ],
+          "step_id": "scgpt_embed_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT final embedding fusion",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source gives the existence of final embedding h_i but the defining equation is not decoded."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Consequently, the final embedding ℎ 𝑖 for cell i is defined as:",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_gene_embeddings",
+              "port_role": "gene_embeddings"
+            },
+            {
+              "node_id": "scgpt_expression_embeddings",
+              "port_role": "expression_embeddings"
+            },
+            {
+              "node_id": "scgpt_condition_embeddings",
+              "port_role": "condition_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "scGPT_multimodal_embedding_fusion",
+          "outputs": [
+            "scgpt_fused_embedding"
+          ],
+          "step_id": "scgpt_fuse_inputs",
+          "uncertainty": "Fusion algebra and ordering are unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT self-attention encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "scgpt_fused_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "self_attention",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "scgpt_ft_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "mask_semantics",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "repeat_schedule",
+                  "value": "scGPT architecture; exact schedule unspecified"
+                }
+              ],
+              "uncertainty": "The paper identifies self-attention as part of scGPT, but does not expose the exact layer schedule or masks."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "scGPT,  the  self-attention  module  learns  intra-cellular  gene-gene dependencies within a cell and inter-cellular interactions across different cells",
+              "section_id": "sec_0005"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We use the scGPT architecture with pretrained weights, followed by additional fine-tuning, as the gene encoder",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "scgpt_fused_embedding",
+              "port_role": "fused_gene_expression_condition_embedding"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "scgpt_self_attention_encoding",
+          "outputs": [
+            "scgpt_ft_embedding"
+          ],
+          "step_id": "scgpt_encode_self_attention",
+          "uncertainty": "Exact attention masks, repeated layers, and pooling/readout are unspecified."
+        }
+      ],
+      "task_configuration": "HEST-1k spatial-transcriptomics fine-tuning of scGPT",
+      "trajectory_id": "scgpt_ft_fine_tuning"
+    }
+  ]
+}

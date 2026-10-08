@@ -1,0 +1,1913 @@
+{
+  "coverage_questions": [
+    "The paper does not document a distinct single-cell transcriptomics input serialization beyond the Cell SFT pool's marker-panel examples.",
+    "The paper does not establish an explicit concatenation or placeholder-replacement mechanism for OmniGene-4 v3; it documents template wrapping and tokenization.",
+    "The exact tokenizer segmentation, special-token handling, padding, and attention-mask construction are unspecified.",
+    "The exact remote-homology and BixBench evaluation prompt templates are unspecified.",
+    "The paper states that new embedding rows are mean-initialized from constituent pretrained tokens, but the catalog has no table-construction or mean-initialization operation.",
+    "The paper states that the corpus is chunked to 1,024 tokens and routing-analysis sequences are capped at 384 tokens; the catalog does not provide an explicit prefix-truncation operation."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "lookup",
+        "project",
+        "add"
+      ],
+      "source_operation": "mean-initialize new vocabulary embedding rows from constituent pretrained-token embeddings",
+      "why_no_existing_operation": "lookup retrieves table entries, project maps features, and add combines aligned values; none represents construction of new table rows by averaging constituent embedding entries."
+    },
+    {
+      "compared_operation_ids": [
+        "concatenate",
+        "serialize",
+        "align"
+      ],
+      "source_operation": "four-track parallel representation assembly",
+      "why_no_existing_operation": "The paper documents parallel text, amino-acid, DSSP, and Foldseek tracks but does not specify an ordered concatenation, serialization template, or correspondence operation."
+    },
+    {
+      "compared_operation_ids": [
+        "select",
+        "partition",
+        "pad"
+      ],
+      "source_operation": "source-specific sequence capping or truncation",
+      "why_no_existing_operation": "The paper specifies caps of 1,024 or 384 tokens and a 500-character result-field cap, while the available operations do not represent prefix truncation with its boundary rule."
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000350",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "routing) by injecting 28,028 biological tokens (DNA and protein BPE, Foldseek 3Di, DSSP secondary structure), continuing pretraining (CPT) on a 32.5 GB mixture of DNA, protein, natural-language and structural corpora",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "table",
+          "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OmniGene-4: Gemma-4-26B-A4B-Instruct with extended biological vocabulary",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "sequence index",
+            "nucleotide position"
+          ],
+          "contextual_role": "external_biological_corpus",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Sampled DNA corpus.",
+          "node_id": "dna_corpus",
+          "representation_type": "DNA sequence corpus",
+          "symbolic_shape": [
+            "n_sequences",
+            "n_nucleotides"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "DNA-token positions"
+          ],
+          "contextual_role": "tokenized_biological_input",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "DNA BPE token identifiers.",
+          "node_id": "dna_tokens",
+          "representation_type": "DNA BPE token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": "Exact BPE vocabulary, special-token behavior, and segmentation details are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position within chunk"
+          ],
+          "contextual_role": "pretraining_model_input_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Token chunks supplied to the language model.",
+          "node_id": "dna_chunks",
+          "representation_type": "chunked DNA token IDs",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk"
+          ],
+          "uncertainty": "The chunk boundary rule and treatment of sequence boundaries are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "model_input_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedding vectors for chunked DNA tokens using the extended tied embedding matrix.",
+          "node_id": "dna_embeddings",
+          "representation_type": "embedded DNA token sequence",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk",
+            "d_hidden"
+          ],
+          "uncertainty": "Concrete hidden width is documented elsewhere but is intentionally not represented as a symbolic shape."
+        }
+      ],
+      "open_questions": [
+        "How are DNA sequences separated before chunking?",
+        "What special tokens and masks accompany the chunked DNA input?",
+        "How are the new DNA embedding rows constructed in the actual implementation?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "dna_embeddings",
+          "port_role": "Gemma-4 decoder token embeddings"
+        }
+      ],
+      "recipient_component": "Gemma-4-26B-A4B-Instruct sparse decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "DNA BPE tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "dna_corpus"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "dna_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "20,000 DNA BPE tokens trained on dna_32g.txt"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "BPE"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "DNA nucleotide sequence"
+                }
+              ],
+              "uncertainty": "Exact tokenizer implementation and special-token handling are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DNA BPE ( <DNA_*> )      | 20,000  | BPE [47] trained on 32GB dna_32g.txt   |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "dna_corpus",
+              "port_role": "DNA sequences"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "DNA_BPE_tokenization",
+          "outputs": [
+            "dna_tokens"
+          ],
+          "step_id": "tokenize_dna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "CPT corpus chunking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "dna_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "partition",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "dna_chunks"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "token-sequence chunking"
+                },
+                {
+                  "name": "axis",
+                  "value": "DNA-token positions"
+                },
+                {
+                  "name": "partition_rule",
+                  "value": "chunks of 1,024 tokens"
+                }
+              ],
+              "uncertainty": "Chunk-boundary and sequence-boundary behavior are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "dna_tokens",
+              "port_role": "tokenized DNA IDs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "chunk_tokenized_DNA_corpus",
+          "outputs": [
+            "dna_chunks"
+          ],
+          "step_id": "chunk_dna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Extended tied input embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "dna_chunks"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::dna"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "dna_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended SentencePiece vocabulary including DNA BPE tokens"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "input embedding matrix unfrozen during CPT"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Unfrozen non-LoRA tensors : only the input embedding matrix (290K × 2816 in bfloat16, ≈ 1 . 6 GB).",
+              "section_id": "sec_0011"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "dna_chunks",
+              "port_role": "DNA token IDs"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "vocabulary entry",
+                "embedding feature"
+              ],
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+                  "section_id": "sec_0008"
+                }
+              ],
+              "information_content": "Extended tied input/output embedding table containing DNA-token rows.",
+              "node_id": "embed_table::dna",
+              "origin": "implicit_parameter",
+              "representation_type": "tied embedding matrix",
+              "symbolic_shape": [
+                "vocabulary_entry",
+                "d_hidden"
+              ],
+              "uncertainty": "The row-construction procedure is documented separately, but no catalog operation represents mean initialization."
+            }
+          ],
+          "operation_type": "DNA_token_embedding_lookup",
+          "outputs": [
+            "dna_embeddings"
+          ],
+          "step_id": "embed_dna",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "DNA continued-pretraining corpus",
+      "trajectory_id": "omnigene4_cpt_dna"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "routing) by injecting 28,028 biological tokens (DNA and protein BPE, Foldseek 3Di, DSSP secondary structure), continuing pretraining (CPT) on a 32.5 GB mixture of DNA, protein, natural-language and structural corpora",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "table",
+          "quote": "| Protein 1 ( protein_uni_16.txt )      | 16GB  | 4GB               |",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "table",
+          "quote": "| Protein 2 ( protein_lucaone_15g.txt ) | 15GB  | 4GB               |",
+          "section_id": "sec_0010"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OmniGene-4: Gemma-4-26B-A4B-Instruct with extended biological vocabulary",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "corpus index",
+            "protein sequence position"
+          ],
+          "contextual_role": "external_biological_corpus",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Protein 1 ( protein_uni_16.txt )      | 16GB  | 4GB               |",
+              "section_id": "sec_0010"
+            },
+            {
+              "kind": "table",
+              "quote": "| Protein 2 ( protein_lucaone_15g.txt ) | 15GB  | 4GB               |",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Protein sequence corpora.",
+          "node_id": "protein_corpus",
+          "representation_type": "protein sequence corpus",
+          "symbolic_shape": [
+            "n_sequences",
+            "n_amino_acids"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "protein-token positions"
+          ],
+          "contextual_role": "tokenized_biological_input",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Protein BPE token identifiers.",
+          "node_id": "protein_tokens",
+          "representation_type": "protein BPE token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": "Exact segmentation details are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position within chunk"
+          ],
+          "contextual_role": "pretraining_model_input_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Chunked protein token IDs.",
+          "node_id": "protein_chunks",
+          "representation_type": "chunked protein token IDs",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk"
+          ],
+          "uncertainty": "Chunk boundary behavior is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "model_input_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedded protein token sequences.",
+          "node_id": "protein_embeddings",
+          "representation_type": "embedded protein token sequence",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk",
+            "d_hidden"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "Are the two protein corpora tokenized identically?",
+        "What special tokens and masks accompany protein chunks?",
+        "How are protein BPE embedding rows initialized before training?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "protein_embeddings",
+          "port_role": "Gemma-4 decoder token embeddings"
+        }
+      ],
+      "recipient_component": "Gemma-4-26B-A4B-Instruct sparse decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Protein BPE tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_corpus"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "8,000 protein BPE tokens trained on protein_uni_16.txt"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "BPE"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "protein amino-acid sequence"
+                }
+              ],
+              "uncertainty": "Exact tokenizer implementation is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_corpus",
+              "port_role": "protein sequences"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "protein_BPE_tokenization",
+          "outputs": [
+            "protein_tokens"
+          ],
+          "step_id": "tokenize_protein",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "CPT corpus chunking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "partition",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_chunks"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "token-sequence chunking"
+                },
+                {
+                  "name": "axis",
+                  "value": "protein-token positions"
+                },
+                {
+                  "name": "partition_rule",
+                  "value": "chunks of 1,024 tokens"
+                }
+              ],
+              "uncertainty": "Chunk-boundary behavior is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_tokens",
+              "port_role": "protein token IDs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "chunk_tokenized_protein_corpus",
+          "outputs": [
+            "protein_chunks"
+          ],
+          "step_id": "chunk_protein",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Extended tied input embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_chunks"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::protein"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended SentencePiece vocabulary including protein BPE tokens"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "input embedding matrix unfrozen during CPT"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Unfrozen non-LoRA tensors : only the input embedding matrix (290K × 2816 in bfloat16, ≈ 1 . 6 GB).",
+              "section_id": "sec_0011"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_chunks",
+              "port_role": "protein token IDs"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "vocabulary entry",
+                "embedding feature"
+              ],
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+                  "section_id": "sec_0008"
+                }
+              ],
+              "information_content": "Extended tied input/output embedding table containing protein-token rows.",
+              "node_id": "embed_table::protein",
+              "origin": "implicit_parameter",
+              "representation_type": "tied embedding matrix",
+              "symbolic_shape": [
+                "vocabulary_entry",
+                "d_hidden"
+              ],
+              "uncertainty": "Mean initialization is documented but not represented by a catalog operation."
+            }
+          ],
+          "operation_type": "protein_token_embedding_lookup",
+          "outputs": [
+            "protein_embeddings"
+          ],
+          "step_id": "embed_protein",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Protein continued-pretraining corpora",
+      "trajectory_id": "omnigene4_cpt_protein"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OpenWebText [16] is retained at a 1 : 3 ratio against biological corpora to serve as a 'logical anchor' and prevent catastrophic forgetting of natural-language reasoning.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OmniGene-4: Gemma-4-26B-A4B-Instruct with extended biological vocabulary",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "document index",
+            "character position"
+          ],
+          "contextual_role": "external_natural_language_corpus",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| OpenWebText                           | 37GB  | 8GB               |",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "OpenWebText natural-language corpus.",
+          "node_id": "openwebtext",
+          "representation_type": "natural-language text",
+          "symbolic_shape": [
+            "n_documents",
+            "n_characters"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "tokenized_text_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "SentencePiece natural-language token IDs.",
+          "node_id": "text_tokens",
+          "representation_type": "SentencePiece token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": "Exact SentencePiece model and special-token behavior are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position within chunk"
+          ],
+          "contextual_role": "pretraining_model_input_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Chunked natural-language token IDs.",
+          "node_id": "text_chunks",
+          "representation_type": "chunked natural-language token IDs",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk"
+          ],
+          "uncertainty": "Chunk boundary behavior is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "chunk index",
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "model_input_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedded natural-language token sequences.",
+          "node_id": "text_embeddings",
+          "representation_type": "embedded natural-language token sequence",
+          "symbolic_shape": [
+            "n_chunks",
+            "n_tokens_per_chunk",
+            "d_hidden"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "The paper does not document whether OpenWebText is normalized or filtered before tokenization.",
+        "The exact chunk-boundary and special-token policy is unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "text_embeddings",
+          "port_role": "Gemma-4 decoder token embeddings"
+        }
+      ],
+      "recipient_component": "Gemma-4-26B-A4B-Instruct sparse decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "SentencePiece tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "openwebtext"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained 262,144-token SentencePiece vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "SentencePiece subword segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language text"
+                }
+              ],
+              "uncertainty": "Exact tokenizer configuration is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "openwebtext",
+              "port_role": "natural-language text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "natural_language_tokenization",
+          "outputs": [
+            "text_tokens"
+          ],
+          "step_id": "tokenize_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "CPT corpus chunking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "partition",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_chunks"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "token-sequence chunking"
+                },
+                {
+                  "name": "axis",
+                  "value": "token positions"
+                },
+                {
+                  "name": "partition_rule",
+                  "value": "chunks of 1,024 tokens"
+                }
+              ],
+              "uncertainty": "Chunk-boundary behavior is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After tokenization and chunking to 1,024 tokens, the binary corpus contains 11.7M chunks totaling 8.73B tokens.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_tokens",
+              "port_role": "token IDs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "chunk_tokenized_text_corpus",
+          "outputs": [
+            "text_chunks"
+          ],
+          "step_id": "chunk_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Extended tied input embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "text_chunks"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::text"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended SentencePiece vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "input embedding matrix unfrozen during CPT"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_chunks",
+              "port_role": "token IDs"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "vocabulary entry",
+                "embedding feature"
+              ],
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Vocabulary (pretrained) : 262,144 tokens (SentencePiece).",
+                  "section_id": "sec_0007"
+                }
+              ],
+              "information_content": "Extended tied embedding table for natural-language and biological tokens.",
+              "node_id": "embed_table::text",
+              "origin": "implicit_parameter",
+              "representation_type": "tied embedding matrix",
+              "symbolic_shape": [
+                "vocabulary_entry",
+                "d_hidden"
+              ],
+              "uncertainty": "New-row initialization details are not represented by a catalog operation."
+            }
+          ],
+          "operation_type": "text_token_embedding_lookup",
+          "outputs": [
+            "text_embeddings"
+          ],
+          "step_id": "embed_text",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "OpenWebText natural-language continued pretraining",
+      "trajectory_id": "omnigene4_cpt_openwebtext"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "table",
+          "quote": "| Foldseek 3Di ( <3Di_*> ) | 20      | one token per 3Di letter [53]          |",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "table",
+          "quote": "| DSSP ( <2D_*> )          | 8       | one per secondary-structure class [31] |",
+          "section_id": "sec_0008"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OmniGene-4: Gemma-4-26B-A4B-Instruct with extended biological vocabulary",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "record index",
+            "text-description positions"
+          ],
+          "contextual_role": "structural_record_text",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Text-description track of a structural record.",
+          "node_id": "structure_text",
+          "representation_type": "natural-language structural description",
+          "symbolic_shape": [
+            "n_records",
+            "n_text_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "record index",
+            "amino-acid positions"
+          ],
+          "contextual_role": "structural_record_sequence",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Amino-acid sequence track.",
+          "node_id": "structure_amino_acid",
+          "representation_type": "amino-acid sequence",
+          "symbolic_shape": [
+            "n_records",
+            "n_residues"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "record index",
+            "residue positions"
+          ],
+          "contextual_role": "structural_record_secondary_structure",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "DSSP backbone-symbol track.",
+          "node_id": "structure_dssp",
+          "representation_type": "DSSP structural symbols",
+          "symbolic_shape": [
+            "n_records",
+            "n_residues"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "record index",
+            "residue positions"
+          ],
+          "contextual_role": "structural_record_foldseek_track",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Foldseek 3Di-letter track.",
+          "node_id": "structure_3di",
+          "representation_type": "Foldseek 3Di symbols",
+          "symbolic_shape": [
+            "n_records",
+            "n_residues"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "track",
+            "position",
+            "hidden feature"
+          ],
+          "contextual_role": "model_input_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Track-specific embedded inputs before unresolved parallel-track assembly.",
+          "node_id": "structure_track_embeddings",
+          "representation_type": "multi-track embedded token streams",
+          "symbolic_shape": [
+            "n_tracks",
+            "n_positions",
+            "d_hidden"
+          ],
+          "uncertainty": "The paper does not specify whether tracks are concatenated, interleaved, separately attended, or represented through another mechanism."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "model_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Four-track structural input received by the model after undocumented assembly.",
+          "node_id": "structure_input",
+          "representation_type": "four-track structural model input",
+          "symbolic_shape": null,
+          "uncertainty": "Internal track assembly and ordering are unresolved"
+        },
+        {
+          "axis_semantics": [
+            "token position"
+          ],
+          "contextual_role": "tokenized_track",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Tokenized text track.",
+          "node_id": "structure_text_tokens",
+          "representation_type": "text token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": "Exact tokenizer behavior is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "vocabulary entry",
+            "embedding feature"
+          ],
+          "contextual_role": "model_parameter",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Extended embedding table shared by structural tracks.",
+          "node_id": "embed_table::structure",
+          "representation_type": "tied embedding matrix",
+          "symbolic_shape": [
+            "vocabulary_entry",
+            "d_hidden"
+          ],
+          "uncertainty": "Exact row initialization is not represented."
+        },
+        {
+          "axis_semantics": [
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "embedded_track",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedded text-description track.",
+          "node_id": "structure_text_embeddings",
+          "representation_type": "embedded structural text track",
+          "symbolic_shape": [
+            "n_tokens",
+            "d_hidden"
+          ],
+          "uncertainty": "Exact text-track tokenization and alignment with the other structural tracks are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token position"
+          ],
+          "contextual_role": "tokenized_track",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Tokenized amino-acid track.",
+          "node_id": "structure_amino_acid_tokens",
+          "representation_type": "amino-acid token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": "Exact amino-acid tokenizer behavior is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "embedded_track",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Embedded amino-acid track.",
+          "node_id": "structure_amino_acid_embeddings",
+          "representation_type": "embedded amino-acid track",
+          "symbolic_shape": [
+            "n_tokens",
+            "d_hidden"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token position"
+          ],
+          "contextual_role": "tokenized_track",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DSSP ( <2D_*> )          | 8       | one per secondary-structure class [31] |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Tokenized DSSP track.",
+          "node_id": "structure_dssp_tokens",
+          "representation_type": "DSSP token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "embedded_track",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DSSP ( <2D_*> )          | 8       | one per secondary-structure class [31] |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedded DSSP track.",
+          "node_id": "structure_dssp_embeddings",
+          "representation_type": "embedded DSSP track",
+          "symbolic_shape": [
+            "n_tokens",
+            "d_hidden"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token position"
+          ],
+          "contextual_role": "tokenized_track",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Foldseek 3Di ( <3Di_*> ) | 20      | one token per 3Di letter [53]          |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Tokenized Foldseek 3Di track.",
+          "node_id": "structure_3di_tokens",
+          "representation_type": "Foldseek 3Di token IDs",
+          "symbolic_shape": [
+            "n_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token position",
+            "hidden feature"
+          ],
+          "contextual_role": "embedded_track",
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Foldseek 3Di ( <3Di_*> ) | 20      | one token per 3Di letter [53]          |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Embedded Foldseek 3Di track.",
+          "node_id": "structure_3di_embeddings",
+          "representation_type": "embedded Foldseek 3Di track",
+          "symbolic_shape": [
+            "n_tokens",
+            "d_hidden"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "How are the four tracks tokenized and represented jointly?",
+        "Are the tracks aligned by residue position, serialized, concatenated, or supplied as parallel streams?",
+        "Which attention masks and separators are used?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "structure_input",
+          "port_role": "Gemma-4 decoder structural input"
+        }
+      ],
+      "recipient_component": "Gemma-4-26B-A4B-Instruct sparse decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Four-track structural representation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "structure_text",
+              "port_role": "text description"
+            },
+            {
+              "node_id": "structure_amino_acid",
+              "port_role": "amino-acid sequence"
+            },
+            {
+              "node_id": "structure_dssp",
+              "port_role": "DSSP backbone"
+            },
+            {
+              "node_id": "structure_3di",
+              "port_role": "Foldseek letters"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "four_track_parallel_formatting",
+          "outputs": [
+            "structure_input"
+          ],
+          "step_id": "format_four_tracks",
+          "uncertainty": "The internal computation and ordering cannot be established from the paper."
+        },
+        {
+          "bypasses": [],
+          "component": "Text track tokenizer and embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "SentencePiece vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language text"
+                }
+              ],
+              "uncertainty": "Track-specific tokenization is not separately described."
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_text_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::structure"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified at this track boundary"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The extended vocabulary has size 290,172, and because Gemma-4 uses tied input/output embeddings, the language-model head automatically inherits the new rows.",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "structure_text",
+              "port_role": "text track"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "text_track_tokenization_and_embedding",
+          "outputs": [
+            "structure_text_embeddings"
+          ],
+          "step_id": "embed_structure_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Amino-acid track tokenizer and embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_amino_acid"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_amino_acid_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "extended biological vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "unspecified biological tokenization"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "amino-acid sequence"
+                }
+              ],
+              "uncertainty": "Exact amino-acid tokenizer behavior is unspecified."
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_amino_acid_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::structure"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_amino_acid_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified at this track boundary"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The 3Di [53] and DSSP [31] corpora are formatted as a four-track parallel representation - text description + 1-D amino acid sequence + 2-D DSSP backbone + 3-D Foldseek letters.",
+              "section_id": "sec_0010"
+            },
+            {
+              "kind": "table",
+              "quote": "| Protein BPE ( <PRO_*> )  | 8,000   | BPE trained on 16GB protein_uni_16.txt |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "structure_amino_acid",
+              "port_role": "amino-acid track"
+            },
+            {
+              "node_id": "embed_table::structure",
+              "port_role": "embedding table"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "amino_acid_track_tokenization_and_embedding",
+          "outputs": [
+            "structure_amino_acid_embeddings"
+          ],
+          "step_id": "embed_structure_amino_acid",
+          "uncertainty": "Exact amino-acid tokenizer behavior is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "DSSP track tokenizer and embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_dssp"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_dssp_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "8 DSSP tokens prefixed <2D_*>"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "one token per secondary-structure class"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "DSSP secondary-structure symbols"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_dssp_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::structure"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_dssp_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified at this track boundary"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| DSSP ( <2D_*> )          | 8       | one per secondary-structure class [31] |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "structure_dssp",
+              "port_role": "DSSP track"
+            },
+            {
+              "node_id": "embed_table::structure",
+              "port_role": "embedding table"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "DSSP_track_tokenization_and_embedding",
+          "outputs": [
+            "structure_dssp_embeddings"
+          ],
+          "step_id": "embed_structure_dssp",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Foldseek 3Di track tokenizer and embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_3di"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_3di_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "20 Foldseek 3Di tokens prefixed <3Di_*>"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "one token per 3Di letter"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "Foldseek 3Di letters"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "structure_3di_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embed_table::structure"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "structure_3di_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "extended vocabulary"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "tied input/output embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified at this track boundary"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "table",
+              "quote": "| Foldseek 3Di ( <3Di_*> ) | 20      | one token per 3Di letter [53]          |",
+              "section_id": "sec_0008"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "structure_3di",
+              "port_role": "Foldseek 3Di track"
+            },
+            {
+              "node_id": "embed_table::structure",
+              "port_role": "embedding table"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "Foldseek_3Di_track_tokenization_and_embedding",
+          "outputs": [
+            "structure_3di_embeddings"
+          ],
+          "step_id": "embed_structure_3di",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Four-track structural corpus: text description, amino-acid sequence, DSSP backbone, and Foldseek 3Di letters",
+      "trajectory_id": "omnigene4_cpt_structure"
+    }
+  ]
+}

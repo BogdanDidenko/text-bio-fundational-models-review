@@ -1,0 +1,322 @@
+{
+  "coverage_summary": "The major GenNA pretraining, evaluation, embedding, and generation paths are represented. Revision is required for omitted preprocessing/context steps, incorrect opaque-step outputs, unsupported prompt details, and incompletely represented decoding branches.",
+  "findings": [
+    {
+      "detail": "The pretraining path omits the documented restriction to annotated gene-associated regions, random 0–100 bp upstream/downstream extension, contig-boundary truncation, and explicit hierarchical annotation organization before serialization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we primarily restricted the corpus to gene-associated regions with explicit annotations.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we randomly extended the target annotated segment by 0-100 bp upstream and downstream; extensions were truncated when they reached the physical boundary of the corresponding contig.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For hierarchical structures such as mRNA, CDS, ncRNA, and regulatory elements, we organized the annotations using custom XML-style tags",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented region-selection and random-extension transformations, including boundary truncation, and ensure hierarchical annotation structure is represented as an input to serialization.",
+      "severity": "blocking",
+      "step_id": "extract_record_fields",
+      "trajectory_id": "genna_pretraining"
+    },
+    {
+      "detail": "The graph applies identifier removal to tokenized packed samples, although the paper only documents removal of the species or gene identifier in the prompt during training-input construction. The token-level application point is unsupported.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During construction of training inputs, the species identifier or gene identifier in the prompt was randomly removed with probability 0.5.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Move the masking operation to a documented prompt/serialized-input boundary or leave its application point opaque; do not bind it directly to token IDs without evidence.",
+      "severity": "blocking",
+      "step_id": "mask_prompt_identifiers",
+      "trajectory_id": "genna_pretraining"
+    },
+    {
+      "detail": "The decoder boundary is graphically reversed: decoder_training_input is presented as an output of the decoder while also serving as the receiving input. The paper documents masked causal inputs and next-token prediction, not production of a new input-token node.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model predicts the next token conditioned on the preceding context",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Make masked_training_tokens the decoder receipt input and represent the decoder output as an unspecified next-token distribution/loss boundary, rather than outputting decoder_training_input.",
+      "severity": "blocking",
+      "step_id": "decoder_training_receipt",
+      "trajectory_id": "genna_pretraining"
+    },
+    {
+      "detail": "The packed token sequence has no representation of the documented 4,096-token maximum context. As written, the decoder may receive an unconstrained n_token_positions sequence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "with  a  maximum  context  length  of  4,096  tokens",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "concatenating multiple samples into long input sequences of nearly 20,000 characters",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the 4,096-token context limit at the packed-input/decoder boundary and represent any documented context-window segmentation without inventing boundary-mask behavior.",
+      "severity": "blocking",
+      "step_id": "pack_training_samples",
+      "trajectory_id": "genna_pretraining"
+    },
+    {
+      "detail": "The attached evidence for the tokenizer calls establishes a unified cross-modal BPE tokenizer but does not establish the stated 6,000-token vocabulary. The value is documented elsewhere in the paper and should be attached to these calls.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a unified  cross-modal  BPE  tokenizer",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "trained a dedicated vocabulary of 6,000 tokens.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Attach the section 0014 vocabulary evidence to the tokenizer invocations, or remove the 6,000-token parameter from calls whose evidence does not support it.",
+      "severity": "minor",
+      "step_id": null,
+      "trajectory_id": "all_genna_trajectories"
+    },
+    {
+      "detail": "The conditional-perplexity boundary outputs the same matched and mismatched token nodes it consumes. The paper documents computation of conditional perplexity, so the graph needs a metric output rather than pass-through token outputs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we  combined it with  every annotation to  form input  prompts  and computed the corresponding conditional perplexity.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the average perplexity",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Keep the token nodes as inputs and add an opaque conditional-perplexity output, removing the duplicated token outputs.",
+      "severity": "blocking",
+      "step_id": "evaluate_conditional_perplexity",
+      "trajectory_id": "genna_evaluation_sequence_function"
+    },
+    {
+      "detail": "The mutation-perplexity boundary outputs wild_type_tokens and mutant_tokens instead of the documented perplexity difference between mutant and wild-type sequences.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The perturbation caused by each mutation was quantified by the perplexity difference between the mutant sequence and the wild-type sequence",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent the mutant and wild-type token nodes as inputs and add an opaque ΔPPL output.",
+      "severity": "blocking",
+      "step_id": "evaluate_mutation_perplexity",
+      "trajectory_id": "genna_evaluation_mutation_scanning"
+    },
+    {
+      "detail": "The species-label perturbation boundary also outputs its input token nodes rather than the documented ΔPPL produced by incorrect species prompts.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We further assessed the model's conditional sensitivity to changes in species labels using PPL perturbation.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the species label in the prompt was replaced with that of species",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add an opaque species-label ΔPPL output and remove the pass-through token outputs.",
+      "severity": "blocking",
+      "step_id": "evaluate_species_label_perplexity",
+      "trajectory_id": "genna_evaluation_species_labels"
+    },
+    {
+      "detail": "The general conditional-generation sampling call omits documented no-repeat n-gram size and termination behavior. The paper specifies n=5 and termination at <eos> or the predefined maximum token length.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "repetition penalty = 1.3, and no-repeat n-gram size = 5. Generation ended when the model emitted the terminator <eos> or reached the predefined maximum token length.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record no-repeat n-gram size 5 and the two documented termination conditions on the sampling/generation call.",
+      "severity": "minor",
+      "step_id": "sample_conditional_sequence",
+      "trajectory_id": "genna_inference_conditional_generation"
+    },
+    {
+      "detail": "The unconditional-generation opaque step absorbs documented decoding operations. The paper specifies logits-to-probability conversion, temperature scaling, nucleus sampling, repetition penalty, no-repeat n-grams, and termination.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model received only the modality label (Genomic DNA or RNA) as the initial input and autoregressively generated the complete metadata fields",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After  temperature  scaling,  nucleus  sampling  (top-p  sampling)  was  applied",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Split the opaque generation boundary into an opaque decoder distribution output followed by the documented sampling operation and termination controls.",
+      "severity": "blocking",
+      "step_id": "generate_unconditional_sequence",
+      "trajectory_id": "genna_inference_unconditional_generation"
+    },
+    {
+      "detail": "The species-specific route asserts a modality-plus-species serialization order that is not stated in its cited evidence. The task documents conditioning species, while the exact prompt construction must be inherited explicitly from the general template or left unresolved.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we prompted the model to generate nucleotide sequences from six representative model organisms",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "GenNA used a unified prompt template as the input prefix: [Molecule Type], [Species Name], [Gene Symbol], [Functional Annotation]<seq>",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Attach the general-template evidence and mark omitted fields/order as unresolved, or replace the asserted serialization with an opaque species-conditioning prompt boundary.",
+      "severity": "blocking",
+      "step_id": "serialize_species_generation_prefix",
+      "trajectory_id": "genna_inference_species_generation"
+    },
+    {
+      "detail": "The species-specific generation route omits the documented sampling stage and termination controls by treating the entire decoder and sampler as an unresolved boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we prompted the model to generate nucleotide sequences from six representative model organisms",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Sampling  was  then  performed  only  within  this  candidate  set.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the decoder distribution as an opaque output followed by the documented sampling operation, default parameters, and termination conditions.",
+      "severity": "blocking",
+      "step_id": "generate_species_conditioned_sequence",
+      "trajectory_id": "genna_inference_species_generation"
+    },
+    {
+      "detail": "The tRNA serialization collapses the documented two-part tRNA condition into a single [tRNA Name] field. The paper's example contains both an identifier/anticodon field and an amino-acid/isotype field.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "'Genomic  DNA,  trnaA-AGC,  trna-Ala<seq>'",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Preserve both documented tRNA text fields and their order in the serialization invocation; do not replace them with one generic field unless explicitly marked unresolved.",
+      "severity": "blocking",
+      "step_id": "serialize_trna_prompt",
+      "trajectory_id": "genna_inference_trna_generation"
+    },
+    {
+      "detail": "The tRNA route omits the documented decoding operations and termination behavior by leaving decoder and sampler computation in one opaque boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "500 samples were generated, yielding a total of 30,500 candidate sequences.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "temperature = 0.7, top-p = 0.8, repetition penalty = 1.3",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque next-token distribution followed by the documented sampling call and generation termination controls.",
+      "severity": "blocking",
+      "step_id": "generate_trna_sequences",
+      "trajectory_id": "genna_inference_trna_generation"
+    },
+    {
+      "detail": "The rRNA route omits the documented decoding operations and termination behavior by leaving decoder and sampler computation in one opaque boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each rRNA class, 1,000 candidate sequences were generated.",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After  temperature  scaling,  nucleus  sampling  (top-p  sampling)  was  applied",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque next-token distribution followed by the documented sampling call and generation termination controls.",
+      "severity": "blocking",
+      "step_id": "generate_rrna_sequences",
+      "trajectory_id": "genna_inference_rrna_generation"
+    },
+    {
+      "detail": "The histone route omits the exact documented sampling configurations and fixed decoding controls, and its opaque boundary absorbs the sampler despite the paper specifying it.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "four progressively increasing combinations of temperature and nucleus-sampling threshold: (0.55, 0.7), (0.7, 0.8), (0.85, 0.9), and (1.0, 0.95).",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the repetition penalty was fixed at 1.3 and the no-repeat n-gram size at 5.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Store all four temperature/top-p pairs, repetition penalty 1.3, and n-gram size 5, then represent the decoder distribution and sampling as separate documented stages.",
+      "severity": "blocking",
+      "step_id": "generate_histone_sequences",
+      "trajectory_id": "genna_inference_histone_generation"
+    },
+    {
+      "detail": "The paper documents a separate 0.36B GenNA version, but every trajectory is labeled only as the approximately 3.6B model. The paper does not establish whether the smaller model shares this input path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we provide a smaller 0.36B parameters version to facilitate efficient experimentation and development in resource-constrained settings.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a separately scoped 0.36B variant with shared-path status explicitly marked unknown, or state that the reconstruction is restricted to the approximately 3.6B model.",
+      "severity": "minor",
+      "step_id": null,
+      "trajectory_id": "all_genna_trajectories"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000133",
+  "verdict": "revise"
+}

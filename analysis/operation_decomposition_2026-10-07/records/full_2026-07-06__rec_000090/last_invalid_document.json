@@ -1,0 +1,4125 @@
+{
+  "coverage_questions": [
+    "The paper documents many C2S-Scale task routes that reuse the same cell-sentence-to-prompt input path; they are grouped where the receiving component and documented input transformation are identical.",
+    "Exact prompt templates, tokenizer vocabulary details, positional-encoding implementation, padding behavior, and decoder attention masks are not specified.",
+    "The paper does not document a separate internal representation for the interaction-prompt serializer or the exact perturbation-model prompt template.",
+    "The paper states that C2S-Scale perturbation training uses GRPO after SFT, but candidate-generation internals are not an input transformation and remain outside the reconstructed receipt."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "add",
+        "reshape"
+      ],
+      "source_operation": "positional encoding addition",
+      "why_no_existing_operation": "The paper explicitly states that positional encodings are added to token embeddings, while the catalog's add operation requires documented aligned numeric representations and has no positional-encoding parameter. Reshape does not represent positional encoding."
+    },
+    {
+      "compared_operation_ids": [
+        "partition",
+        "reshape"
+      ],
+      "source_operation": "average pooling across final-layer token states",
+      "why_no_existing_operation": "The paper documents average pooling across token embeddings, but the catalog has no pooling or reduction operation. Partition and reshape do not establish averaging."
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000090",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following established conventions [61], we preprocess raw scRNA-seq data by removing genes that are expressed in fewer than three cells and cells that express fewer than 100 genes, followed by normalizing counts to 1 × 10 4 and log-transforming the data.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each cell, let X ∈ R D be the expression vector, where X k denotes the normalized expression value of gene k in that cell. The cell sentence for X is constructed by rank-ordering the genes within a cell by their expression levels and taking the K most highly expressed",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The gene names are in natural language, forming a sentence interpretable by language models",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale family: Gemma-2 and Pythia initialized checkpoints, including 410M, 1B, 2B, and 27B variants",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To construct the C2S-Scale pretraining corpus, we assembled over 50 million single-cell transcriptomic profiles from human and mouse tissues",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Raw single-cell transcriptomic profiles.",
+          "node_id": "raw_expression",
+          "representation_type": "gene_expression_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "gene_identifier_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The gene names are in natural language, forming a sentence interpretable by language models",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to expression features.",
+          "node_id": "gene_ids",
+          "representation_type": "gene_name_identifiers",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "metadata fields"
+          ],
+          "contextual_role": "biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each dataset was accompanied by author-provided metadata, such as cell type and tissue annotations, donor information, developmental stage, and associated study identifiers.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Cell and study annotations retained for natural-language prompts.",
+          "node_id": "metadata",
+          "representation_type": "biological_metadata",
+          "symbolic_shape": [
+            "n_cells",
+            "n_metadata_fields"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "documents or studies",
+            "text positions"
+          ],
+          "contextual_role": "biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Where available, supplementary textual resources, including paper abstracts and study descriptions, were also retained.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Associated abstracts and study descriptions.",
+          "node_id": "study_text",
+          "representation_type": "biological_text",
+          "symbolic_shape": [
+            "n_documents"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "quality_controlled_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Following established conventions [61], we preprocess raw scRNA-seq data by removing genes that are expressed in fewer than three cells and cells that express fewer than 100 genes",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Expression matrix after documented gene- and cell-level filtering.",
+          "node_id": "filtered_expression",
+          "representation_type": "filtered_gene_expression_matrix",
+          "symbolic_shape": [
+            "n_retained_cells",
+            "n_retained_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "scaled_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "followed by normalizing counts to 1 × 10 4",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Per-cell library-size-normalized counts.",
+          "node_id": "normalized_expression",
+          "representation_type": "library_size_normalized_expression",
+          "symbolic_shape": [
+            "n_retained_cells",
+            "n_retained_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "numeric_input_for_ranking",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "and log-transforming the data.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Log-transformed normalized expression values.",
+          "node_id": "logged_expression",
+          "representation_type": "log_transformed_expression",
+          "symbolic_shape": [
+            "n_retained_cells",
+            "n_retained_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "ordered gene positions"
+          ],
+          "contextual_role": "ranked_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The cell sentence for X is constructed by rank-ordering the genes within a cell by their expression levels",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Gene identifiers ordered within each cell by expression.",
+          "node_id": "ranked_gene_ids",
+          "representation_type": "ranked_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_retained_cells",
+            "n_ranked_positions"
+          ],
+          "uncertainty": "Tie handling is random according to the paper; the exact randomization implementation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "selected ordered gene positions"
+          ],
+          "contextual_role": "serialized_payload_source",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "taking the K most highly expressed",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Top-K ordered gene identifiers for each cell.",
+          "node_id": "top_gene_ids",
+          "representation_type": "top_k_ranked_gene_sequence",
+          "symbolic_shape": [
+            "n_retained_cells",
+            "n_selected_genes"
+          ],
+          "uncertainty": "K is task-dependent; no universal value is established."
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "text positions"
+          ],
+          "contextual_role": "biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The gene names are in natural language, forming a sentence interpretable by language models",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Cell sentences containing ordered gene names.",
+          "node_id": "cell_sentences",
+          "representation_type": "gene_name_text_sequence",
+          "symbolic_shape": [
+            "n_retained_cells"
+          ],
+          "uncertainty": "Exact separators and sentence template are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "multimodal_training_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For each dataset, the transcriptomic profiles were converted into cell sentences, and the accompanying annotations were preserved to construct natural language prompts.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Task-dependent natural-language prompt containing cell-sentence payload and available metadata/text.",
+          "node_id": "training_prompt",
+          "representation_type": "natural_language_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "The precise field order and inclusion policy for metadata and study text are task-dependent and unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered tokenizer positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Backbone-tokenized prompt.",
+          "node_id": "prompt_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": "Exact vocabulary, special-token behavior, and padding are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Embedding vectors for tokenized prompt content.",
+          "node_id": "prompt_token_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Token embeddings with positional information supplied to the decoder-only Transformer.",
+          "node_id": "model_input",
+          "representation_type": "position_encoded_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "The positional-encoding form and implementation are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact prompt template and field order are used for each pretraining task?",
+        "What tokenizer vocabulary, separators, special tokens, and padding behavior are used?",
+        "How are positional encodings represented and added?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "model_input",
+          "port_role": "decoder_transformer_input"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Gene and cell quality filtering",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qc_filter::genes_retained"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain genes expressed in at least three cells"
+                },
+                {
+                  "name": "method",
+                  "value": "gene-level filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "qc_filter::genes_retained"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "filtered_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain cells expressing at least 100 genes"
+                },
+                {
+                  "name": "method",
+                  "value": "cell-level filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Following established conventions [61], we preprocess raw scRNA-seq data by removing genes that are expressed in fewer than three cells and cells that express fewer than 100 genes",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_expression",
+              "port_role": "raw_expression"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "cells",
+                "genes"
+              ],
+              "contextual_role": "quality_control_intermediate",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "removing genes that are expressed in fewer than three cells",
+                  "section_id": "sec_0015"
+                }
+              ],
+              "information_content": "Expression matrix after gene-level filtering.",
+              "node_id": "qc_filter::genes_retained",
+              "origin": "documented_intermediate",
+              "representation_type": "gene_filtered_expression_matrix",
+              "symbolic_shape": [
+                "n_cells",
+                "n_retained_genes"
+              ],
+              "uncertainty": null
+            }
+          ],
+          "operation_type": "gene_and_cell_filtering",
+          "outputs": [
+            "filtered_expression"
+          ],
+          "step_id": "qc_filter",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Library-size normalization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "filtered_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "normalize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "normalized_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "library-size scaling to 1 × 10^4 counts per cell"
+                },
+                {
+                  "name": "axes",
+                  "value": "per-cell gene axis"
+                },
+                {
+                  "name": "scope",
+                  "value": "dataset preprocessing"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "followed by normalizing counts to 1 × 10 4",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "filtered_expression",
+              "port_role": "filtered_counts"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "library_size_normalization",
+          "outputs": [
+            "normalized_expression"
+          ],
+          "step_id": "normalize_counts",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Log transformation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "normalized_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "logged_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "log1p"
+                },
+                {
+                  "name": "offset",
+                  "value": "1"
+                },
+                {
+                  "name": "base",
+                  "value": "e"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "and log-transforming the data.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "normalized_expression",
+              "port_role": "normalized_counts"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log_transform",
+          "outputs": [
+            "logged_expression"
+          ],
+          "step_id": "log_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Within-cell gene ranking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "logged_expression"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "gene_ids"
+                  ],
+                  "port": "identifiers"
+                }
+              ],
+              "operation_id": "rank",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "order",
+                  "value": "descending expression level"
+                },
+                {
+                  "name": "tie_handling",
+                  "value": "random tie breaking"
+                },
+                {
+                  "name": "scope",
+                  "value": "within each cell"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The cell sentence for X is constructed by rank-ordering the genes within a cell by their expression levels",
+              "section_id": "sec_0016"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "In the case of ties in expression value, we break ties randomly",
+              "section_id": "sec_0016"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "logged_expression",
+              "port_role": "expression_values"
+            },
+            {
+              "node_id": "gene_ids",
+              "port_role": "gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "rank_genes_by_expression",
+          "outputs": [
+            "ranked_gene_ids"
+          ],
+          "step_id": "rank_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Top-gene selection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "first K positions after descending rank"
+                },
+                {
+                  "name": "method",
+                  "value": "top-K selection"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "taking the K most highly expressed",
+              "section_id": "sec_0016"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ranked_gene_ids",
+              "port_role": "ranked_gene_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "top_k_gene_selection",
+          "outputs": [
+            "top_gene_ids"
+          ],
+          "step_id": "select_top_genes",
+          "uncertainty": "K is selected according to task and context requirements."
+        },
+        {
+          "bypasses": [],
+          "component": "Cell sentence serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cell_sentences"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "ordered gene names as a natural-language cell sentence"
+                },
+                {
+                  "name": "order",
+                  "value": "descending expression rank"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene identifiers to gene-name text"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The gene names are in natural language, forming a sentence interpretable by language models",
+              "section_id": "sec_0016"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "ordered_gene_names"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "cell_sentence_serialization",
+          "outputs": [
+            "cell_sentences"
+          ],
+          "step_id": "serialize_cell_sentences",
+          "uncertainty": "Exact lexical separators are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Multimodal prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cell_sentences",
+                    "metadata",
+                    "study_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "training_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "task-dependent natural-language prompt"
+                },
+                {
+                  "name": "order",
+                  "value": "task-dependent"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "cell sentences and biological annotations/text to natural language"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "the transcriptomic profiles were converted into cell sentences, and the accompanying annotations were preserved to construct natural language prompts.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cell_sentences",
+              "port_role": "cell_sentence_payload"
+            },
+            {
+              "node_id": "metadata",
+              "port_role": "annotations"
+            },
+            {
+              "node_id": "study_text",
+              "port_role": "associated_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_prompt_serialization",
+          "outputs": [
+            "training_prompt"
+          ],
+          "step_id": "serialize_training_prompt",
+          "uncertainty": "Not every task necessarily includes every available metadata or study-text field."
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "training_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "prompt_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language prompt text"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "training_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prompt_tokenization",
+          "outputs": [
+            "prompt_token_ids"
+          ],
+          "step_id": "tokenize_prompt",
+          "uncertainty": "Special-token and padding behavior are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "LLM token embedding layer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "prompt_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "token_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "prompt_token_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "trainable token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained alongside the model"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "prompt_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "token vocabulary entries",
+                "embedding coordinates"
+              ],
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "token_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "trainable_token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape and initialization are unspecified."
+            }
+          ],
+          "operation_type": "token_embedding_lookup",
+          "outputs": [
+            "prompt_token_embeddings"
+          ],
+          "step_id": "embed_prompt_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that positional encodings are added to token embeddings, but the catalog has no dedicated positional-encoding operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "prompt_token_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "model_input"
+          ],
+          "step_id": "add_positional_information",
+          "uncertainty": "The encoding form and exact receiving tensor are unspecified."
+        }
+      ],
+      "task_configuration": "C2S-Scale multimodal corpus construction and continued pretraining across single-cell, multi-cell, metadata, and biological-text samples",
+      "trajectory_id": "c2s_scale_pretraining_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For C2S-Scale, we fine-tuned the base 1B and 2B checkpoints using the autoregressive next-token prediction objective",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Input prompts combined the cell sentence with natural language instructions",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For example, a cell type annotation prompt appends a query instruction to an input cell sentence",
+          "section_id": "sec_0028"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale 1B and 2B cell-annotation checkpoints",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell",
+            "ordered gene positions"
+          ],
+          "contextual_role": "biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Input prompts combined the cell sentence with natural language instructions",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "One cell represented as an ordered gene-name sentence.",
+          "node_id": "cell_sentence",
+          "representation_type": "gene_name_text_sequence",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": "Exact sentence length and separators vary by task."
+        },
+        {
+          "axis_semantics": [
+            "instruction text positions"
+          ],
+          "contextual_role": "external_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For example, a cell type annotation prompt appends a query instruction to an input cell sentence",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Cell-type annotation query.",
+          "node_id": "annotation_instruction",
+          "representation_type": "natural_language_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "fine_tuning_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Input prompts combined the cell sentence with natural language instructions",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Serialized cell sentence plus annotation instruction.",
+          "node_id": "annotation_prompt",
+          "representation_type": "natural_language_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "Exact template and delimiters are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized annotation prompt.",
+          "node_id": "annotation_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Prompt token embeddings.",
+          "node_id": "annotation_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Position-aware annotation prompt embedding.",
+          "node_id": "annotation_model_input",
+          "representation_type": "position_encoded_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Positional encoding implementation is unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact annotation prompt delimiters and role markers are used?",
+        "Are response tokens concatenated during training or represented separately from the prompt receipt?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "annotation_model_input",
+          "port_role": "fine_tuning_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Annotation prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cell_sentence",
+                    "annotation_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "annotation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "cell sentence followed by task-specific annotation instruction"
+                },
+                {
+                  "name": "order",
+                  "value": "cell sentence then instruction"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene-name sentence and natural-language query"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For example, a cell type annotation prompt appends a query instruction to an input cell sentence",
+              "section_id": "sec_0028"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cell_sentence",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "annotation_instruction",
+              "port_role": "query_instruction"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "annotation_prompt_serialization",
+          "outputs": [
+            "annotation_prompt"
+          ],
+          "step_id": "serialize_annotation_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "annotation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "annotation_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language annotation prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "annotation_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "annotation_prompt_tokenization",
+          "outputs": [
+            "annotation_token_ids"
+          ],
+          "step_id": "tokenize_annotation_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "annotation_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "annotation_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "annotation_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained during C2S-Scale fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "annotation_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "annotation_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "annotation_token_embedding",
+          "outputs": [
+            "annotation_embeddings"
+          ],
+          "step_id": "embed_annotation_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The positional-encoding operation is described but not represented by a catalog primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "annotation_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "annotation_model_input"
+          ],
+          "step_id": "add_annotation_positions",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Single-cell cell-type annotation",
+      "trajectory_id": "c2s_scale_cell_annotation_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "C2S-Scale is fine-tuned to predict these captions given multiple input cell sentences from each cluster",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Models were presented with a multi-cell context (5-20 cells sampled from the same tissue and donor) and prompted to generate a biological abstract summarizing the experiment.",
+          "section_id": "sec_0037"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale downstream text-interpretation checkpoint",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "ordered gene positions"
+          ],
+          "contextual_role": "multicellular_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "C2S-Scale is fine-tuned to predict these captions given multiple input cell sentences from each cluster",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Multiple cell sentences from a cluster, tissue, donor, or dataset context.",
+          "node_id": "multi_cell_sentences",
+          "representation_type": "ordered_gene_name_sentence_collection",
+          "symbolic_shape": [
+            "n_cells_in_context",
+            "n_gene_positions"
+          ],
+          "uncertainty": "The number of cells is task-dependent; dataset interpretation documents 5-20 cells."
+        },
+        {
+          "axis_semantics": [
+            "instruction text positions"
+          ],
+          "contextual_role": "external_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "These summaries are expected to describe key features of the dataset, including dominant cell types, tissues, disease states, or perturbations",
+              "section_id": "sec_0008"
+            }
+          ],
+          "information_content": "Captioning or dataset-summary instruction.",
+          "node_id": "interpretation_instruction",
+          "representation_type": "natural_language_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "fine_tuning_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Models were presented with a multi-cell context (5-20 cells sampled from the same tissue and donor) and prompted to generate a biological abstract summarizing the experiment.",
+              "section_id": "sec_0037"
+            }
+          ],
+          "information_content": "Serialized multi-cell context and interpretation instruction.",
+          "node_id": "interpretation_prompt",
+          "representation_type": "natural_language_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "Exact delimiters and ordering are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized multi-cell interpretation prompt.",
+          "node_id": "interpretation_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Prompt token embeddings.",
+          "node_id": "interpretation_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Position-aware multi-cell prompt embedding.",
+          "node_id": "interpretation_model_input",
+          "representation_type": "position_encoded_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Positional encoding implementation is unspecified."
+        }
+      ],
+      "open_questions": [
+        "How are multiple cell sentences separated and ordered in the prompt?",
+        "Does the model receive metadata or only the cell sentences and instruction for each interpretation task?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "interpretation_model_input",
+          "port_role": "multicell_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Multi-cell interpretation prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "multi_cell_sentences",
+                    "interpretation_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "interpretation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "task-specific instruction with multiple ordered cell sentences"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined multi-cell order followed by or combined with instruction; exact order unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene-name sentences and natural-language instruction"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "C2S-Scale is fine-tuned to predict these captions given multiple input cell sentences from each cluster",
+              "section_id": "sec_0008"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Models were presented with a multi-cell context (5-20 cells sampled from the same tissue and donor) and prompted to generate a biological abstract summarizing the experiment.",
+              "section_id": "sec_0037"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "multi_cell_sentences",
+              "port_role": "multicell_context"
+            },
+            {
+              "node_id": "interpretation_instruction",
+              "port_role": "task_instruction"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multicell_prompt_serialization",
+          "outputs": [
+            "interpretation_prompt"
+          ],
+          "step_id": "serialize_multicell_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "interpretation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "interpretation_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language multicell prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "interpretation_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multicell_prompt_tokenization",
+          "outputs": [
+            "interpretation_token_ids"
+          ],
+          "step_id": "tokenize_multicell_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "interpretation_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "interpretation_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "interpretation_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained during C2S-Scale fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "interpretation_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "interpretation_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "multicell_token_embedding",
+          "outputs": [
+            "interpretation_embeddings"
+          ],
+          "step_id": "embed_interpretation_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The positional-encoding operation is described but not represented by a catalog primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "interpretation_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "interpretation_model_input"
+          ],
+          "step_id": "add_interpretation_positions",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Cluster captioning and dataset-level natural-language interpretation from multi-cell contexts",
+      "trajectory_id": "c2s_scale_multicell_interpretation_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Additionally, to enhance the model's understanding of cell communication, we included gene interaction metadata from CellPhoneDB [41] and BioGRID [42] in the training data mixture.",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We restricted the data to only retain interactions involving the 1,000 genes in the CosMx data, and also only to genes coding for extracellular proteins",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "formatted as natural language prompts",
+          "section_id": "sec_0009"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale spatial-task checkpoint with CellPhoneDB and BioGRID interaction prompts",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "ordered gene positions"
+          ],
+          "contextual_role": "spatial_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Multi-cell contexts were created by taking all cells in the sampled cell's neighborhood for positive samples, or an equivalent number of randomly sampled cells outside the neighborhood as negative samples.",
+              "section_id": "sec_0038"
+            }
+          ],
+          "information_content": "Cell sentences sampled from spatial neighborhoods or matched negative contexts.",
+          "node_id": "spatial_cell_sentences",
+          "representation_type": "multicell_gene_name_sentence_collection",
+          "symbolic_shape": [
+            "n_cells_in_context",
+            "n_gene_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "interaction records"
+          ],
+          "contextual_role": "external_biological_knowledge",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "gene interaction metadata from CellPhoneDB [41] and BioGRID [42]",
+              "section_id": "sec_0038"
+            }
+          ],
+          "information_content": "Receptor-ligand and protein-interaction records.",
+          "node_id": "raw_interactions",
+          "representation_type": "gene_interaction_records",
+          "symbolic_shape": [
+            "n_interactions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "filtered interaction records"
+          ],
+          "contextual_role": "external_biological_knowledge",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We restricted the data to only retain interactions involving the 1,000 genes in the CosMx data, and also only to genes coding for extracellular proteins",
+              "section_id": "sec_0038"
+            }
+          ],
+          "information_content": "Interaction records filtered by the spatial gene panel and extracellular-protein criterion.",
+          "node_id": "filtered_interactions",
+          "representation_type": "filtered_gene_interaction_records",
+          "symbolic_shape": [
+            "n_retained_interactions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "spatial_fine_tuning_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "formatted as natural language prompts",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "Natural-language prompt combining cell sentences, interaction knowledge, and spatial task instruction.",
+          "node_id": "spatial_prompt",
+          "representation_type": "natural_language_spatial_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "Exact template and field order are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized spatial prompt.",
+          "node_id": "spatial_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Spatial prompt token embeddings.",
+          "node_id": "spatial_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The attention mechanism also extends naturally to metadata tokens (e.g. cell type, tissue, disease state), enabling the model to integrate gene expression with contextual information in a shared representation.",
+              "section_id": "sec_0020"
+            }
+          ],
+          "information_content": "Position-aware spatial prompt embedding containing transcriptomic and interaction text.",
+          "node_id": "spatial_model_input",
+          "representation_type": "position_encoded_multimodal_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Exact attention masks and positional encoding implementation are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What natural-language template converts interaction records into prompts?",
+        "How are spatial cells ordered within the multi-cell prompt?",
+        "Are CellPhoneDB and BioGRID records serialized in separate sections or jointly?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "spatial_model_input",
+          "port_role": "spatial_multimodal_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Spatial interaction filtering",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_interactions"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "filtered_interactions"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "interaction involves one of the 1,000 CosMx genes and genes code for extracellular proteins"
+                },
+                {
+                  "name": "method",
+                  "value": "interaction-record filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We restricted the data to only retain interactions involving the 1,000 genes in the CosMx data, and also only to genes coding for extracellular proteins",
+              "section_id": "sec_0038"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_interactions",
+              "port_role": "interaction_records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "interaction_record_filtering",
+          "outputs": [
+            "filtered_interactions"
+          ],
+          "step_id": "filter_spatial_interactions",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "spatial_cell_sentences",
+                    "filtered_interactions"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "spatial_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "natural-language spatial task prompt with cell sentences and interaction records"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined task format; exact order unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene names and interaction records to natural language"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "formatted as natural language prompts",
+              "section_id": "sec_0009"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "To construct prompts, cell sentences were randomly sampled from the appropriate data split.",
+              "section_id": "sec_0038"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "spatial_cell_sentences",
+              "port_role": "cell_sentence_context"
+            },
+            {
+              "node_id": "filtered_interactions",
+              "port_role": "interaction_knowledge"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "spatial_multimodal_prompt_serialization",
+          "outputs": [
+            "spatial_prompt"
+          ],
+          "step_id": "serialize_spatial_prompt",
+          "uncertainty": "The task instruction is part of the prompt but its exact text is not established."
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "spatial_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "spatial_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language spatial prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "spatial_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "spatial_prompt_tokenization",
+          "outputs": [
+            "spatial_token_ids"
+          ],
+          "step_id": "tokenize_spatial_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "spatial_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "spatial_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "spatial_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained during spatial-task fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "spatial_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "spatial_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "spatial_token_embedding",
+          "outputs": [
+            "spatial_embeddings"
+          ],
+          "step_id": "embed_spatial_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The positional-encoding operation is described but not represented by a catalog primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "spatial_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "spatial_model_input"
+          ],
+          "step_id": "add_spatial_positions",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Spatial neighborhood prediction, niche prediction, same-niche prediction, and neighbor generation with CellPhoneDB/BioGRID prompt augmentation",
+      "trajectory_id": "c2s_scale_spatial_interaction_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To assess the model's ability to reason jointly over transcriptomic data and natural language, we constructed a multimodal QA dataset.",
+          "section_id": "sec_0039"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "GPT-4.5 was provided with a hybrid context consisting of: (1) key text sections (Abstract, Results, Discussion) from a published scRNA-seq study, and (2) raw cell sentences sampled from the corresponding dataset.",
+          "section_id": "sec_0039"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The model was trained to generate the target answer given the question and cell sentence context.",
+          "section_id": "sec_0039"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale single-cell question-answering checkpoint",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "ordered gene positions"
+          ],
+          "contextual_role": "biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "raw cell sentences sampled from the corresponding dataset",
+              "section_id": "sec_0039"
+            }
+          ],
+          "information_content": "Cell sentences sampled from the study dataset.",
+          "node_id": "qa_cell_sentences",
+          "representation_type": "gene_name_text_sequence_collection",
+          "symbolic_shape": [
+            "n_cells_in_context",
+            "n_gene_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "document text positions"
+          ],
+          "contextual_role": "biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "key text sections (Abstract, Results, Discussion) from a published scRNA-seq study",
+              "section_id": "sec_0039"
+            }
+          ],
+          "information_content": "Study manuscript context.",
+          "node_id": "qa_manuscript_context",
+          "representation_type": "biological_manuscript_text",
+          "symbolic_shape": [
+            "n_context_text_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "question text positions"
+          ],
+          "contextual_role": "external_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a main question",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Single-cell biological question.",
+          "node_id": "qa_question",
+          "representation_type": "natural_language_question",
+          "symbolic_shape": [
+            "n_question_tokens_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "multimodal_qa_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model was trained to generate the target answer given the question and cell sentence context.",
+              "section_id": "sec_0039"
+            }
+          ],
+          "information_content": "Serialized manuscript context, cell sentences, and question.",
+          "node_id": "qa_prompt",
+          "representation_type": "natural_language_qa_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "The exact placement of manuscript context relative to cell sentences and question is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized QA prompt.",
+          "node_id": "qa_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "QA prompt token embeddings.",
+          "node_id": "qa_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The attention mechanism also extends naturally to metadata tokens (e.g. cell type, tissue, disease state), enabling the model to integrate gene expression with contextual information in a shared representation.",
+              "section_id": "sec_0020"
+            }
+          ],
+          "information_content": "Position-aware multimodal QA prompt embedding.",
+          "node_id": "qa_model_input",
+          "representation_type": "position_encoded_multimodal_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Positional encoding and attention-mask details are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What is the exact prompt order for manuscript text, cell sentences, and question?",
+        "How are multiple cell sentences delimited?",
+        "Are target answer tokens included in the model receipt during SFT teacher forcing?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "qa_model_input",
+          "port_role": "qa_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "QA prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "qa_manuscript_context",
+                    "qa_cell_sentences",
+                    "qa_question"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qa_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "hybrid biological context, cell-sentence context, and question"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined hybrid QA format; exact order unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "manuscript text, gene-name sentences, and question to natural language"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "GPT-4.5 was provided with a hybrid context consisting of: (1) key text sections (Abstract, Results, Discussion) from a published scRNA-seq study, and (2) raw cell sentences sampled from the corresponding dataset.",
+              "section_id": "sec_0039"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The model was trained to generate the target answer given the question and cell sentence context.",
+              "section_id": "sec_0039"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qa_manuscript_context",
+              "port_role": "manuscript_context"
+            },
+            {
+              "node_id": "qa_cell_sentences",
+              "port_role": "cell_sentence_context"
+            },
+            {
+              "node_id": "qa_question",
+              "port_role": "question"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_qa_prompt_serialization",
+          "outputs": [
+            "qa_prompt"
+          ],
+          "step_id": "serialize_qa_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "qa_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qa_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language QA prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qa_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "qa_prompt_tokenization",
+          "outputs": [
+            "qa_token_ids"
+          ],
+          "step_id": "tokenize_qa_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "qa_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "qa_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qa_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained during QA fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qa_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "qa_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "qa_token_embedding",
+          "outputs": [
+            "qa_embeddings"
+          ],
+          "step_id": "embed_qa_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The positional-encoding operation is described but not represented by a catalog primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qa_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "qa_model_input"
+          ],
+          "step_id": "add_qa_positions",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Single-cell question answering using manuscript context, cell sentences, and a biological question",
+      "trajectory_id": "c2s_scale_qa_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For C2S-Scale , we utilized the base pretrained checkpoints (e.g., C2S-Scale 1B) with input prompts formatted identically to the cell type prediction task.",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Instead of autoregressive generation, we performed a single forward pass and extracted the hidden states from the final transformer layer, applying average pooling across all tokens in the sequence (excluding padding) to obtain a single fixed-length vector per cell.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "lifecycle_phase": "evaluation",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale base checkpoint used for frozen cell embeddings",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell",
+            "ordered gene positions"
+          ],
+          "contextual_role": "biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "with input prompts formatted identically to the cell type prediction task",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Cell sentence used in a cell-type-style prompt.",
+          "node_id": "embedding_cell_sentence",
+          "representation_type": "gene_name_text_sequence",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "instruction text positions"
+          ],
+          "contextual_role": "external_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "with input prompts formatted identically to the cell type prediction task",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Cell-type-style prompt instruction.",
+          "node_id": "embedding_instruction",
+          "representation_type": "natural_language_instruction",
+          "symbolic_shape": [
+            "n_instruction_tokens_text"
+          ],
+          "uncertainty": "Exact wording is not restated in this section."
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "evaluation_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "with input prompts formatted identically to the cell type prediction task",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Cell sentence plus cell-type-style instruction.",
+          "node_id": "embedding_prompt",
+          "representation_type": "natural_language_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized embedding-extraction prompt.",
+          "node_id": "embedding_prompt_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Embedding-extraction prompt token embeddings.",
+          "node_id": "embedding_prompt_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "final-layer feature coordinates"
+          ],
+          "contextual_role": "model_intermediate",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we performed a single forward pass and extracted the hidden states from the final transformer layer",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Final-layer hidden states for the prompt.",
+          "node_id": "final_layer_hidden_states",
+          "representation_type": "final_transformer_hidden_states",
+          "symbolic_shape": [
+            "n_nonpadding_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Exact hidden-state selection and padding-mask implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "cell",
+            "pooled feature coordinates"
+          ],
+          "contextual_role": "evaluation_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "applying average pooling across all tokens in the sequence (excluding padding) to obtain a single fixed-length vector per cell.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "One pooled cell representation.",
+          "node_id": "cell_embedding",
+          "representation_type": "average_pooled_cell_embedding",
+          "symbolic_shape": [
+            "d_model"
+          ],
+          "uncertainty": "Pooling implementation is not represented by a catalog primitive."
+        }
+      ],
+      "open_questions": [
+        "What exact tokens are excluded by the padding mask?",
+        "Which final-layer states are pooled when prompts contain instructions as well as cell sentences?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "embedding_prompt_embeddings",
+          "port_role": "embedding_extraction_input"
+        }
+      ],
+      "recipient_component": "C2S-Scale decoder-only Transformer and final-layer representation extractor",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Evaluation prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "embedding_cell_sentence",
+                    "embedding_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "embedding_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "cell-type-prediction prompt format"
+                },
+                {
+                  "name": "order",
+                  "value": "same as cell type prediction task"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene-name sentence and natural-language instruction"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "with input prompts formatted identically to the cell type prediction task",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "embedding_cell_sentence",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "embedding_instruction",
+              "port_role": "task_instruction"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "embedding_prompt_serialization",
+          "outputs": [
+            "embedding_prompt"
+          ],
+          "step_id": "serialize_embedding_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "embedding_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "embedding_prompt_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language evaluation prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "embedding_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "embedding_prompt_tokenization",
+          "outputs": [
+            "embedding_prompt_token_ids"
+          ],
+          "step_id": "tokenize_embedding_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "embedding_prompt_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "embedding_lookup::table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "embedding_prompt_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen base checkpoint during evaluation"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "embedding_prompt_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Backbone token embedding table.",
+              "node_id": "embedding_lookup::table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "evaluation_token_embedding",
+          "outputs": [
+            "embedding_prompt_embeddings"
+          ],
+          "step_id": "embed_evaluation_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale forward pass",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The internal Transformer computation is opaque at this input-reconstruction boundary."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we performed a single forward pass and extracted the hidden states from the final transformer layer",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "embedding_prompt_embeddings",
+              "port_role": "transformer_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "final_layer_hidden_state_extraction",
+          "outputs": [
+            "final_layer_hidden_states"
+          ],
+          "step_id": "extract_final_hidden_states",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Average pooling of final-layer token states",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no average-pooling operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "applying average pooling across all tokens in the sequence (excluding padding) to obtain a single fixed-length vector per cell.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "final_layer_hidden_states",
+              "port_role": "final_layer_token_states"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "average_pooling_excluding_padding",
+          "outputs": [
+            "cell_embedding"
+          ],
+          "step_id": "pool_cell_embedding",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Frozen cell-embedding extraction for evaluation and linear probing",
+      "trajectory_id": "c2s_scale_embedding_evaluation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the first stage, the model was fine-tuned using supervised learning on both cell sentence generation and natural language label prediction, where it simultaneously predicted all three labels-cell type, perturbation, and exposure-ensuring it learned bidirectional relationships between conditions and gene expression.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Example prompts for training can be found in Supplementary Figure 15, PBMC.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To limit token usage and sequence length, C2S models utilized pathway information contained in the SciPlex data rather than RDKit embeddings.",
+          "section_id": "sec_0040"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale perturbation model for cytokine, L1000, and SciPlex perturbation-response prediction",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell",
+            "ordered gene positions"
+          ],
+          "contextual_role": "control_or_untreated_biological_payload",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "the model was fine-tuned using supervised learning on both cell sentence generation and natural language label prediction",
+              "section_id": "sec_0040"
+            }
+          ],
+          "information_content": "Control or untreated profile represented as a cell sentence.",
+          "node_id": "control_cell_sentence",
+          "representation_type": "gene_name_text_sequence",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "condition fields"
+          ],
+          "contextual_role": "perturbation_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "where it simultaneously predicted all three labels-cell type, perturbation, and exposure",
+              "section_id": "sec_0040"
+            }
+          ],
+          "information_content": "Cell type, perturbation, and exposure labels.",
+          "node_id": "perturbation_labels",
+          "representation_type": "natural_language_condition_fields",
+          "symbolic_shape": [
+            "n_condition_fields"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "pathway/context fields"
+          ],
+          "contextual_role": "perturbation_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "C2S models utilized pathway information contained in the SciPlex data rather than RDKit embeddings.",
+              "section_id": "sec_0040"
+            }
+          ],
+          "information_content": "Pathway information used for SciPlex perturbation conditioning.",
+          "node_id": "pathway_context",
+          "representation_type": "pathway_metadata",
+          "symbolic_shape": [
+            "n_pathway_fields"
+          ],
+          "uncertainty": "The exact pathway serialization is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "perturbation_fine_tuning_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "In the first stage, the model was fine-tuned using supervised learning on both cell sentence generation and natural language label prediction, where it simultaneously predicted all three labels-cell type, perturbation, and exposure-ensuring it learned bidirectional relationships between conditions and gene expression.",
+              "section_id": "sec_0040"
+            }
+          ],
+          "information_content": "Prompt containing control cell sentence and perturbation condition context.",
+          "node_id": "perturbation_prompt",
+          "representation_type": "natural_language_perturbation_prompt",
+          "symbolic_shape": [
+            "n_prompt_tokens_text"
+          ],
+          "uncertainty": "Exact prompt template and ordering are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "token positions"
+          ],
+          "contextual_role": "llm_input_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Tokenized perturbation prompt.",
+          "node_id": "perturbation_token_ids",
+          "representation_type": "token_ids",
+          "symbolic_shape": [
+            "n_prompt_tokens"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "embedding coordinates"
+          ],
+          "contextual_role": "llm_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "information_content": "Perturbation prompt token embeddings.",
+          "node_id": "perturbation_embeddings",
+          "representation_type": "token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "token positions",
+            "model feature coordinates"
+          ],
+          "contextual_role": "model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model was fine-tuned using supervised learning on both cell sentence generation and natural language label prediction",
+              "section_id": "sec_0040"
+            }
+          ],
+          "information_content": "Position-aware perturbation prompt embedding.",
+          "node_id": "perturbation_model_input",
+          "representation_type": "position_encoded_token_embeddings",
+          "symbolic_shape": [
+            "n_prompt_tokens",
+            "d_model"
+          ],
+          "uncertainty": "Positional encoding and target-response teacher-forcing details are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact prompt fields and separators are used for cell type, perturbation, exposure, and pathway information?",
+        "Are condition labels serialized before or after the control cell sentence?",
+        "How are L1000 bulk profiles represented when converted to prompts?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "perturbation_model_input",
+          "port_role": "perturbation_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "C2S-Scale perturbation-response decoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Perturbation prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "control_cell_sentence",
+                    "perturbation_labels",
+                    "pathway_context"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "perturbation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "source-defined perturbation prompt with cell sentence and condition context"
+                },
+                {
+                  "name": "order",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "gene-name sentence, condition labels, and pathway information to natural language"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "where it simultaneously predicted all three labels-cell type, perturbation, and exposure",
+              "section_id": "sec_0040"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "C2S models utilized pathway information contained in the SciPlex data rather than RDKit embeddings.",
+              "section_id": "sec_0040"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "control_cell_sentence",
+              "port_role": "control_profile_sentence"
+            },
+            {
+              "node_id": "perturbation_labels",
+              "port_role": "condition_labels"
+            },
+            {
+              "node_id": "pathway_context",
+              "port_role": "pathway_context"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "perturbation_prompt_serialization",
+          "outputs": [
+            "perturbation_prompt"
+          ],
+          "step_id": "serialize_perturbation_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Backbone tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "perturbation_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "perturbation_token_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "pretrained backbone tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "backbone tokenizer segmentation"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "natural-language perturbation prompt"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each word in a cell sentence corresponds to a gene name, which is first tokenized using the pretrained tokenizer associated with the backbone model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "perturbation_prompt",
+              "port_role": "prompt_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "perturbation_prompt_tokenization",
+          "outputs": [
+            "perturbation_token_ids"
+          ],
+          "step_id": "tokenize_perturbation_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Token embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "perturbation_token_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "perturbation_embedding::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "perturbation_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "pretrained backbone tokenizer token indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "trained during perturbation fine-tuning"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tokenized gene names are mapped into vector representations through an embedding layer trained alongside the model.",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "perturbation_token_ids",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "through an embedding layer trained alongside the model",
+                  "section_id": "sec_0019"
+                }
+              ],
+              "information_content": "Token embedding lookup table.",
+              "node_id": "perturbation_embedding::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "token_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact dimensions are unspecified."
+            }
+          ],
+          "operation_type": "perturbation_token_embedding",
+          "outputs": [
+            "perturbation_embeddings"
+          ],
+          "step_id": "embed_perturbation_tokens",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale positional input preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The positional-encoding operation is described but not represented by a catalog primitive."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Positional encodings are added to preserve the rank order of genes within each cell sentence",
+              "section_id": "sec_0019"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "perturbation_embeddings",
+              "port_role": "token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "positional_encoding_addition",
+          "outputs": [
+            "perturbation_model_input"
+          ],
+          "step_id": "add_perturbation_positions",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Supervised perturbation-response fine-tuning for cytokine stimulation, L1000 small-molecule response, and SciPlex3 small-molecule response",
+      "trajectory_id": "c2s_scale_perturbation_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This model was trained on a perturbation corpus combining the LINCS L1000 bulk RNA-seq dataset [52] and the Tahoe-100M single-cell dataset [80]",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we employed a delta sentence prediction objective rather than generating the entire cell sentence of the target perturbed profile.",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A delta sentence captures the vector difference between a perturbed and control state ( ∆ E = E stimulated -E control).",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "predicted delta sentences are mapped back to quantitative log-fold changes using pre-fitted log-linear models and added to the input control profile to yield the final predicted transcriptome.",
+          "section_id": "sec_0042"
+        }
+      ],
+      "lifecycle_phase": "inference",
+      "model_role": "primary_model",
+      "model_variant": "C2S-Scale perturbation model initialized from Gemma-3 4B for virtual screening",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "bulk samples",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The immune-context-positive data comprised flow sorted bulk RNA-seq from a pan-cancer atlas",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Primary-tumor bulk RNA-seq control profiles.",
+          "node_id": "tumor_control_profile",
+          "representation_type": "bulk_gene_expression_profile",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the single-cell data, standard preprocessing was applied",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Cell-line single-cell control profiles for immune-context-neutral screening.",
+          "node_id": "cell_line_control_profiles",
+          "representation_type": "single_cell_gene_expression_profiles",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "compound identifiers"
+          ],
+          "contextual_role": "perturbation_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The screening library was derived from the L1000 resource, which catalogs over 30,000 small molecules.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Drug identifiers from the working screening library.",
+          "node_id": "drug_library",
+          "representation_type": "small_molecule_identifiers",
+          "symbolic_shape": [
+            "n_drugs"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prompt text positions"
+          ],
+          "contextual_role": "model_input_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Drug perturbations were simulated for all drugs (N=4,266) using our C2S-Scale perturbation response prediction model.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Model-specific perturbation input assembled from a control profile and a drug condition; exact textual format is undocumented.",
+          "node_id": "virtual_screen_model_input",
+          "representation_type": "perturbation_model_input",
+          "symbolic_shape": null,
+          "uncertainty": "Exact prompt serialization and tokenization are not documented in the virtual-screen section."
+        },
+        {
+          "axis_semantics": [
+            "ranked upregulated and downregulated gene positions"
+          ],
+          "contextual_role": "model_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model was trained to output the top 200 upregulated and top 200 downregulated differentially expressed genes (DEGs) formatted as two newline-separated, rank-ordered lists.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Predicted delta sentence containing ranked upregulated and downregulated gene lists.",
+          "node_id": "predicted_delta_sentence",
+          "representation_type": "ranked_delta_gene_lists",
+          "symbolic_shape": [
+            "n_delta_gene_positions"
+          ],
+          "uncertainty": "The inference serialization and duplicate handling are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "predicted_perturbation_effect",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "predicted delta sentences are mapped back to quantitative log-fold changes using pre-fitted log-linear models",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Quantitative predicted log-fold changes aligned to genes.",
+          "node_id": "predicted_log_fold_changes",
+          "representation_type": "predicted_log_fold_change_vector",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": "The fitted model parameters and exact mapping from ranked lists are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "predicted_biological_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "added to the input control profile to yield the final predicted transcriptome.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Predicted perturbed transcriptome.",
+          "node_id": "predicted_transcriptome",
+          "representation_type": "predicted_gene_expression_profile",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "How are control profiles and drug identifiers serialized for the perturbation model?",
+        "How are repeated stochastic forward passes represented in the input/output graph?",
+        "What exact fitted log-linear model maps ranked delta lists to quantitative log-fold changes?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "virtual_screen_model_input",
+          "port_role": "perturbation_model_input"
+        }
+      ],
+      "recipient_component": "C2S-Scale Gemma-3 4B perturbation-response model",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Virtual-screen perturbation input assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents control profiles and drug perturbations but does not specify their prompt serialization or tokenizer path."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Drug perturbations were simulated for all drugs (N=4,266) using our C2S-Scale perturbation response prediction model.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "tumor_control_profile",
+              "port_role": "control_profile"
+            },
+            {
+              "node_id": "cell_line_control_profiles",
+              "port_role": "cell_line_control_profiles"
+            },
+            {
+              "node_id": "drug_library",
+              "port_role": "drug_conditions"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "virtual_screen_perturbation_input_assembly",
+          "outputs": [
+            "virtual_screen_model_input"
+          ],
+          "step_id": "assemble_virtual_screen_input",
+          "uncertainty": "Control-profile selection by biological context and exact model-input formatting are partially documented only."
+        },
+        {
+          "bypasses": [],
+          "component": "C2S-Scale perturbation-response generation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The internal decoder generation that produces delta sentences is not established by the selected paper text."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we employed a delta sentence prediction objective rather than generating the entire cell sentence of the target perturbed profile.",
+              "section_id": "sec_0042"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The model was trained to output the top 200 upregulated and top 200 downregulated differentially expressed genes (DEGs) formatted as two newline-separated, rank-ordered lists.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "virtual_screen_model_input",
+              "port_role": "perturbation_model_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "delta_sentence_generation",
+          "outputs": [
+            "predicted_delta_sentence"
+          ],
+          "step_id": "generate_delta_sentence",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Pre-fitted log-linear delta mapping",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "predicted_delta_sentence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "predicted_log_fold_changes"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "pre-fitted log-linear mapping from ranked delta lists to quantitative log-fold changes"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "pre-fitted"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "predicted delta sentences are mapped back to quantitative log-fold changes using pre-fitted log-linear models",
+              "section_id": "sec_0042"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "predicted_delta_sentence",
+              "port_role": "ranked_delta_gene_lists"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "ranked_delta_to_log_fold_change_projection",
+          "outputs": [
+            "predicted_log_fold_changes"
+          ],
+          "step_id": "map_delta_to_log_fold_changes",
+          "uncertainty": "The paper does not specify the model inputs beyond predicted delta sentences or the exact fitted parameterization."
+        },
+        {
+          "bypasses": [],
+          "component": "Control-profile update",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "tumor_control_profile",
+                    "predicted_log_fold_changes"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "add",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "predicted_transcriptome"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "alignment",
+                  "value": "gene-wise alignment between control profile and predicted perturbation effect"
+                },
+                {
+                  "name": "scaling",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "added to the input control profile to yield the final predicted transcriptome.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "tumor_control_profile",
+              "port_role": "control_profile"
+            },
+            {
+              "node_id": "predicted_log_fold_changes",
+              "port_role": "predicted_log_fold_changes"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "control_profile_effect_update",
+          "outputs": [
+            "predicted_transcriptome"
+          ],
+          "step_id": "add_predicted_effect_to_control",
+          "uncertainty": "The paper states addition but does not specify whether the control profile is in log-expression coordinates or another quantitative scale."
+        }
+      ],
+      "task_configuration": "Dual-context virtual screening of small-molecule perturbations in primary-tumor and immune-context-neutral cell-line profiles",
+      "trajectory_id": "c2s_scale_virtual_screen_inference"
+    }
+  ]
+}

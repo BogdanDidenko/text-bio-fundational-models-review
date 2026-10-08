@@ -1,0 +1,172 @@
+{
+  "coverage_summary": "The reconstruction captures the documented adapter projection and several opaque LLM boundaries, but it omits documented training-conversation branches and fine-tuning controls, loses Mixtral decoding parameters, and contains unsupported or incomplete operation decompositions in ranking and evaluation.",
+  "findings": [
+    {
+      "detail": "The fine-tuning trajectory treats prepared questions as an unexplained input and omits the documented GPT-4 detailed/complex-chat branches and Mixtral conversational-chat branch that generated the training conversations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each transcriptome, we generated a chat-like conversation using one of two LLMs (GPT-4 or Mixtral)",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Detailed chats were generated ... using an LLM (GPT-4 via the OpenAI API)",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Conversational chats ... were generated using an LLM (Mixtral 8x7b)",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the GPT-4 and Mixtral conversation-generation branches as documented upstream input routes, or retain them as explicit opaque boundaries linked to the prepared conversation inputs.",
+      "severity": "blocking",
+      "step_id": "fine_tune_mistral_on_conversations",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The fine-tuning input representation omits documented prompt context used to generate the conversations: the top 50 highly expressed genes, top 50 GSVA-derived gene sets, and the transcriptome textual annotation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using one of two LLMs ... on the basis of the transcriptome's top 50 most highly expressed genes, the top 50 GSVA-derived gene sets, and the transcriptome's textual annotation",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Preserve these three documented context sources as inputs to the conversation-generation boundary or describe them explicitly in the prepared-question/conversation node.",
+      "severity": "blocking",
+      "step_id": "fine_tune_mistral_on_conversations",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The opaque Mistral fine-tuning receipt does not preserve the documented loss mask or the two-stage training schedule. The uncertainty mentions the stages but the graph has no corresponding state or parameter representation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "with a loss mask for the question parts of the conversations",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In a first training step, we kept the LLM frozen and trained the adapter layers",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In a second training step, we unfroze the Mistral LLM and fine-tuned both the LLM and the adapter layers",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the question-part loss mask and represent the adapter-only frozen-LLM stage separately from the joint Mistral-plus-adapter stage, including their documented training inputs.",
+      "severity": "blocking",
+      "step_id": "fine_tune_mistral_on_conversations",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The Mixtral GEO annotation route omits the documented decoding parameters and does not carry the full implementation evidence for the quantized llama.cpp route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using Mixtral 8x7b (Jiang et al. 2024) (Q5_K_M quantized version), via the llama.cpp python bindings with a sampling temperature of 0.2",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "nucleus sampling (top_p) of 0.9, and top probability sampling (top_k) of 50",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach the complete source evidence and preserve Q5_K_M quantization, llama.cpp Python bindings, temperature 0.2, top_p 0.9, and top_k 50 on the GEO generation boundary.",
+      "severity": "blocking",
+      "step_id": "generate_mixtral_geo_annotation",
+      "trajectory_id": "mixtral_geo_metadata_inference"
+    },
+    {
+      "detail": "The Mixtral CELLxGENE route omits the documented decoding parameters and does not carry the full implementation evidence for the quantized llama.cpp route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using Mixtral 8x7b (Jiang et al. 2024) (Q5_K_M quantized version), via the llama.cpp python bindings with a sampling temperature of 0.2",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "nucleus sampling (top_p) of 0.9, and top probability sampling (top_k) of 50",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach the complete source evidence and preserve Q5_K_M quantization, llama.cpp Python bindings, temperature 0.2, top_p 0.9, and top_k 50 on the CELLxGENE generation boundary.",
+      "severity": "blocking",
+      "step_id": "generate_mixtral_census_annotation",
+      "trajectory_id": "mixtral_census_metadata_inference"
+    },
+    {
+      "detail": "The top-gene step uses rank alone while its output is the first 50 genes. Ranking establishes an ordering; the catalog has a separate select operation for retaining the top positions.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "provides the 50 top genes for the selected cells/samples",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add a documented selection step after ranking, with the top-50 criterion, or use an opaque boundary that explicitly represents ranking followed by top-50 selection.",
+      "severity": "blocking",
+      "step_id": "rank_top_genes_for_chat",
+      "trajectory_id": "mistral_interactive_inference"
+    },
+    {
+      "detail": "The interactive prompt serialization assigns an order while simultaneously declaring the order unspecified. The paper does not establish that hidden top-gene context precedes the user question.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The CellWhisperer chats inside CELLxGENE Explorer are primed with a hidden conversation initiation that provides the 50 top genes",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set the serialization order to unspecified unless the supplementary prompt evidence establishes it; do not retain the unsupported 'hidden context followed by user question' value.",
+      "severity": "blocking",
+      "step_id": "serialize_interactive_chat_prompt",
+      "trajectory_id": "mistral_interactive_inference"
+    },
+    {
+      "detail": "The conversation-perplexity evaluation does not represent the documented branch of one matched embedding versus 30 randomly sampled mismatched embeddings. A single candidate embedding node is insufficient to preserve that comparison structure.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "with the matched transcriptome embedding but also with 30 randomly sampled transcriptome embeddings",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the matched branch and the 30-mismatch sampling branch, or retain them as explicit inputs and parameters on the opaque perplexity-scoring boundary.",
+      "severity": "blocking",
+      "step_id": "evaluate_mistral_matched_transcriptome",
+      "trajectory_id": "mistral_conversation_evaluation"
+    },
+    {
+      "detail": "The cell-type evaluation exposes candidate answer texts but omits the documented transformation from labels to natural-language answers with the fixed prefix.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "converted the annotated cell type label to a natural-language answer by prefixing them with the following text: 'This cell is a '",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a serialize step from cell-type labels to candidate answer texts, preserving the prefix and its placement before the perplexity-scoring boundary.",
+      "severity": "blocking",
+      "step_id": "evaluate_mistral_cell_type_answers",
+      "trajectory_id": "mistral_cell_type_evaluation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_002105",
+  "verdict": "revise"
+}

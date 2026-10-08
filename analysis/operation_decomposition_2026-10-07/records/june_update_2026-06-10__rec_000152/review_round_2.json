@@ -1,0 +1,257 @@
+{
+  "coverage_summary": "The reconstruction covers the major H2O, scGPT-FT, inference, benchmark, developmental, 3D, and dual-decoder routes. Blocking issues remain in frozen/trainable parameter states, unsupported diameter lookup decomposition, invented concatenation order, omitted normalization and reconstruction objectives, checkpoint identity, and evaluation inputs.",
+  "findings": [
+    {
+      "detail": "The alignment route marks the scGPT embedding components as fine-tuned, although the paper explicitly describes the ST foundation model used for contrastive alignment as parameter-frozen. This affects embed_gene_tokens, embed_condition_tokens, embed_expression_values, and encode_scgpt_self_attention.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "contrastive learning aligns a trainable histopathology foundation model and a parameter-frozen ST foundation model using paired image and gene expression data;",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We first fine-tuned scGPT on a subset of the HEST-1k dataset to generate scGPT-FT. Using the same subset, we trained H2O to obtain its pretrained checkpoint.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set the scGPT-FT parameters to frozen for the H2O alignment trajectory; retain fine-tuning only in the separate scGPT-FT trajectory.",
+      "severity": "blocking",
+      "step_id": "embed_gene_tokens",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The diameter-index step is decomposed as a lookup with an explicit embedding table, but the paper only states that the index is embedded and then linearly mapped. It does not document a lookup table implementation for diameter embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We applied FiLM module, which a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension and linearly mapped to FiLM parameters",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We use the conventional embedding layers implemented in PyTorch for the gene tokens and condition tokens",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent diameter embedding as an opaque documented boundary, or provide source evidence for a table lookup before using lookup and an embedding-table operand.",
+      "severity": "blocking",
+      "step_id": "embed_diameter_index",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The same unsupported lookup-table decomposition is present in the decoder trajectory.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a diameter index 𝑑𝑖 ∈  {1, … ,5} representing 2μm, 55μm, 100μm , 150μm or other diameter is embedded to 128-dimension",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Replace the decoder diameter lookup/table with an opaque diameter-embedding boundary unless the implementation explicitly documents a lookup table.",
+      "severity": "blocking",
+      "step_id": "embed_decoder_diameter",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "film_parameters is classified as an implicit model parameter, although it is the per-input output of the diameter embedding and linear mapping. The implicit parameters are the mapping/table weights, not the generated gamma/beta values.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Classify film_parameters as a computed, diameter-conditioned feature; keep only any documented embedding/projection weights as implicit model parameters.",
+      "severity": "blocking",
+      "step_id": "apply_diameter_film",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder trajectory has the same incorrect role assignment for decoder_film_parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "is embedded to 128-dimension and linearly mapped to FiLM parameters (γ𝑖 ,  β 𝑖 ) ∈  512 ×  512 shared for both streams.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Mark decoder_film_parameters as a computed conditioned output rather than an implicit model parameter.",
+      "severity": "blocking",
+      "step_id": "condition_decoder_features",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "The concatenation order is asserted as image feature followed by context feature, but the supplied paper text only states that the two vectors are concatenated. The unavailable formula does not establish operand order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Finally , the two 512-dimension vectors are concatenated as 𝑢𝑖",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Remove the asserted order or preserve concatenation as an unresolved ordered boundary until the source formula or implementation establishes it.",
+      "severity": "blocking",
+      "step_id": "concatenate_aligned_image_features",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder concatenation step repeats the unsupported image-then-context order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Finally , the two 512-dimension vectors are concatenated as 𝑢𝑖",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Do not assign operand order without evidence from the unavailable formula or implementation.",
+      "severity": "blocking",
+      "step_id": "concatenate_decoder_features",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "The alignment trajectory omits the explicitly documented layer normalization of both streams before the contrastive objective.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Both streams are layer-normalized:",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To align the two modalities, we adopt a contrastive objective based on a temperature-scaled dot product between image embeddings and text embeddings.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add normalize calls for the image and ST streams at the documented normalization boundary; retain placement details as uncertain if the formulas do not establish them.",
+      "severity": "blocking",
+      "step_id": "contrastive_align_image_st",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder training trajectory omits the documented reconstruction loss and joint loss. It has no experimental ST target node and no step connecting predicted expression to the MSE reconstruction objective or to the weighted combination with contrastive loss.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The reconstruction objective was formulated as the mean squared error (MSE) between the predicted expression profiles ĝ𝑖 and the original experimental profiles 𝑔𝑖",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The overall training objective combines the reconstruction loss with the contrastive alignment loss:",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "H2O comprises two steps: first, contrastive learning aligns ...; second, grounded on the cross-modal aligned embeddings, the H2O decoder predicts the omics expression for each spot",
+          "section_id": "sec_0003"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the paired experimental ST expression target and preserve the MSE reconstruction and joint-loss boundary, including the documented weighting, without inventing unavailable algebra.",
+      "severity": "blocking",
+      "step_id": "decode_st_expression",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    },
+    {
+      "detail": "The OpenST stacking step uses concatenate with one already assembled prediction node. The paper documents sequential stacking/assembly, not concatenation of multiple operands, and the graph does not provide separate section inputs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We then stacked the predictions in sequential section order and visualized the resulting volume",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Use an opaque sequential stacking/volume-assembly boundary, or provide separate section operands and evidence that concatenation is the operation.",
+      "severity": "blocking",
+      "step_id": "stack_openst_predictions",
+      "trajectory_id": "h2o_openst_3d_inference"
+    },
+    {
+      "detail": "The benchmark checkpoint node conflates the distinct H2O-ccRCC and H2O-PRAD checkpoints. Both prediction steps bind to the same resource node, which implies shared resource identity despite the paper identifying separate task-specific models.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For benchmarking against other methods, we trained H2O on predefined HEST-1k subsets, yielding task-specific models H2O-ccRCC and H2O-PRAD.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Create separate checkpoint resource nodes for H2O-ccRCC and H2O-PRAD, then bind each held-out prediction step to its corresponding checkpoint; retain both as inputs for the independent-cohort branch where appropriate.",
+      "severity": "blocking",
+      "step_id": "predict_benchmark_ccrcc",
+      "trajectory_id": "h2o_benchmark_evaluation"
+    },
+    {
+      "detail": "The benchmark metric step receives predictions only, although the reported correlations require comparison with experimentally measured ground truth profiles.",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "Number of genes for which each method achieved the top correlation with ground truth in ccRCC, PRAD, and IDCLymphNode test samples.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Pearson Correlation Coefficient (PCC) and Spearman Rank Correlation Coefficient (SRCC)",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add observed benchmark ST-expression target nodes and bind them to the metric-evaluation boundary alongside the corresponding predictions.",
+      "severity": "blocking",
+      "step_id": "evaluate_h2o_benchmarks",
+      "trajectory_id": "h2o_benchmark_evaluation"
+    },
+    {
+      "detail": "The neighbor-aggregation step states convolution plus GAP, but its attached evidence quote mentions only convolution. The complete paper supports GAP elsewhere, so the graph evidence record is incomplete rather than the transformation being absent from the paper.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "followed by applying 1D convolution (in_channels=384, out_channels=512, kernel_size=9) and Global Average Pooling (GAP) to obtain a 512-dimension.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Add the sec_0018 evidence quote to the step, or restrict the stated decomposition to the transformation supported by its current quote.",
+      "severity": "minor",
+      "step_id": "aggregate_neighbor_context",
+      "trajectory_id": "h2o_alignment_fine_tuning"
+    },
+    {
+      "detail": "The decoder context-aggregation step likewise states GAP while attaching only the shorter convolution quote.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "neighborhood context aggregated by a 1D convolution across 𝐾 adjacent patches",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "followed by applying 1D convolution (in_channels=384, out_channels=512, kernel_size=9) and Global Average Pooling (GAP) to obtain a 512-dimension.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Attach the complete sec_0018 evidence to the decoder aggregation step.",
+      "severity": "minor",
+      "step_id": "aggregate_decoder_context",
+      "trajectory_id": "h2o_st_decoder_fine_tuning"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000152",
+  "verdict": "revise"
+}

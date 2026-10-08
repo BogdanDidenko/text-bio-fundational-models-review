@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "The core pretraining pathways are mostly grounded, with justified opaque Q-Former and prefix boundaries. Blocking omissions and one unsupported token-concatenation claim affect the Master-Q-Former input representation, Stage 1 objectives, and zero-shot downstream tasks.",
+  "findings": [
+    {
+      "detail": "The Master-Q-Former sequence step concatenates raw instruction token IDs with learned query vectors and treats the result as a numerical feature sequence. The paper only states that meta-query tokens and the tokenised instruction are concatenated; it does not document direct concatenation of IDs with vectors or the embedding/table operation needed to make their feature spaces compatible.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "At each forward pass the meta-query tokens and the tokenised instruction are concatenated into a single sequence",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Retain this interface as an opaque model boundary, or add only a source-supported embedding step before concatenation. Do not bind raw instruction IDs directly to query vectors.",
+      "severity": "blocking",
+      "step_id": "concatenate_master_inputs",
+      "trajectory_id": "stage2_qwen3_4b_variant_annotation"
+    },
+    {
+      "detail": "All Stage 1 trajectories omit the three documented training branches: ITC, ITM, and ITG. The current modality-specific Q-Former boundary does not preserve the caption projections, negative-pair matching, autoregressive caption generation, or the decoder's attention to query tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following the BLIP-2 style of fusing vision and language [17], each Q-former has three losses to optimize in this stage:",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Image-text contrastive (ITC) loss maximizes the cosine similarity between each query representation and its paired text caption while minimising similarity to unpaired captions in the batch:",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Image-text matching (ITM) loss trains the model to identify, given a batch of embeddings and captions, whether a given embedding-caption pair is a match.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Image-grounded text generation (ITG) loss, a causal language-modeling objective in which the text decoder attends to the output query tokens as soft visual prompts and is trained to generate the paired caption autoregressively.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented Stage 1 objective branches as opaque or catalog-supported steps, including their paired/unpaired caption inputs and the ITG decoder path. Apply the same downstream boundary to the permutation ablation when documented.",
+      "severity": "blocking",
+      "step_id": "align_alphagenome_with_caption",
+      "trajectory_id": "stage1_alphagenome_alignment"
+    },
+    {
+      "detail": "The permutation ablation ends at an opaque pair-assignment boundary and is not connected to the subsequent Stage 1 Q-Former/objective path. The paper states that the permuted embeddings and captions are used to test the alignment losses, so the ablation branch is currently detached from the modeled task output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We permute the variant text captions and embeddings within each batch, essentially assigning each variant a random caption.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We observe in Figure 6 that the ITC loss increases instead of decreasing, as the Q-former is no longer able to provide high cosine similarity to variants matched with the wrong captions.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Route the conditionally permuted embedding-caption pair through the same Stage 1 Q-Former and loss boundary, preserving the incorrect-pair condition and its separate ablation output.",
+      "severity": "blocking",
+      "step_id": "permute_variant_embedding_caption_pairs",
+      "trajectory_id": "stage1_alphagenome_alignment"
+    },
+    {
+      "detail": "The generation step says that answer-token masking is unspecified, although the paper explicitly documents answer-only next-token supervision and the prompt mask value. This is a wrong parameter/uncertainty statement.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The supervision signal is NTP loss on the answer tokens only; prompt tokens are masked with -100 .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record answer-only NTP supervision and prompt-token masking with -100. Keep the tokenizer, attention mask, and decoding details unspecified only where the paper provides no information.",
+      "severity": "blocking",
+      "step_id": "generate_variant_annotation",
+      "trajectory_id": "stage2_qwen3_4b_variant_annotation"
+    },
+    {
+      "detail": "The assembly contains no zero-shot target-gene-identification trajectory and assigns every trajectory to pretraining. The paper explicitly defines target-gene identification as a separate zero-shot task with variant ID, disease, nearby-gene context, and multimodal variant/reference-allele biological embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Target gene identification (Sec. 3.2) and variant prioritization (Sec. 3.3) are strictly for zero-shot evaluation.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The task definition is: Given a variant ID, a disease, and a neighborhood of nearby genes, can the model identify the target gene that links the variant to the disease?",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Multimodal models are also provided the variant and reference allele biological embeddings.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a zero-shot target-gene trajectory with its distinct task phase and documented prompt/context inputs. Preserve the unspecified modality subset where the paper does not resolve it.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_scope"
+    },
+    {
+      "detail": "The assembly contains no regulatory-prioritization input path. The paper documents a repeated per-candidate-variant Bio-BLIP run, newline-separated multimodal prefixes and summaries appended to the LLM prompt, and variant IDs supplied in prompts; these operations and the candidate-ranking output are absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To extend Bio-BLIP and BioReason for multiple variants, we ran Bio-BLIP once for each variant to compute that variants' visual prefix and variant summary. The variants' multimodal prefixes were separated by newline characters and appended to the LLM prompt, as were the variant summaries. Variant IDs were provided to all models in the prompts.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The task for the models is to produce a ranked list of all genetic variants from most to least likely to be causal.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a zero-shot regulatory-prioritization trajectory with the per-variant prefix/summary branch, newline-separated prompt assembly, variant-ID input, and ranking output.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_scope"
+    },
+    {
+      "detail": "The reported regulatory-prioritization Bio-BLIP aggregate row has no identified Qwen configuration, but the assembly does not preserve that uncertainty. The paper documents both Qwen3-4B and Qwen3-32B as possible frozen LLMs while Table 3 reports only “Bio-BLIP (Ours)” without an engine column.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 of training introduces the Master Q-former model attached to a frozen LLM (Qwen3-4B or Qwen3-32B [18]) for generative variant annotation.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "table",
+          "quote": "| Bio-BLIP (Ours)                   | 48.22%           | 52.96%           | 57.40%           | 3.09 ± 2.98         |",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent the regulatory-prioritization aggregate as configuration-uncertain, or attach it to a documented configuration only if additional source evidence resolves the engine.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_scope"
+    },
+    {
+      "detail": "The Stage 1 caption node is represented only as generic caption tokens, while the paper documents that the captions are structured JSON objects with specific variant-annotation fields. The tokenization details may remain unknown, but the documented caption content is missing from the input instance.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Textual variant captions. Structured JSON objects for each single nucleotide variant containing chromosome, variant type ( coding / noncoding ), most severe consequence (e.g. intron variant, missense variant), nearest protein-coding genes, and associated cell types.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Attach the documented structured-caption fields to the caption input instance, while retaining tokenizer and serialization implementation as unspecified.",
+      "severity": "minor",
+      "step_id": "align_alphagenome_with_caption",
+      "trajectory_id": "stage1_alphagenome_alignment"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000194",
+  "verdict": "revise"
+}

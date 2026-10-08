@@ -1,0 +1,3045 @@
+[
+  {
+    "bypasses": [
+      {
+        "condition": "RNA sample",
+        "source_node_id": "gene_associated_regions",
+        "source_step_id": "extend_gene_regions",
+        "target_node_id": "unified_samples"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "extract_record_fields::1",
+        "component": "GenBank parser and field extraction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We used Biopython 46 to parse GenBank records automatically.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genbank_records"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "record_fields",
+            "nucleotide_sequences",
+            "annotated_gene_regions"
+          ]
+        },
+        "parameters": {
+          "source_operation": "genbank_field_and_region_extraction",
+          "source_port_roles": [
+            "genbank_records"
+          ]
+        },
+        "source_step_id": "extract_record_fields",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Parsing and field extraction are documented but have no catalog operation."
+      },
+      {
+        "call_id": "extract_feature_annotations::1",
+        "component": "Hierarchical feature-annotation extraction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mRNA, CDS, ncRNA, and regulatory elements",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "genbank_records"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "feature_annotations"
+          ]
+        },
+        "parameters": {
+          "source_operation": "hierarchical_feature_annotation_extraction",
+          "source_port_roles": [
+            "genbank_records"
+          ]
+        },
+        "source_step_id": "extract_feature_annotations",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Feature extraction has no catalog operation."
+      },
+      {
+        "call_id": "extend_gene_regions::1",
+        "component": "Random neighborhood extension",
+        "condition": "genomic-DNA sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly extended the target annotated segment by 0-100 bp upstream and downstream",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "gene_associated_regions"
+          ]
+        },
+        "operation_id": "augment",
+        "outputs": {
+          "values": [
+            "extended_gene_regions"
+          ]
+        },
+        "parameters": {
+          "phase": "pretraining corpus construction",
+          "policy": "randomly extend by 0-100 bp upstream and downstream; truncate at contig boundary",
+          "source_port_roles": [
+            "target_annotated_regions"
+          ]
+        },
+        "source_step_id": "extend_gene_regions",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "organize_hierarchical_annotations::1",
+        "component": "Hierarchical annotation organization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "organized the annotations using custom XML-style tags",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "feature_annotations"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "hierarchical_annotations"
+          ]
+        },
+        "parameters": {
+          "source_operation": "hierarchical_xml_style_annotation_organization",
+          "source_port_roles": [
+            "parsed_hierarchical_feature_annotations"
+          ]
+        },
+        "source_step_id": "organize_hierarchical_annotations",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Structural-annotation construction has no catalog operation."
+      },
+      {
+        "call_id": "serialize_training_samples::1",
+        "component": "Unified training-sample construction",
+        "condition": "genomic-DNA branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "into  unified  training samples",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "record_fields",
+            "feature_annotations",
+            "hierarchical_annotations",
+            "extended_gene_regions"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "unified_samples"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "metadata and tags rendered as text; nucleotide retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "metadata",
+            "feature_annotation_source",
+            "hierarchical_structural_annotations",
+            "genomic_DNA_nucleotide_regions",
+            "RNA_nucleotide_regions"
+          ],
+          "template": "nucleotide sequence with metadata and XML-style annotations"
+        },
+        "source_step_id": "serialize_training_samples",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_training_samples::2",
+        "component": "Unified training-sample construction",
+        "condition": "RNA branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "into  unified  training samples",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "record_fields",
+            "feature_annotations",
+            "hierarchical_annotations",
+            "gene_associated_regions"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "unified_samples"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "metadata and tags rendered as text; nucleotide retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "metadata",
+            "feature_annotation_source",
+            "hierarchical_structural_annotations",
+            "genomic_DNA_nucleotide_regions",
+            "RNA_nucleotide_regions"
+          ],
+          "template": "nucleotide sequence with metadata and XML-style annotations"
+        },
+        "source_step_id": "serialize_training_samples",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "mask_prompt_identifiers::1",
+        "component": "Dynamic information masking",
+        "condition": "later stage of pretraining",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly removed with probability 0.5.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "unified_samples"
+          ]
+        },
+        "operation_id": "augment",
+        "outputs": {
+          "values": [
+            "masked_samples"
+          ]
+        },
+        "parameters": {
+          "phase": "later stage of pretraining",
+          "policy": "randomly remove species or gene identifier with probability 0.5",
+          "source_port_roles": [
+            "serialized_training_values"
+          ]
+        },
+        "source_step_id": "mask_prompt_identifiers",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "pack_training_samples::1",
+        "component": "Sequence packing",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "concatenating multiple samples into long input sequences of nearly 20,000 characters",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "masked_samples"
+          ]
+        },
+        "operation_id": "concatenate",
+        "outputs": {
+          "values": [
+            "packed_samples"
+          ]
+        },
+        "parameters": {
+          "axis": "sample sequence order",
+          "order": "multiple samples concatenated into long sequences",
+          "source_port_roles": [
+            "sample_sequences"
+          ]
+        },
+        "source_step_id": "pack_training_samples",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_packed_samples::1",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "cross-modal  tokenizer",
+            "section_id": "sec_0014"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "packed_samples"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "tokenized_packed_samples"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "nucleotide, natural-language, and XML-style inputs",
+          "source_port_roles": [
+            "serialized_multimodal_text"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_packed_samples",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "relate_packed_sequences_to_context::1",
+        "component": "Context-window relationship",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "maximum  context  length  of  4,096  tokens",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "tokenized_packed_samples"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "masked_training_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_window_relationship",
+          "source_port_roles": [
+            "tokenized_packed_values"
+          ]
+        },
+        "source_step_id": "relate_packed_sequences_to_context",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Packing and context length are documented, but their partition relationship is not."
+      },
+      {
+        "call_id": "decoder_training_receipt::1",
+        "component": "GenNA decoder-only Transformer causal-language-model boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the model predicts the next token conditioned on the preceding context",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "masked_training_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pretraining_next_token_distribution"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_decoder_next_token_prediction",
+          "source_port_roles": [
+            "causal_context_window_token_ids"
+          ]
+        },
+        "source_step_id": "decoder_training_receipt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The decoder computation is not exposed."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "gene-associated regions with explicit",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "custom XML-style tags",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "randomly extended the target annotated segment by 0-100 bp upstream and downstream",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "concatenating multiple samples into long input sequences of nearly 20,000 characters",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "a unified  cross-modal  BPE  tokenizer",
+        "section_id": "sec_0005"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "dedicated vocabulary of 6,000 tokens",
+        "section_id": "sec_0014"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "maximum  context  length  of  4,096  tokens",
+        "section_id": "sec_0005"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "randomly removed with probability 0.5.",
+        "section_id": "sec_0016"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "the model predicts the next token conditioned on the preceding context",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "GenNA approximately 3.6B decoder-only Transformer with custom cross-modal BPE vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_multimodal_source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "GenBank-formatted",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "GenBank-formatted genomic DNA and RNA annotation records.",
+        "node_id": "genbank_records",
+        "origin": "source_annotation",
+        "representation_type": "genbank_records",
+        "symbolic_shape": null,
+        "uncertainty": "Record schema is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "parsed_record_metadata",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "source  species,  gene  name",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Molecule type, species, gene name, and functional descriptions.",
+        "node_id": "record_fields",
+        "origin": "source_annotation",
+        "representation_type": "structured_record_fields",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "annotated feature records"
+        ],
+        "contextual_role": "parsed_feature_annotations",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mRNA, CDS, ncRNA, and regulatory elements",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Parsed hierarchical feature annotations.",
+        "node_id": "feature_annotations",
+        "origin": "source_annotation",
+        "representation_type": "parsed_hierarchical_feature_annotations",
+        "symbolic_shape": null,
+        "uncertainty": "Feature schema and coordinates are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "sequence positions"
+        ],
+        "contextual_role": "record_sequence_source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "underlying  nucleotide  sequences",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Underlying nucleotide sequences.",
+        "node_id": "nucleotide_sequences",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_sequence_positions"
+        ],
+        "uncertainty": "Extraction rules are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "annotated region positions"
+        ],
+        "contextual_role": "annotation_selector",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "gene-associated regions with explicit",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Explicitly annotated gene-associated regions.",
+        "node_id": "annotated_gene_regions",
+        "origin": "source_annotation",
+        "representation_type": "annotated_genomic_regions",
+        "symbolic_shape": [
+          "n_annotated_region_positions"
+        ],
+        "uncertainty": "Feature-selection rule is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "selected sequence positions"
+        ],
+        "contextual_role": "selected_biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "restricted the corpus to gene-associated regions",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Nucleotide sequence restricted to annotated gene-associated regions.",
+        "node_id": "gene_associated_regions",
+        "origin": "source_annotation",
+        "representation_type": "gene_associated_nucleotide_regions",
+        "symbolic_shape": [
+          "n_gene_region_positions"
+        ],
+        "uncertainty": "Overlap treatment is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "extended sequence positions"
+        ],
+        "contextual_role": "augmented_biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly extended the target annotated segment by 0-100 bp upstream and downstream",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Genomic-DNA regions with upstream/downstream extensions.",
+        "node_id": "extended_gene_regions",
+        "origin": "source_annotation",
+        "representation_type": "extended_gene_associated_nucleotide_regions",
+        "symbolic_shape": [
+          "n_extended_region_positions"
+        ],
+        "uncertainty": "Randomization details are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "hierarchical annotation positions"
+        ],
+        "contextual_role": "structured_annotation_source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "custom XML-style tags so as to preserve the original structural boundaries",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "XML-style hierarchical annotations.",
+        "node_id": "hierarchical_annotations",
+        "origin": "source_annotation",
+        "representation_type": "xml_style_structured_annotations",
+        "symbolic_shape": null,
+        "uncertainty": "Tag names and nesting are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "serialized sample positions"
+        ],
+        "contextual_role": "training_example",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "into  unified  training samples",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Unified nucleotide-text-structure samples.",
+        "node_id": "unified_samples",
+        "origin": "source_annotation",
+        "representation_type": "serialized_multimodal_training_samples",
+        "symbolic_shape": [
+          "n_sample_positions"
+        ],
+        "uncertainty": "Template and field order are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "serialized sample positions"
+        ],
+        "contextual_role": "masked_training_example",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly removed with probability 0.5.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Samples after dynamic identifier removal.",
+        "node_id": "masked_samples",
+        "origin": "source_annotation",
+        "representation_type": "masked_serialized_multimodal_training_samples",
+        "symbolic_shape": [
+          "n_sample_positions"
+        ],
+        "uncertainty": "Removal representation is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "packed character positions"
+        ],
+        "contextual_role": "packed_training_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "nearly 20,000 characters",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Packed serialized samples.",
+        "node_id": "packed_samples",
+        "origin": "source_annotation",
+        "representation_type": "packed_serialized_multimodal_sequence",
+        "symbolic_shape": [
+          "n_packed_character_positions"
+        ],
+        "uncertainty": "Packing boundary policy is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Cross-modal BPE token IDs.",
+        "node_id": "tokenized_packed_samples",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_token_positions"
+        ],
+        "uncertainty": "Special-token behavior is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "context-window token positions"
+        ],
+        "contextual_role": "decoder_training_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "maximum  context  length  of  4,096  tokens",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Context-window token IDs.",
+        "node_id": "masked_training_tokens",
+        "origin": "source_annotation",
+        "representation_type": "context_window_cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_context_window_tokens"
+        ],
+        "uncertainty": "Window partitioning is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "context-window token positions",
+          "vocabulary coordinates"
+        ],
+        "contextual_role": "decoder_output_distribution",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the model predicts the next token conditioned on the preceding context",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Next-token distribution.",
+        "node_id": "pretraining_next_token_distribution",
+        "origin": "source_annotation",
+        "representation_type": "next_token_probability_distribution",
+        "symbolic_shape": [
+          "n_context_window_tokens",
+          "n_vocabulary_tokens"
+        ],
+        "uncertainty": "Decoder and loss interfaces are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact GenBank fields and coordinates define annotated target regions?",
+      "How are XML-style tags and nucleotide spans ordered?",
+      "How are packed-sample boundaries represented?",
+      "How are sequences longer than the context window segmented?",
+      "What token sequence is supplied after causal label shifting?",
+      "Does the 0.36B version use the same input construction?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "masked_training_tokens",
+        "port_role": "causal_multimodal_token_ids"
+      }
+    ],
+    "recipient_component": "GenNA approximately 3.6B decoder-only Transformer",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "source_steps": [
+      {
+        "component": "GenBank parser and field extraction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We used Biopython 46 to parse GenBank records automatically.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genbank_records",
+            "port_role": "genbank_records"
+          }
+        ],
+        "operation_type": "genbank_field_and_region_extraction",
+        "outputs": [
+          "record_fields",
+          "nucleotide_sequences",
+          "annotated_gene_regions"
+        ],
+        "step_id": "extract_record_fields",
+        "uncertainty": null
+      },
+      {
+        "component": "Hierarchical feature-annotation extraction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mRNA, CDS, ncRNA, and regulatory elements",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "genbank_records",
+            "port_role": "genbank_records"
+          }
+        ],
+        "operation_type": "hierarchical_feature_annotation_extraction",
+        "outputs": [
+          "feature_annotations"
+        ],
+        "step_id": "extract_feature_annotations",
+        "uncertainty": null
+      },
+      {
+        "component": "Random neighborhood extension",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly extended the target annotated segment by 0-100 bp upstream and downstream",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_associated_regions",
+            "port_role": "target_annotated_regions"
+          }
+        ],
+        "operation_type": "random_upstream_downstream_region_extension",
+        "outputs": [
+          "extended_gene_regions"
+        ],
+        "step_id": "extend_gene_regions",
+        "uncertainty": null
+      },
+      {
+        "component": "Hierarchical annotation organization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "organized the annotations using custom XML-style tags",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "feature_annotations",
+            "port_role": "parsed_hierarchical_feature_annotations"
+          }
+        ],
+        "operation_type": "hierarchical_xml_style_annotation_organization",
+        "outputs": [
+          "hierarchical_annotations"
+        ],
+        "step_id": "organize_hierarchical_annotations",
+        "uncertainty": null
+      },
+      {
+        "component": "Unified training-sample construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "into  unified  training samples",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "record_fields",
+            "port_role": "metadata"
+          },
+          {
+            "node_id": "feature_annotations",
+            "port_role": "feature_annotation_source"
+          },
+          {
+            "node_id": "hierarchical_annotations",
+            "port_role": "hierarchical_structural_annotations"
+          },
+          {
+            "node_id": "extended_gene_regions",
+            "port_role": "genomic_DNA_nucleotide_regions"
+          },
+          {
+            "node_id": "gene_associated_regions",
+            "port_role": "RNA_nucleotide_regions"
+          }
+        ],
+        "operation_type": "unified_multimodal_serialization",
+        "outputs": [
+          "unified_samples"
+        ],
+        "step_id": "serialize_training_samples",
+        "uncertainty": null
+      },
+      {
+        "component": "Dynamic information masking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly removed with probability 0.5.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "unified_samples",
+            "port_role": "serialized_training_values"
+          }
+        ],
+        "operation_type": "dynamic_prompt_identifier_removal",
+        "outputs": [
+          "masked_samples"
+        ],
+        "step_id": "mask_prompt_identifiers",
+        "uncertainty": null
+      },
+      {
+        "component": "Sequence packing",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "concatenating multiple samples into long input sequences of nearly 20,000 characters",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "masked_samples",
+            "port_role": "sample_sequences"
+          }
+        ],
+        "operation_type": "sequence_packing",
+        "outputs": [
+          "packed_samples"
+        ],
+        "step_id": "pack_training_samples",
+        "uncertainty": null
+      },
+      {
+        "component": "Cross-modal BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "cross-modal  tokenizer",
+            "section_id": "sec_0014"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "packed_samples",
+            "port_role": "serialized_multimodal_text"
+          }
+        ],
+        "operation_type": "cross_modal_bpe_tokenization",
+        "outputs": [
+          "tokenized_packed_samples"
+        ],
+        "step_id": "tokenize_packed_samples",
+        "uncertainty": null
+      },
+      {
+        "component": "Context-window relationship",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "maximum  context  length  of  4,096  tokens",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "tokenized_packed_samples",
+            "port_role": "tokenized_packed_values"
+          }
+        ],
+        "operation_type": "context_window_relationship",
+        "outputs": [
+          "masked_training_tokens"
+        ],
+        "step_id": "relate_packed_sequences_to_context",
+        "uncertainty": null
+      },
+      {
+        "component": "GenNA decoder-only Transformer causal-language-model boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the model predicts the next token conditioned on the preceding context",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "masked_training_tokens",
+            "port_role": "causal_context_window_token_ids"
+          }
+        ],
+        "operation_type": "causal_decoder_next_token_prediction",
+        "outputs": [
+          "pretraining_next_token_distribution"
+        ],
+        "step_id": "decoder_training_receipt",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Multimodal pretraining on unified nucleotide-text-structure-label samples",
+    "trajectory_id": "genna_pretraining"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "serialize_matched_prompt::1",
+        "component": "Matched prompt construction",
+        "condition": "matched condition",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combined it with  every annotation",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "fixed_nucleotide_sequence",
+            "matched_annotation"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "matched_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "annotation and nucleotide sequence retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "nucleotide_sequence",
+            "functional_annotation"
+          ],
+          "template": "sequence plus native functional annotation"
+        },
+        "source_step_id": "serialize_matched_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_mismatched_prompt::1",
+        "component": "Mismatched prompt construction",
+        "condition": "mismatched condition",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "functional-annotation component of the prompt was systematically replaced",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "fixed_nucleotide_sequence",
+            "mismatched_annotation"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "mismatched_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "annotation and nucleotide sequence retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "nucleotide_sequence",
+            "functional_annotation"
+          ],
+          "template": "sequence plus substituted functional annotation"
+        },
+        "source_step_id": "serialize_mismatched_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_evaluation_prompts::1",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "matched",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "matched_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "matched_input_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "nucleotide and natural-language annotation",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_evaluation_prompts",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_evaluation_prompts::2",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "mismatched",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "mismatched_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "mismatched_input_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "nucleotide and natural-language annotation",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_evaluation_prompts",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "evaluate_conditional_perplexity::1",
+        "component": "Conditional-perplexity evaluation boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "negative log-likelihood over the",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "matched_input_tokens",
+            "mismatched_input_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "conditional_perplexity"
+          ]
+        },
+        "parameters": {
+          "source_operation": "conditional_perplexity_evaluation",
+          "source_port_roles": [
+            "matched_token_ids",
+            "mismatched_token_ids"
+          ]
+        },
+        "source_step_id": "evaluate_conditional_perplexity",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The metric computation is not exposed."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "conditional perplexity",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "negative log-likelihood over the",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "a unified  cross-modal  BPE  tokenizer",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "GenNA approximately 3.6B decoder-only Transformer with custom cross-modal BPE vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "sequence positions"
+        ],
+        "contextual_role": "fixed_biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "underlying  nucleotide  sequence  was  held  fixed",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Fixed nucleotide sequence.",
+        "node_id": "fixed_nucleotide_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_sequence_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "text fields"
+        ],
+        "contextual_role": "matched_conditioning_metadata",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "native functional annotation",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Native annotation.",
+        "node_id": "matched_annotation",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_functional_annotation",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "text fields"
+        ],
+        "contextual_role": "mismatched_conditioning_metadata",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "functional-annotation component of the prompt was systematically replaced",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Substituted annotation.",
+        "node_id": "mismatched_annotation",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_functional_annotation",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "matched_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combined it with  every annotation",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Matched sequence-annotation prompts.",
+        "node_id": "matched_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_sequence_annotation_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": "Template unspecified."
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "mismatched_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combined it with  every annotation",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Mismatched sequence-annotation prompts.",
+        "node_id": "mismatched_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_sequence_annotation_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": "Template unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered multimodal token positions"
+        ],
+        "contextual_role": "matched_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Matched cross-modal tokens.",
+        "node_id": "matched_input_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_matched_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered multimodal token positions"
+        ],
+        "contextual_role": "mismatched_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Mismatched cross-modal tokens.",
+        "node_id": "mismatched_input_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_mismatched_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "evaluation_metric",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mean cross-entropy loss over the full input token sequence",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Conditional perplexity.",
+        "node_id": "conditional_perplexity",
+        "origin": "source_annotation",
+        "representation_type": "conditional_perplexity_metric",
+        "symbolic_shape": null,
+        "uncertainty": "Decoder and aggregation details are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact prompt serialization is used?",
+      "What tokens delimit annotation and sequence?",
+      "How are all pairings ordered?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "matched_input_tokens",
+        "port_role": "matched_cross_modal_token_ids"
+      },
+      {
+        "node_id": "mismatched_input_tokens",
+        "port_role": "mismatched_cross_modal_token_ids"
+      }
+    ],
+    "recipient_component": "GenNA decoder-only Transformer",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "source_steps": [
+      {
+        "component": "Matched prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combined it with  every annotation",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fixed_nucleotide_sequence",
+            "port_role": "nucleotide_sequence"
+          },
+          {
+            "node_id": "matched_annotation",
+            "port_role": "functional_annotation"
+          }
+        ],
+        "operation_type": "matched_prompt_serialization",
+        "outputs": [
+          "matched_prompt"
+        ],
+        "step_id": "serialize_matched_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Mismatched prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "functional-annotation component of the prompt was systematically replaced",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "fixed_nucleotide_sequence",
+            "port_role": "nucleotide_sequence"
+          },
+          {
+            "node_id": "mismatched_annotation",
+            "port_role": "functional_annotation"
+          }
+        ],
+        "operation_type": "mismatched_prompt_serialization",
+        "outputs": [
+          "mismatched_prompt"
+        ],
+        "step_id": "serialize_mismatched_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Cross-modal BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "matched_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "mismatched_prompt",
+            "port_role": "serialized_prompt"
+          }
+        ],
+        "operation_type": "cross_modal_bpe_tokenization",
+        "outputs": [
+          "matched_input_tokens",
+          "mismatched_input_tokens"
+        ],
+        "step_id": "tokenize_evaluation_prompts",
+        "uncertainty": null
+      },
+      {
+        "component": "Conditional-perplexity evaluation boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "negative log-likelihood over the",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "matched_input_tokens",
+            "port_role": "matched_token_ids"
+          },
+          {
+            "node_id": "mismatched_input_tokens",
+            "port_role": "mismatched_token_ids"
+          }
+        ],
+        "operation_type": "conditional_perplexity_evaluation",
+        "outputs": [
+          "conditional_perplexity"
+        ],
+        "step_id": "evaluate_conditional_perplexity",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Sequence-function semantic consistency evaluation with matched and mismatched annotations",
+    "trajectory_id": "genna_evaluation_sequence_function"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "generate_mutant_sequences::1",
+        "component": "In-silico mutation pipeline",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "single-base deletions",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "wild_type_sequences"
+          ]
+        },
+        "operation_id": "augment",
+        "outputs": {
+          "values": [
+            "mutant_sequences"
+          ]
+        },
+        "parameters": {
+          "phase": "evaluation",
+          "policy": "exhaustive substitutions and deletions at UTR and CDS positions",
+          "source_port_roles": [
+            "wild_type_sequences"
+          ]
+        },
+        "source_step_id": "generate_mutant_sequences",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_wild_type_prompt::1",
+        "component": "Wild-type prompt construction",
+        "condition": "wild-type evaluation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "evaluation_prompt_context",
+            "wild_type_sequences"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "wild_type_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "prompt text and sequence retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "prompt_context",
+            "nucleotide_sequence"
+          ],
+          "template": "evaluation prompt plus wild-type sequence"
+        },
+        "source_step_id": "serialize_wild_type_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_mutant_prompt::1",
+        "component": "Mutant prompt construction",
+        "condition": "mutant evaluation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "evaluation_prompt_context",
+            "mutant_sequences"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "mutant_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "prompt text and sequence retained",
+          "order": "unspecified",
+          "source_port_roles": [
+            "prompt_context",
+            "nucleotide_sequence"
+          ],
+          "template": "evaluation prompt plus mutant sequence"
+        },
+        "source_step_id": "serialize_mutant_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_mutation_inputs::1",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "wild-type",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "wild_type_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "wild_type_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "prompt and nucleotide sequence",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_mutation_inputs",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_mutation_inputs::2",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "mutant",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "mutant_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "mutant_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "prompt and nucleotide sequence",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_mutation_inputs",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "evaluate_mutation_perplexity::1",
+        "component": "Mutation-perplexity evaluation boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "difference between the mutant sequence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "wild_type_tokens",
+            "mutant_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "mutation_delta_ppl"
+          ]
+        },
+        "parameters": {
+          "source_operation": "wild_type_mutant_perplexity_difference",
+          "source_port_roles": [
+            "wild_type_token_ids",
+            "mutant_token_ids"
+          ]
+        },
+        "source_step_id": "evaluate_mutation_perplexity",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Decoder and metric computation are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "single-base deletions",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "difference between the mutant sequence",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "a unified  cross-modal  BPE  tokenizer",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "GenNA approximately 3.6B decoder-only Transformer with custom cross-modal BPE vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "sequence positions"
+        ],
+        "contextual_role": "evaluation_biological_source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "protein-coding genes with lengths between 200 and 3,000 bp",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Wild-type sequences.",
+        "node_id": "wild_type_sequences",
+        "origin": "source_annotation",
+        "representation_type": "wild_type_nucleotide_sequences",
+        "symbolic_shape": [
+          "n_sequence_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "mutation positions",
+          "mutation alternatives"
+        ],
+        "contextual_role": "perturbation_specification",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "single-base deletions",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Single-nucleotide substitutions and deletions.",
+        "node_id": "mutation_policy",
+        "origin": "source_annotation",
+        "representation_type": "in_silico_mutation_policy",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "mutant sequence positions"
+        ],
+        "contextual_role": "perturbed_biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the mutant sequence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Mutant sequences.",
+        "node_id": "mutant_sequences",
+        "origin": "source_annotation",
+        "representation_type": "mutant_nucleotide_sequences",
+        "symbolic_shape": [
+          "n_mutant_sequence_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "prompt fields"
+        ],
+        "contextual_role": "evaluation_prompt_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Evaluation prompt context.",
+        "node_id": "evaluation_prompt_context",
+        "origin": "source_annotation",
+        "representation_type": "sequence_evaluation_prompt_context",
+        "symbolic_shape": null,
+        "uncertainty": "Fields unspecified."
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "wild_type_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Wild-type prompt.",
+        "node_id": "wild_type_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_sequence_evaluation_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "mutant_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Mutant prompt.",
+        "node_id": "mutant_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_sequence_evaluation_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered multimodal token positions"
+        ],
+        "contextual_role": "wild_type_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Wild-type tokens.",
+        "node_id": "wild_type_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_wild_type_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered multimodal token positions"
+        ],
+        "contextual_role": "mutant_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Mutant tokens.",
+        "node_id": "mutant_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_mutant_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "evaluation_metric",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "difference between the mutant sequence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Mutation ΔPPL.",
+        "node_id": "mutation_delta_ppl",
+        "origin": "source_annotation",
+        "representation_type": "perplexity_difference_metric",
+        "symbolic_shape": null,
+        "uncertainty": "Aggregation and sign convention are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What prompt fields accompany sequences?",
+      "Are mutation types represented in metadata?",
+      "How are deletion length changes handled?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "wild_type_tokens",
+        "port_role": "wild_type_cross_modal_token_ids"
+      },
+      {
+        "node_id": "mutant_tokens",
+        "port_role": "mutant_cross_modal_token_ids"
+      }
+    ],
+    "recipient_component": "GenNA decoder-only Transformer",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "source_steps": [
+      {
+        "component": "In-silico mutation pipeline",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "single-base deletions",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "wild_type_sequences",
+            "port_role": "wild_type_sequences"
+          }
+        ],
+        "operation_type": "in_silico_mutation_generation",
+        "outputs": [
+          "mutant_sequences"
+        ],
+        "step_id": "generate_mutant_sequences",
+        "uncertainty": null
+      },
+      {
+        "component": "Wild-type prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "evaluation_prompt_context",
+            "port_role": "prompt_context"
+          },
+          {
+            "node_id": "wild_type_sequences",
+            "port_role": "nucleotide_sequence"
+          }
+        ],
+        "operation_type": "wild_type_prompt_serialization",
+        "outputs": [
+          "wild_type_prompt"
+        ],
+        "step_id": "serialize_wild_type_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Mutant prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "evaluation_prompt_context",
+            "port_role": "prompt_context"
+          },
+          {
+            "node_id": "mutant_sequences",
+            "port_role": "nucleotide_sequence"
+          }
+        ],
+        "operation_type": "mutant_prompt_serialization",
+        "outputs": [
+          "mutant_prompt"
+        ],
+        "step_id": "serialize_mutant_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Cross-modal BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "wild_type_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "mutant_prompt",
+            "port_role": "serialized_prompt"
+          }
+        ],
+        "operation_type": "cross_modal_bpe_tokenization",
+        "outputs": [
+          "wild_type_tokens",
+          "mutant_tokens"
+        ],
+        "step_id": "tokenize_mutation_inputs",
+        "uncertainty": null
+      },
+      {
+        "component": "Mutation-perplexity evaluation boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "difference between the mutant sequence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "wild_type_tokens",
+            "port_role": "wild_type_token_ids"
+          },
+          {
+            "node_id": "mutant_tokens",
+            "port_role": "mutant_token_ids"
+          }
+        ],
+        "operation_type": "wild_type_mutant_perplexity_difference",
+        "outputs": [
+          "mutation_delta_ppl"
+        ],
+        "step_id": "evaluate_mutation_perplexity",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Zero-shot in-silico mutation scanning of protein-coding genes",
+    "trajectory_id": "genna_evaluation_mutation_scanning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "serialize_species_embedding_prompt::1",
+        "component": "Standardized prompt construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "standardized_species_prompt",
+            "species_sequence"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "serialized_species_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "text fields rendered; sequence retained",
+          "order": "molecule type, species, sequence",
+          "source_port_roles": [
+            "prompt_fields",
+            "nucleotide_sequence"
+          ],
+          "template": "'Genomic DNA, [Species Name]<seq>' or 'RNA, [Species Name]<seq>'"
+        },
+        "source_step_id": "serialize_species_embedding_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_species_embedding_prompt::1",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "serialized_species_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "species_prompt_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "molecule text, species text, nucleotide sequence",
+          "source_port_roles": [
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_species_embedding_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "extract_layer18_states::1",
+        "component": "Layer 18 extraction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "captured the hidden states from layer 18",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "species_prompt_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "layer18_hidden_states"
+          ]
+        },
+        "parameters": {
+          "source_operation": "layer18_hidden_state_extraction",
+          "source_port_roles": [
+            "token_ids"
+          ]
+        },
+        "source_step_id": "extract_layer18_states",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Decoder-layer computation is not exposed."
+      },
+      {
+        "call_id": "exclude_padding_states::1",
+        "component": "Padding exclusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "excluding  padding  tokens",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "layer18_hidden_states",
+            "padding_selector::mask"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "nonpadding_layer18_states"
+          ]
+        },
+        "parameters": {
+          "criterion": "retain non-padding positions",
+          "forced_inclusions": "unspecified",
+          "method": "mask-based selection",
+          "source_port_roles": [
+            "hidden_states",
+            "padding_mask"
+          ]
+        },
+        "source_step_id": "exclude_padding_states",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "mean_pool_layer18_states::1",
+        "component": "Mean pooling",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Mean pooling was applied",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "nonpadding_layer18_states"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "global_sequence_embedding"
+          ]
+        },
+        "parameters": {
+          "source_operation": "mean_pool_sequence_states",
+          "source_port_roles": [
+            "hidden_states"
+          ]
+        },
+        "source_step_id": "mean_pool_layer18_states",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "No catalog mean-pooling operation exists."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Mean pooling was applied",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "GenNA approximately 3.6B decoder-only Transformer with custom cross-modal BPE vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "molecule type",
+          "species",
+          "sequence placeholder"
+        ],
+        "contextual_role": "structured_evaluation_prompt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Standardized DNA/RNA species prompt.",
+        "node_id": "standardized_species_prompt",
+        "origin": "source_annotation",
+        "representation_type": "structured_sequence_prompt",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "sequence positions"
+        ],
+        "contextual_role": "biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "DNA or RNA sequence.",
+        "node_id": "species_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_sequence_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Serialized species prompt.",
+        "node_id": "serialized_species_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_species_sequence_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Cross-modal token IDs.",
+        "node_id": "species_prompt_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_prompt_tokens"
+        ],
+        "uncertainty": "Padding unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "hidden coordinates"
+        ],
+        "contextual_role": "intermediate_decoder_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "captured the hidden states from layer 18",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Layer-18 hidden states.",
+        "node_id": "layer18_hidden_states",
+        "origin": "source_annotation",
+        "representation_type": "decoder_hidden_states",
+        "symbolic_shape": [
+          "n_prompt_tokens",
+          "d_hidden"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "non-padding token positions",
+          "hidden coordinates"
+        ],
+        "contextual_role": "pooling_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "excluding  padding  tokens",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Non-padding layer-18 states.",
+        "node_id": "nonpadding_layer18_states",
+        "origin": "source_annotation",
+        "representation_type": "nonpadding_decoder_hidden_states",
+        "symbolic_shape": [
+          "n_nonpadding_tokens",
+          "d_hidden"
+        ],
+        "uncertainty": "Mask construction unspecified."
+      },
+      {
+        "axis_semantics": [
+          "global embedding coordinates"
+        ],
+        "contextual_role": "evaluation_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "fixed-dimensional  global",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Mean-pooled global sequence embedding.",
+        "node_id": "global_sequence_embedding",
+        "origin": "source_annotation",
+        "representation_type": "mean_pooled_sequence_embedding",
+        "symbolic_shape": [
+          "d_global_embedding"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "implicit_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "excluding  padding  tokens",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Padding selector.",
+        "node_id": "padding_selector::mask",
+        "origin": "implicit_parameter",
+        "representation_type": "padding_mask",
+        "symbolic_shape": [
+          "n_prompt_tokens"
+        ],
+        "uncertainty": "Construction unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact layer-18 tensor is extracted?",
+      "What mask supplies padding exclusion?",
+      "Is pooling normalized?",
+      "How are different-length prompts represented?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "species_prompt_tokens",
+        "port_role": "cross_modal_prompt_token_ids"
+      }
+    ],
+    "recipient_component": "GenNA decoder layer 18 hidden-state output",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "source_steps": [
+      {
+        "component": "Standardized prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "prompts of the form 'Genomic DNA, [Species Name]&lt;seq&gt;' or 'RNA, [Species Name]&lt;seq&gt;'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "standardized_species_prompt",
+            "port_role": "prompt_fields"
+          },
+          {
+            "node_id": "species_sequence",
+            "port_role": "nucleotide_sequence"
+          }
+        ],
+        "operation_type": "standardized_species_prompt_serialization",
+        "outputs": [
+          "serialized_species_prompt"
+        ],
+        "step_id": "serialize_species_embedding_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Cross-modal BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "serialized_species_prompt",
+            "port_role": "serialized_prompt"
+          }
+        ],
+        "operation_type": "cross_modal_bpe_tokenization",
+        "outputs": [
+          "species_prompt_tokens"
+        ],
+        "step_id": "tokenize_species_embedding_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Layer 18 extraction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "captured the hidden states from layer 18",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "species_prompt_tokens",
+            "port_role": "token_ids"
+          }
+        ],
+        "operation_type": "layer18_hidden_state_extraction",
+        "outputs": [
+          "layer18_hidden_states"
+        ],
+        "step_id": "extract_layer18_states",
+        "uncertainty": null
+      },
+      {
+        "component": "Padding exclusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "excluding  padding  tokens",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "layer18_hidden_states",
+            "port_role": "hidden_states"
+          },
+          {
+            "node_id": "padding_selector::mask",
+            "port_role": "padding_mask"
+          }
+        ],
+        "operation_type": "padding_position_selection",
+        "outputs": [
+          "nonpadding_layer18_states"
+        ],
+        "step_id": "exclude_padding_states",
+        "uncertainty": null
+      },
+      {
+        "component": "Mean pooling",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Mean pooling was applied",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "nonpadding_layer18_states",
+            "port_role": "hidden_states"
+          }
+        ],
+        "operation_type": "mean_pool_sequence_states",
+        "outputs": [
+          "global_sequence_embedding"
+        ],
+        "step_id": "mean_pool_layer18_states",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Layer-18 sequence embedding and species/molecule representation analysis",
+    "trajectory_id": "genna_evaluation_embeddings"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "serialize_correct_species_prompt::1",
+        "component": "Correct-species prompt construction",
+        "condition": "correct species",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "correct  and substituted species  labels",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "correct_species_label",
+            "target_species_sequence"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "correct_species_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "label rendered as text; sequence retained",
+          "order": "label and unchanged sequence; unspecified",
+          "source_port_roles": [
+            "species_label",
+            "nucleotide_sequence"
+          ],
+          "template": "species-conditioned prompt"
+        },
+        "source_step_id": "serialize_correct_species_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_substituted_species_prompt::1",
+        "component": "Substituted-species prompt construction",
+        "condition": "ordered species-pair condition",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the species label in the prompt was replaced with that of species",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "substituted_species_label",
+            "target_species_sequence"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "substituted_species_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "label rendered as text; sequence retained",
+          "order": "label and unchanged sequence; unspecified",
+          "source_port_roles": [
+            "species_label",
+            "nucleotide_sequence"
+          ],
+          "template": "species-conditioned prompt with substituted label"
+        },
+        "source_step_id": "serialize_substituted_species_prompt",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_species_perturbation_inputs::1",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "correct",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "correct_species_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "correct_species_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "species text and nucleotide sequence",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_species_perturbation_inputs",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "tokenize_species_perturbation_inputs::2",
+        "component": "Cross-modal BPE tokenizer",
+        "condition": "substituted",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "substituted_species_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "substituted_species_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte-pair encoding merges",
+          "source_alphabet": "species text and nucleotide sequence",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_prompt"
+          ],
+          "vocabulary": "dedicated vocabulary of 6,000 tokens"
+        },
+        "source_step_id": "tokenize_species_perturbation_inputs",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "evaluate_species_label_perplexity::1",
+        "component": "Species-label perturbation evaluation boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Δ PPL matrix",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "correct_species_tokens",
+            "substituted_species_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "species_label_delta_ppl"
+          ]
+        },
+        "parameters": {
+          "source_operation": "species_label_perturbation_perplexity",
+          "source_port_roles": [
+            "correct_species_token_ids",
+            "substituted_species_token_ids"
+          ]
+        },
+        "source_step_id": "evaluate_species_label_perplexity",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Decoder and metric computation are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "the species label in the prompt was replaced with that of species",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "resulting 10",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "a unified  cross-modal  BPE  tokenizer",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "GenNA approximately 3.6B decoder-only Transformer with custom cross-modal BPE vocabulary",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "sequence positions"
+        ],
+        "contextual_role": "fixed_biological_payload",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "target  sequence  from  specie",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Unchanged target sequence.",
+        "node_id": "target_species_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_sequence_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "species label"
+        ],
+        "contextual_role": "correct_conditioning_metadata",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "correct  and substituted species  labels",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Correct species label.",
+        "node_id": "correct_species_label",
+        "origin": "source_annotation",
+        "representation_type": "species_text_label",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "species label"
+        ],
+        "contextual_role": "substituted_conditioning_metadata",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the species label in the prompt was replaced with that of species",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Substituted species label.",
+        "node_id": "substituted_species_label",
+        "origin": "source_annotation",
+        "representation_type": "species_text_label",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "correct_species_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "correct  and substituted species  labels",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Correct-label prompt.",
+        "node_id": "correct_species_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_species_sequence_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "serialized prompt positions"
+        ],
+        "contextual_role": "substituted_species_model_input_text",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the species label in the prompt was replaced with that of species",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Substituted-label prompt.",
+        "node_id": "substituted_species_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_species_sequence_prompt",
+        "symbolic_shape": [
+          "n_prompt_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "correct_species_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "formed by the prompt and the sequence under evaluation",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Correct-species tokens.",
+        "node_id": "correct_species_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_correct_species_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "substituted_species_decoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "resulting 10",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Substituted-species tokens.",
+        "node_id": "substituted_species_tokens",
+        "origin": "source_annotation",
+        "representation_type": "cross_modal_bpe_token_ids",
+        "symbolic_shape": [
+          "n_substituted_species_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "evaluation_metric",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Δ PPL matrix",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "Species-label perturbation ΔPPL matrix.",
+        "node_id": "species_label_delta_ppl",
+        "origin": "source_annotation",
+        "representation_type": "species_label_perplexity_difference_matrix",
+        "symbolic_shape": null,
+        "uncertainty": "Aggregation and sign convention are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What prompt template surrounds label and sequence?",
+      "How are labels with different token counts handled?",
+      "Are perplexities over the full input?",
+      "How are pairwise branches ordered?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "correct_species_tokens",
+        "port_role": "correct_species_cross_modal_token_ids"
+      },
+      {
+        "node_id": "substituted_species_tokens",
+        "port_role": "substituted_species_cross_modal_token_ids"
+      }
+    ],
+    "recipient_component": "GenNA decoder-only Transformer",
+    "record_id": "june_update_2026-06-10__rec_000133",
+    "source_steps": [
+      {
+        "component": "Correct-species prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "correct  and substituted species  labels",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "correct_species_label",
+            "port_role": "species_label"
+          },
+          {
+            "node_id": "target_species_sequence",
+            "port_role": "nucleotide_sequence"
+          }
+        ],
+        "operation_type": "correct_species_prompt_serialization",
+        "outputs": [
+          "correct_species_prompt"
+        ],
+        "step_id": "serialize_correct_species_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Substituted-species prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the species label in the prompt was replaced with that of species",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "substituted_species_label",
+            "port_role": "species_label"
+          },
+          {
+            "node_id": "target_species_sequence",
+            "port_role": "nucleotide_sequence"
+          }
+        ],
+        "operation_type": "substituted_species_prompt_serialization",
+        "outputs": [
+          "substituted_species_prompt"
+        ],
+        "step_id": "serialize_substituted_species_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "Cross-modal BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a unified  cross-modal  BPE  tokenizer",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "correct_species_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "substituted_species_prompt",
+            "port_role": "serialized_prompt"
+          }
+        ],
+        "operation_type": "cross_modal_bpe_tokenization",
+        "outputs": [
+          "correct_species_tokens",
+          "substituted_species_tokens"
+        ],
+        "step_id": "tokenize_species_perturbation_inputs",
+        "uncertainty": null
+      },
+      {
+        "component": "Species-label perturbation evaluation boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Δ PPL matrix",
+            "section_id": "sec_0008"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "correct_species_tokens",
+            "port_role": "correct_species_token_ids"
+          },
+          {
+            "node_id": "substituted_species_tokens",
+            "port_role": "substituted_species_token_ids"
+          }
+        ],
+        "operation_type": "species_label_perturbation_perplexity",
+        "outputs": [
+          "species_label_delta_ppl"
+        ],
+        "step_id": "evaluate_species_label_perplexity",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Species-label perturbation evaluation with pairwise substitutions",
+    "trajectory_id": "genna_evaluation_species_labels"
+  }
+]

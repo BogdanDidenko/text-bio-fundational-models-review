@@ -1,0 +1,202 @@
+{
+  "coverage_summary": "The pretraining path is partly supported, but it omits documented preprocessing, chunk partitioning, fine-tuning and sequence-only deployment branches, generation evaluation, mutation-effect analysis, and explicit OmniNA-1.7B coverage. The transformer decomposition also misrepresents the repeated layer order, and positional fusion is internally inconsistent in the paper.",
+  "findings": [
+    {
+      "detail": "The pretraining sequence node enters prompt construction without the documented length filtering, truncation, or consecutive-N filtering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "sequences longer than 3000 bp were truncated to 3000 bp, while sequences with a length < 200 bp were excluded.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We filtered out sequences containing two or more consecutive N nucleotides.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented conditional preprocessing steps, preserving the truncation threshold, exclusion rule, and consecutive-N filter before prompt construction.",
+      "severity": "blocking",
+      "step_id": "construct_pretraining_prompt",
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The tokenizer step omits the documented partitioning of nucleotide sequences and annotations into sentence-based chunks. This is a distinct ordered transformation, not merely a tokenizer parameter.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Subsequently, the nucleotide sequences and text annotations were partitioned into sentence-based chunks.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each chunk was further tokenized using the trained tokenizer.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Insert a documented chunk-partition intermediate and operation before tokenization, while retaining the special-token handling and tokenizer call.",
+      "severity": "blocking",
+      "step_id": "tokenize_pretraining_prompt",
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The transformer decomposition applies one self-attention call followed by one feedforward projection, while the paper specifies that every one of multiple layers contains that ordered pair. The current graph therefore does not preserve the repeated attention→feedforward motif.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Represent the repeated per-layer attention-then-feedforward schedule, or retain the transformer as an opaque repeated boundary if the residual implementation cannot be represented.",
+      "severity": "blocking",
+      "step_id": "transform_pretraining_tokens",
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The graph commits to element-wise addition for positional fusion but does not preserve the paper's conflicting description that position embeddings were concatenated with token embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Record the internal textual conflict and represent positional fusion as unresolved or conditional unless the source hierarchy justifying addition is explicitly documented.",
+      "severity": "blocking",
+      "step_id": "add_rotary_positions",
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The rotary positional contribution is labeled as a model parameter, although the cited text establishes positional encodings but does not establish that this node is a learned parameter.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Relabel the node as a computed positional-encoding contribution or leave its parameter status unspecified.",
+      "severity": "minor",
+      "step_id": "add_rotary_positions",
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "No fine-tuning trajectory is reconstructed. The paper documents a separate four-component task prompt, task-specific questions and answers, and answer-only autoregressive training across 23 tasks.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model underwent fine-tuning for 23 tasks in a multitask framework.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "each task instance includes a prompt composed of four components: (i) an instruction, (ii) a nucleotide sequence, (iii) a test question, and (iv) an expected answer.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the fine-tuning stage, only the answer was trained in an autoregressive manner.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a fine_tuning trajectory with the four prompt components, task-specific question/answer fields, and the documented answer-only autoregressive training role.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The sequence-only deployment and evaluation bypass is absent. The existing trajectory uses annotations as pretraining inputs and provides no downstream sequence-only branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During deployment, the model operates on sequenceonly inputs; annotation tokens are neither required nor used.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "All downstream fine-tuning and evaluations reported here use sequence-only inputs, with no annotations supplied during training or testing.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the sequence-only fine-tuning/inference path and explicitly preserve the annotation bypass, with task-specific question and answer handling where documented.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The atlas model OmniNA-1.7B is not represented by a model_variant or trajectory. Its documented feature-extraction evaluation and 2048-dimensional token representation are distinct from the scale-unspecified generic pretraining route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each token presented to OmniNA-1.7B, the model embeds it into a 2048-dimensional vector that encodes the characteristics of the token to the sequence context.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each transformer layer, we further extract the feature representations of the nucleotide sequence as the output of transformer layers.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add explicit OmniNA-1.7B model-variant coverage and an evaluation trajectory for token and transformer-layer representations, or document a justified exclusion.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The generation-evaluation lifecycle is absent, including the documented beam-search path and the nucleus-sampling branch used for repeated annotation generation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Genomic contents are generated using beam search, unless otherwise specified.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "generate annotations for 10 repeats using the nucleus sampling generation algorithm [ 19 ] with a top_p = 0.92.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an inference/evaluation trajectory containing the beam-search and nucleus-sampling branches with their documented controls; keep beam search unresolved if no catalog operation represents it.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    },
+    {
+      "detail": "The saturation-mutation analysis route is absent. The paper evaluates paired mutated and wild-type sequences with OmniNA-1.7B log-likelihood differences.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We quantify mutation effects using log-likelihood (LL) differences between mutated ( s mut ) and wild-type ( s WT ) nucleotide sequences:",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where the LLs are estimated using the OmniNA-1.7B model",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an OmniNA-1.7B mutation-effect trajectory with aligned mutated and wild-type inputs and an explicitly unresolved or documented LL-difference scoring boundary.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "omnina_pretraining_sequence_annotation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003394",
+  "verdict": "revise"
+}

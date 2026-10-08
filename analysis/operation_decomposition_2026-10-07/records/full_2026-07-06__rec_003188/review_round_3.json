@@ -1,0 +1,47 @@
+{
+  "coverage_summary": "The reconstruction captures the documented Geneformer, cell-type embedding, modality-alignment, context concatenation, promoter lookup, and sampling routes. Two blocking issues remain: Stage 1 cell-type embedding training is mischaracterized, and the documented autoregressive enhancer-prefix input is omitted from the conditional generator.",
+  "findings": [
+    {
+      "detail": "The Stage 1 cell-type lookup marks table updates as unestablished and states that Stage 1 trains only Wg and Wc. The paper's Stage 1 parameter list also includes /u1D753, the parameter symbol used by the trainable cell-type embedding module. Therefore the embedding table's Stage 1 status is wrong or insufficiently represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For a discrete cell type /u1D499 /u1D450 , we utilize a trainable cell type embedding module /u1D452 /u1D753 ⋅ that maps the discrete cell type index into an embedding vector /u1D49B /u1D450 = /u1D452 /u1D753 /u1D499 /u1D450 ∈ ℝ /u1D451 /u1D452 .",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In detail, we keep both the single cell transcriptomes encoder and the DNA LLM weights frozen, while minimizing the loss function in (3) with trainable parameters /u1D73D = /u1D753 /u1D416 /u1D454 /u1D416 /u1D450 only.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Mark the cell-type embedding table as trainable in Stage 1 and identify its parameter contribution separately from Wg and Wc; retain uncertainty only for table shape or other undocumented details.",
+      "severity": "blocking",
+      "step_id": "cell_type_lookup",
+      "trajectory_id": "leonine_pretraining_cell_context"
+    },
+    {
+      "detail": "The GPT-2 conditional-generator boundary receives Hctx and promoter embeddings but omits the autoregressive enhancer-prefix input. The paper explicitly defines the conditional probability using all previous enhancer tokens and describes the training loss over a promoter-enhancer pair.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where /u1D73D represents the trainable parameters of the conditional probability function, and /u1D49A &lt; /u1D456 denotes all previous tokens preceding the current prediction token /u1D466 /u1D456 .",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Consequently, given the cell context tokens /u1D407 /u1D484/u1D461/u1D465 and a pair of promoter-enhancer sequence /u1D499 /u1D45D /u1D49A , the loss function that maximizes the likelihood of conditional probability /u1D45D /u1D49A /u1D499 /u1D450 /u1D499 /u1D454 /u1D499 /u1D45D is constructed as:",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an enhancer-prefix token node representing previous tokens /u1D49A &lt; /u1D456 and bind it as an input/context operand of the opaque conditional generator. Leave its exact serialization and autoregressive implementation unresolved.",
+      "severity": "blocking",
+      "step_id": "generate_conditional_distribution",
+      "trajectory_id": "leonine_gpt2_training_conditional_generation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003188",
+  "verdict": "revise"
+}

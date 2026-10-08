@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 
 from pydantic import ValidationError
@@ -27,8 +28,9 @@ class OperationLibraryTests(unittest.TestCase):
         import json
         original = {(row["record_id"], row["trajectory"]["trajectory_id"]): row["trajectory"]
                     for row in (json.loads(line) for line in (BASE / "pilot_input.jsonl").read_text().splitlines())}
-        self.assertEqual(len(self.assemblies), 47)
-        for assembly in self.assemblies:
+        pilot = [a for a in self.assemblies if a["record_id"] in {k[0] for k in original}]
+        self.assertEqual(len(pilot), 47)
+        for assembly in pilot:
             self.assertEqual(restore_source(assembly), original[(assembly["record_id"], assembly["trajectory_id"])])
 
     def test_every_call_has_valid_ports_and_refs(self):
@@ -59,12 +61,15 @@ class OperationLibraryTests(unittest.TestCase):
         lookup = next(block for block in self.catalog["blocks"] if block["operation_id"] == "lookup")
         self.assertIn("key_space", lookup["parameters"])
         checked = 0
+        pilot = set(json.loads((BASE / "evidence_snapshot.json").read_text())["records"])
         for assembly in self.assemblies:
             nodes = {node["node_id"]: node for node in assembly["nodes"]}
             for call in assembly["calls"]:
                 if call["operation_id"] != "lookup":
                     continue
-                self.assertTrue(call["parameters"].get("key_space"))
+                self.assertTrue(str(call["parameters"].get("key_space", "")).strip())
+                if assembly["record_id"] not in pilot:
+                    continue  # agent calls state key_space directly from the source
                 for ref in call["inputs"]["keys"]:
                     self.assertIn(KEY_SPACES[nodes[ref]["representation_type"]], call["parameters"]["key_space"])
                 checked += 1

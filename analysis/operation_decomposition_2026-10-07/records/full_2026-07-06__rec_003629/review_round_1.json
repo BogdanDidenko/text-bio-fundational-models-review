@@ -1,0 +1,372 @@
+{
+  "coverage_summary": "Reviewed all 10 trajectories. Core serialization and tokenization paths are generally supported, but multiple blocking issues affect training-target roles, documented preprocessing, output semantics, contextual inputs, and decomposition of explicitly ordered operations.",
+  "findings": [
+    {
+      "detail": "The scorer output is conflated as a binary prediction or continuous score. The paper describes a continuous 0–1 match score and separately describes a binary classifier/prediction. The graph needs distinct score and thresholded-label outputs, with calibration left unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we use the output from the classification head as the final binary prediction.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "increasing the score threshold progressively reduced the number of candidate molecules",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent the continuous classification-head score separately from any binary decision or threshold operation; do not label the single match_score node as both.",
+      "severity": "blocking",
+      "step_id": "classify_compound_phenotype_pair",
+      "trajectory_id": "scorer_evaluation"
+    },
+    {
+      "detail": "The evaluation trajectory cites the training negative-replacement procedure and does not represent the documented evaluation control-pair construction. Training negatives replace each compound with one of the 100 least-similar training compounds, whereas evaluation uses randomly paired compounds subject to a different similarity constraint.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each positive sample, we generated a matched negative example by replacing the compound with a structurally dissimilar molecule.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we constructed randomly paired compound-phenotype control samples",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Separate scorer fine-tuning negative construction from evaluation controls and add the appropriate evaluation replacement/selection branch, or remove the unsupported training evidence from this evaluation trajectory.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "scorer_evaluation"
+    },
+    {
+      "detail": "The bioentity fine-tuning response is modeled as decoder generation from instruction tokens, although the paper defines it as a curated training target in instruction-response fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This task was implemented through instruction fine-tuning of NatureLM",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The corresponding response was the descriptive annotation of the cell type, as curated from ATCC and GPT-4o",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent bioentity_response as the supervised response target and retain an opaque teacher-forcing/target-receipt boundary; do not describe it as an inference-generation step.",
+      "severity": "blocking",
+      "step_id": "generate_bioentity_response",
+      "trajectory_id": "gemgen_bioentity_fine_tuning"
+    },
+    {
+      "detail": "The bioentity serializer omits documented random template selection and gene-synonym handling. The current description only states that paraphrased variants exist.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each cell type, we randomly selected one instruction from the augmented template pool.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "because gene names often have multiple synonyms, we incorporated those synonyms when constructing instruction-response pairs.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Preserve template-pool selection and the gene-synonym branch as documented serialization inputs or explicitly mark them as unresolved training-data transformations.",
+      "severity": "minor",
+      "step_id": "serialize_bioentity_instruction",
+      "trajectory_id": "gemgen_bioentity_fine_tuning"
+    },
+    {
+      "detail": "The L1000 Phase I DGE boundary receives only a generic profile node, omitting documented grouping metadata, matched vehicle controls, and replicate/signature curation. These are required inputs and ordered preprocessing for the reported CD signatures.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we grouped samples based on perturbation metadata—including cell type, compound, time, dose, and plate ID.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "against the matched vehicle-treated controls on the same plate",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we retained two DGE signatures per combination, selected based on internal consistency measured by cosine similarity",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the documented metadata/control context and signature-selection branch, or define the input node as a curated DGE-ready resource with evidence for those contents.",
+      "severity": "blocking",
+      "step_id": "compute_l1000_dge",
+      "trajectory_id": "gemgen_phase_i_generation_fine_tuning"
+    },
+    {
+      "detail": "The documented directional-list transformation is left as one opaque custom boundary even though the paper states the operation order and the catalog contains rank and select primitives.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we selected the top 50/40/30 genes with the largest absolute CD values and then assigned each gene to the upregulated or downregulated category based on the sign of its value",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent ranking by absolute CD value followed by top-list selection, then retain only the sign-based partition as an opaque unresolved boundary; preserve the unknown choice among 50/40/30.",
+      "severity": "blocking",
+      "step_id": "construct_l1000_directional_lists",
+      "trajectory_id": "gemgen_phase_i_generation_fine_tuning"
+    },
+    {
+      "detail": "The Phase I prompt serializer contains only ranked gene lists, while the paper describes prompts with cell-type context. The context is absent from the node and serializer inputs.",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "an instruction prompt specifying cell type and up/down gene lists",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting gene sets were combined with cell line information to construct textual prompts",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the cell-type context as a serializer input, or explicitly document that this particular path excludes it despite the framework description.",
+      "severity": "blocking",
+      "step_id": "serialize_l1000_generation_prompt",
+      "trajectory_id": "gemgen_phase_i_generation_fine_tuning"
+    },
+    {
+      "detail": "The Phase I fine-tuning chain incorrectly ends in autoregressive generated SMILES. The paper describes paired instruction-response training and explicitly documents SMILES augmentation for compound responses; neither the augmented response target nor its training role is represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For both the generator and the scorer, the input and output take the form of natural language instructions and responses",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we introduced molecular representation diversity by generating alternative SMILES strings for each compound using the SMILES augmentation method",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Training was performed in two phases",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Add the documented SMILES augmentation and compound-response target path; replace the fine-tuning generation step with an appropriately opaque supervised-response/teacher-forcing boundary.",
+      "severity": "blocking",
+      "step_id": "generate_l1000_compounds",
+      "trajectory_id": "gemgen_phase_i_generation_fine_tuning"
+    },
+    {
+      "detail": "The Phase II directional-list step has the same unsupported omission of documented rank, selection, and sign-partition substeps.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we selected the top 50/40/30 genes with the largest absolute CD values and then assigned each gene to the upregulated or downregulated category",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose the documented ranking and top-list selection before retaining sign partitioning as an opaque boundary; preserve the unresolved list-size choice.",
+      "severity": "blocking",
+      "step_id": "construct_l1000cds2_directional_lists",
+      "trajectory_id": "gemgen_phase_ii_generation_fine_tuning"
+    },
+    {
+      "detail": "The Phase II prompt serializer omits cell-line context even though L1000CDS2 records are cell-line-specific and the framework describes cell-contextual prompts.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These records span 63 human cell lines and 3,872 small molecules.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "caption",
+          "quote": "an instruction prompt specifying cell type and up/down gene lists",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the applicable cell-line context to the Phase II serializer or mark its inclusion as unresolved rather than omitting it.",
+      "severity": "blocking",
+      "step_id": "serialize_l1000cds2_generation_prompt",
+      "trajectory_id": "gemgen_phase_ii_generation_fine_tuning"
+    },
+    {
+      "detail": "The Phase II fine-tuning chain again models compound generation rather than the supervised response path and omits the documented alternative-SMILES augmentation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Phase II involved continued instruction fine-tuning with the L1000CDS² dataset",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "generating alternative SMILES strings for each compound using the SMILES augmentation method",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent augmented compound SMILES as the fine-tuning response target and keep decoder computation opaque; do not present inference generation as the Phase II training step.",
+      "severity": "blocking",
+      "step_id": "generate_l1000cds2_compounds",
+      "trajectory_id": "gemgen_phase_ii_generation_fine_tuning"
+    },
+    {
+      "detail": "The L1000 evaluation trajectory does not represent construction of the 404 held-out samples. The node is labeled held-out, but the documented similarity-based selection step is absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we held out 404 L1000 samples as a 'novel compound' test set",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Compounds whose maximum similarity was below 0.8 and that originated from L1000CDS² were retained as candidates",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented selection/filtering operation before evaluation DGE computation, preserving the similarity criterion and source restriction.",
+      "severity": "blocking",
+      "step_id": "compute_l1000_test_dge",
+      "trajectory_id": "gemgen_l1000_evaluation"
+    },
+    {
+      "detail": "The L1000 evaluation directional-list step leaves the explicitly stated ranking, top-list selection, and sign assignment unrepresented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we selected the top 50/40/30 genes with the largest absolute CD values and then assigned each gene to the upregulated or downregulated category",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add rank and select calls before an opaque sign-partition boundary, with the list size retained as unresolved.",
+      "severity": "blocking",
+      "step_id": "construct_l1000_test_gene_lists",
+      "trajectory_id": "gemgen_l1000_evaluation"
+    },
+    {
+      "detail": "The Tahoe preprocessing step collapses several documented operations into one opaque null operation despite available select/sample primitives and a stated order: QC filtering, dose filtering, 100-cell sampling before and after perturbation, E-distance filtering, then CD computation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "cells were filtered using quality-control criteria",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "only cells treated with a 5 μM drug dose were retained",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we randomly sampled 100 cells before and 100 cells after perturbation",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We retained combinations with E-distance > 500",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Finally, we calculated CD-derived DGE signatures",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Decompose the documented QC/dose selections and sampling into select/sample operations, retain E-distance computation as opaque if necessary, and place CD computation after them.",
+      "severity": "blocking",
+      "step_id": "compute_tahoe_dge",
+      "trajectory_id": "gemgen_tahoe_evaluation"
+    },
+    {
+      "detail": "The Tahoe directional-list step omits the documented rank, top-list selection, and sign-partition order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we selected the top 50/40/30 genes with the largest absolute CD values and then assigned each gene to the upregulated or downregulated category",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add rank and select calls followed by an opaque sign partition, preserving the unresolved choice of top-list size.",
+      "severity": "blocking",
+      "step_id": "construct_tahoe_gene_lists",
+      "trajectory_id": "gemgen_tahoe_evaluation"
+    },
+    {
+      "detail": "The K562 signature path omits the documented selection of 21 significant perturbations and overstates the resulting gene sets as ranked. The paper reports upregulated/downregulated sets without a ranking rule or list size.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we selected 21 genetic perturbations that induce significant transcriptomic changes and identified the corresponding sets of upregulated and downregulated genes.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Add the selection of significant perturbations and represent the output as directional gene sets unless a ranking step is documented; remove the unsupported ranked axis.",
+      "severity": "blocking",
+      "step_id": "compute_k562_genetic_signature",
+      "trajectory_id": "gemgen_k562_genetic_evaluation"
+    },
+    {
+      "detail": "The K562 serializer omits the documented cellular context from a framework whose prompts specify cell type together with directional genes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model received ranked lists of genes up- and down-regulated representing the desired phenotypic transition",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "caption",
+          "quote": "an instruction prompt specifying cell type and up/down gene lists",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Include K562 cellular context as an input if this path follows the paper's standard prompt interface, or mark its presence unresolved instead of excluding it.",
+      "severity": "blocking",
+      "step_id": "serialize_k562_prompt",
+      "trajectory_id": "gemgen_k562_genetic_evaluation"
+    },
+    {
+      "detail": "The GEMGen-merge L1000 prompt path omits cell-type context while representing only directional gene lists, despite the paper's described prompt interface including cellular context.",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "an instruction prompt specifying cell type and up/down gene lists",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting gene sets were combined with cell line information to construct textual prompts",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the L1000 cell context to the merge serializer input or explicitly preserve it as unresolved.",
+      "severity": "blocking",
+      "step_id": "serialize_merge_l1000_prompt",
+      "trajectory_id": "gemgen_merge_l1000_evaluation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003629",
+  "verdict": "revise"
+}

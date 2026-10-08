@@ -1,0 +1,1784 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "truncate_pretrain_sequences::1",
+        "component": "OmniNA sliding-window truncation",
+        "condition": "sequences longer than 3000 bp",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Employing a sliding window approach, we truncate sequences longer than 3000 bp to 3000 bp.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_raw_sequences"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "pretrain_truncated_sequences"
+          ]
+        },
+        "parameters": {
+          "axis": "nucleotide position",
+          "method": "sliding-window truncation",
+          "partition_rule": "retain a 3000-bp window for sequences longer than 3000 bp",
+          "source_port_roles": [
+            "raw_nucleotide_sequences"
+          ]
+        },
+        "source_step_id": "truncate_pretrain_sequences",
+        "status": "documented_operation",
+        "uncertainty": "The exact window alignment is unspecified."
+      },
+      {
+        "call_id": "filter_short_pretrain_sequences::1",
+        "component": "OmniNA minimum-length filtering",
+        "condition": "sequences with length less than 200 bp are excluded",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Sequences with length less than 200 bp are excluded.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_truncated_sequences"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "pretrain_length_filtered_sequences"
+          ]
+        },
+        "parameters": {
+          "criterion": "retain sequences with length at least 200 bp",
+          "forced_inclusions": "unspecified",
+          "method": "filter exclusion",
+          "source_port_roles": [
+            "truncated_sequences"
+          ]
+        },
+        "source_step_id": "filter_short_pretrain_sequences",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "filter_repeated_N_pretrain_sequences::1",
+        "component": "OmniNA repeated-N filtering",
+        "condition": "sequences containing equal to or more than two consecutive N nucleotides are filtered out",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We filter out sequences containing equal to or more than two consecutive N nucleotides.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_length_filtered_sequences"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "pretrain_sequences"
+          ]
+        },
+        "parameters": {
+          "criterion": "exclude sequences with at least two consecutive N nucleotides",
+          "forced_inclusions": "unspecified",
+          "method": "filter exclusion",
+          "source_port_roles": [
+            "length_filtered_sequences"
+          ]
+        },
+        "source_step_id": "filter_repeated_N_pretrain_sequences",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "construct_pretrain_prompt::1",
+        "component": "OmniNA pre-training prompt construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_instruction",
+            "pretrain_sequences",
+            "pretrain_annotations"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "pretrain_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "unspecified",
+          "order": "instruction, nucleotide sequence, annotation",
+          "source_port_roles": [
+            "instruction",
+            "nucleotide_sequence",
+            "annotation"
+          ],
+          "template": "three modules: instruction, nucleotide sequence, annotation"
+        },
+        "source_step_id": "construct_pretrain_prompt",
+        "status": "documented_operation",
+        "uncertainty": "Exact textual delimiters are unspecified."
+      },
+      {
+        "call_id": "chunk_pretrain_sequences::1",
+        "component": "OmniNA nucleotide sequence chunking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_sequences"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "pretrain_sequence_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "nucleotide sequence",
+          "method": "sentence-based chunking",
+          "partition_rule": "sentence boundaries; exact sequence-side rule unspecified",
+          "source_port_roles": [
+            "nucleotide_sequences"
+          ]
+        },
+        "source_step_id": "chunk_pretrain_sequences",
+        "status": "documented_operation",
+        "uncertainty": "The source does not establish how sentence boundaries apply to nucleotide sequences."
+      },
+      {
+        "call_id": "chunk_pretrain_annotations::1",
+        "component": "OmniNA annotation chunking",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_annotations"
+          ]
+        },
+        "operation_id": "partition",
+        "outputs": {
+          "values": [
+            "pretrain_annotation_chunks"
+          ]
+        },
+        "parameters": {
+          "axis": "text annotation",
+          "method": "sentence-based chunking",
+          "partition_rule": "sentence boundaries",
+          "source_port_roles": [
+            "text_annotations"
+          ]
+        },
+        "source_step_id": "chunk_pretrain_annotations",
+        "status": "documented_operation",
+        "uncertainty": "The relationship to sequence chunks and prompt serialization is unspecified."
+      },
+      {
+        "call_id": "assemble_pretrain_chunk_stream::1",
+        "component": "OmniNA prompt and chunk-stream assembly boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We designed prompts to structure the sequences and their corresponding natural language descriptions as model input ( Figure 1A ; Supplementary Table 1 ). The input underwent chunking into subword tokens, followed by embedding through the token embedding layer.",
+            "section_id": "sec_0015"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrain_prompt",
+            "pretrain_sequence_chunks",
+            "pretrain_annotation_chunks"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pretrain_chunks"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_and_chunk_stream_assembly",
+          "source_port_roles": [
+            "serialized_prompt",
+            "sequence_chunks",
+            "annotation_chunks"
+          ]
+        },
+        "source_step_id": "assemble_pretrain_chunk_stream",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish whether the prompt and the two chunk branches are concatenated, aligned, or combined by another rule."
+      },
+      {
+        "call_id": "tokenize_pretrain_chunks::1",
+        "component": "OmniNA BPE/SentencePiece tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized with the byte pair encoding (BPE) algorithm 11 . We train the tokenizer using nucleotide sequences and texts of wiki-103 dataset 12 . SentencePiece 13 is employed as the subword tokenizer, resulting in a dictionary containing 32, 001 tokens. Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks. We include a special token &lt;s&gt; at the beginning and a special token &lt;/s&gt; at the end of the sequence. Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_chunks"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "pretrain_tokens"
+          ]
+        },
+        "parameters": {
+          "max_length": "601 tokens",
+          "segmentation": "BPE algorithm implemented with SentencePiece; <s> at beginning and </s> at end",
+          "source_alphabet": "nucleotide sequences and text annotations",
+          "source_port_roles": [
+            "chunked_prompt_values"
+          ],
+          "vocabulary": "trained vocabulary with 32,001 tokens"
+        },
+        "source_step_id": "tokenize_pretrain_chunks",
+        "status": "documented_operation",
+        "uncertainty": "Overlength behavior is unspecified."
+      },
+      {
+        "call_id": "embed_pretrain_tokens::1",
+        "component": "OmniNA token embedding layer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "keys": [
+            "pretrain_tokens"
+          ],
+          "table": [
+            "pretrain_token_table"
+          ]
+        },
+        "operation_id": "lookup",
+        "outputs": {
+          "values": [
+            "pretrain_token_embeddings"
+          ]
+        },
+        "parameters": {
+          "key_space": "OmniNA subword token IDs",
+          "resource_kind": "token embedding matrix",
+          "source_port_roles": [
+            "token_ids",
+            "table"
+          ],
+          "trainability": "unspecified"
+        },
+        "source_step_id": "embed_pretrain_tokens",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "fuse_pretrain_positions::1",
+        "component": "OmniNA positional-fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrain_token_embeddings",
+            "pretrain_positional_embeddings"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pretrain_positioned_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "positional_fusion",
+          "source_port_roles": [
+            "token_embeddings",
+            "positional_encodings"
+          ]
+        },
+        "source_step_id": "fuse_pretrain_positions",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source descriptions support incompatible addition and concatenation interpretations; no algebra is selected."
+      },
+      {
+        "call_id": "normalize_pretrain_input::1",
+        "component": "OmniNA input RMS normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_positioned_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "pretrain_transformer_input"
+          ]
+        },
+        "parameters": {
+          "axes": "embedding coordinate per token",
+          "method": "root mean square layer normalization",
+          "scope": "before transformer layers",
+          "source_port_roles": [
+            "position_enriched_embeddings"
+          ]
+        },
+        "source_step_id": "normalize_pretrain_input",
+        "status": "documented_operation",
+        "uncertainty": null
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "We curate sequence data along with corresponding textual annotations from the Nucleotide (nt) Database of the National Center for Biotechnology Information (NCBI) up to April, 2023. These data encompass genomic DNA and RNA sequences derived across diverse species. Employing a sliding window approach, we truncate sequences longer than 3000 bp to 3000 bp. Sequences with length less than 200 bp are excluded. We filter out sequences containing equal to or more than two consecutive N nucleotides.",
+        "section_id": "sec_0004"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We design the prompts to organize the sequence data with the text annotations as feature-ordered input for model pre-training ( Supplementary Table 1 ). The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+        "section_id": "sec_0004"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "The data were tokenized with the byte pair encoding (BPE) algorithm 11 . We train the tokenizer using nucleotide sequences and texts of wiki-103 dataset 12 . SentencePiece 13 is employed as the subword tokenizer, resulting in a dictionary containing 32, 001 tokens. Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks. We include a special token &lt;s&gt; at the beginning and a special token &lt;/s&gt; at the end of the sequence. Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+        "section_id": "sec_0005"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We designed prompts to structure the sequences and their corresponding natural language descriptions as model input ( Figure 1A ; Supplementary Table 1 ). The input underwent chunking into subword tokens, followed by embedding through the token embedding layer.",
+        "section_id": "sec_0015"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniNA 66M, 330M, and 1.7B configurations (shared documented input path)",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "nucleotide position"
+        ],
+        "contextual_role": "raw_external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "These data encompass genomic DNA and RNA sequences derived across diverse species.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Curated genomic DNA and RNA sequences before the documented pre-training filters.",
+        "node_id": "pretrain_raw_sequences",
+        "origin": "source_annotation",
+        "representation_type": "raw_nucleotide_sequence",
+        "symbolic_shape": [
+          "nucleotide_position"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "nucleotide position"
+        ],
+        "contextual_role": "windowed_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Employing a sliding window approach, we truncate sequences longer than 3000 bp to 3000 bp.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Sequences after documented overlength window truncation.",
+        "node_id": "pretrain_truncated_sequences",
+        "origin": "source_annotation",
+        "representation_type": "truncated_nucleotide_sequence",
+        "symbolic_shape": [
+          "nucleotide_position"
+        ],
+        "uncertainty": "The exact sliding-window alignment is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "nucleotide position"
+        ],
+        "contextual_role": "length_filtered_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Sequences with length less than 200 bp are excluded.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Sequences retained after excluding sequences shorter than 200 bp.",
+        "node_id": "pretrain_length_filtered_sequences",
+        "origin": "source_annotation",
+        "representation_type": "length_filtered_nucleotide_sequence",
+        "symbolic_shape": [
+          "nucleotide_position"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "nucleotide position"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We filter out sequences containing equal to or more than two consecutive N nucleotides.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Pre-training nucleotide sequences after documented length and repeated-N filters.",
+        "node_id": "pretrain_sequences",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "nucleotide_position"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "word position"
+        ],
+        "contextual_role": "external_text_annotation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We curate sequence data along with corresponding textual annotations from the Nucleotide (nt) Database of the National Center for Biotechnology Information (NCBI) up to April, 2023.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Textual annotations corresponding to nucleotide sequences.",
+        "node_id": "pretrain_annotations",
+        "origin": "source_annotation",
+        "representation_type": "text_annotation",
+        "symbolic_shape": [
+          "word_position"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "prompt_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Instruction module of the pre-training prompt.",
+        "node_id": "pretrain_instruction",
+        "origin": "source_annotation",
+        "representation_type": "text_instruction",
+        "symbolic_shape": null,
+        "uncertainty": "Exact wording and separators are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "serialized_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Ordered prompt containing instruction, nucleotide sequence, and annotation.",
+        "node_id": "pretrain_prompt",
+        "origin": "source_annotation",
+        "representation_type": "ordered_text_biological_prompt",
+        "symbolic_shape": null,
+        "uncertainty": "Exact lexical template and delimiters are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "chunk position"
+        ],
+        "contextual_role": "sequence_chunk_branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Sentence-based chunks derived from nucleotide sequences.",
+        "node_id": "pretrain_sequence_chunks",
+        "origin": "source_annotation",
+        "representation_type": "sentence_based_nucleotide_chunks",
+        "symbolic_shape": [
+          "sequence_chunk_position"
+        ],
+        "uncertainty": "The paper does not establish whether these chunks are created before or after prompt serialization."
+      },
+      {
+        "axis_semantics": [
+          "chunk position"
+        ],
+        "contextual_role": "annotation_chunk_branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Sentence-based chunks derived from text annotations.",
+        "node_id": "pretrain_annotation_chunks",
+        "origin": "source_annotation",
+        "representation_type": "sentence_based_annotation_chunks",
+        "symbolic_shape": [
+          "annotation_chunk_position"
+        ],
+        "uncertainty": "The paper does not establish whether these chunks are created before or after prompt serialization."
+      },
+      {
+        "axis_semantics": [
+          "chunk position"
+        ],
+        "contextual_role": "serialized_chunk_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We designed prompts to structure the sequences and their corresponding natural language descriptions as model input ( Figure 1A ; Supplementary Table 1 ). The input underwent chunking into subword tokens, followed by embedding through the token embedding layer.",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "Input chunk stream after the unresolved relationship between prompt serialization and separate sequence/annotation chunk branches.",
+        "node_id": "pretrain_chunks",
+        "origin": "source_annotation",
+        "representation_type": "prompt_chunk_stream",
+        "symbolic_shape": [
+          "chunk_position"
+        ],
+        "uncertainty": "The source does not establish whether prompt fields, sequence chunks, and annotation chunks are concatenated, aligned, or otherwise combined at this boundary."
+      },
+      {
+        "axis_semantics": [
+          "token position"
+        ],
+        "contextual_role": "decoder_input_tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We include a special token &lt;s&gt; at the beginning and a special token &lt;/s&gt; at the end of the sequence. Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "BPE/SentencePiece token IDs including documented boundary special tokens.",
+        "node_id": "pretrain_tokens",
+        "origin": "source_annotation",
+        "representation_type": "subword_token_ids",
+        "symbolic_shape": [
+          "token_position"
+        ],
+        "uncertainty": "The paper does not specify overlength handling or attention-mask construction."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "token_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Token embedding vectors.",
+        "node_id": "pretrain_token_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "token_embedding_matrix",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "GPTNeo positional encodings or position embeddings used at the positional-fusion stage.",
+        "node_id": "pretrain_positional_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "positional_encoding",
+        "symbolic_shape": [
+          "position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "The source gives conflicting descriptions of this stage as addition and concatenation; implementation and encoding-table form are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "position_enriched_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "Token and positional representations before RMS normalization.",
+        "node_id": "pretrain_positioned_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "position_enriched_token_embeddings",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "The positional fusion algebra is unresolved because the paper describes both addition and concatenation."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "transformer_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "RMS-normalized embeddings received by the transformer stack.",
+        "node_id": "pretrain_transformer_input",
+        "origin": "source_annotation",
+        "representation_type": "normalized_token_embeddings",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "The paper does not specify normalization epsilon or mask inputs."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "SentencePiece 13 is employed as the subword tokenizer, resulting in a dictionary containing 32, 001 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Nucleotide-and-text subword vocabulary and token embedding table.",
+        "node_id": "pretrain_token_table",
+        "origin": "source_annotation",
+        "representation_type": "token_embedding_table",
+        "symbolic_shape": null,
+        "uncertainty": "Table dimensions, sharing across configurations, and trainability are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Are nucleotide sequences and annotations chunked as separate fields before prompt serialization, or is the serialized prompt chunked as one input stream?",
+      "How are the 601-token maximum and special tokens applied when a prompt exceeds the maximum?",
+      "Are GPTNeo positional encodings learned table lookups or another implementation?",
+      "What causal or bidirectional mask is supplied to the decoder? The prose says self-attention is bidirectional despite describing autoregressive training."
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "pretrain_transformer_input",
+        "port_role": "normalized_decoder_input"
+      }
+    ],
+    "recipient_component": "OmniNA decoder-only transformer stack",
+    "record_id": "full_2026-07-06__rec_002327",
+    "source_steps": [
+      {
+        "component": "OmniNA sliding-window truncation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Employing a sliding window approach, we truncate sequences longer than 3000 bp to 3000 bp.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_raw_sequences",
+            "port_role": "raw_nucleotide_sequences"
+          }
+        ],
+        "operation_type": "sliding_window_truncation",
+        "outputs": [
+          "pretrain_truncated_sequences"
+        ],
+        "step_id": "truncate_pretrain_sequences",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA minimum-length filtering",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Sequences with length less than 200 bp are excluded.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_truncated_sequences",
+            "port_role": "truncated_sequences"
+          }
+        ],
+        "operation_type": "minimum_length_filtering",
+        "outputs": [
+          "pretrain_length_filtered_sequences"
+        ],
+        "step_id": "filter_short_pretrain_sequences",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA repeated-N filtering",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We filter out sequences containing equal to or more than two consecutive N nucleotides.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_length_filtered_sequences",
+            "port_role": "length_filtered_sequences"
+          }
+        ],
+        "operation_type": "repeated_N_filtering",
+        "outputs": [
+          "pretrain_sequences"
+        ],
+        "step_id": "filter_repeated_N_pretrain_sequences",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA pre-training prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt is composed of three modules: 1. an instruction; 2. a nucleotide sequence; 3. an annotation.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_instruction",
+            "port_role": "instruction"
+          },
+          {
+            "node_id": "pretrain_sequences",
+            "port_role": "nucleotide_sequence"
+          },
+          {
+            "node_id": "pretrain_annotations",
+            "port_role": "annotation"
+          }
+        ],
+        "operation_type": "feature_ordered_prompt_construction",
+        "outputs": [
+          "pretrain_prompt"
+        ],
+        "step_id": "construct_pretrain_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA nucleotide sequence chunking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_sequences",
+            "port_role": "nucleotide_sequences"
+          }
+        ],
+        "operation_type": "sequence_chunking",
+        "outputs": [
+          "pretrain_sequence_chunks"
+        ],
+        "step_id": "chunk_pretrain_sequences",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA annotation chunking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_annotations",
+            "port_role": "text_annotations"
+          }
+        ],
+        "operation_type": "annotation_chunking",
+        "outputs": [
+          "pretrain_annotation_chunks"
+        ],
+        "step_id": "chunk_pretrain_annotations",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA prompt and chunk-stream assembly boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We designed prompts to structure the sequences and their corresponding natural language descriptions as model input ( Figure 1A ; Supplementary Table 1 ). The input underwent chunking into subword tokens, followed by embedding through the token embedding layer.",
+            "section_id": "sec_0015"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "pretrain_sequence_chunks",
+            "port_role": "sequence_chunks"
+          },
+          {
+            "node_id": "pretrain_annotation_chunks",
+            "port_role": "annotation_chunks"
+          }
+        ],
+        "operation_type": "prompt_and_chunk_stream_assembly",
+        "outputs": [
+          "pretrain_chunks"
+        ],
+        "step_id": "assemble_pretrain_chunk_stream",
+        "uncertainty": "The paper does not establish whether the prompt and the two chunk branches are concatenated, aligned, or combined by another rule."
+      },
+      {
+        "component": "OmniNA BPE/SentencePiece tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized with the byte pair encoding (BPE) algorithm 11 . We train the tokenizer using nucleotide sequences and texts of wiki-103 dataset 12 . SentencePiece 13 is employed as the subword tokenizer, resulting in a dictionary containing 32, 001 tokens. Subsequently, the nucleotide sequences and text annotations are partitioned into sentence-based chunks. We include a special token &lt;s&gt; at the beginning and a special token &lt;/s&gt; at the end of the sequence. Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_chunks",
+            "port_role": "chunked_prompt_values"
+          }
+        ],
+        "operation_type": "subword_tokenization",
+        "outputs": [
+          "pretrain_tokens"
+        ],
+        "step_id": "tokenize_pretrain_chunks",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA token embedding layer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_tokens",
+            "port_role": "token_ids"
+          },
+          {
+            "node_id": "pretrain_token_table",
+            "port_role": "table"
+          }
+        ],
+        "operation_type": "token_embedding_lookup",
+        "outputs": [
+          "pretrain_token_embeddings"
+        ],
+        "step_id": "embed_pretrain_tokens",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA positional-fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_token_embeddings",
+            "port_role": "token_embeddings"
+          },
+          {
+            "node_id": "pretrain_positional_embeddings",
+            "port_role": "positional_encodings"
+          }
+        ],
+        "operation_type": "positional_fusion",
+        "outputs": [
+          "pretrain_positioned_embeddings"
+        ],
+        "step_id": "fuse_pretrain_positions",
+        "uncertainty": "The source descriptions support incompatible addition and concatenation interpretations; no algebra is selected."
+      },
+      {
+        "component": "OmniNA input RMS normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_positioned_embeddings",
+            "port_role": "position_enriched_embeddings"
+          }
+        ],
+        "operation_type": "root_mean_square_input_normalization",
+        "outputs": [
+          "pretrain_transformer_input"
+        ],
+        "step_id": "normalize_pretrain_input",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Pre-training on filtered nucleotide sequences paired with textual annotations",
+    "trajectory_id": "pretraining_shared_input_path"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "instantiate_finetuning_prompt::1",
+        "component": "OmniNA task-specific QA prompt instantiation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Supplementary Table 1 shows a prompt example for each task, which is composed of four modules: 1. an instruction; 2. a nucleotide sequence; 3. a test question; 4. an answer.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "ft_task_resources",
+            "ft_instruction",
+            "ft_nucleotide_sequence",
+            "ft_test_question",
+            "ft_answer"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "ft_prompt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "task_specific_qa_prompt_instantiation",
+          "source_port_roles": [
+            "task_resource_context",
+            "instruction",
+            "nucleotide_sequence",
+            "test_question",
+            "answer"
+          ]
+        },
+        "source_step_id": "instantiate_finetuning_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The four-module ordering is documented, while exact serialization is unavailable."
+      },
+      {
+        "call_id": "tokenize_finetuning_prompt::1",
+        "component": "OmniNA fine-tuning tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized with the byte pair encoding (BPE) algorithm 11 .",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "ft_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "ft_tokens"
+          ]
+        },
+        "parameters": {
+          "max_length": "601 tokens, with overlength handling unspecified",
+          "segmentation": "source-defined BPE/SentencePiece subword tokenization",
+          "source_alphabet": "nucleotide sequence and natural-language QA prompt",
+          "source_port_roles": [
+            "fine_tuning_prompt"
+          ],
+          "vocabulary": "trained OmniNA vocabulary"
+        },
+        "source_step_id": "tokenize_finetuning_prompt",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not provide a complete fine-tuning tokenization example."
+      },
+      {
+        "call_id": "embed_finetuning_tokens::1",
+        "component": "OmniNA fine-tuning token embedding layer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "keys": [
+            "ft_tokens"
+          ],
+          "table": [
+            "ft_token_table"
+          ]
+        },
+        "operation_id": "lookup",
+        "outputs": {
+          "values": [
+            "ft_token_embeddings"
+          ]
+        },
+        "parameters": {
+          "key_space": "OmniNA subword token IDs",
+          "resource_kind": "token embedding matrix",
+          "source_port_roles": [
+            "token_ids",
+            "table"
+          ],
+          "trainability": "unspecified"
+        },
+        "source_step_id": "embed_finetuning_tokens",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "fuse_finetuning_positions::1",
+        "component": "OmniNA fine-tuning positional-fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "ft_token_embeddings",
+            "ft_positional_embeddings"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "ft_positioned_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "positional_fusion",
+          "source_port_roles": [
+            "token_embeddings",
+            "positional_encodings"
+          ]
+        },
+        "source_step_id": "fuse_finetuning_positions",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source descriptions support incompatible addition and concatenation interpretations."
+      },
+      {
+        "call_id": "normalize_finetuning_input::1",
+        "component": "OmniNA fine-tuning input RMS normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "ft_positioned_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "ft_transformer_input"
+          ]
+        },
+        "parameters": {
+          "axes": "embedding coordinate per token",
+          "method": "root mean square layer normalization",
+          "scope": "before transformer layers",
+          "source_port_roles": [
+            "position_enriched_embeddings"
+          ]
+        },
+        "source_step_id": "normalize_finetuning_input",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "construct_answer_only_target::1",
+        "component": "OmniNA answer-only autoregressive supervision boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the fine-tuning stage, only the answer was trained in an auto-regressive manner.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "ft_prompt",
+            "ft_answer"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "ft_answer_only_target"
+          ]
+        },
+        "parameters": {
+          "source_operation": "answer_only_autoregressive_training_boundary",
+          "source_port_roles": [
+            "serialized_prompt",
+            "answer_target"
+          ]
+        },
+        "source_step_id": "construct_answer_only_target",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact loss-mask and teacher-forcing implementation are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The model underwent fine-tuning for 17 tasks in a multi-task framework.",
+        "section_id": "sec_0008"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Supplementary Table 1 shows a prompt example for each task, which is composed of four modules: 1. an instruction; 2. a nucleotide sequence; 3. a test question; 4. an answer. The first two parts are fixed for all tasks, while the question and answer are task-specific. In the fine-tuning stage, only the answer was trained in an auto-regressive manner.",
+        "section_id": "sec_0009"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We established OmniNA model with the LLaMA architecture 10 , which is an auto-regressive decoder-only transformer adopted the self-attention mechanism.",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "OmniNA 66M, 330M, and 1.7B configurations in shared 17-task fine-tuning framework",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_resource_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The model underwent fine-tuning for 17 tasks in a multi-task framework.",
+            "section_id": "sec_0008"
+          }
+        ],
+        "information_content": "The 17 task branches are promoter, enhancer, silencer, insulator, active promoter, active enhancer, PAS signal, TIS signal, splice site, CRISPR-Cas13d off-target, methylated region, chromatin accessibility, histone occupation, TF binding, pathogenic variation, pathogenic virus, and taxonomy prediction.",
+        "node_id": "ft_task_resources",
+        "origin": "source_annotation",
+        "representation_type": "multi_task_dataset_resources",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not provide complete per-task prompt instances in the supplied text."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "prompt_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Supplementary Table 1 shows a prompt example for each task, which is composed of four modules: 1. an instruction; 2. a nucleotide sequence; 3. a test question; 4. an answer.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Instruction module shared across task prompts.",
+        "node_id": "ft_instruction",
+        "origin": "source_annotation",
+        "representation_type": "text_instruction",
+        "symbolic_shape": null,
+        "uncertainty": "Exact wording is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "nucleotide position"
+        ],
+        "contextual_role": "task_biological_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Nucleotide sequence supplied to a task-specific fine-tuning example.",
+        "node_id": "ft_nucleotide_sequence",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "nucleotide_position"
+        ],
+        "uncertainty": "The exact sequence context and task-specific preprocessing are not specified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "task_query",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Task-specific test question.",
+        "node_id": "ft_test_question",
+        "origin": "source_annotation",
+        "representation_type": "text_question",
+        "symbolic_shape": null,
+        "uncertainty": "Exact question templates are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "supervision_target",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the fine-tuning stage, only the answer was trained in an auto-regressive manner.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Task-specific answer target.",
+        "node_id": "ft_answer",
+        "origin": "source_annotation",
+        "representation_type": "text_or_label_answer",
+        "symbolic_shape": null,
+        "uncertainty": "Exact answer serialization and target masking are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "serialized_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Supplementary Table 1 shows a prompt example for each task, which is composed of four modules: 1. an instruction; 2. a nucleotide sequence; 3. a test question; 4. an answer.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Four-module QA prompt for a task-specific fine-tuning example.",
+        "node_id": "ft_prompt",
+        "origin": "source_annotation",
+        "representation_type": "four_module_qa_prompt",
+        "symbolic_shape": null,
+        "uncertainty": "Exact lexical template, separators, and answer placement are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token position"
+        ],
+        "contextual_role": "decoder_input_tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Tokenized fine-tuning prompt.",
+        "node_id": "ft_tokens",
+        "origin": "source_annotation",
+        "representation_type": "subword_token_ids",
+        "symbolic_shape": [
+          "token_position"
+        ],
+        "uncertainty": "Fine-tuning overlength handling and masks are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Token embedding table used by the fine-tuned model.",
+        "node_id": "ft_token_table",
+        "origin": "source_annotation",
+        "representation_type": "token_embedding_table",
+        "symbolic_shape": null,
+        "uncertainty": "Trainability and exact table sharing are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "token_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Token embedding vectors for the fine-tuning prompt.",
+        "node_id": "ft_token_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "token_embedding_matrix",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Positional encoding resource.",
+        "node_id": "ft_positional_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "positional_encoding",
+        "symbolic_shape": [
+          "position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "Implementation and trainability are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "position_enriched_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "Prompt representations after unresolved positional fusion.",
+        "node_id": "ft_positioned_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "position_enriched_token_embeddings",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "The source also describes positional addition elsewhere."
+      },
+      {
+        "axis_semantics": [
+          "token position",
+          "embedding coordinate"
+        ],
+        "contextual_role": "transformer_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Fine-tuning prompt representation received by transformer layers.",
+        "node_id": "ft_transformer_input",
+        "origin": "source_annotation",
+        "representation_type": "normalized_token_embeddings",
+        "symbolic_shape": [
+          "token_position",
+          "embedding_coordinate"
+        ],
+        "uncertainty": "Normalization details and masks are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token position"
+        ],
+        "contextual_role": "training_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the fine-tuning stage, only the answer was trained in an auto-regressive manner.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Answer-only autoregressive training target or loss-control representation.",
+        "node_id": "ft_answer_only_target",
+        "origin": "source_annotation",
+        "representation_type": "answer_only_training_mask_or_target",
+        "symbolic_shape": [
+          "token_position"
+        ],
+        "uncertainty": "The exact target-mask construction is unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which concrete data fields instantiate the fixed instruction and nucleotide sequence for each of the 17 tasks?",
+      "How are the task-specific questions and answers serialized and delimited?",
+      "How is the answer-only autoregressive target represented and masked?",
+      "Does fine-tuning use the same 601-token limit and special-token handling as pre-training?",
+      "Does positional fusion use addition or concatenation?",
+      "What attention masks and decoder inputs are supplied during answer-only training?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "ft_transformer_input",
+        "port_role": "normalized_decoder_input"
+      },
+      {
+        "node_id": "ft_answer_only_target",
+        "port_role": "answer_only_training_target_or_mask"
+      }
+    ],
+    "recipient_component": "OmniNA decoder-only transformer stack during multi-task fine-tuning",
+    "record_id": "full_2026-07-06__rec_002327",
+    "source_steps": [
+      {
+        "component": "OmniNA task-specific QA prompt instantiation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Supplementary Table 1 shows a prompt example for each task, which is composed of four modules: 1. an instruction; 2. a nucleotide sequence; 3. a test question; 4. an answer.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The first two parts are fixed for all tasks, while the question and answer are task-specific.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_task_resources",
+            "port_role": "task_resource_context"
+          },
+          {
+            "node_id": "ft_instruction",
+            "port_role": "instruction"
+          },
+          {
+            "node_id": "ft_nucleotide_sequence",
+            "port_role": "nucleotide_sequence"
+          },
+          {
+            "node_id": "ft_test_question",
+            "port_role": "test_question"
+          },
+          {
+            "node_id": "ft_answer",
+            "port_role": "answer"
+          }
+        ],
+        "operation_type": "task_specific_qa_prompt_instantiation",
+        "outputs": [
+          "ft_prompt"
+        ],
+        "step_id": "instantiate_finetuning_prompt",
+        "uncertainty": "The four-module ordering is documented, while exact serialization is unavailable."
+      },
+      {
+        "component": "OmniNA fine-tuning tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized with the byte pair encoding (BPE) algorithm 11 .",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk is further tokenized using the trained tokenizer. The max length of input sequence is set to 601 tokens.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_prompt",
+            "port_role": "fine_tuning_prompt"
+          }
+        ],
+        "operation_type": "fine_tuning_subword_tokenization",
+        "outputs": [
+          "ft_tokens"
+        ],
+        "step_id": "tokenize_finetuning_prompt",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA fine-tuning token embedding layer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_tokens",
+            "port_role": "token_ids"
+          },
+          {
+            "node_id": "ft_token_table",
+            "port_role": "table"
+          }
+        ],
+        "operation_type": "token_embedding_lookup",
+        "outputs": [
+          "ft_token_embeddings"
+        ],
+        "step_id": "embed_finetuning_tokens",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA fine-tuning positional-fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We add GPTNeo positional encodings 14 to the token embeddings.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Token embeddings were then concatenated with position embeddings and fed into the transformer layers and followed by a regression layer for auto-regressive training ( Figure 1A and Supplementary Figure 2 ) 5 .",
+            "section_id": "sec_0015"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_token_embeddings",
+            "port_role": "token_embeddings"
+          },
+          {
+            "node_id": "ft_positional_embeddings",
+            "port_role": "positional_encodings"
+          }
+        ],
+        "operation_type": "positional_fusion",
+        "outputs": [
+          "ft_positioned_embeddings"
+        ],
+        "step_id": "fuse_finetuning_positions",
+        "uncertainty": "The source descriptions support incompatible addition and concatenation interpretations."
+      },
+      {
+        "component": "OmniNA fine-tuning input RMS normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before  feeding  into  transformer  layers,  we normalize the input with root mean square layer normalization 15 .",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_positioned_embeddings",
+            "port_role": "position_enriched_embeddings"
+          }
+        ],
+        "operation_type": "root_mean_square_input_normalization",
+        "outputs": [
+          "ft_transformer_input"
+        ],
+        "step_id": "normalize_finetuning_input",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA answer-only autoregressive supervision boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the fine-tuning stage, only the answer was trained in an auto-regressive manner.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ft_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "ft_answer",
+            "port_role": "answer_target"
+          }
+        ],
+        "operation_type": "answer_only_autoregressive_training_boundary",
+        "outputs": [
+          "ft_answer_only_target"
+        ],
+        "step_id": "construct_answer_only_target",
+        "uncertainty": "The exact loss-mask and teacher-forcing implementation are unspecified."
+      }
+    ],
+    "task_configuration": "17-task multi-task fine-tuning with four-module QA prompts for promoter, enhancer, silencer, insulator, active promoter, active enhancer, PAS, TIS, splice site, CRISPR-Cas13d off-target, methylated region, chromatin accessibility, histone occupation, TF binding, pathogenic variation, pathogenic virus, and taxonomy prediction",
+    "trajectory_id": "fine_tuning_17_task_qa"
+  }
+]

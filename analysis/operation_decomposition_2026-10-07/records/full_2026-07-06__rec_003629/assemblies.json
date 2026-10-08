@@ -1,0 +1,1079 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "select_random_evaluation_control::1",
+        "component": "Evaluation control-compound similarity filtering",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "First, we randomly selected candidate molecules  from  the  pool  of  valid  compounds  generated  for  other  test  samples.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To ensure structural dissimilarity and avoid trivial matches, candidate replacements were required to satisfy a structural constraint: the maximum Tanimoto similarity between any replacement molecule and the set of molecules originally generated for the target phenotype had to be below 0.4.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "evaluation_candidate_pool",
+            "target_phenotype_generated_compounds"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "random_control_compound"
+          ]
+        },
+        "parameters": {
+          "source_operation": "random_evaluation_control_selection",
+          "source_port_roles": [
+            "candidate_compound_pool",
+            "target_phenotype_similarity_context"
+          ]
+        },
+        "source_step_id": "select_random_evaluation_control",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents candidate selection by random choice subject to a maximum Tanimoto-similarity constraint, but the catalog has no molecular-similarity operation with the target compound set as context."
+      },
+      {
+        "call_id": "serialize_scorer_prompts::1",
+        "component": "Compound-phenotype prompt construction",
+        "condition": "true or non-hit evaluation pair",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For both the generator and the scorer, the input and output take the form of natural language instructions and responses, following a standardized prompt-response interface  as  shown  in  Figure  S1.",
+            "section_id": "sec_0015"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "phenotype_signature",
+            "compound_smiles"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "scorer_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "cell context, ranked up/down gene lists, and a compound represented as text",
+          "order": "unspecified",
+          "source_port_roles": [
+            "phenotype_and_cell_context",
+            "compound_representation",
+            "replacement_compound_on_control_branch"
+          ],
+          "template": "standardized natural-language compound-phenotype instruction-response interface"
+        },
+        "source_step_id": "serialize_scorer_prompts",
+        "status": "documented_operation",
+        "uncertainty": "The source establishes a standardized prompt-response interface but does not provide its exact template or ordering."
+      },
+      {
+        "call_id": "serialize_scorer_prompts::2",
+        "component": "Compound-phenotype prompt construction",
+        "condition": "randomly paired evaluation control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For both the generator and the scorer, the input and output take the form of natural language instructions and responses, following a standardized prompt-response interface  as  shown  in  Figure  S1.",
+            "section_id": "sec_0015"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "phenotype_signature",
+            "random_control_compound"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "control_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "cell context, ranked up/down gene lists, and a randomly selected replacement compound represented as text",
+          "order": "unspecified",
+          "source_port_roles": [
+            "phenotype_and_cell_context",
+            "compound_representation",
+            "replacement_compound_on_control_branch"
+          ],
+          "template": "standardized natural-language compound-phenotype instruction-response interface"
+        },
+        "source_step_id": "serialize_scorer_prompts",
+        "status": "documented_operation",
+        "uncertainty": "The source does not specify whether control prompts differ lexically from ordinary scorer prompts."
+      },
+      {
+        "call_id": "tokenize_scorer_prompts::1",
+        "component": "Shared-vocabulary tokenizer",
+        "condition": "ordinary scorer pair",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "It adopts a decoder-only Transformer architecture, analogous to GPT, and is trained autoregressively by representing all modalities as token sequences within a shared vocabulary.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "scorer_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "scorer_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified tokenizer segmentation",
+          "source_alphabet": "natural-language scientific prompt",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_control_prompt"
+          ],
+          "vocabulary": "NatureLM shared scientific and English vocabulary"
+        },
+        "source_step_id": "tokenize_scorer_prompts",
+        "status": "documented_operation",
+        "uncertainty": "The exact tokenizer is not identified."
+      },
+      {
+        "call_id": "tokenize_scorer_prompts::2",
+        "component": "Shared-vocabulary tokenizer",
+        "condition": "randomly paired control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "It adopts a decoder-only Transformer architecture, analogous to GPT, and is trained autoregressively by representing all modalities as token sequences within a shared vocabulary.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "control_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "control_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified tokenizer segmentation",
+          "source_alphabet": "natural-language scientific prompt",
+          "source_port_roles": [
+            "serialized_prompt",
+            "serialized_control_prompt"
+          ],
+          "vocabulary": "NatureLM shared scientific and English vocabulary"
+        },
+        "source_step_id": "tokenize_scorer_prompts",
+        "status": "documented_operation",
+        "uncertainty": "The exact tokenizer is not identified."
+      },
+      {
+        "call_id": "score_decoder::1",
+        "component": "NatureLM-derived scorer decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "scorer_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "scorer_hidden_state"
+          ]
+        },
+        "parameters": {
+          "source_operation": "decoder_hidden_state_extraction",
+          "source_port_roles": [
+            "token_sequence"
+          ]
+        },
+        "source_step_id": "score_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The decoder computation producing the response-token hidden state is not established by the paper."
+      },
+      {
+        "call_id": "score_control_decoder::1",
+        "component": "NatureLM-derived control scorer decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly paired compound-phenotype  controls  ( Methods ),  non -hits  exhibited  significantly  higher match scores than random background",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "control_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "control_hidden_state"
+          ]
+        },
+        "parameters": {
+          "source_operation": "decoder_hidden_state_extraction",
+          "source_port_roles": [
+            "control_token_sequence"
+          ]
+        },
+        "source_step_id": "score_control_decoder",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The control decoder computation producing the response-token hidden state is not established by the paper."
+      },
+      {
+        "call_id": "classify_compound_phenotype_score::1",
+        "component": "Two-layer scorer MLP continuous-score head",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+            "section_id": "sec_0004"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "scorer_hidden_state"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "match_score"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "two-layer multilayer perceptron classification head",
+          "parameter_state": "fine-tuned scorer parameters",
+          "source_port_roles": [
+            "hidden_representation"
+          ]
+        },
+        "source_step_id": "classify_compound_phenotype_score",
+        "status": "documented_operation",
+        "uncertainty": "The activation and final score calibration are unspecified."
+      },
+      {
+        "call_id": "classify_control_score::1",
+        "component": "Two-layer scorer MLP control continuous-score head",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly paired compound-phenotype  controls  ( Methods ),  non -hits  exhibited  significantly  higher match scores than random background",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "control_hidden_state"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "control_match_score"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "two-layer multilayer perceptron classification head",
+          "parameter_state": "fine-tuned scorer parameters",
+          "source_port_roles": [
+            "hidden_representation"
+          ]
+        },
+        "source_step_id": "classify_control_score",
+        "status": "documented_operation",
+        "uncertainty": "The activation and final score calibration are unspecified."
+      },
+      {
+        "call_id": "produce_binary_match_prediction::1",
+        "component": "Scorer binary classification head",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "During inference, we use the output from the classification head as the final binary prediction.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "  model  was  trained  to  produce  a  binary  response  ('yes'  or 'no')  for  each compound-phenotype pair, indicating whether the compound was predicted to reproduce the given transcriptomic change.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "scorer_hidden_state"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "match_label"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "two-layer multilayer perceptron classification head producing the final binary prediction",
+          "parameter_state": "fine-tuned scorer parameters",
+          "source_port_roles": [
+            "response_hidden_state"
+          ]
+        },
+        "source_step_id": "produce_binary_match_prediction",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not establish a relation between this binary output and match_score."
+      },
+      {
+        "call_id": "filter_candidates_by_score::1",
+        "component": "Score-threshold candidate filtering",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "increasing the score threshold progressively reduced the number of candidate molecules",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "At a score threshold of 0.8, precision, reflecting the fraction of predicted 250 positives that correspond to true matches, reached 0.950 ( Fig. 3d ), demonstrating that 251 the scorer provides a reliable signal for compound-phenotype matching.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "selectors": [
+            "evaluation_candidate_scores"
+          ],
+          "values": [
+            "generated_candidate_compounds"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "thresholded_candidates"
+          ]
+        },
+        "parameters": {
+          "criterion": "retain generated candidates meeting the selected scorer threshold",
+          "forced_inclusions": "unspecified",
+          "method": "score-threshold filtering; threshold sweep includes a separately reported analysis at 0.8",
+          "source_port_roles": [
+            "candidate_compounds",
+            "score_values_and_threshold_control"
+          ]
+        },
+        "source_step_id": "filter_candidates_by_score",
+        "status": "documented_operation",
+        "uncertainty": "The score values and threshold are supplied as selection controls; the exact alignment and universal threshold are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "A  separate  model  was  fine-tuned  to specialize in scoring the correspondence between chemical perturbations and transcriptomic changes, represented as text-based ranked lists of di]erentially expressed  genes.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+        "section_id": "sec_0004"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "During inference, we use the output from the classification head as the final binary prediction.",
+        "section_id": "sec_0013"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "compound-phenotype scoring model fine-tuned from NatureLM",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "cell-type and compound-phenotype context"
+        ],
+        "contextual_role": "biological_condition",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In parallel, a compound-phenotype matching task trained a scoring model to estimate the likelihood that a given compound reproduces a target gene expression signature.",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Cell type and a specified differential-expression signature.",
+        "node_id": "phenotype_signature",
+        "origin": "source_annotation",
+        "representation_type": "directional_gene_signature_with_cell_context",
+        "symbolic_shape": [
+          "gene_rank"
+        ],
+        "uncertainty": "The exact number of genes and prompt field order are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "SMILES character or token positions"
+        ],
+        "contextual_role": "chemical_perturbation_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "non-hit compounds associated with each test phenotype were replaced through the following procedure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "The compound paired with the phenotype during scorer evaluation, including true, non-hit, or generated compounds before control replacement.",
+        "node_id": "compound_smiles",
+        "origin": "source_annotation",
+        "representation_type": "smiles_text",
+        "symbolic_shape": [
+          "smiles_positions"
+        ],
+        "uncertainty": "The exact SMILES serialization and tokenizer segmentation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "candidate compounds",
+          "SMILES character or token positions"
+        ],
+        "contextual_role": "evaluation_candidate_source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "First, we randomly selected candidate molecules  from  the  pool  of  valid  compounds  generated  for  other  test  samples.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Valid generated compounds from other test samples used as candidate replacements for evaluation controls.",
+        "node_id": "evaluation_candidate_pool",
+        "origin": "source_annotation",
+        "representation_type": "valid_generated_smiles_pool",
+        "symbolic_shape": [
+          "candidate",
+          "smiles_positions"
+        ],
+        "uncertainty": "The complete pool and its indexing are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "candidate compounds",
+          "SMILES character or token positions"
+        ],
+        "contextual_role": "evaluation_similarity_context",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the maximum Tanimoto similarity between any replacement molecule and the set of molecules originally generated for the target phenotype had to be below 0.4.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "The set of molecules originally generated for the target phenotype, used as molecular context for similarity filtering.",
+        "node_id": "target_phenotype_generated_compounds",
+        "origin": "source_annotation",
+        "representation_type": "target_phenotype_smiles_set",
+        "symbolic_shape": [
+          "candidate",
+          "smiles_positions"
+        ],
+        "uncertainty": "The molecular fingerprint implementation is unspecified; this node is context for the similarity computation, not a selector."
+      },
+      {
+        "axis_semantics": [
+          "SMILES character or token positions"
+        ],
+        "contextual_role": "evaluation_control_compound",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Randomly selected replacement compound satisfying the evaluation structural constraint.",
+        "node_id": "random_control_compound",
+        "origin": "source_annotation",
+        "representation_type": "smiles_text",
+        "symbolic_shape": [
+          "smiles_positions"
+        ],
+        "uncertainty": "The selected molecule identity is sample-specific and unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered prompt positions"
+        ],
+        "contextual_role": "scorer_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For both the generator and the scorer, the input and output take the form of natural language instructions and responses, following a standardized prompt-response interface  as  shown  in  Figure  S1.",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "Natural-language instruction containing cell context, ranked gene signature, and a compound.",
+        "node_id": "scorer_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_pair_prompt",
+        "symbolic_shape": [
+          "prompt_positions"
+        ],
+        "uncertainty": "Exact template, delimiters, and field order are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered prompt positions"
+        ],
+        "contextual_role": "random_control_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Natural-language scorer prompt for a randomly paired evaluation control.",
+        "node_id": "control_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_pair_prompt",
+        "symbolic_shape": [
+          "prompt_positions"
+        ],
+        "uncertainty": "Exact template and field ordering are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered shared-vocabulary token positions"
+        ],
+        "contextual_role": "model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "It adopts a decoder-only Transformer architecture, analogous to GPT, and is trained autoregressively by representing all modalities as token sequences within a shared vocabulary.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Tokenized scorer prompt.",
+        "node_id": "scorer_tokens",
+        "origin": "source_annotation",
+        "representation_type": "shared_vocabulary_token_ids",
+        "symbolic_shape": [
+          "n_prompt_tokens"
+        ],
+        "uncertainty": "The tokenizer implementation and special-token handling are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered shared-vocabulary token positions"
+        ],
+        "contextual_role": "control_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Tokenized randomly paired control prompt.",
+        "node_id": "control_tokens",
+        "origin": "source_annotation",
+        "representation_type": "shared_vocabulary_token_ids",
+        "symbolic_shape": [
+          "n_control_prompt_tokens"
+        ],
+        "uncertainty": "The tokenizer implementation and special-token handling are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "response-token position",
+          "hidden feature coordinates"
+        ],
+        "contextual_role": "scorer_decoder_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Final hidden state associated with the yes/no response token.",
+        "node_id": "scorer_hidden_state",
+        "origin": "source_annotation",
+        "representation_type": "decoder_hidden_state",
+        "symbolic_shape": [
+          "response_token",
+          "hidden_features"
+        ],
+        "uncertainty": "The response-token receipt and decoder-state extraction are not fully specified."
+      },
+      {
+        "axis_semantics": [
+          "response-token position",
+          "hidden feature coordinates"
+        ],
+        "contextual_role": "control_decoder_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Final hidden state for a randomly paired evaluation control.",
+        "node_id": "control_hidden_state",
+        "origin": "source_annotation",
+        "representation_type": "decoder_hidden_state",
+        "symbolic_shape": [
+          "response_token",
+          "hidden_features"
+        ],
+        "uncertainty": "The control decoder's exact response-token receipt is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "continuous prediction"
+        ],
+        "contextual_role": "scorer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+            "section_id": "sec_0004"
+          }
+        ],
+        "information_content": "Continuous compound-phenotype match score.",
+        "node_id": "match_score",
+        "origin": "source_annotation",
+        "representation_type": "continuous_match_score",
+        "symbolic_shape": [
+          "prediction"
+        ],
+        "uncertainty": "The score calibration and exact classification-head output transformation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "binary prediction"
+        ],
+        "contextual_role": "scorer_binary_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "During inference, we use the output from the classification head as the final binary prediction.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Binary prediction supplied by the classification head.",
+        "node_id": "match_label",
+        "origin": "source_annotation",
+        "representation_type": "binary_match_prediction",
+        "symbolic_shape": [
+          "prediction"
+        ],
+        "uncertainty": "The paper does not establish that this binary output is thresholded from match_score."
+      },
+      {
+        "axis_semantics": [
+          "continuous prediction"
+        ],
+        "contextual_role": "control_scorer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly paired compound-phenotype  controls  ( Methods ),  non -hits  exhibited  significantly  higher match scores than random background",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Continuous match score for a randomly paired control.",
+        "node_id": "control_match_score",
+        "origin": "source_annotation",
+        "representation_type": "continuous_match_score",
+        "symbolic_shape": [
+          "prediction"
+        ],
+        "uncertainty": "Control-score calibration is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "candidate compounds",
+          "SMILES character or token positions"
+        ],
+        "contextual_role": "score_filtered_evaluation_candidates",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "increasing the score threshold progressively reduced the number of candidate molecules",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Candidate molecules retained after score-threshold filtering.",
+        "node_id": "generated_candidate_compounds",
+        "origin": "source_annotation",
+        "representation_type": "generated_smiles_candidate_collection",
+        "symbolic_shape": [
+          "candidate",
+          "smiles_positions"
+        ],
+        "uncertainty": "The candidate collection used for each threshold analysis is not further specified."
+      },
+      {
+        "axis_semantics": [
+          "candidate compounds"
+        ],
+        "contextual_role": "selection_control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "At a score threshold of 0.8, precision, reflecting the fraction of predicted 250 positives that correspond to true matches, reached 0.950 ( Fig. 3d ), demonstrating that 251 the scorer provides a reliable signal for compound-phenotype matching.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Candidate-level scorer values and threshold control.",
+        "node_id": "evaluation_candidate_scores",
+        "origin": "source_annotation",
+        "representation_type": "candidate_match_scores_and_threshold",
+        "symbolic_shape": [
+          "candidate"
+        ],
+        "uncertainty": "The complete threshold sweep and score alignment are not represented."
+      },
+      {
+        "axis_semantics": [
+          "candidate compounds"
+        ],
+        "contextual_role": "score_filtered_evaluation_candidates",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "increasing the score threshold progressively reduced the number of candidate molecules",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Candidates retained by the score filter.",
+        "node_id": "thresholded_candidates",
+        "origin": "source_annotation",
+        "representation_type": "score_filtered_candidate_set",
+        "symbolic_shape": [
+          "candidate"
+        ],
+        "uncertainty": "The exact threshold and candidate representation are analysis-specific."
+      }
+    ],
+    "open_questions": [
+      "Which exact prompt fields and delimiters are used for the compound and phenotype?",
+      "Is the scorer prompt tokenized jointly with the target yes/no response during evaluation?",
+      "What is the exact output transformation and calibration of the classification head?",
+      "How is the continuous score used for candidate filtering and top-K ranking?",
+      "Which exact candidate pool and molecular fingerprint implementation are used for evaluation control replacement?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "scorer_tokens",
+        "port_role": "scorer_prompt_tokens"
+      },
+      {
+        "node_id": "control_tokens",
+        "port_role": "random_control_prompt_tokens"
+      }
+    ],
+    "recipient_component": "NatureLM-derived scorer decoder and binary classification head",
+    "record_id": "full_2026-07-06__rec_003629",
+    "source_steps": [
+      {
+        "component": "Evaluation control-compound similarity filtering",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "First, we randomly selected candidate molecules  from  the  pool  of  valid  compounds  generated  for  other  test  samples.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To ensure structural dissimilarity and avoid trivial matches, candidate replacements were required to satisfy a structural constraint: the maximum Tanimoto similarity between any replacement molecule and the set of molecules originally generated for the target phenotype had to be below 0.4.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "evaluation_candidate_pool",
+            "port_role": "candidate_compound_pool"
+          },
+          {
+            "node_id": "target_phenotype_generated_compounds",
+            "port_role": "target_phenotype_similarity_context"
+          }
+        ],
+        "operation_type": "random_evaluation_control_selection",
+        "outputs": [
+          "random_control_compound"
+        ],
+        "step_id": "select_random_evaluation_control",
+        "uncertainty": "The target phenotype compound set is retained as similarity context and is not bound to a selectors port."
+      },
+      {
+        "component": "Compound-phenotype prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For both the generator and the scorer, the input and output take the form of natural language instructions and responses, following a standardized prompt-response interface  as  shown  in  Figure  S1.",
+            "section_id": "sec_0015"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The selected replacement compound was then paired with the target phenotype to form a randomly matched control sample.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "phenotype_signature",
+            "port_role": "phenotype_and_cell_context"
+          },
+          {
+            "node_id": "compound_smiles",
+            "port_role": "compound_representation"
+          },
+          {
+            "node_id": "random_control_compound",
+            "port_role": "replacement_compound_on_control_branch"
+          }
+        ],
+        "operation_type": "compound_phenotype_prompt_serialization",
+        "outputs": [
+          "scorer_prompt",
+          "control_prompt"
+        ],
+        "step_id": "serialize_scorer_prompts",
+        "uncertainty": null
+      },
+      {
+        "component": "Shared-vocabulary tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "It adopts a decoder-only Transformer architecture, analogous to GPT, and is trained autoregressively by representing all modalities as token sequences within a shared vocabulary.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "scorer_prompt",
+            "port_role": "serialized_prompt"
+          },
+          {
+            "node_id": "control_prompt",
+            "port_role": "serialized_control_prompt"
+          }
+        ],
+        "operation_type": "prompt_tokenization",
+        "outputs": [
+          "scorer_tokens",
+          "control_tokens"
+        ],
+        "step_id": "tokenize_scorer_prompts",
+        "uncertainty": null
+      },
+      {
+        "component": "NatureLM-derived scorer decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "scorer_tokens",
+            "port_role": "token_sequence"
+          }
+        ],
+        "operation_type": "decoder_hidden_state_extraction",
+        "outputs": [
+          "scorer_hidden_state"
+        ],
+        "step_id": "score_decoder",
+        "uncertainty": "The internal decoder and response-token receipt are opaque."
+      },
+      {
+        "component": "NatureLM-derived control scorer decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly paired compound-phenotype  controls  ( Methods ),  non -hits  exhibited  significantly  higher match scores than random background",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "control_tokens",
+            "port_role": "control_token_sequence"
+          }
+        ],
+        "operation_type": "decoder_hidden_state_extraction",
+        "outputs": [
+          "control_hidden_state"
+        ],
+        "step_id": "score_control_decoder",
+        "uncertainty": "The control decoder and response-token receipt are opaque."
+      },
+      {
+        "component": "Two-layer scorer MLP continuous-score head",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+            "section_id": "sec_0004"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, the final hidden state corresponding to the response token ('yes' or 'no')  was  passed  through  a  two-layer  multilayer  perceptron  (MLP;  hidden dimension = 2,048) for explicit binary classification.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "scorer_hidden_state",
+            "port_role": "hidden_representation"
+          }
+        ],
+        "operation_type": "continuous_binary_head_score",
+        "outputs": [
+          "match_score"
+        ],
+        "step_id": "classify_compound_phenotype_score",
+        "uncertainty": null
+      },
+      {
+        "component": "Two-layer scorer MLP control continuous-score head",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "randomly paired compound-phenotype  controls  ( Methods ),  non -hits  exhibited  significantly  higher match scores than random background",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "control_hidden_state",
+            "port_role": "hidden_representation"
+          }
+        ],
+        "operation_type": "continuous_control_score",
+        "outputs": [
+          "control_match_score"
+        ],
+        "step_id": "classify_control_score",
+        "uncertainty": null
+      },
+      {
+        "component": "Scorer binary classification head",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "During inference, we use the output from the classification head as the final binary prediction.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "  model  was  trained  to  produce  a  binary  response  ('yes'  or 'no')  for  each compound-phenotype pair, indicating whether the compound was predicted to reproduce the given transcriptomic change.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "scorer_hidden_state",
+            "port_role": "response_hidden_state"
+          }
+        ],
+        "operation_type": "binary_classification_head_output",
+        "outputs": [
+          "match_label"
+        ],
+        "step_id": "produce_binary_match_prediction",
+        "uncertainty": "The classification-head output is represented separately from the continuous scorer output."
+      },
+      {
+        "component": "Score-threshold candidate filtering",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "increasing the score threshold progressively reduced the number of candidate molecules",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "At a score threshold of 0.8, precision, reflecting the fraction of predicted 250 positives that correspond to true matches, reached 0.950 ( Fig. 3d ), demonstrating that 251 the scorer provides a reliable signal for compound-phenotype matching.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "generated_candidate_compounds",
+            "port_role": "candidate_compounds"
+          },
+          {
+            "node_id": "evaluation_candidate_scores",
+            "port_role": "score_values_and_threshold_control"
+          }
+        ],
+        "operation_type": "score_threshold_filtering",
+        "outputs": [
+          "thresholded_candidates"
+        ],
+        "step_id": "filter_candidates_by_score",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Compound-phenotype matching evaluation on true, generated non-hit, and randomly paired control compound-phenotype samples",
+    "trajectory_id": "scorer_evaluation"
+  }
+]

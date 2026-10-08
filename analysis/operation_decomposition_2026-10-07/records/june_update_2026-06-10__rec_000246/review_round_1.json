@@ -1,0 +1,167 @@
+{
+  "coverage_summary": "The core expression alignment, normalization, concatenation, projection, tokenization, lookup, and placeholder replacement are generally supported. The assembly requires revision because several documented training/evaluation branches and modality-specific paths are missing or incorrectly combined.",
+  "findings": [
+    {
+      "detail": "The trajectory claims DepMap essentiality, but its graph represents only paired single-cell perturbation profiles. DepMap essentiality uses a cell-line expression profile plus a queried gene and essentiality task.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "'Given this cell-line expression profile, is GENE essential for survival? Answer yes or no.'",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each cell line, CRISPR-derived Chronos gene-effect and gene dependency scores quantify the fitness consequence of individual gene knockouts, enabling binary essentiality labels at the (cell line, gene) level.",
+          "section_id": "sec_0036"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a distinct DepMap essentiality branch with the cell-line expression input and gene-specific essentiality query, or remove DepMap essentiality from this trajectory configuration. Do not represent it with the Replogle/Nadig paired perturbation-profile path.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "fine_tuning_perturbation_and_essentiality"
+    },
+    {
+      "detail": "The training corpus documents additional DepMap/Cellosaurus cell-line genomics tasks involving expression profiles, copy-number alterations, mutations, disease, lineage, and anatomical site, but no corresponding model-input branch is present.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Tasks linking expression profiles of cancer cell lines to copy-number alterations, mutated cancer genes, oncogenes, tumor suppressors, disease, lineage, and anatomical site",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "table",
+          "quote": "Which cancer genes have a copy number gain in cell line WM35, sorted alphabetically?",
+          "section_id": "sec_0055"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented cell-line genomics branches, including their expression-profile or text-only inputs as applicable, rather than covering them only under generic biological-knowledge QA.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "fine_tuning_text_biological_knowledge"
+    },
+    {
+      "detail": "The evaluation trajectory binds all profile-level benchmarks to a bulk TPM input, although Tabula Sapiens is a single-cell benchmark. This conflicts with the paper's explicit count-derived single-cell versus TPM bulk distinction.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Tabula Sapiens (GEO) [The Tabula Sapiens Consortium, 2022] | 483,152 | 19,260 | - | scRNA-seq",
+          "section_id": "sec_0031"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For single-cell datasets, we retained raw count data prior to normalization, while for bulk expression datasets, we used precomputed transcripts per million (TPM) values.",
+          "section_id": "sec_0029"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The input-scale indicator distinguishes count-derived single-cell profiles from Transcripts Per Million (TPM) normalized bulk RNA-seq profiles",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Split the evaluation path into a single-cell Tabula Sapiens branch and bulk GTEx/Human Diseases branches, with the corresponding source representation and input-scale indicator.",
+      "severity": "blocking",
+      "step_id": "prepare_omics",
+      "trajectory_id": "evaluation_profile_level_benchmarks"
+    },
+    {
+      "detail": "The GEO trajectory always constructs a continuous omics path, but the documented Description-to-top-genes task supplies a natural-language sample description and contains no omics placeholder. A text-only bypass or separate branch is missing.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Description of the sample: Human epidermal keratinocytes from neonates (nHEK) stimulated with TWEAK (100 ng/ml) and IL-17A (100 ng/ml). Identify the 134 genes with the highest expression levels in this sample.",
+          "section_id": "sec_0055"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented text-only GEO branch, or explicitly restrict the current trajectory to GEO tasks whose prompts contain expression-profile placeholders.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "fine_tuning_geo_sample_description"
+    },
+    {
+      "detail": "The biological-knowledge trajectory treats biological_context as a separately supplied serializer input and asserts that it precedes the question. The paper establishes that graphs and databases are used to construct natural-language tasks, but does not establish a separate received context operand or that ordering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "pathway graphs, protein-protein interaction (PPI) networks, and gene set collections do not provide transcriptomic profiles; they are used solely to construct natural-language graph-reasoning tasks",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "table",
+          "quote": "What are possible locations of protein RFPL4A?",
+          "section_id": "sec_0055"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Represent the documented natural-language task as the model-visible input. Remove the separate biological_context port and the asserted context-before-question ordering unless source text establishes them; retain the upstream knowledge construction as an opaque boundary if needed.",
+      "severity": "blocking",
+      "step_id": "serialize_biological_task",
+      "trajectory_id": "fine_tuning_text_biological_knowledge"
+    },
+    {
+      "detail": "The evaluation assembly omits the documented GEO-OmicsQA benchmark, including multi-sample prompts, standard/minimal variants, and contextual/simple free-text variants.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The evaluation benchmark contains 3,000 held-out examples, split between binary QA and free-text generation.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Text-only baselines receive the 50 highest-expressed genes per sample... OmicsLM instead receives <omics> placeholders with matched embeddings.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The placeholder <omics> denotes a transcriptomic expression embedding injected at that position; × N indicates N replicate sample embeddings.",
+          "section_id": "sec_0047"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an evaluation GEO-OmicsQA trajectory or branch with multiple aligned profile embeddings, placeholder multiplicity, and the documented standard/minimal and contextual/simple prompt variants.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "evaluation_profile_level_benchmarks"
+    },
+    {
+      "detail": "The evaluation assembly omits the documented X-Atlas/Orion perturbation benchmark. The existing perturbation trajectory is fine-tuning only and cannot substitute for this evaluation-phase control-profile input path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We evaluate perturbation-response prediction on the X-Atlas/Orion benchmark",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "given the unperturbed control expression profile as input, each model is asked to generate the ranked list of most highly expressed protein-coding genes in the perturbed cell.",
+          "section_id": "sec_0044"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an evaluation-phase perturbation trajectory with the unperturbed control profile, target-gene prompt context, and the corresponding projected omics placeholder input.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "fine_tuning_perturbation_and_essentiality"
+    },
+    {
+      "detail": "The prompt serialization steps retain only a generic standardized conversational format, while the paper specifies the Qwen3-VL no-thinking template used for training.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OmicsLM uses the Qwen3-8B backbone with the Qwen3-VL no-thinking template",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the Qwen3-VL no-thinking template as the documented serialization/template parameter for the applicable fine-tuning and evaluation prompt paths, while leaving exact delimiters unresolved.",
+      "severity": "minor",
+      "step_id": "serialize_prompt",
+      "trajectory_id": "fine_tuning_single_cell_annotation"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000246",
+  "verdict": "revise"
+}

@@ -1,0 +1,287 @@
+{
+  "coverage_summary": "Reviewed all three reconstructed trajectories. Opaque encoder boundaries are generally appropriate, but several calls assert unsupported attention/reshape operations, omit documented preprocessing branches, bind token IDs directly to embedding-state updates, and omit major training and evaluation paths.",
+  "findings": [
+    {
+      "detail": "The step invents a separate Stage I preprocessing boundary and outputs visual_features, while the next visual-encoder step independently consumes histology_image and produces the same node. The paper documents modality-specific encoding, not this intermediate preprocessing/output path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, the input histological images and gene expression profiles are processed by modality-specific encoders.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The first stage adapted the visual branch and language backbone to pathology image-text semantics.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Remove the unsupported separate preprocessing step or represent one opaque visual-branch boundary with correctly connected input and output nodes.",
+      "severity": "blocking",
+      "step_id": "prepare_histology_image",
+      "trajectory_id": "stage_i_image_text_pretraining"
+    },
+    {
+      "detail": "The visual resampler is decomposed as cross-attention with learned query and key/value ports, although the paper only states that a resampler converts visual features into a fixed number of tokens. Its internal computation and query representation are unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Visual features are converted into a fixed number of vision virtual tokens through a visual encoder and a resampler module.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Retain the visual resampler as an opaque operation_id:null boundary, or add only operations explicitly established by the paper.",
+      "severity": "blocking",
+      "step_id": "resample_visual_features",
+      "trajectory_id": "stage_i_image_text_pretraining"
+    },
+    {
+      "detail": "The update call uses text_token_ids as its state but claims to produce a language-hidden embedding sequence. The paper supports placeholder replacement after projection, but the required text embedding/state conversion is absent from the graph.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The virtual tokens are then projected into the hidden dimension of the language model and inserted into placeholders, thereby forming a unified input embedding sequence.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the text embedding/state boundary explicitly if supported, or keep the replacement output representation consistent with the documented input state.",
+      "severity": "blocking",
+      "step_id": "insert_visual_tokens",
+      "trajectory_id": "stage_i_image_text_pretraining"
+    },
+    {
+      "detail": "The fixed-dimensional gene-interface conversion is represented as reshape even though the record explicitly acknowledges that the paper does not establish a literal reshape. This invents an operation type.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The processed expression vector was converted into the fixed-dimensional representation expected by the gene encoder.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Use an opaque operation_id:null interface-conversion boundary unless the source establishes reshape semantics.",
+      "severity": "blocking",
+      "step_id": "prepare_gene_encoder_input",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The Q-Former is decomposed as cross-attention with an explicit query/key-value binding, but the source states only that it compresses the molecular representation into 32 query virtual tokens. The exact attention computation, masking, schedule and query parameter interface are unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the gene encoder first maps the gene expression profile into molecular embeddings, the Q-Former compresses the molecular representation into 32 query virtual tokens",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Keep the Q-Former as an opaque module boundary while retaining the documented 32-token output.",
+      "severity": "blocking",
+      "step_id": "compress_gene_embeddings",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "As in Stage I, the placeholder update binds text_token_ids directly to a language-hidden output sequence without representing the text embedding/state boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The resulting visual and molecular token spans replace reserved modality placeholders in the input sequence, allowing image, gene and text tokens to be jointly processed by the same decoder-based generative backbone.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Correct the state representation or add a supported opaque text-embedding boundary before placeholder replacement.",
+      "severity": "blocking",
+      "step_id": "insert_gene_tokens",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The spot preprocessing step has spot_image_patch as both input and output and omits the corresponding tissue image, spot coordinates, registration context, and documented conditional background/tissue-mask filtering. The stated transformation is therefore not represented as a valid graph path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A square histology patch centred on each spot was extracted from the corresponding tissue image and resized to the input resolution required by the visual encoder.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "When tissue masks were provided by the dataset, patches with substantial background or tissue-fold artefacts were excluded using the available masks.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "When tissue masks were unavailable, background filtering was performed using intensity- and saturation-based heuristics followed by manual spot checks on representative slides.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent the source image and coordinate-registration context, preserve the mask-available versus mask-unavailable branches, and produce a distinct resized/model-input node.",
+      "severity": "blocking",
+      "step_id": "prepare_spot_image",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III visual resampler again asserts cross-attention and an implicit query input that the paper does not establish.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Visual features are converted into a fixed number of vision virtual tokens through a visual encoder and a resampler module.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Use an opaque resampler boundary unless the source explicitly documents cross-attention and its ports.",
+      "severity": "blocking",
+      "step_id": "resample_tri_modal_image",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The gene preprocessing call combines library-size normalization, log transformation and vocabulary filtering into one normalize operation. The paper states these operations and their order separately; the graph also lacks the vocabulary resource and filtering call.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For count-based spatial transcriptomics data, raw counts were normalized for library size, logtransformed and mapped to a common gene-symbol vocabulary whenever possible.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Genes outside the gene encoder vocabulary were omitted from model input.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Decompose this path into normalize, log_transform and select calls with intermediate nodes and an explicit vocabulary operand.",
+      "severity": "blocking",
+      "step_id": "prepare_tri_modal_gene_input",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III Q-Former is decomposed as cross-attention despite the source leaving its internal computation unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the Q-Former compresses the molecular representation into 32 query virtual tokens",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Retain the Q-Former as an opaque boundary with the documented 32-token result.",
+      "severity": "blocking",
+      "step_id": "compress_tri_modal_gene",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The graph serializes gene placeholder replacement before visual placeholder replacement and creates an intermediate state, while the paper does not establish that order. The record itself acknowledges the uncertainty but still asserts the sequence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The resulting visual and molecular token spans replace reserved modality placeholders in the input sequence",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The final multimodal sequence consists of text tokens, optional visual virtual tokens and optional gene virtual tokens, followed by answer tokens for autoregressive decoding.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Represent joint placeholder replacement as an unresolved boundary or preserve parallel alternatives without asserting gene-first ordering.",
+      "severity": "blocking",
+      "step_id": "insert_tri_modal_gene_tokens",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "Stage III omits the documented image-only and gene-only conditional input branches and reconstructs only the joint paired path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During this stage, the model was trained on image-only, gene-only and joint imagegene input formats to support flexible downstream use.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This design allows SciCore-Omics to operate under image-only, gene-only or joint image-gene input settings",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented image-only, gene-only and joint branches, preserving modality-optional placeholder behavior.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "All training trajectories stop at prompt construction and omit the documented answer-token/target branch used for autoregressive training. The exact serialization is unknown, but the branch itself is stated and should remain represented as an opaque target boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The final multimodal sequence consists of text tokens, optional visual virtual tokens and optional gene virtual tokens, followed by answer tokens for autoregressive decoding.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Reinforcement learning was applied only to answer tokens.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an unresolved answer-token/target branch with unknown serialization and teacher-forcing details.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The reconstruction omits the post-curriculum offline reward-weighted refinement phase, including its fixed-response answer path and rule-based quality conditioning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "After the three-stage multimodal alignment curriculum, we applied a lightweight offline reward-weighted reinforcement learning step",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "each training instance contained a fixed response from curated instruction-style data",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a separate post-Stage-III refinement trajectory or explicitly document why it is outside the reviewed model lifecycle.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The reconstruction omits documented evaluation/inference paths: visual embeddings into a regression head, image/gene/joint embeddings into a classification head, zero-shot closed-set classification, PathVQA, and whole-slide case-level inference.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we trained a lightweight regression head on top of SciCore-Omics visual embeddings",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "frozen model embeddings were extracted from image-only, gene-only or joint image-gene input and passed to a lightweight classification head",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each image, the model was given a dataset-specific closed set of candidate class names and instructed to return exactly one class label.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "High-magnification patches were then selected from these regions for local morphological assessment.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add evaluation and inference trajectories for the documented downstream tasks and whole-slide workflow, including their receiving heads, selection stages and lifecycle phases.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000148",
+  "verdict": "revise"
+}

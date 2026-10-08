@@ -1,0 +1,52 @@
+{
+  "coverage_summary": "Most feature-extraction, graph-construction, VGAE, evaluation, and ablation boundaries are appropriately left opaque where equations are unavailable. Two blocking omissions affect documented training inputs and fine-tuning state.",
+  "findings": [
+    {
+      "detail": "The pretraining graph path omits the documented graph-level train/evaluation split and the per-training-graph edge split. Consequently, the GIN step does not distinguish propagation edges from parameter-update edges, and the connected training objective lacks the corresponding target branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For Shusi, our comprehensive dataset consisted of 75,010 cell graphs. We randomly shuffled these graphs and designated 80% for pre-training, while using the remaining 20% for evaluation-maintaining consistency with the evaluation set used for baseline models.",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each training cell graph, we employed a similar edge allocation strategy, using 80% of edges for information propagation and 20% for parameter updates.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented graph-level selection and training-edge partition. Bind propagation edges to the GIN encoder and parameter-update edges to the training-objective/update path, preserving the 80%/20% allocations.",
+      "severity": "blocking",
+      "step_id": "gin_message_passing",
+      "trajectory_id": "shusi_pretraining_graph_encoder"
+    },
+    {
+      "detail": "The AML fine-tuning path receives pretrained node features but no pretrained Shusi model state. The paper describes fine-tuning after pretraining while retaining the pretrained model architecture and representations; features and model parameters are distinct resources.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "After pre-training Shusi on 80% of our comprehensive single cell graph dataset, we implemented a targeted fine-tuning approach for AML applications.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Our fine-tuning methodology maintained the architectural integrity of the pretrained model while adapting it to AML-specific cellular contexts.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The fine-tuning process retained representations established during pre-training, continuing to leverage the concatenated features from Galactica and Sentence-BERT that yield 4864-dimensional node features.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an opaque pretrained Shusi model-state input to the AML adaptation boundary, separate from the retained pretrained feature matrix, and show the adapted state as its update output.",
+      "severity": "blocking",
+      "step_id": "fine_tune_shusi_on_aml",
+      "trajectory_id": "shusi_aml_fine_tuning"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001200",
+  "verdict": "revise"
+}

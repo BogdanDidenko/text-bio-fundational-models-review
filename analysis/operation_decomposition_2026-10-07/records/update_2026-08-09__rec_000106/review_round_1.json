@@ -1,0 +1,257 @@
+{
+  "coverage_summary": "All 10 trajectories were reviewed. Several documented branches, aggregation steps, parameter identities, and port bindings are missing or unsupported.",
+  "findings": [
+    {
+      "detail": "Zero-padding is bound directly to `pretraining_image`, even though the paper places padding after segmentation and cropping. The graph also lacks the cropped, potentially non-square intermediate.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following segmentation, each cell region is cropped from the original image, and zero padding is applied to produce square images.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add the cropped-cell intermediate and bind padding to it; retain the documented bypass for inputs already supplied as cell instances.",
+      "severity": "blocking",
+      "step_id": "pad_pretraining_image",
+      "trajectory_id": "pretraining_image_encoder"
+    },
+    {
+      "detail": "The alignment objective is collapsed into one generic opaque step and does not preserve the documented ITC, ITG, and ITM branches, their distinct masks, text-generation path, matching classifier, or hard-negative mining.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A unimodal self-attention mask prevents direct interaction between queries and text during this objective, ensuring the queries extract visual information independently.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Multimodal causal attention masks control the interactions, allowing queries to attend to each other and text tokens to attend to all queries and previous tokens.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each output query embedding Z, a linear classifier produces a logit... Hard negative mining is applied to select informative unmatched pairs.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the three documented objective branches as separate opaque paths or preserve their distinct operands, masks, outputs, and state updates within the boundary.",
+      "severity": "blocking",
+      "step_id": "apply_alignment_objectives",
+      "trajectory_id": "pretraining_alignment_qformer"
+    },
+    {
+      "detail": "The Q-Former call is represented only as visual query extraction, although the paper documents a text-transformer subcomponent capable of encoding and decoding textual information. No text-token branch is connected to the Q-Former or its generation/matching modes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The module consists of two transformer subcomponents sharing the same self-attention layers: an image transformer that processes visual features from the frozen encoder, and a text transformer capable of encoding or decoding textual information.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The ITG objective trains the model to generate textual descriptions conditioned on image features.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Preserve the documented text-transformer branch and its text-token inputs as part of the opaque Q-Former/alignment boundary.",
+      "severity": "blocking",
+      "step_id": "extract_alignment_query_outputs",
+      "trajectory_id": "pretraining_alignment_qformer"
+    },
+    {
+      "detail": "The reconstruction Q-Former is marked as having uncertain parameter sharing, while the paper explicitly states that it shares parameters with the image-text alignment Q-Former.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These masked embeddings are fed into a shared-weight Q-Former, which operates identically to the main Q-Former used for image-text alignment.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Importantly, the reconstruction pathway shares parameters with the image-text alignment Q-Former, ensuring that both objectives jointly shape a unified representation space.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Record explicit parameter sharing between the reconstruction and alignment Q-Former modules; do not leave it as unresolved uncertainty.",
+      "severity": "blocking",
+      "step_id": "encode_masked_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The graph creates `unmasked_visual_memory` but does not connect it to the decoder. Instead, it projects `masked_visual_tokens` and uses that result as decoder memory. The paper contains two descriptions of this memory source, so the reconstruction should preserve the inconsistency rather than silently select one and leave the other branch unused.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The decoder operates over a low-dimensional bottleneck, where the masked tokens are reconstructed using cross-attention to the unmasked memory from the image encoder.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The masked visual embeddings are projected into the Q-Former hidden space and used as memory inputs to a lightweight Transformer decoder.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the documented memory-source ambiguity explicitly, or bind the decoder to the source established by the verified implementation; do not leave the unmasked-memory node disconnected.",
+      "severity": "blocking",
+      "step_id": "decode_masked_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The decoder output is modeled with a query axis, but the reconstructed output is changed to `n_masked` positions without a documented mapping from query outputs to masked token positions. The formal description gives the reconstruction prediction a Q-query axis.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The reconstruction predictions are denoted as X̂ ∈ ℝ B×Q×Dᵥ.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The decoder takes the Q-Former query outputs as target sequences and attends to the projected visual memory to predict the masked visual token representations.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Retain the documented query-axis output or add an explicitly unresolved mapping; do not assert an `n_masked` output axis without source support.",
+      "severity": "blocking",
+      "step_id": "project_reconstruction",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The reconstruction trajectory ends at predicted visual tokens and omits the documented masked-position reconstruction loss and its joint optimization with the alignment objectives.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The reconstruction loss is computed only over the masked positions.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Reconstruction loss is computed only on masked tokens, using a smooth L1 loss between the predicted and original visual embeddings.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque reconstruction-objective step receiving predictions, original visual features, and the mask, with smooth-L1 and masked-position semantics preserved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The classification trajectory omits the documented conditional preprocessing for full-field datasets and the second aggregation from single-cell representations to image-level features. Its only aggregation is the mean over Q-Former queries.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For cell classification tasks, datasets containing full-field microscopy images are first processed by cell segmentation to obtain single-cell images. Single-cell representations are extracted using the pretrained models and then aggregated by average pooling to obtain image-level features.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the full-field segmentation branch and a separate cell-to-image average aggregation before the classifier; distinguish it from query-level mean pooling.",
+      "severity": "blocking",
+      "step_id": "encode_classification_image",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The clustering trajectory omits the documented channel-wise averaging used to produce a consistent feature length for multi-channel datasets.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For multi-channel datasets with varying feature dimensionality, channel-wise features are first averaged to ensure a consistent feature length across datasets.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the multi-channel feature branch and its channel-wise averaging before the KMeans input.",
+      "severity": "blocking",
+      "step_id": "extract_clustering_representations",
+      "trajectory_id": "evaluation_cell_clustering"
+    },
+    {
+      "detail": "The graph omits the class-balanced subsampling branch used for clustering visualization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Because datasets differ in sample size, we perform classbalanced subsampling for visualization, with up to 600 samples per dataset.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Record the source-defined visualization-only selection branch separately from the full clustering input.",
+      "severity": "minor",
+      "step_id": "cluster_image_representations",
+      "trajectory_id": "evaluation_cell_clustering"
+    },
+    {
+      "detail": "The perturbation trajectory sends segmented single-cell images directly to image-level features, omitting the explicitly documented average aggregation from single-cell features to image-level features.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Image-level features are obtained by average aggregation of single-cell features.",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Insert an intermediate image/site-level feature node and an opaque mean-aggregation step before sphering normalization.",
+      "severity": "blocking",
+      "step_id": "extract_perturbation_cell_features",
+      "trajectory_id": "evaluation_perturbation_inference"
+    },
+    {
+      "detail": "The batch-correction preparation uses self-referential bypasses on `batch_image_features` and provides no single-cell representation input for the drug-perturbation averaging route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For single-cell datasets, each image corresponds directly to a single feature vector, whereas for drug perturbation datasets, image-level features are obtained by averaging single-cell representations.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Create separate conditional inputs: direct image features for single-cell datasets and averaged single-cell representations for perturbation datasets.",
+      "severity": "blocking",
+      "step_id": "prepare_batch_features",
+      "trajectory_id": "evaluation_batch_correction"
+    },
+    {
+      "detail": "IMAD is bound directly to UMAP coordinates, but the paper defines it using feature distances across experimental batches and does not establish that the distances are computed on the UMAP output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Batch correction is conducted using joint embedding visualization with UMAP [72].",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Inverse Median Absolute Deviation (IMAD) is defined as the inverse of the median absolute deviation (MAD) of feature distances measured across experimental batches.",
+          "section_id": "sec_0036"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Bind IMAD to the documented feature-distance representation or preserve the coordinate basis as unresolved within an opaque evaluation boundary.",
+      "severity": "blocking",
+      "step_id": "evaluate_batch_effect",
+      "trajectory_id": "evaluation_batch_correction"
+    },
+    {
+      "detail": "The concatenation call sets `order` to `source channel order`, although the paper states concatenation but does not document the channel ordering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The resulting channel-specific feature vectors are then concatenated to form the final image representation, yielding a feature dimension of n × 768, where n denotes the number of imaging channels.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set concatenation order to unspecified unless the source or implementation establishes it.",
+      "severity": "blocking",
+      "step_id": "concatenate_channel_features",
+      "trajectory_id": "evaluation_multichannel_representation"
+    }
+  ],
+  "record_id": "update_2026-08-09__rec_000106",
+  "verdict": "revise"
+}

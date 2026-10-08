@@ -1,0 +1,127 @@
+{
+  "coverage_summary": "The submission covers gene ranking, cell-sentence serialization, and distance-weighted traversal for one fine-tuning trajectory. It omits spatial-sentence assembly, tokenization, anchor selection, and the six other documented routes.",
+  "findings": [
+    {
+      "detail": "Only one trajectory is supplied although the paper documents conditional and unconditional cell generation, quantitative expression reconstruction, neighborhood-composition perturbation, genetic perturbation, and conversational Q&A fine-tuning/inference.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Predicting effects of genetic perturbation: TISSUENARRATOR predicts a target cell given an edited or perturbed neighboring cell",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add separate evidence-backed trajectories for conditional generation, unconditional generation, neighborhood perturbation, genetic perturbation, quantitative rank-to-expression reconstruction, and conversational Q&A fine-tuning/inference.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The graph creates spatial_sentences but contains no operation that assembles cell_sentences in traversal order. This is a documented transformation and leaves the main model-input node disconnected.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All cell sentences in a tissue patch are then assembled into a 1D 'spatial sentence', where cells are serialized by proximitybased traversal.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an assembly/concatenation step linking cell_sentences and traversal_order to spatial_sentences, with the documented traversal order preserved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The graph creates spatial_sentence_tokens and declares them as the receiving input, but no tokenize operation connects spatial_sentences to spatial_sentence_tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each spatial sentence S j is tokenized into tokens w 1 , w 2 , . . . , w T",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a tokenize call from spatial_sentences to spatial_sentence_tokens and leave vocabulary and special-token behavior unspecified because the paper does not provide them.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The serialize_cells invocation asserts the order “coordinates, optional metadata, ranked gene sentence,” but the supplied paper text only identifies these components; the formula defining their order is unavailable.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, in TISSUENARRATOR each cell is represented as a cell sentence ( Fig. 1A):",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the asserted field order or mark it unresolved unless the source formula or supplementary example establishes that order.",
+      "severity": "blocking",
+      "step_id": "serialize_cells",
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The paper explicitly documents random selection among five anchors, but the graph folds that transformation into the sampling invocation and states that no catalog operation exists even though select is available.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Traversal begins by randomly selecting one of five anchor points - the geometric center or the four corners.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent anchor selection as a documented select operation, or explicitly retain it as a source-defined boundary with the existing select primitive considered and rejected.",
+      "severity": "blocking",
+      "step_id": "traverse_neighborhood",
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    },
+    {
+      "detail": "The rank call binds both values and identifiers to the gene_expression node, whose declared content is measured expression values. Gene symbols are required to produce the ranked gene-symbol sequence, but no identifier operand is represented separately or identified as metadata on that node.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the gene-symbol identifier axis explicitly, or document that gene identifiers are metadata carried by gene_expression rather than binding the expression-value node directly to the identifiers port.",
+      "severity": "minor",
+      "step_id": "rank_genes",
+      "trajectory_id": "spatial_sentence_fine_tuning"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000063",
+  "verdict": "revise"
+}

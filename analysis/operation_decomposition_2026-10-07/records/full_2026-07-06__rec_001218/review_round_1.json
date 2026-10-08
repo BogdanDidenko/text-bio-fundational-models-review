@@ -1,0 +1,232 @@
+{
+  "coverage_summary": "Coverage includes pretraining, four downstream tasks, and two ablations. Several documented transformations and training branches are missing or incorrectly represented.",
+  "findings": [
+    {
+      "detail": "The graph does not preserve conditional execution for missing modalities: encoder and expert steps are unconditional, while only later concatenation is conditional.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ALTER enables pretraining with any subset of three modalities-whole slide images, genomic profiles, and diagnostic reports",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "if x h is available then ... if x g is available then ... if x t is available then",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add modality-availability conditions or bypasses to each encoder, fusion branch, and expert branch; preserve the no-imputation behavior.",
+      "severity": "blocking",
+      "step_id": "encode_wsi_patches",
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The paper documents arithmetic mean aggregation, but the graph leaves this transformation as an opaque null operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented region-wise mean with a source-backed aggregation operation or an explicit catalog extension.",
+      "severity": "blocking",
+      "step_id": "aggregate_wsi_regions",
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The flattening step and the subsequent CLS concatenation both write to wsi_fusion_features, so the flattened intermediate is overwritten and the graph does not distinguish pre-concatenation from final output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Introduce a separate flattened-region node, then concatenate that node with slide_cls to produce wsi_fusion_features.",
+      "severity": "blocking",
+      "step_id": "append_wsi_cls",
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The concatenation order is asserted as region sequence followed by CLS, although the paper only says that the two are concatenated.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Leave concatenation order unspecified unless the unavailable formula establishes it.",
+      "severity": "minor",
+      "step_id": "append_wsi_cls",
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The modality-specific expert steps do not expose the documented residual addition f_F(F') + F'. Their outputs are concatenated without a traceable per-modality addition.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These are defined as F′′ = fF(F′) + F′",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an explicit add call for each expert branch, or label each opaque expert boundary output as the complete residual F′′ and preserve that semantics.",
+      "severity": "blocking",
+      "step_id": "wsi_expert",
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The pretraining graph omits the documented MLM branch for WSI regions, gene-expression values, and reports, including periodic random modality selection.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We randomly select some regions to mask and use the mean of the original features within the regions as labels. For omics, we randomly mask a certain proportion of gene expression values in each pathway. For reports, we adopt the original MLM approach.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "after every 10 epochs, we randomly select a modality to perform the MLM task",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the conditional MLM branches, their masking inputs/labels, and the every-10-epochs random modality-selection condition.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The pretraining graph also omits the inter-modal CLIP branch and inter-sample triplet branch based on modality/sample CLS representations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Given the [CLS] tokens set (h (1), g (1), t (1)), we construct CLIP loss between the three pairs",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we concatenate the [CLS] tokens of a sample to obtain a sample-level [CLS] token",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented CLS-pair contrastive branch and sample-level CLS concatenation/triplet branch, or explicitly scope them outside this assembly.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The paper documents uniform standardization for every modality, but no normalization call or bypass is present.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For all models, the data from each modality is standardized uniformly",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add normalization invocations before the relevant modality encoders, leaving method and axes unspecified if the paper does not define them.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "alter_pretraining_any_subset"
+    },
+    {
+      "detail": "The survival trajectory collapses the documented WSI and omics encoder paths into opaque operations even though the paper specifies patch tiling, UNI extraction, TransMIL/region aggregation, Gene2Vec filtering, discretization, and pathway pooling.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Then we adopt a pretrained patch encoder UNI [6] ... to extract patch-level features.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we divide the 2-D feature map into nonoverlapping regions ... replace the features of each region with the mean",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We preserve genes from the Gene2Vec vocabulary to filter out a set of genes",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Finally, each pathway is pooled to obtain the aggregated gene features",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Reuse or explicitly reference the documented encoder operation chains instead of replacing them with unexpanded task-level boundaries.",
+      "severity": "blocking",
+      "step_id": "survival_encode_wsi",
+      "trajectory_id": "alter_finetuning_survival"
+    },
+    {
+      "detail": "The cancer-subtyping trajectory similarly omits the documented WSI preprocessing and encoder operations by replacing them with one opaque boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we decompose the informative regions of each WSI into a set of non-overlapping 256 × 256 pixels patches",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Then we adopt a pretrained patch encoder UNI [6] ... to extract patch-level features.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In the end, we reshape H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Reuse or explicitly reference the documented WSI encoder chain before the frozen fusion layers.",
+      "severity": "blocking",
+      "step_id": "subtyping_encode_wsi",
+      "trajectory_id": "alter_finetuning_cancer_subtyping"
+    },
+    {
+      "detail": "The mutation-prediction trajectory omits the same documented WSI tiling, UNI extraction, TransMIL, spatial aggregation, and CLS-concatenation operations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use a subset, lung adenocarcinoma (LUAD) ... to predict TP53 and EGFR gene mutation from lung adenocarcinoma WSIs.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Then we adopt a pretrained patch encoder UNI [6] ... to extract patch-level features.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Reuse or explicitly reference the documented WSI encoder chain rather than representing it only as encode_and_aggregate_wsi_for_mutation_prediction.",
+      "severity": "blocking",
+      "step_id": "mutation_encode_wsi",
+      "trajectory_id": "alter_finetuning_gene_mutation"
+    },
+    {
+      "detail": "The pathology-only ablation adds a reshape operation that the cited source does not document; the source only states that a unimodal pathology variant is trained.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we train unimodal variants of ALTER using either pathology images or omics data alone",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Remove the reshape call or replace it with the documented inherited WSI encoder chain and an explicit unimodal receipt boundary.",
+      "severity": "blocking",
+      "step_id": "wsi_only_prepare_input",
+      "trajectory_id": "alter_ablation_pathology_only_pretraining"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001218",
+  "verdict": "revise"
+}

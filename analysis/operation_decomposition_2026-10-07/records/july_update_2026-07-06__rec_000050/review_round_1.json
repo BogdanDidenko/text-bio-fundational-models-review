@@ -1,0 +1,152 @@
+{
+  "coverage_summary": "The main modality routes are represented, but the graph omits documented length caps, applies an unsupported shared tokenizer route to Gemma, misbinds the ESM-3 input, uses concatenation for unresolved protein placeholder insertion, and omits the protein-RL interaction-context condition.",
+  "findings": [
+    {
+      "detail": "The DNA route clips the DNA sequence but omits the separately documented 1024-token text-length cap.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The maximum DNA sequence length is 2048 nucleotides and the maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented text-length selection/cap after tokenization or preserve it as an explicit input constraint.",
+      "severity": "blocking",
+      "step_id": "tokenize_text",
+      "trajectory_id": "dna_qwen17_finetuning"
+    },
+    {
+      "detail": "The DNA route omits the documented text-length cap for the shared Qwen1.7B/Qwen4B configuration.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The maximum DNA sequence length is 2048 nucleotides and the maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the 1024-token text cap to the text-input path.",
+      "severity": "blocking",
+      "step_id": "tokenize_text",
+      "trajectory_id": "dna_qwen17_qwen4_finetuning"
+    },
+    {
+      "detail": "The CPT graph tokenizes the corpus but omits the documented maximum input length of 1024 tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Inputs are tokenized with a maximum length of 1024 tokens.",
+          "section_id": "sec_0033"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented 1024-token cap as a selection/truncation constraint after tokenization.",
+      "severity": "blocking",
+      "step_id": "tokenize_cpt_text",
+      "trajectory_id": "cpt_qwen1p7_qwen4"
+    },
+    {
+      "detail": "The RNA trajectory applies a generic native-tokenizer and shared embedding-table route to Gemma, although the cited tokenizer statement documents only Qwen3. Gemma is merely identified as a separate backbone ablation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The text backbones for RNA CPT, SFT, and RL are Qwen3-1.7B and Qwen34B, loaded with their native tokenizers [75].",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Split the Qwen and Gemma routes or leave Gemma tokenizer/embedding behavior unresolved; do not assert a shared tokenizer vocabulary or table.",
+      "severity": "blocking",
+      "step_id": "tokenize_rna_prompt",
+      "trajectory_id": "rna_multibackbone_finetuning"
+    },
+    {
+      "detail": "The RNA graph omits the documented 1024-token maximum text length.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the 1024-token cap to the RNA text path.",
+      "severity": "blocking",
+      "step_id": "tokenize_rna_prompt",
+      "trajectory_id": "rna_multibackbone_finetuning"
+    },
+    {
+      "detail": "The opaque ESM-3 encoder is bound to protein_text_context, which conflates the textual prompt with the amino-acid sequence that supplies per-residue encoder inputs. No concrete protein-sequence node is present.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Both the SFT and RL prompts concatenate (i) a system instruction describing the task and available biological context, (ii) a header containing the protein name, organism, and amino-acid sequence, and (iii) a user instruction asking the model to emit GO identifiers across the molecular function, biological process, and cellular component aspects [89].",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+          "section_id": "sec_0032"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add a protein amino-acid sequence node and bind it to the opaque ESM-3 boundary; keep organism, InterPro, interaction, and GO context on the prompt-serialization path.",
+      "severity": "blocking",
+      "step_id": "encode_protein",
+      "trajectory_id": "protein_qwen_finetuning"
+    },
+    {
+      "detail": "The protein placeholder step uses concatenate even though the paper states insertion at placeholder positions and the exact variable-length replacement mechanics are unresolved. Concatenating the full placeholder-bearing text embeddings with protein features can duplicate placeholders and is unsupported.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+          "section_id": "sec_0032"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent this as an unresolved opaque insertion/replacement boundary, or use a documented indexed-update representation only if the exact mechanics are established; remove the concatenate call.",
+      "severity": "blocking",
+      "step_id": "insert_protein_features",
+      "trajectory_id": "protein_qwen_finetuning"
+    },
+    {
+      "detail": "The protein graph treats interaction context as generally available, but the paper explicitly excludes protein-protein interactions from the protein RL prompt.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We include InterPro features in the prompt but exclude protein-protein interactions [74, 90].",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a lifecycle-conditioned bypass for protein-protein interaction context on the RL route while preserving the documented SFT context.",
+      "severity": "blocking",
+      "step_id": "serialize_protein_prompt",
+      "trajectory_id": "protein_qwen_finetuning"
+    },
+    {
+      "detail": "The protein route omits the documented maximum text and protein sequence lengths.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The maximum text sequence length is 10 , 000 tokens and the maximum protein length is 2000 residues.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add the documented 10,000-token text cap and 2,000-residue protein cap, while retaining uncertainty about the exact variable-length insertion mechanics.",
+      "severity": "blocking",
+      "step_id": "tokenize_protein_prompt",
+      "trajectory_id": "protein_qwen_finetuning"
+    }
+  ],
+  "record_id": "july_update_2026-07-06__rec_000050",
+  "verdict": "revise"
+}

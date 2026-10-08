@@ -1,0 +1,132 @@
+{
+  "coverage_summary": "Core tokenization, positional addition, independent encoding, cross-modal fusion, pretraining objectives, supervised generation, causal decoding, and attention visualization are represented. Several bindings and branches go beyond the paper or omit documented model variants and configuration details.",
+  "findings": [
+    {
+      "detail": "The pretraining objective steps bind MLM to clinical_encoded and MSP to genomic_encoded plus clinical_encoded, although the paper only states that MLM is for text and MSP is for both sequences. It does not establish that these encoded-stream nodes are the objective inputs or where masking occurs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Masked Language Modeling (MLM) for text:",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Masked Span Prediction (MSP) for both sequences:",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Keep these as opaque objective boundaries, but remove the asserted encoded-stream port bindings or mark the objective operands and masking location as unresolved.",
+      "severity": "blocking",
+      "step_id": "pretrain_text_mlm",
+      "trajectory_id": "biogpt_pretraining_multimodal_fusion"
+    },
+    {
+      "detail": "The supervised fine-tuning boundary treats diagnostic_targets as an input to the generation operation. The paper establishes labeled clinical-genomic pairs and generated diagnostic tokens, but does not state that target tokens are supplied to the decoder or used through teacher forcing.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Fine-tuning is supervised, using clinical and genomic pairs labeled with rare disease outcomes.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The model learns to generate diagnostic tokens Y= {𝑦 1 , … … , 𝑦 𝑇 }",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent diagnostic_targets as a supervision/label operand for the opaque training objective, without asserting it is a decoder input or prefix.",
+      "severity": "blocking",
+      "step_id": "generate_supervised_diagnostic_tokens",
+      "trajectory_id": "biogpt_finetuning_multimodal_fusion"
+    },
+    {
+      "detail": "The inference step uses the sample operation while leaving beam search, top-k, and nucleus sampling as alternative methods. Beam search and top-k selection are not established as sampling from a distribution, and the paper does not identify which strategy is used for a run.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Sampling strategies such as beam search, top-k, or nucleus sampling (P-sampling) are applied to increase diversity and fluency of the generated text.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Use an opaque generation boundary while the strategy is unknown, or represent documented alternatives as conditional branches using selection for beam/top-k and sampling for nucleus sampling.",
+      "severity": "blocking",
+      "step_id": "sample_diagnostic_output",
+      "trajectory_id": "biogpt_inference_generative_decoder"
+    },
+    {
+      "detail": "The attention-visualization step binds genomic_input and clinical_input as input-token operands, but those nodes are positionally encoded feature representations. The paper only establishes an influence relation from input tokens to output tokens and does not identify the attention source or extraction stage.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where 𝐴𝑖𝑗 ∈ [0,1] quantifies the influence of input token jjj on output token iii.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Visualizing these attention maps allows clinicians to understand which genomic patterns and clinical phrases drive specific diagnostic outputs.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Leave the heatmap source boundary unresolved, or bind it to token-level nodes only with explicit uncertainty; do not assert that the positionally encoded feature nodes are the extracted input-token source.",
+      "severity": "blocking",
+      "step_id": "visualize_attention_heatmaps",
+      "trajectory_id": "biogpt_inference_generative_decoder"
+    },
+    {
+      "detail": "The graph omits documented architecture parameters from the encoder and decoder contexts, including embedding dimension, layer count, attention heads, and feed-forward size. The symbolic dimensions are acceptable, but the reported configuration should remain attached as documented invocation or trajectory metadata.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Embedding Dimension | 768; Transformer Layers | 12 (Encoder/Decoder); Attention Heads | 12; Feed-forward Size | 3072",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the table values on the relevant model-context or opaque encoder/decoder invocations without inferring undocumented per-stream allocation.",
+      "severity": "minor",
+      "step_id": "encode_genomic_stream",
+      "trajectory_id": "biogpt_pretraining_multimodal_fusion"
+    },
+    {
+      "detail": "The paper documents ablation configurations that remove the genomic stream, remove the clinical stream, or remove cross-attention, but the assembly contains no corresponding conditional branches or model contexts.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Genomic Stream; Clinical Narrative; Cross-Attention; Full BioGPT",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The removal of genomic or clinical streams individually, and the exclusion of the cross-attention layer, resulted in measurable declines in performance.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented ablation branches or record them as explicit model variants with the corresponding stream or fusion component bypassed.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "biogpt_inference_generative_decoder"
+    },
+    {
+      "detail": "The inference trajectory represents only a generic BioGPT variant, while the paper documents Full Model, Pruned Model, and Distilled Variant deployment configurations. No scope statement explains whether these variants share the reconstructed input path.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Full Model (Cloud); Pruned Model (Edge); Distilled Variant",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Record the deployment variants as model contexts, or explicitly scope the trajectory to the full model and state that the paper provides no variant-specific input transformations.",
+      "severity": "minor",
+      "step_id": null,
+      "trajectory_id": "biogpt_inference_generative_decoder"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001519",
+  "verdict": "revise"
+}

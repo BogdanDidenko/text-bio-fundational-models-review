@@ -1,0 +1,87 @@
+{
+  "coverage_summary": "Reviewed all 8 trajectories. The opaque GIN, ESM-2, and placeholder-fusion boundaries are justified. Several documented dataset branches, preprocessing steps, and split conditions are missing or collapsed.",
+  "findings": [
+    {
+      "detail": "The PubChemQA preparation is represented as one opaque boundary even though the paper documents ordered filtering and graph-generation operations. This loses source-supported text filtering and its order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We remove molecules that cannot be processed by RDKit [Landrum et al., 2021] to generate 2D molecular graphs. We also remove texts with less than 4 words, and crops descriptions with more than 256 words.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Preserve the opaque RDKit graph-generation boundary if needed, while adding separate documented filtering calls or boundaries for processability, short-text removal, and long-description cropping, with their stated order and intermediate nodes.",
+      "severity": "blocking",
+      "step_id": "prepare_pubchemqa_inputs",
+      "trajectory_id": "biomedgpt10b_pubchemqa_alignment_fine_tuning"
+    },
+    {
+      "detail": "The UniProtQA alignment route starts from an undifferentiated UniProtQA protein/query node and does not represent the documented random split or the restriction of multimodal fine-tuning to the training split.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The data was randomly divided into training, validation, and test sets at a ratio of 8 : 1 : 1 . The multi-modal fine-tuning is performed on the training set of ProteinQA.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a source-supported split/selection boundary identifying the training subset used by the alignment route, while preserving validation and test branches if represented.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "biomedgpt10b_uniprotqa_alignment_fine_tuning"
+    },
+    {
+      "detail": "PubMedQA and MedMCQA are collapsed into one biomedical_qa_examples node and one opaque input boundary. Their parallel dataset provenance is therefore lost.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We fine-tune the language model of BioMedGPT-10B on the training sets of PubMedQA and MedMCQA which consists of a similar amount of data.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent PubMedQA and MedMCQA as distinct source branches or preserve their provenance explicitly as separate aligned inputs to the language-model fine-tuning boundary.",
+      "severity": "minor",
+      "step_id": "prepare_biomedical_qa_input",
+      "trajectory_id": "biomedgpt10b_biomedical_qa_fine_tuning"
+    },
+    {
+      "detail": "The biomedical-QA evaluation route combines all three datasets without preserving the documented ID/OOD distinction. PubMedQA and MedMCQA are in-domain test sets, while USMLE is evaluated out of domain without additional fine-tuning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Then we perform in-domain (ID) evaluation on the test sets of two datasets, and out-of-domain (OOD) evaluation on USMLE without additional fine-tuning on its training set.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We evaluate BioMedGPT-10B on three public multiple-choice question answering benchmarks within the biomedical domain, i.e., USMLE [Jin et al., 2021], MedMCQA [Pal et al., 2022], and PubMedQA [Jin et al., 2019].",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Split the evaluation input into ID branches for MedMCQA and PubMedQA and an OOD USMLE branch, retaining the no-additional-fine-tuning condition for USMLE.",
+      "severity": "blocking",
+      "step_id": "prepare_biomedical_qa_evaluation_input",
+      "trajectory_id": "biomedgpt10b_biomedical_qa_evaluation"
+    },
+    {
+      "detail": "The pretraining selection step merges S2ORC extraction with later full-text and duplicate filtering. The paper gives these as ordered stages, and the graph also uses refined_biomedical_documents without listing it as an intermediate node.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We meticulously extract 5.5 million biomedical papers from this dataset using PubMed Central (PMC)-ID and PubMed ID as criteria. After removing articles without full text and those with duplicate IDs, we attain a refined dataset of 4.2 million articles.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the S2ORC source, biomedical-paper extraction, 5.5-million-paper intermediate, full-text/duplicate filtering, and 4.2-million-paper refined intermediate as ordered stages; declare refined_biomedical_documents in the step's intermediate_nodes.",
+      "severity": "blocking",
+      "step_id": "select_and_clean_biomedical_text",
+      "trajectory_id": "biomedgpt_lm7b_biomedical_pretraining"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003214",
+  "verdict": "revise"
+}

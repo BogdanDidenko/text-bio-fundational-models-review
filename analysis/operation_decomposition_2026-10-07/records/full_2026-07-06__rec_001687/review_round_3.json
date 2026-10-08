@@ -1,0 +1,187 @@
+{
+  "coverage_summary": "Reviewed all submitted CaLMFlow trajectories against the supplied paper text. Several documented paths are correctly left opaque, but the graph contains blocking unsupported bindings, omitted prompt-processing operations, and phase-mixed training metadata.",
+  "findings": [
+    {
+      "detail": "The MNIST route sends image_temporal_sequence directly to GPT-2 even though the paper documents a learned MLP embedding of inputs into the GPT-2 encoder. Add that projection, or make the opaque boundary explicitly produce CLM-dimensional embedded tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model architecture for CaLMFlow consists of a simple MLP to embed the input into the encoder, represented by GPT-2.",
+          "section_id": "sec_0030"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The textual condition is tokenized and embedded using the LLM tokenizer and embedding layer while the conditional flows are transformed into spatial-temporal tokens using a learned projection.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Insert a documented projection/embedding step between image_temporal_sequence and clm_input, or revise the opaque boundary and node representation to show that this embedding is included.",
+      "severity": "blocking",
+      "step_id": "predict_next_mnist_tokens",
+      "trajectory_id": "calmflow_mnist_spatiotemporal_inference"
+    },
+    {
+      "detail": "The unconditional single-cell route binds sampled initial_cell_state to the cell-expression encoder and claims encoded_cell_features as its output. The paper separately describes the cell-expression encoder and inference starting from z0; it does not establish that the sampled Gaussian state passes through that encoder.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs, with input and output dimensions adjusted for the number of spatial tokens.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, the model sequentially generates the trajectory by predicting the next state given the current sequence, starting from the initial state z 0 .",
+          "section_id": "sec_0032"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the asserted initial_cell_state-to-encoded_cell_features binding, or represent the relationship as an unresolved boundary without claiming this encoder path.",
+      "severity": "blocking",
+      "step_id": "encode_cell_state",
+      "trajectory_id": "calmflow_single_cell_unconditional_inference"
+    },
+    {
+      "detail": "The randomly initialized conditional route makes the same unsupported binding from sampled initial_cell_state through the cell-expression encoder.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs, with input and output dimensions adjusted for the number of spatial tokens.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Do not connect the sampled Gaussian state to the cell-expression encoder unless the paper provides that connection; retain it as an unresolved input boundary if necessary.",
+      "severity": "blocking",
+      "step_id": "encode_conditional_cell_state",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The natural-language-pretrained conditional route also asserts that sampled initial Gaussian noise is passed through the cell-expression encoder, which is not established by the cited text.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs, with input and output dimensions adjusted for the number of spatial tokens.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the asserted encoder binding or preserve the initial-state-to-trajectory relationship as an unresolved opaque boundary.",
+      "severity": "blocking",
+      "step_id": "encode_conditional_cell_state",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The conditional-label sampling call binds test_dataset to the sample operation's required distribution port, although the paper only says labels are sampled from a test dataset and gives no probability distribution. This is a wrong port/operation representation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Use an opaque dataset-label sampling boundary, or a selection/sampling representation with the dataset as context rather than as a probability-distribution operand.",
+      "severity": "blocking",
+      "step_id": "sample_combinatorial_labels",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The natural-language-pretrained conditional route repeats the same incorrect binding of test_dataset to sample.distribution.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent dataset-label sampling as an unresolved dataset operation or use a port-compatible selection/context representation; do not treat the dataset node as an established probability distribution.",
+      "severity": "blocking",
+      "step_id": "sample_combinatorial_labels",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The inference trajectory contains a text_prompt_loss node and a training-only bypass. The cited statement applies during training, while this trajectory is declared lifecycle_phase=inference.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Since we don't train the CLM to generate text responses, no losses are applied on the text prompts during training.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Remove the training loss node and bypass from the inference trajectory, or move them to a separate training-phase trajectory.",
+      "severity": "blocking",
+      "step_id": "prepend_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The natural-language-pretrained inference trajectory also mixes a training-only text-loss bypass into an inference-phase graph.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Since we don't train the CLM to generate text responses, no losses are applied on the text prompts during training.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Keep the prompt-loss exclusion only in the training-phase graph; remove it from this inference trajectory.",
+      "severity": "blocking",
+      "step_id": "prepend_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The conditional training route represents prompt construction as an opaque self-loop from training_prompt to the same training_prompt node, despite documented perturbed and control templates. This does not reconstruct the documented serialization branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For perturbed cells, the prompts are: \"Generate a {cell type} cell stimulated with {perturbation} and exposure {chronicity}:\"",
+          "section_id": "sec_0029"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For control cells, the prompts are: \"Generate a {cell type} cell with no stimulation and exposure {chronicity}:\"",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent the perturbed and control branches with serialize calls when their label inputs are available, or place the unresolved training-condition source before a correctly identified prompt-serialization boundary; do not use the same node as both input and output of construction.",
+      "severity": "blocking",
+      "step_id": "construct_training_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_training"
+    },
+    {
+      "detail": "The conditional training route omits the documented tokenizer and embedding operations. Its embed_training_prompt opaque step sends text directly to embeddings, although the paper specifies AutoTokenizer tokenization followed by Pythia embedding layers.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The prompts are tokenized using AutoTokenizer.from_pretrained(\"EleutherAI/pythia-160m\")",
+          "section_id": "sec_0029"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "and embeded using the embedding layers of a customized PyThia-160M model.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add tokenize followed by lookup with the documented Pythia vocabulary and embedding table, preserving unspecified special-token behavior and trainability as uncertainty.",
+      "severity": "blocking",
+      "step_id": "embed_training_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_training"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001687",
+  "verdict": "revise"
+}

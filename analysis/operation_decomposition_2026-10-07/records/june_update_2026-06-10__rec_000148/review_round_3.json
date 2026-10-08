@@ -1,0 +1,337 @@
+{
+  "coverage_summary": "The reconstruction captures many explicitly stated modality boundaries and appropriately leaves several opaque modules unresolved. Revision is required because documented preprocessing chains, conditional branches, contrastive training, sequence inputs, evaluation post-processing, and some operation order/port bindings are missing or unsupported.",
+  "findings": [
+    {
+      "detail": "The preprocessing step collapses explicitly documented ordered transformations into one opaque boundary. It omits library-size normalization, log transformation, gene-symbol mapping, vocabulary filtering, fixed-dimensional conversion, structured evidence extraction, GPT-4 verbalization, and quality filtering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For count-based spatial transcriptomics data, raw counts were normalized for library size, logtransformed and mapped to a common gene-symbol vocabulary whenever possible.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These structured fields were inserted into an evidence-constrained prompt and verbalized into concise biological descriptions using GPT-4",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Generated descriptions were filtered for missing required evidence fields, malformed gene symbols, unsupported tissue names, formatting failures and obvious violations of the evidence constraints.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Preserve the documented order with separate normalize and log_transform calls, explicit mapping/filtering and fixed-dimensional conversion, plus an opaque boundary for ssGSEA/evidence extraction and GPT-4 verbalization followed by quality selection.",
+      "severity": "blocking",
+      "step_id": "prepare_stage_ii_gene_text_supervision",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The fixed-dimensional gene-encoder input is an orphan node. The reconstruction creates stage_ii_gene_encoder_input but supplies no operation or edge from the expression profile/preprocessing path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The processed expression vector was converted into the fixed-dimensional representation expected by the gene encoder.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where the gene encoder first maps the gene expression profile into molecular embeddings",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented conversion from the processed expression vector to stage_ii_gene_encoder_input and connect it to the gene encoder.",
+      "severity": "blocking",
+      "step_id": "encode_stage_ii_gene_profile",
+      "trajectory_id": "stage_ii_gene_text_fine_tuning"
+    },
+    {
+      "detail": "The Stage III gene path feeds spot_gene_counts directly into an opaque encoder/Q-Former/projector boundary, omitting the documented preprocessing required before model input. The representation name “gene_expression_counts” is also not established for this trajectory.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Gene expression matrices were processed separately for each dataset before being used as model input.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The processed expression vector was converted into the fixed-dimensional representation expected by the gene encoder.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each local image patch and matched gene expression vector were paired with a transcriptome-grounded description derived from the same spot.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the applicable conditional preprocessing path before the gene encoder, and label the input as a gene expression vector unless raw-count status is explicitly supported.",
+      "severity": "blocking",
+      "step_id": "encode_and_project_tri_modal_gene",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III gene path combines three documented ordered components into one null boundary, despite the paper specifying gene encoder → Q-Former → projector and the 32-token output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the gene encoder first maps the gene expression profile into molecular embeddings, the Q-Former compresses the molecular representation into 32 query virtual tokens, and the projector maps these virtual tokens into the language-model hidden space.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose the path into gene encoding, Q-Former compression, and projection, using intermediate nodes and preserving the documented order; leave each internal computation opaque where necessary.",
+      "severity": "blocking",
+      "step_id": "encode_and_project_tri_modal_gene",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III visual path similarly collapses the documented visual feature and resampler stages and does not preserve the reported fixed output of 64 visual virtual tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Visual features are converted into a fixed number of vision virtual tokens through a visual encoder and a resampler module.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "histology-derived visual features are compressed into 64 visual virtual tokens",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent visual encoding and resampling as ordered opaque stages with an intermediate visual-feature node, and retain 64 as the documented output cardinality.",
+      "severity": "blocking",
+      "step_id": "encode_and_resample_tri_modal_image",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "Stage III sequence assembly binds raw tri_modal_visual_virtual_tokens to the sequence boundary even though the paper states that modality tokens are projected into language-model space before insertion into the unified sequence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The resulting visual and molecular token spans replace reserved modality placeholders in the input sequence",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "projected into the same token space as the molecular virtual tokens.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Bind tri_modal_projected_visual_tokens, not tri_modal_visual_virtual_tokens, to the multimodal sequence assembly boundary.",
+      "severity": "blocking",
+      "step_id": "assemble_stage_iii_training_mixture",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The Stage III assembly does not preserve the explicitly documented image-only, gene-only, and joint image-gene branches. It passes both modality operands as if they were always simultaneously present.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During this stage, the model was trained on image-only, gene-only and joint imagegene input formats to support flexible downstream use.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "General-domain image-text and instructionfollowing samples were mixed at a low proportion to preserve general multimodal and language-following competence.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent image-only, gene-only, joint, and retained general-domain branches explicitly, with conditional modality bypasses and separate branch-specific sequence inputs.",
+      "severity": "blocking",
+      "step_id": "assemble_stage_iii_training_mixture",
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "The documented multimodal contrastive alignment objective is absent from the Stage III trajectory. The reconstruction includes sequence assembly but no boundary for image-text, gene-text, and image-gene InfoNCE alignment using projected token spans.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The main alignment objective combined autoregressive generation with multimodal contrastive alignment",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Pairwise InfoNCE-style losses were computed across available modality pairs, including image-text, gene-text and image-gene pairs when present",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Modality-level representations were obtained from the corresponding projected token spans before contrastive comparison.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque contrastive-alignment objective boundary with the three conditional modality-pair branches and projected-token-span inputs; retain unspecified pooling, negatives, temperature, and loss details as uncertainty.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "stage_iii_tri_modal_fine_tuning"
+    },
+    {
+      "detail": "Stage I creates text_embeddings and uses it as an input to sequence assembly, but no text-token embedding lookup or opaque producer connects text_tokens to text_embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The virtual tokens are then projected into the hidden dimension of the language model and inserted into placeholders, thereby forming a unified input embedding sequence.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The final multimodal sequence consists of text tokens, optional visual virtual tokens and optional gene virtual tokens",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an explicit text-token-to-language-embedding lookup boundary with an unspecified embedding table, or remove the orphan text_embeddings node and represent this conversion inside the opaque sequence-construction boundary.",
+      "severity": "blocking",
+      "step_id": "assemble_stage_i_training_sequence",
+      "trajectory_id": "stage_i_image_text_pretraining"
+    },
+    {
+      "detail": "The frozen regression trajectory omits the documented training-only selection of the top 50 target genes and the section-level 10-fold split context.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we used section-level 10-fold crossvalidation.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The prediction targets were the top 50 genes with the highest expression in the training set",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the training-split section partition and target-gene ranking/selection context before the regression-head output, without treating the selected panel as a model input tensor.",
+      "severity": "blocking",
+      "step_id": "predict_gene_expression",
+      "trajectory_id": "evaluation_gene_expression_frozen"
+    },
+    {
+      "detail": "The fine-tuned regression trajectory also omits the documented training-split top-50 target selection and does not preserve the exact trainable-layer condition in the embedding extraction invocation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The prediction targets were the top 50 genes with the highest expression in the training set",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the regression head and the last six layers of the visual encoder were trainable.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the training-split target-gene selection and set the fine-tuned visual extraction state to the last six visual-encoder layers trainable, with the remaining visual encoder frozen as documented.",
+      "severity": "blocking",
+      "step_id": "extract_finetuned_visual_embeddings",
+      "trajectory_id": "evaluation_gene_expression_finetuned"
+    },
+    {
+      "detail": "The embedding-based spatial-domain trajectory does not preserve the three conditional input branches. Its single extraction step receives both image and gene inputs despite the paper evaluating image-only, gene-only, and joint embeddings.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "frozen model embeddings were extracted from image-only, gene-only or joint image-gene input",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add explicit image-only, gene-only, and joint branches or conditional bypasses before the classification head.",
+      "severity": "blocking",
+      "step_id": "extract_domain_embedding",
+      "trajectory_id": "evaluation_spatial_domain_embedding"
+    },
+    {
+      "detail": "The generative spatial-domain trajectory likewise collapses image-only, gene-only, and joint input formats into one unconditional assembly step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For generative evaluation, the model received image-only, gene-only or joint image-gene input and generated a structured biological response.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the three input branches and their branch-specific modality availability before generation; retain the fusion implementation as unresolved.",
+      "severity": "blocking",
+      "step_id": "assemble_generative_input",
+      "trajectory_id": "evaluation_spatial_domain_generation"
+    },
+    {
+      "detail": "The zero-shot post-processing boundary omits several rules that are explicitly documented: lowercasing, punctuation removal, normalized-label/alias matching, exact-one-label assignment, and treating ambiguous responses as incorrect.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Generated responses were converted to lowercase, punctuation was removed and the resulting text was matched against normalized candidate labels and predefined label aliases.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Responses that could not be mapped unambiguously to a single candidate label were treated as incorrect.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Preserve these parser operations and the ambiguity branch as invocation parameters or an explicitly described opaque parser boundary.",
+      "severity": "blocking",
+      "step_id": "generate_and_match_zero_shot_label",
+      "trajectory_id": "inference_zero_shot_histopathology_classification"
+    },
+    {
+      "detail": "The PathVQA trajectory stops at answer generation and omits the documented open-ended/closed-ended evaluation branches, yes/no normalization, answer normalization, and multiset token-level recall matching.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Evaluation followed the standard separation between open-ended and closed-ended questions.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Closedended questions were scored after normalizing yes/no outputs.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For open-ended questions, both predictions and reference answers were normalized.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Performance was reported as token-level recall, defined as the fraction of reference tokens appearing in the prediction, with multiset matching.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the open-ended and closed-ended answer-processing branches and the documented benchmark matching operation after generation.",
+      "severity": "blocking",
+      "step_id": "generate_pathvqa_answer",
+      "trajectory_id": "evaluation_pathvqa"
+    },
+    {
+      "detail": "The whole-slide trajectory invents a separate tumour-region selection operation after low-magnification review. The paper documents identification of regions followed directly by high-magnification patch selection from those regions.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each slide was first reviewed at low magnification to identify tumour-rich regions and representative tumour-stroma interfaces.",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "High-magnification patches were then selected from these regions for local morphological assessment.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Remove the unsupported candidate-region-to-selected-region selection step, or retain it only as an explicitly unresolved part of low-magnification region identification; connect identified regions directly to high-magnification patch selection.",
+      "severity": "blocking",
+      "step_id": "select_tumour_regions",
+      "trajectory_id": "inference_whole_slide_case_reasoning"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000148",
+  "verdict": "revise"
+}

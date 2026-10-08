@@ -1,0 +1,307 @@
+{
+  "coverage_summary": "The six inference routes cover the main CaLMFlow variants, but several operation bindings and representations exceed the paper evidence. Training-time data flow and conditional-label sampling are also omitted.",
+  "findings": [
+    {
+      "detail": "The cited text only introduces the final spatiotemporal sequence; it does not state that a reshape operation creates it or establish its physical ordering. Replace this call with an opaque boundary or document only the supported sequence-construction step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The final spatiotemporal token sequence X st ∈ R K · D in is represented as",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Remove the unsupported reshape decomposition or add source evidence that explicitly establishes reshaping and ordering.",
+      "severity": "blocking",
+      "step_id": "order_flow_tokens",
+      "trajectory_id": "calmflow_synthetic_single_trajectory_inference"
+    },
+    {
+      "detail": "The graph invents trajectory_sampling_context as an input to multi-trajectory sampling. The paper says that M sequences are sampled but does not identify such a context operand or its distribution.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We tokenize more than one conditional trajectory as input to the CLM by sampling M spatiotemporal sequences of tokens as above.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Remove the synthetic context node/port or retain the sampling boundary with an explicitly unknown source and distribution.",
+      "severity": "blocking",
+      "step_id": "sample_multi_trajectory_inputs",
+      "trajectory_id": "calmflow_synthetic_multi_trajectory_inference"
+    },
+    {
+      "detail": "The step evidence supports a benefit of CLMs for multiple trajectories, but does not support the stated causal next-state output. The general next-state evidence must be attached to this step.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We observe that such benefits are unique to CLMs, whereas methods like CFM cannot natively model multiple trajectories.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The CLM then acts as an iterative integral equation solver on the discretized VIE by predicting z i +1 from z i",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Attach the general next-state-prediction evidence to this step or retain a more opaque multi-trajectory CLM boundary.",
+      "severity": "blocking",
+      "step_id": "predict_next_multi_trajectory_tokens",
+      "trajectory_id": "calmflow_synthetic_multi_trajectory_inference"
+    },
+    {
+      "detail": "The route labels the unconditional single-cell CLM as randomly initialized, but its cited route evidence only specifies a small Pythia architecture. The random-initialization comparison is documented for the conditional experiment and is not tied here to the unconditional route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "CaLMFlow's architecture is a small Pythia model with 64 hidden dimensions, a 256-dimensional feedforward layer, 4 attention heads, and 2 blocks.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To investigate the benefit of natural language capabilities of CLMs, we compare random initialization to natural language pretraining.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Remove the random-initialization qualifier for the unconditional route unless direct evidence connects it to that experiment.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "calmflow_single_cell_unconditional_inference"
+    },
+    {
+      "detail": "The graph binds the sampled Gaussian initial state to the cell-expression encoder, but the paper does not state that this encoder receives the inference initial state. It only describes an encoder for a cell-expression vector and separately describes starting inference from z0.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, the model sequentially generates the trajectory by predicting the next state given the current sequence, starting from the initial state z 0 .",
+          "section_id": "sec_0032"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Leave the initial-state-to-encoder linkage opaque or add direct evidence establishing this input binding.",
+      "severity": "blocking",
+      "step_id": "encode_cell_state",
+      "trajectory_id": "calmflow_single_cell_unconditional_inference"
+    },
+    {
+      "detail": "The project output is represented as n_space_tokens × d_input_features before the partition call, although the paper explicitly describes the learned network output as a single K·D_in vector that is then split into K tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we map the encoded gene expression features with a learned network S θ : R D in → R K · D in and split the token to K spatial tokens.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent the projection output as the unsplit K·D_in feature vector, then produce the spatial-token axes only after partition.",
+      "severity": "blocking",
+      "step_id": "expand_cell_features",
+      "trajectory_id": "calmflow_single_cell_unconditional_inference"
+    },
+    {
+      "detail": "The conditional routes omit the documented inference step that samples combinatorial labels from the test dataset before prompt construction.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a documented label-selection/sampling boundary and test-dataset input before prompt serialization, without inventing an unspecified sampling distribution.",
+      "severity": "blocking",
+      "step_id": "serialize_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The step-level input list binds perturbation to the whole serialization step even though the control branch explicitly omits perturbation. This does not preserve the conditional bypass.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For control cells, the prompts are:\n\n\"Generate a {cell type} cell with no stimulation and exposure {chronicity}:\"",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Make the top-level bindings branch-specific or explicitly optional so perturbation is absent from the control path.",
+      "severity": "blocking",
+      "step_id": "serialize_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "As in the unconditional route, the graph binds the Gaussian initial state to the cell-expression encoder without source evidence establishing that connection.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Keep this linkage opaque or add direct evidence that the sampled initial noise is passed through the cell-expression encoder.",
+      "severity": "blocking",
+      "step_id": "encode_conditional_cell_state",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The same K·D_in shape error occurs in the conditional route: the projection output is already represented as spatial-token slots before the documented split.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we map the encoded gene expression features with a learned network S θ : R D in → R K · D in and split the token to K spatial tokens.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Use an unsplit K·D_in projection output, followed by the partition that creates K spatial tokens.",
+      "severity": "blocking",
+      "step_id": "expand_conditional_cell_features",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The decoder is documented as reconstructing continuous tokens x, while this route labels its direct output as a generated trajectory. The conversion from decoded tokens to a trajectory is explicitly unresolved in the reconstruction.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a probabilistic decoder p ψ ( x | z ) to reconstruct the tokens x",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Represent the decoder output as reconstructed continuous flow tokens and add a separate opaque conversion boundary before calling it a generated trajectory.",
+      "severity": "blocking",
+      "step_id": "decode_conditional_trajectory",
+      "trajectory_id": "calmflow_single_cell_conditional_random_initialization_inference"
+    },
+    {
+      "detail": "The natural-language-pretrained conditional route also omits the documented sampling of combinatorial labels from the test dataset.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the label-selection/sampling boundary and test-dataset input before prompt serialization.",
+      "severity": "blocking",
+      "step_id": "serialize_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The natural-language-pretrained route binds perturbation to the whole prompt-serialization step even though the control branch does not use perturbation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For control cells, the prompts are:\n\n\"Generate a {cell type} cell with no stimulation and exposure {chronicity}:\"",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Make prompt inputs branch-specific or explicitly optional so the control branch bypasses perturbation.",
+      "severity": "blocking",
+      "step_id": "serialize_prompt",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The route binds the sampled Gaussian initial state to the cell-expression encoder without direct evidence establishing that input path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The encoder for the cell expression vector, latent mean, latent sigma and the decoder were all 2-layer MLPs",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Keep the linkage opaque or provide direct evidence connecting initial Gaussian noise to the cell-expression encoder.",
+      "severity": "blocking",
+      "step_id": "encode_conditional_cell_state",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The projection output again uses spatial-token axes before the documented split from a K·D_in vector.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we map the encoded gene expression features with a learned network S θ : R D in → R K · D in and split the token to K spatial tokens.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent the projection result as an unsplit K·D_in vector before partitioning it into K spatial tokens.",
+      "severity": "blocking",
+      "step_id": "expand_conditional_cell_features",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "The decoder evidence supports reconstructed continuous tokens, not a directly established final generated trajectory. The route needs an unresolved conversion boundary between decoded tokens and the stated trajectory output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "a probabilistic decoder p ψ ( x | z ) to reconstruct the tokens x",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we sample combinatorial labels from the test dataset, form prompts as above, sample initial Gaussian noises, tokenize and prompt the CLM to generate the trajectories and consequently the target distribution.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Rename the decoder output as reconstructed flow tokens and represent trajectory conversion as opaque unless documented.",
+      "severity": "blocking",
+      "step_id": "decode_conditional_trajectory",
+      "trajectory_id": "calmflow_single_cell_conditional_natural_language_pretraining_inference"
+    },
+    {
+      "detail": "All reconstructed trajectories are inference-only, while the paper documents a distinct training input flow using ground-truth histories and conditional trajectories. The training phase also documents a text-prompt loss bypass that is absent from the assembly.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "next-token prediction in CLMs is simulation-free during training, as the next token is predicted based on the ground truth history. Full trajectory simulation occurs only during inference.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We present the model with sequences starting from the initial state z 0 and extending to various lengths",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Since we don't train the CLM to generate text responses, no losses are applied on the text prompts during training.",
+          "section_id": "sec_0029"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented training lifecycle path(s), including ground-truth-history inputs and the conditional text-prompt loss bypass, or explicitly scope the record to inference-only.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "calmflow_synthetic_single_trajectory_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001687",
+  "verdict": "revise"
+}

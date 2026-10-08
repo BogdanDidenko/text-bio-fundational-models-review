@@ -1,0 +1,197 @@
+{
+  "coverage_summary": "Revise. The detailed Evo2/Qwen3-1.7B path is mostly supported, but truncation bypasses, RoPE, several documented transformations, DNA-only models, Enformer experiments, and evaluation phases are missing or underrepresented.",
+  "findings": [
+    {
+      "detail": "The reference truncation branch has no bypass when the sequence is already within the context limit. The encoder always consumes reference_context_tokens, which is produced only by the conditional select call.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length (e.g., 2048 DNA tokens), it is truncated.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a conditional bypass from reference_tokens to the encoder input when the sequence does not exceed the limit, or represent the context node with explicit identity-through behavior.",
+      "severity": "blocking",
+      "step_id": "truncate_reference_DNA",
+      "trajectory_id": "bioreason_evo2_qwen3_1_7b_finetuning"
+    },
+    {
+      "detail": "The variant truncation branch has no bypass when the sequence is already within the context limit. The encoder always consumes variant_context_tokens, which is produced only by the conditional select call.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "If an input S DNA sequence, after tokenization by T DNA, exceeds a defined context length (e.g., 2048 DNA tokens), it is truncated.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a conditional bypass from variant_tokens to the encoder input when the sequence does not exceed the limit, or represent the context node with explicit identity-through behavior.",
+      "severity": "blocking",
+      "step_id": "truncate_variant_DNA",
+      "trajectory_id": "bioreason_evo2_qwen3_1_7b_finetuning"
+    },
+    {
+      "detail": "The graph notes RoPE only as uncertainty after multimodal stacking and omits the documented positional-information step before receipt by the LLM.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All constituent embedding vectors within X LLM receive positional information via Rotary Position Embedding (RoPE) [39], applied according to their final sequence positions.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque operation_id:null step or explicit positional-information node after X_LLM construction, preserving that RoPE is applied at final sequence positions without inventing its internal algebra.",
+      "severity": "blocking",
+      "step_id": "construct_multimodal_input",
+      "trajectory_id": "bioreason_evo2_qwen3_1_7b_finetuning"
+    },
+    {
+      "detail": "The Evo2-Qwen3-4B trajectory collapses a documented input pipeline into an opaque null operation. Its step omits DNA tokenization, frozen Evo2 encoding, linear projection, query tokenization/embedding, special-token embedding, and sequence-dimension stacking.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer, T DNA ( · ), which segments it into a sequence of L ′ DNA-tokens.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each sequence S DNA,k, its f DNA-generated embedding sequence ... is projected by a learnable linear layer ... to yield E ′ DNA,k.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These components are then stacked along the sequence dimension to form the multimodal input X LLM for f LLM.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_evo2_qwen3_input into the documented shared operations and intermediate nodes, while retaining unspecified ordering, masks, and other unresolved details.",
+      "severity": "blocking",
+      "step_id": "prepare_evo2_qwen3_input",
+      "trajectory_id": "bioreason_evo2_qwen3_4b_finetuning"
+    },
+    {
+      "detail": "The NT-500M/Qwen3-1.7B trajectory similarly replaces all documented transformations with an opaque preparation boundary, despite the paper specifying the DNA tokenizer, encoder output, projection, query tokenization/embedding, special tokens, and stacking.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each S DNA is first processed by its respective DNA-specific tokenizer, T DNA ( · ), which segments it into a sequence of L ′ DNA-tokens.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each sequence S DNA,k, its f DNA-generated embedding sequence ... is projected by a learnable linear layer ... to yield E ′ DNA,k.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Concurrently, the user's tokenized query Q TEXT ... is mapped to its embedding sequence E Q text.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_nt_qwen3_input into the supported tokenizer, opaque NT encoding, projection, lookup, and stacking calls; leave exact tokenizer details and component order uncertain.",
+      "severity": "blocking",
+      "step_id": "prepare_nt_qwen3_input",
+      "trajectory_id": "bioreason_nt_qwen3_1_7b_finetuning"
+    },
+    {
+      "detail": "The NT-500M/Qwen3-4B trajectory also collapses the documented multimodal construction into an opaque null operation and omits its recoverable intermediate data flow.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "BIOREASON bridges this gap by deriving contextualized DNA embeddings from the S DNA input(s) and integrating them with the tokenized Q TEXT to form a unified multimodal input sequence, X LLM, for its core LLM.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting E ′ DNA block is obtained by stacking all E ′ DNA,k sequences along the sequence dimension.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These components are then stacked along the sequence dimension to form the multimodal input X LLM for f LLM.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Expand prepare_nt_qwen3_input using the documented shared operation sequence and preserve unresolved ordering and attention details as uncertainty.",
+      "severity": "blocking",
+      "step_id": "prepare_nt_qwen3_input",
+      "trajectory_id": "bioreason_nt_qwen3_4b_finetuning"
+    },
+    {
+      "detail": "The reconstruction omits the documented DNA-only baseline models and their downstream input path, including the attention head and classifier. This is also the source context for the proposed but unused DNA_only_classifier_head boundary.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For f DNA baselines, we utilized pre-trained Evo2-1B and Nucleotide Transformer (NT-500M) models.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For downstream predictions, f DNA models were adapted with an attention head where a single learnable query vector attends to the sequence token embeddings to produce a final sequence representation.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For f DNA-only baselines, core DNA model weights were frozen; only a task-specific attention head and classifier were trained.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add DNA-only fine-tuning/evaluation trajectories for Evo2-1B and NT-500M, represent the documented attention-head path, preserve frozen encoder weights, and retain the classifier as an opaque boundary because its computation is unspecified.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage_missing_dna_only_baselines"
+    },
+    {
+      "detail": "The reconstruction omits the additional Enformer experiment and its model variants. The paper documents Enformer-only, Qwen3-only, and Enformer-Qwen3-1.7B/4B configurations for chromatin-accessibility classification, even though the detailed multimodal construction is unavailable.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We conducted an additional experiment integrating a supervised DNA model, Enformer [3], for chromatin accessibility prediction.",
+          "section_id": "sec_0041"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The human genome was segmented into 200bp bins, with each bin representing a classification instance.",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Enformer-Qwen3-1.7B and Enformer-Qwen3-4B (DNA-LLM): BIOREASON hybrids integrating Enformer embeddings with Qwen3 backbones.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the Enformer-only, Qwen3-only task context, and Enformer-Qwen3 trajectories. Use an opaque integration boundary for the hybrid input construction and preserve the 200bp-bin, 20-track multi-label classification task.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage_missing_enformer_experiment"
+    },
+    {
+      "detail": "All reconstructed trajectories are labeled fine_tuning, while the paper explicitly reports evaluation of the BIOREASON combinations and baseline generations. The evaluation lifecycle phase is therefore absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The proposed BIOREASON models, were evaluated in several f DNA and f LLM combinations.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "All LLM and DNA-LLM generations were deterministic with a decoding temperature of 0.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Add evaluation-phase trajectories for the reported BIOREASON and baseline model families, reusing the supported input path while preserving evaluation-specific controls such as deterministic decoding.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage_missing_evaluation_phase"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001074",
+  "verdict": "revise"
+}

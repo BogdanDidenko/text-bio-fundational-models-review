@@ -1,0 +1,132 @@
+{
+  "coverage_summary": "Reviewed both submitted trajectories against the supplied paper text. The retrieval and phenotype-generation decompositions are largely evidence-grounded, with unresolved encoder, fusion, and similarity internals appropriately left opaque. Coverage is incomplete: PROCYON-SPLIT is absent, and documented QA, QA filtering, multimodal small-molecule/domain/peptide retrieval, and fine-tuning/training paths are not represented.",
+  "findings": [
+    {
+      "detail": "The atlas explicitly includes the PROCYON-SPLIT model variant, but the document contains no trajectory for it and does not explain its omission. The paper states that “we train a version of the model, PROCYON-SPLIT, using only the train set and evaluate it on the test set,” and reports separate PROCYON-SPLIT retrieval and QA evaluations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To assess zero-shot generalization, we train a version of the model, PROCYON-SPLIT, using only the train set and evaluate it on the test set.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We assess PROCYON-SPLIT's QA capabilities by constructing benchmarks from the test split of PROCYON-INSTRUCT (Figure 3a).",
+          "section_id": "sec_0007"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add at least the documented PROCYON-SPLIT evaluation routes, or state in coverage_questions why this atlas model is intentionally out of scope.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The phenotype-generation trajectory omits the documented QA task and its text-generation input/output route. The paper says QA asks whether a phenotype and protein are associated and produces a yes/no response.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We also leverage PROCYON's text generation capability for question-answering (QA), where the model is asked whether the phenotype and protein are associated, prompting a 'yes' or 'no' response.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In QA, PROCYON receives a multimodal prompt (protein + phenotype description) and outputs a yes/no answer.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a separate QA trajectory or documented branch with the multimodal protein-plus-phenotype inputs, LLM processing, and yes/no output; retain unspecified fusion details as an opaque boundary.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "procyon_evaluation_phenotype_generation"
+    },
+    {
+      "detail": "The paper documents QA scores being used as a filtering mechanism to improve phenotype generation, but the submitted graph has no filtering branch, selection step, or conditional relationship between QA and generated phenotypes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These QA scores are also used as a filtering mechanism (Methods Sec. 2.3, Extended Data Figure 2) to improve phenotype generation (Extended Data Figure 3).",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "vlm_description",
+          "quote": "Figure 5: PROCYON characterizes poorly-annotated proteins and their functions. a) PROCYON generates phenotype predictions for AKNAD1. QA filtering selects the highest-confidence outputs.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented QA-score filtering branch and its connection to phenotype-generation outputs. Leave the exact criterion and selection mechanics unspecified unless supported by the cited Methods text.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "procyon_evaluation_phenotype_generation"
+    },
+    {
+      "detail": "The paper explicitly identifies the architecture as Llama-3-8B with ESM-2 3B and GearNet encoders, while the trajectories use generic components and do not preserve these documented model identities. This loses established model context, especially for the sequence and structure encoding branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Composed of a Llama-3-8B language model [31] and encoders for protein sequence (ESM-2 3B [32]) and structure (GearNet [19]), PROCYON can process inputs of natural language and protein sequence and structure.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Annotate the relevant opaque components and receiving LLM with the documented identities Llama-3-8B, ESM-2 3B, and GearNet; keep their internal computations opaque where the supplied text does not specify them.",
+      "severity": "minor",
+      "step_id": "encode_protein_sequence",
+      "trajectory_id": "procyon_evaluation_phenotype_generation"
+    },
+    {
+      "detail": "The retrieval trajectory covers a generic sequence-library retrieval route but omits documented retrieval inputs and output targets beyond proteins. The paper states that PROCYON handles multimodal prompts and retrieves domains, peptides, or polypeptides, including small-molecule/domain and protein-peptide tasks.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "PROCYON models phenotypes using inputs containing interleaved textual phenotype descriptions, protein sequences, protein structures, and small molecular structures.",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For protein retrieval, a prompt is processed into the LLM and compared against a library of proteins. PROCYON then outputs a ranked list of proteins, domains, peptides, or polypeptides.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We use PROCYON to retrieve domains in MGAM by providing PROCYON with a multimodal prompt of miglitol and its mechanism of action.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We design a novel inference task where PROCYON is prompted with multimodal prompts consisting of bupropion structure and a description of either MDD or smoking cessation ... and asked to retrieve bupropion targets involved in the treatment of either indication.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add documented retrieval branches for multimodal small-molecule/indication inputs and domain, peptide, or polypeptide targets, or explicitly limit coverage_questions to the protein-sequence retrieval route.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "procyon_inference_retrieval"
+    },
+    {
+      "detail": "The retrieval graph calls the comparison component “latent_similarity_retrieval_and_ranking” and proposes a new source operation, but the paper only states identification of the most closely related proteins and a ranked list; it does not establish a similarity calculation or a distinct ranking algorithm. The current decomposition itself correctly leaves the internal operation opaque, but the proposal risks implying a documented similarity operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In protein retrieval, PROCYON retrieves a ranked list of proteins that match a user's prompt.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The natural language prompt is then processed by the LLM and projected into the unified latent space by a query connector, allowing PROCYON to identify the proteins most closely related to the projected prompt.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "issue_type": "other",
+      "required_change": "Retain this as an opaque retrieval/ranking boundary unless the source provides the mathematical similarity and ranking procedure; do not treat the proposed custom operation as an established catalog primitive without additional source evidence.",
+      "severity": "minor",
+      "step_id": "retrieve_ranked_proteins",
+      "trajectory_id": "procyon_inference_retrieval"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000086",
+  "verdict": "revise"
+}

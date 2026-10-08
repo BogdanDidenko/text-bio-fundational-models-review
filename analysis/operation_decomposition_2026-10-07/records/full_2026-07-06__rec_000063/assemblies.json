@@ -1,0 +1,2420 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "rank_genes::1",
+        "component": "Gene ranking within each cell",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance [16].",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "identifiers": [
+            "gene_identifiers"
+          ],
+          "values": [
+            "gene_expression"
+          ]
+        },
+        "operation_id": "rank",
+        "outputs": {
+          "values": [
+            "ranked_gene_symbols"
+          ]
+        },
+        "parameters": {
+          "order": "decreasing transcript abundance",
+          "scope": "within each cell",
+          "source_port_roles": [
+            "expression_values",
+            "gene_symbol_identifiers"
+          ],
+          "tie_handling": "unspecified"
+        },
+        "source_step_id": "rank_genes",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "serialize_cells::1",
+        "component": "Cell sentence serializer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Instead, we directly use spatial coordinates ( x i , y i ) as numerical tokens within the sentence.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, in TISSUENARRATOR each cell is represented as a cell sentence ( Fig. 1A):",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "cell_coordinates",
+            "cell_metadata",
+            "ranked_gene_symbols"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "cell_sentences"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "coordinates as numerical tokens; optional metadata and ranked gene sentence represented textually",
+          "order": "unspecified",
+          "source_port_roles": [
+            "spatial_coordinates",
+            "optional_metadata",
+            "ranked_gene_sentence"
+          ],
+          "template": "source-defined cell sentence; formula omitted"
+        },
+        "source_step_id": "serialize_cells",
+        "status": "documented_operation",
+        "uncertainty": "The source identifies the components but the formula defining their order is unavailable."
+      },
+      {
+        "call_id": "select_traversal_anchor::1",
+        "component": "Traversal-anchor selection",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Traversal begins by randomly selecting one of five anchor points - the geometric center or the four corners.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "traversal_anchor_candidates"
+          ]
+        },
+        "operation_id": "select",
+        "outputs": {
+          "values": [
+            "traversal_anchor"
+          ]
+        },
+        "parameters": {
+          "criterion": "one of five source-defined anchors",
+          "forced_inclusions": "unspecified",
+          "method": "random selection",
+          "source_port_roles": [
+            "anchor_candidates"
+          ]
+        },
+        "source_step_id": "select_traversal_anchor",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "traverse_neighborhood::1",
+        "component": "Spatial traversal",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Cells are then sampled sequentially from the unvisited set U",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where D aj is the Euclidean distance between cell j and the anchor, and τ (default τ = 1 ) controls randomness.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This process continues until all cells in the neighborhood have been visited, yielding the traversal sequence σ .",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "context": [
+            "cell_sentences",
+            "cell_coordinates",
+            "traversal_anchor"
+          ],
+          "distribution": [
+            "traverse_neighborhood::distribution"
+          ]
+        },
+        "operation_id": "sample",
+        "outputs": {
+          "values": [
+            "traversal_order"
+          ]
+        },
+        "parameters": {
+          "distribution": "distance-weighted probability based on Euclidean distance to selected anchor; exact equation omitted; default τ = 1",
+          "method": "sequential sampling from unvisited cells; τ controls randomness",
+          "origin": "selected geometric center or corner anchor",
+          "source_port_roles": [
+            "cells_to_order",
+            "distance_context",
+            "selected_anchor"
+          ],
+          "temperature": "unspecified"
+        },
+        "source_step_id": "traverse_neighborhood",
+        "status": "documented_operation",
+        "uncertainty": "The exact probability equation and its dependence on previous selections are omitted."
+      },
+      {
+        "call_id": "assemble_spatial_sentence::1",
+        "component": "Spatial sentence assembly",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "All cell sentences in a tissue patch are then assembled into a 1D 'spatial sentence', where cells are serialized by proximitybased traversal.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "cell_sentences",
+            "traversal_order"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "spatial_sentences"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "cell sentences serialized as an ordered natural-language sequence",
+          "order": "traversal order σ; cells assembled in predetermined spatial order",
+          "source_port_roles": [
+            "cell_sentences",
+            "traversal_order"
+          ],
+          "template": "source-defined spatial sentence; formula omitted"
+        },
+        "source_step_id": "assemble_spatial_sentence",
+        "status": "documented_operation",
+        "uncertainty": "The source documents assembly/serialization in traversal order, but does not establish a separate selection/reordering followed by concatenation sequence or the literal serialization template."
+      },
+      {
+        "call_id": "tokenize_spatial_sentence::1",
+        "component": "LLM tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each spatial sentence S j is tokenized into tokens w 1 , w 2 , . . . , w T , where w t denotes the token at position t .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "spatial_sentences"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "spatial_sentence_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "source tokenizer",
+          "source_alphabet": "serialized natural-language spatial sentence",
+          "source_port_roles": [
+            "spatial_sentence_text"
+          ],
+          "vocabulary": "unspecified"
+        },
+        "source_step_id": "tokenize_spatial_sentence",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "fine_tune_qwen::1",
+        "component": "Qwen3 language-model fine-tuning",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This spatial sentence then serves as the input for fine-tuning an LLM to learn cell generation through next-token prediction.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training objective. TISSUENARRATOR is fine-tuned from a pretrained LLM using the standard nexttoken prediction objective [39], which maximizes the conditional probability of the text sequence.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "spatial_sentence_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": []
+        },
+        "parameters": {
+          "source_operation": "next_token_prediction_fine_tuning",
+          "source_port_roles": [
+            "tokenized_spatial_sentence"
+          ]
+        },
+        "source_step_id": "fine_tune_qwen",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents next-token prediction and cross-entropy training, but the internal model computation and exact training receipt are not established."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "On an input tissue section, TISSUENARRATOR starts by transforming each cell into the natural language space by encoding gene expression as 'cell sentences', a list of genes ranked by gene expression level. All cell sentences in a tissue patch are then assembled into a 1D 'spatial sentence', where cells are serialized by proximitybased traversal. This spatial sentence then serves as the input for fine-tuning an LLM to learn cell generation through next-token prediction.",
+        "section_id": "sec_0005"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Each spatial sentence S j is tokenized into tokens w 1 , w 2 , . . . , w T , where w t denotes the token at position t .",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We fine-tune the Qwen3-4B-Base model [40] using the Unsloth framework [41].",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned with LoRA",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "cells",
+          "genes"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance [16].",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Measured gene expression values for cells.",
+        "node_id": "gene_expression",
+        "origin": "source_annotation",
+        "representation_type": "gene_expression_values",
+        "symbolic_shape": [
+          "n_cells",
+          "n_genes"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene identifiers"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance [16].",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Gene symbols aligned with expression-value columns.",
+        "node_id": "gene_identifiers",
+        "origin": "source_annotation",
+        "representation_type": "gene_symbol_identifiers",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": "The source identifies gene symbols but does not separately describe their storage or alignment representation."
+      },
+      {
+        "axis_semantics": [
+          "cells",
+          "coordinate components"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Instead, we directly use spatial coordinates ( x i , y i ) as numerical tokens within the sentence.",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Measured spatial coordinates.",
+        "node_id": "cell_coordinates",
+        "origin": "source_annotation",
+        "representation_type": "spatial_coordinates",
+        "symbolic_shape": [
+          "n_cells",
+          "n_coordinate_components"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "cells",
+          "metadata fields"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Optional cell metadata such as cell type or spatial domain.",
+        "node_id": "cell_metadata",
+        "origin": "source_annotation",
+        "representation_type": "cell_metadata",
+        "symbolic_shape": [
+          "n_cells",
+          "n_metadata_fields"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "cells",
+          "rank positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance [16].",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Gene symbols ordered within each cell by decreasing transcript abundance.",
+        "node_id": "ranked_gene_symbols",
+        "origin": "source_annotation",
+        "representation_type": "ranked_gene_symbol_sequence",
+        "symbolic_shape": [
+          "n_cells",
+          "n_ranked_genes"
+        ],
+        "uncertainty": "Tie handling is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "cells",
+          "cell-sentence token positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, in TISSUENARRATOR each cell is represented as a cell sentence ( Fig. 1A):",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Natural-language cell sentences containing spatial coordinates, optional metadata, and ranked genes.",
+        "node_id": "cell_sentences",
+        "origin": "source_annotation",
+        "representation_type": "cell_sentence_text",
+        "symbolic_shape": [
+          "n_cells",
+          "n_cell_sentence_tokens"
+        ],
+        "uncertainty": "The literal cell-sentence formula and delimiters are omitted."
+      },
+      {
+        "axis_semantics": [
+          "candidate anchor positions"
+        ],
+        "contextual_role": "implicit_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Traversal begins by randomly selecting one of five anchor points - the geometric center or the four corners.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Five source-defined traversal-anchor candidates.",
+        "node_id": "traversal_anchor_candidates",
+        "origin": "source_annotation",
+        "representation_type": "traversal_anchor_candidates",
+        "symbolic_shape": [
+          "n_anchor_candidates"
+        ],
+        "uncertainty": "The geometric coordinate representation is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "one selected anchor"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Traversal begins by randomly selecting one of five anchor points - the geometric center or the four corners. Let a denote the chosen anchor.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Randomly selected geometric center or corner.",
+        "node_id": "traversal_anchor",
+        "origin": "source_annotation",
+        "representation_type": "traversal_anchor",
+        "symbolic_shape": [
+          "one_anchor"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "traversal positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This process continues until all cells in the neighborhood have been visited, yielding the traversal sequence σ .",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Traversal order used to serialize neighboring cells.",
+        "node_id": "traversal_order",
+        "origin": "source_annotation",
+        "representation_type": "cell_traversal_indices",
+        "symbolic_shape": [
+          "n_neighborhood_cells"
+        ],
+        "uncertainty": "The literal distance-weighting equation is omitted."
+      },
+      {
+        "axis_semantics": [
+          "serialized cell positions",
+          "cell-sentence token positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Cell sentences assembled according to the traversal sequence.",
+        "node_id": "ordered_cell_sentences",
+        "origin": "source_annotation",
+        "representation_type": "ordered_cell_sentence_sequence",
+        "symbolic_shape": [
+          "n_serialized_cells",
+          "n_cell_sentence_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "spatial-sentence token positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Ordered natural-language spatial sentence.",
+        "node_id": "spatial_sentences",
+        "origin": "source_annotation",
+        "representation_type": "spatial_sentence_text",
+        "symbolic_shape": [
+          "n_spatial_sentence_tokens"
+        ],
+        "uncertainty": "The literal spatial-sentence formula and delimiters are omitted."
+      },
+      {
+        "axis_semantics": [
+          "token positions"
+        ],
+        "contextual_role": "model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each spatial sentence S j is tokenized into tokens w 1 , w 2 , . . . , w T , where w t denotes the token at position t .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Tokenized spatial sentence.",
+        "node_id": "spatial_sentence_tokens",
+        "origin": "source_annotation",
+        "representation_type": "language_model_token_ids",
+        "symbolic_shape": [
+          "n_spatial_tokens"
+        ],
+        "uncertainty": "Tokenizer vocabulary and special-token behavior are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "unvisited-cell sampling distributions"
+        ],
+        "contextual_role": "implicit_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "with distance-weighted probability:",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Source-defined distance-weighted distribution over currently unvisited cells.",
+        "node_id": "traverse_neighborhood::distribution",
+        "origin": "implicit_parameter",
+        "representation_type": "sampling_distribution",
+        "symbolic_shape": [
+          "n_unvisited_cells"
+        ],
+        "uncertainty": "The probability equation is omitted."
+      }
+    ],
+    "open_questions": [
+      "What exact cell-sentence and spatial-sentence templates, delimiters, and coordinate formatting are used?",
+      "What is the literal traversal probability equation?",
+      "What tokenizer vocabulary, special tokens, attention mask, and label mask are used?",
+      "Where are LoRA adapters inserted in the Qwen model?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "spatial_sentence_tokens",
+        "port_role": "tokenized_spatial_sentence"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Gene ranking within each cell",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "o i is the ranked gene sentence, defined as a list of gene symbols ordered by decreasing transcript abundance [16].",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_expression",
+            "port_role": "expression_values"
+          },
+          {
+            "node_id": "gene_identifiers",
+            "port_role": "gene_symbol_identifiers"
+          }
+        ],
+        "operation_type": "rank_genes_by_transcript_abundance",
+        "outputs": [
+          "ranked_gene_symbols"
+        ],
+        "step_id": "rank_genes",
+        "uncertainty": null
+      },
+      {
+        "component": "Cell sentence serializer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Instead, we directly use spatial coordinates ( x i , y i ) as numerical tokens within the sentence.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where ( x i , y i ) denotes its spatial coordinates, m i represents optional metadata (e.g., cell type or spatial domain), and o i is the ranked gene sentence",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, in TISSUENARRATOR each cell is represented as a cell sentence ( Fig. 1A):",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cell_coordinates",
+            "port_role": "spatial_coordinates"
+          },
+          {
+            "node_id": "cell_metadata",
+            "port_role": "optional_metadata"
+          },
+          {
+            "node_id": "ranked_gene_symbols",
+            "port_role": "ranked_gene_sentence"
+          }
+        ],
+        "operation_type": "encode_cells_as_cell_sentences",
+        "outputs": [
+          "cell_sentences"
+        ],
+        "step_id": "serialize_cells",
+        "uncertainty": "The source identifies the components but the formula defining their order is unavailable."
+      },
+      {
+        "component": "Traversal-anchor selection",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Traversal begins by randomly selecting one of five anchor points - the geometric center or the four corners.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "traversal_anchor_candidates",
+            "port_role": "anchor_candidates"
+          }
+        ],
+        "operation_type": "random_anchor_selection",
+        "outputs": [
+          "traversal_anchor"
+        ],
+        "step_id": "select_traversal_anchor",
+        "uncertainty": null
+      },
+      {
+        "component": "Spatial traversal",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Cells are then sampled sequentially from the unvisited set U",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where D aj is the Euclidean distance between cell j and the anchor, and τ (default τ = 1 ) controls randomness.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This process continues until all cells in the neighborhood have been visited, yielding the traversal sequence σ .",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cell_sentences",
+            "port_role": "cells_to_order"
+          },
+          {
+            "node_id": "cell_coordinates",
+            "port_role": "distance_context"
+          },
+          {
+            "node_id": "traversal_anchor",
+            "port_role": "selected_anchor"
+          }
+        ],
+        "operation_type": "sample_cells_by_distance_weighted_traversal",
+        "outputs": [
+          "traversal_order"
+        ],
+        "step_id": "traverse_neighborhood",
+        "uncertainty": null
+      },
+      {
+        "component": "Spatial sentence assembly",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "All cell sentences in a tissue patch are then assembled into a 1D 'spatial sentence', where cells are serialized by proximitybased traversal.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "cells with their cell sentences { s i } n i =1 were assembled in pre-determined spatial order to construct one spatial sentence",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cell_sentences",
+            "port_role": "cell_sentences"
+          },
+          {
+            "node_id": "traversal_order",
+            "port_role": "traversal_order"
+          }
+        ],
+        "operation_type": "assemble_cell_sentences_in_traversal_order",
+        "outputs": [
+          "spatial_sentences"
+        ],
+        "step_id": "assemble_spatial_sentence",
+        "uncertainty": "The source documents assembly/serialization in traversal order, but does not establish a separate selection/reordering followed by concatenation sequence or the literal serialization template."
+      },
+      {
+        "component": "LLM tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each spatial sentence S j is tokenized into tokens w 1 , w 2 , . . . , w T , where w t denotes the token at position t .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "spatial_sentences",
+            "port_role": "spatial_sentence_text"
+          }
+        ],
+        "operation_type": "tokenize_spatial_sentence",
+        "outputs": [
+          "spatial_sentence_tokens"
+        ],
+        "step_id": "tokenize_spatial_sentence",
+        "uncertainty": null
+      },
+      {
+        "component": "Qwen3 language-model fine-tuning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This spatial sentence then serves as the input for fine-tuning an LLM to learn cell generation through next-token prediction.",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training objective. TISSUENARRATOR is fine-tuned from a pretrained LLM using the standard nexttoken prediction objective [39], which maximizes the conditional probability of the text sequence.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "spatial_sentence_tokens",
+            "port_role": "tokenized_spatial_sentence"
+          }
+        ],
+        "operation_type": "next_token_prediction_fine_tuning",
+        "outputs": [],
+        "step_id": "fine_tune_qwen",
+        "uncertainty": "The LLM boundary remains opaque."
+      }
+    ],
+    "task_configuration": "Spatial sentence modeling and cell-generation fine-tuning",
+    "trajectory_id": "spatial_sentence_fine_tuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "conditional_generate_target_cell::1",
+        "component": "Conditional cell-generation prompt/model boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In the conditional generation mode, users can specify the target cell type or other metadata (e.g., tissue region or disease state), enabling controlled exploration of how a particular cell type behaves under a defined spatial context.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "neighbor_cell_sentences",
+            "target_cell_location",
+            "target_cell_metadata"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "predicted_target_cell_sentence"
+          ]
+        },
+        "parameters": {
+          "source_operation": "conditional_target_cell_generation",
+          "source_port_roles": [
+            "neighbor_context",
+            "target_spatial_location",
+            "conditional_target_metadata"
+          ]
+        },
+        "source_step_id": "conditional_generate_target_cell",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper specifies the supplied neighboring cell sentences, target location, and optional metadata, but does not establish their internal serialization, tokenization, or LLM computation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+        "section_id": "sec_0020"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "In the conditional generation mode, users can specify the target cell type or other metadata (e.g., tissue region or disease state), enabling controlled exploration of how a particular cell type behaves under a defined spatial context.",
+        "section_id": "sec_0020"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "inference",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned with LoRA, conditional generation mode",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "neighbor cells",
+          "cell-sentence positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Cell sentences describing neighboring cells.",
+        "node_id": "neighbor_cell_sentences",
+        "origin": "source_annotation",
+        "representation_type": "neighbor_cell_sentence_text",
+        "symbolic_shape": [
+          "n_neighbor_cells",
+          "n_cell_sentence_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "target coordinate components"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Spatial location of the target cell.",
+        "node_id": "target_cell_location",
+        "origin": "source_annotation",
+        "representation_type": "target_spatial_coordinates",
+        "symbolic_shape": [
+          "n_coordinate_components"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "target metadata fields"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "users can specify the target cell type or other metadata (e.g., tissue region or disease state)",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "User-specified target cell type or other metadata.",
+        "node_id": "target_cell_metadata",
+        "origin": "source_annotation",
+        "representation_type": "target_cell_metadata",
+        "symbolic_shape": [
+          "n_target_metadata_fields"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "predicted ranked-gene positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the conditional generation mode, users can specify the target cell type or other metadata (e.g., tissue region or disease state), enabling controlled exploration of how a particular cell type behaves under a defined spatial context.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Predicted target cell sentence containing cell identity and expression information.",
+        "node_id": "predicted_target_cell_sentence",
+        "origin": "source_annotation",
+        "representation_type": "predicted_cell_sentence_text",
+        "symbolic_shape": [
+          "n_predicted_cell_sentence_tokens"
+        ],
+        "uncertainty": "The decoding procedure and exact output serialization are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are neighboring cell sentences and target metadata serialized into the conditional prompt?",
+      "What tokenizer, special tokens, attention mask, and decoding settings are used?",
+      "How is the target spatial location represented in the model input?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "neighbor_cell_sentences",
+        "port_role": "neighbor_context"
+      },
+      {
+        "node_id": "target_cell_location",
+        "port_role": "target_spatial_location"
+      },
+      {
+        "node_id": "target_cell_metadata",
+        "port_role": "conditional_target_metadata"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Conditional cell-generation prompt/model boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In the conditional generation mode, users can specify the target cell type or other metadata (e.g., tissue region or disease state), enabling controlled exploration of how a particular cell type behaves under a defined spatial context.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neighbor_cell_sentences",
+            "port_role": "neighbor_context"
+          },
+          {
+            "node_id": "target_cell_location",
+            "port_role": "target_spatial_location"
+          },
+          {
+            "node_id": "target_cell_metadata",
+            "port_role": "conditional_target_metadata"
+          }
+        ],
+        "operation_type": "conditional_target_cell_generation",
+        "outputs": [
+          "predicted_target_cell_sentence"
+        ],
+        "step_id": "conditional_generate_target_cell",
+        "uncertainty": "Opaque model-input and generation boundary."
+      }
+    ],
+    "task_configuration": "Conditional cell generation from neighboring cell sentences, target location, and specified cell type or metadata",
+    "trajectory_id": "conditional_cell_generation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "unconditional_generate_target_cell::1",
+        "component": "Unconditional cell-generation prompt/model boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In the unconditional generation mode, TISSUENARRATOR infers the target cell's identity and expression profile solely from neighboring spatial cues, reproducing natural spatial distributions without prior knowledge of the target cell type.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "neighbor_cell_sentences",
+            "target_cell_location"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "predicted_target_cell_sentence"
+          ]
+        },
+        "parameters": {
+          "source_operation": "unconditional_target_cell_generation",
+          "source_port_roles": [
+            "neighbor_context",
+            "target_spatial_location"
+          ]
+        },
+        "source_step_id": "unconditional_generate_target_cell",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper specifies neighboring cell sentences and target location as inputs, but does not establish their internal serialization, tokenization, or LLM computation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+        "section_id": "sec_0020"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "In the unconditional generation mode, TISSUENARRATOR infers the target cell's identity and expression profile solely from neighboring spatial cues, reproducing natural spatial distributions without prior knowledge of the target cell type.",
+        "section_id": "sec_0020"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "inference",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned with LoRA, unconditional generation mode",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "neighbor cells",
+          "cell-sentence positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Cell sentences describing neighboring cells.",
+        "node_id": "neighbor_cell_sentences",
+        "origin": "source_annotation",
+        "representation_type": "neighbor_cell_sentence_text",
+        "symbolic_shape": [
+          "n_neighbor_cells",
+          "n_cell_sentence_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "target coordinate components"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Spatial location of the target cell.",
+        "node_id": "target_cell_location",
+        "origin": "source_annotation",
+        "representation_type": "target_spatial_coordinates",
+        "symbolic_shape": [
+          "n_coordinate_components"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "predicted ranked-gene positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR infers the target cell's identity and expression profile solely from neighboring spatial cues",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Predicted target cell sentence with inferred identity and expression profile.",
+        "node_id": "predicted_target_cell_sentence",
+        "origin": "source_annotation",
+        "representation_type": "predicted_cell_sentence_text",
+        "symbolic_shape": [
+          "n_predicted_cell_sentence_tokens"
+        ],
+        "uncertainty": "The decoding procedure and exact output serialization are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are neighboring cell sentences and target location serialized into the unconditional prompt?",
+      "What tokenizer, special tokens, attention mask, and decoding settings are used?",
+      "How are inferred identity and expression represented inside the generated sentence?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "neighbor_cell_sentences",
+        "port_role": "neighbor_context"
+      },
+      {
+        "node_id": "target_cell_location",
+        "port_role": "target_spatial_location"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Unconditional cell-generation prompt/model boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell, TISSUENARRATOR can predict the target cell sentence in two distinct modes",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In the unconditional generation mode, TISSUENARRATOR infers the target cell's identity and expression profile solely from neighboring spatial cues, reproducing natural spatial distributions without prior knowledge of the target cell type.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neighbor_cell_sentences",
+            "port_role": "neighbor_context"
+          },
+          {
+            "node_id": "target_cell_location",
+            "port_role": "target_spatial_location"
+          }
+        ],
+        "operation_type": "unconditional_target_cell_generation",
+        "outputs": [
+          "predicted_target_cell_sentence"
+        ],
+        "step_id": "unconditional_generate_target_cell",
+        "uncertainty": "Opaque model-input and generation boundary."
+      }
+    ],
+    "task_configuration": "Unconditional cell generation from neighboring spatial cues without target cell type metadata",
+    "trajectory_id": "unconditional_cell_generation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "construct_counterfactual_neighborhood::1",
+        "component": "Counterfactual neighborhood construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition, enabling in silico perturbations such as adding or removing neighbor cells.",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "As a counterfactual experiment, we performed an in silico transplant by placing TH Glut cells near OECs and examined the resulting changes in OEC gene expression",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": []
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "counterfactual_neighbor_cell_sentences"
+          ]
+        },
+        "parameters": {
+          "source_operation": "construct_counterfactual_neighborhood",
+          "source_port_roles": []
+        },
+        "source_step_id": "construct_counterfactual_neighborhood",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents counterfactual cell-type composition and an in silico transplant, but does not establish the computational operation used to construct the altered neighborhood."
+      },
+      {
+        "call_id": "generate_counterfactual_target::1",
+        "component": "Neighborhood-perturbation cell generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+            "section_id": "sec_0021"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "counterfactual_neighbor_cell_sentences",
+            "target_cell_location"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "predicted_perturbed_target_sentence"
+          ]
+        },
+        "parameters": {
+          "source_operation": "generate_target_under_counterfactual_neighborhood",
+          "source_port_roles": [
+            "counterfactual_neighbor_context",
+            "target_spatial_location"
+          ]
+        },
+        "source_step_id": "generate_counterfactual_target",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The supplied neighboring sentences and target location are documented, while prompt serialization, tokenization, and model computation are not established."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+        "section_id": "sec_0021"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "As a counterfactual experiment, we performed an in silico transplant by placing TH Glut cells near OECs and examined the resulting changes in OEC gene expression",
+        "section_id": "sec_0007"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "inference",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned with LoRA, neighborhood-composition perturbation",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "neighbor cells",
+          "cell-sentence positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+            "section_id": "sec_0021"
+          }
+        ],
+        "information_content": "Counterfactual neighborhood represented through neighboring cell sentences and altered cell-type composition.",
+        "node_id": "counterfactual_neighbor_cell_sentences",
+        "origin": "source_annotation",
+        "representation_type": "counterfactual_neighbor_cell_sentence_text",
+        "symbolic_shape": [
+          "n_counterfactual_neighbors",
+          "n_cell_sentence_tokens"
+        ],
+        "uncertainty": "The exact construction of the counterfactual neighborhood is not documented."
+      },
+      {
+        "axis_semantics": [
+          "target coordinate components"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Given the cell sentences from neighboring cells and the spatial location of a target cell",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Spatial location of the target cell.",
+        "node_id": "target_cell_location",
+        "origin": "source_annotation",
+        "representation_type": "target_spatial_coordinates",
+        "symbolic_shape": [
+          "n_coordinate_components"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "predicted target cell sentence positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+            "section_id": "sec_0021"
+          }
+        ],
+        "information_content": "Generated target-cell sentence under the counterfactual neighborhood.",
+        "node_id": "predicted_perturbed_target_sentence",
+        "origin": "source_annotation",
+        "representation_type": "predicted_cell_sentence_text",
+        "symbolic_shape": [
+          "n_predicted_cell_sentence_tokens"
+        ],
+        "uncertainty": "The decoding procedure and exact output serialization are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are cells added or removed to create the counterfactual composition?",
+      "How are the counterfactual neighboring sentences serialized and tokenized?",
+      "What decoding settings are used for the generated target cell?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "counterfactual_neighbor_cell_sentences",
+        "port_role": "counterfactual_neighbor_context"
+      },
+      {
+        "node_id": "target_cell_location",
+        "port_role": "target_spatial_location"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Counterfactual neighborhood construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition, enabling in silico perturbations such as adding or removing neighbor cells.",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "As a counterfactual experiment, we performed an in silico transplant by placing TH Glut cells near OECs and examined the resulting changes in OEC gene expression",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [],
+        "operation_type": "construct_counterfactual_neighborhood",
+        "outputs": [
+          "counterfactual_neighbor_cell_sentences"
+        ],
+        "step_id": "construct_counterfactual_neighborhood",
+        "uncertainty": "Opaque source-defined construction boundary."
+      },
+      {
+        "component": "Neighborhood-perturbation cell generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting response to neighborhood composition: TISSUENARRATOR predicts a target cell within a neighborhood with counterfactual cell-type composition",
+            "section_id": "sec_0021"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "counterfactual_neighbor_cell_sentences",
+            "port_role": "counterfactual_neighbor_context"
+          },
+          {
+            "node_id": "target_cell_location",
+            "port_role": "target_spatial_location"
+          }
+        ],
+        "operation_type": "generate_target_under_counterfactual_neighborhood",
+        "outputs": [
+          "predicted_perturbed_target_sentence"
+        ],
+        "step_id": "generate_counterfactual_target",
+        "uncertainty": "Opaque model-input and generation boundary."
+      }
+    ],
+    "task_configuration": "In silico neighborhood-composition perturbation by adding or removing neighbor cell types or transplanting TH Glut cells near OECs",
+    "trajectory_id": "neighborhood_composition_perturbation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "generate_genetic_perturbation_neighbors::1",
+        "component": "Genetic-perturbation neighbor generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting effects of genetic perturbation: TISSUENARRATOR predicts a target cell given an edited or perturbed neighboring cell",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "During inference, TISSUENARRATOR was given a single unseen perturbed cancer cell and tasked with generating the gene expression of its neighboring T cells.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "perturbed_cancer_cell_sentence"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "predicted_neighbor_t_cell_sentence"
+          ]
+        },
+        "parameters": {
+          "source_operation": "generate_neighbors_under_genetic_perturbation",
+          "source_port_roles": [
+            "perturbed_neighbor_context"
+          ]
+        },
+        "source_step_id": "generate_genetic_perturbation_neighbors",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents a single unseen perturbed cancer-cell input and generation of neighboring T-cell expression, but does not establish prompt serialization, tokenization, or internal model computation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Predicting effects of genetic perturbation: TISSUENARRATOR predicts a target cell given an edited or perturbed neighboring cell",
+        "section_id": "sec_0021"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "During inference, TISSUENARRATOR was given a single unseen perturbed cancer cell and tasked with generating the gene expression of its neighboring T cells.",
+        "section_id": "sec_0007"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "inference",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned with LoRA, genetic perturbation",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "cell-sentence token positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "During inference, TISSUENARRATOR was given a single unseen perturbed cancer cell",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Single unseen edited or genetically perturbed cancer-cell representation.",
+        "node_id": "perturbed_cancer_cell_sentence",
+        "origin": "source_annotation",
+        "representation_type": "perturbed_cell_sentence_text",
+        "symbolic_shape": [
+          "n_perturbed_cell_sentence_tokens"
+        ],
+        "uncertainty": "The exact perturbation encoding and sentence serialization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "predicted neighboring-cell gene-expression sentence positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "tasked with generating the gene expression of its neighboring T cells",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Generated neighboring T-cell expression represented by model output.",
+        "node_id": "predicted_neighbor_t_cell_sentence",
+        "origin": "source_annotation",
+        "representation_type": "predicted_cell_sentence_text",
+        "symbolic_shape": [
+          "n_predicted_sentence_tokens"
+        ],
+        "uncertainty": "The output serialization and decoding procedure are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How is the genetic perturbation encoded in the edited neighboring cell sentence?",
+      "How are target neighboring T cells and their spatial relations represented?",
+      "What tokenizer and decoding settings are used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "perturbed_cancer_cell_sentence",
+        "port_role": "perturbed_neighbor_context"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Genetic-perturbation neighbor generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Predicting effects of genetic perturbation: TISSUENARRATOR predicts a target cell given an edited or perturbed neighboring cell",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "During inference, TISSUENARRATOR was given a single unseen perturbed cancer cell and tasked with generating the gene expression of its neighboring T cells.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "perturbed_cancer_cell_sentence",
+            "port_role": "perturbed_neighbor_context"
+          }
+        ],
+        "operation_type": "generate_neighbors_under_genetic_perturbation",
+        "outputs": [
+          "predicted_neighbor_t_cell_sentence"
+        ],
+        "step_id": "generate_genetic_perturbation_neighbors",
+        "uncertainty": "Opaque model-input and generation boundary."
+      }
+    ],
+    "task_configuration": "Leave-one-out genetic perturbation inference from one unseen perturbed melanoma cancer cell to neighboring T-cell expression",
+    "trajectory_id": "genetic_perturbation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "reconstruct_quantitative_expression::1",
+        "component": "Dataset-specific rank-to-expression reconstruction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To reconstruct quantitative expression values of single cells from the predicted ranked gene sentence output by TISSUENARRATOR, we fit a linear model for each dataset d , describing the relationship between a gene's expression value e i and its within-cell rank r i :",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "predicted_ranked_gene_sentence",
+            "rank_to_expression_parameters"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "quantitative_expression_estimates"
+          ]
+        },
+        "parameters": {
+          "source_operation": "rank_to_expression_linear_mapping",
+          "source_port_roles": [
+            "predicted_ranked_gene_sentence",
+            "fitted_dataset_parameters"
+          ]
+        },
+        "source_step_id": "reconstruct_quantitative_expression",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents applying fitted parameters to predicted gene ranks, but the catalog has no exact operation for this source-defined rank-to-value mapping."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To reconstruct quantitative expression values of single cells from the predicted ranked gene sentence output by TISSUENARRATOR, we fit a linear model for each dataset d , describing the relationship between a gene's expression value e i and its within-cell rank r i :",
+        "section_id": "sec_0020"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+        "section_id": "sec_0020"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: dataset-specific quantitative reconstruction from predicted ranked gene sentences",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "predicted cells",
+          "within-cell rank positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To reconstruct quantitative expression values of single cells from the predicted ranked gene sentence output by TISSUENARRATOR",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Predicted ranked gene sentence output.",
+        "node_id": "predicted_ranked_gene_sentence",
+        "origin": "source_annotation",
+        "representation_type": "predicted_ranked_gene_sequence",
+        "symbolic_shape": [
+          "n_predicted_cells",
+          "n_ranked_genes"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "dataset-specific fitted parameters"
+        ],
+        "contextual_role": "implicit_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Dataset-specific fitted linear parameters for rank-to-expression conversion.",
+        "node_id": "rank_to_expression_parameters",
+        "origin": "source_annotation",
+        "representation_type": "fitted_linear_parameters",
+        "symbolic_shape": [
+          "n_dataset_parameters"
+        ],
+        "uncertainty": "The literal equation is omitted from the supplied text."
+      },
+      {
+        "axis_semantics": [
+          "cells",
+          "genes"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "information_content": "Quantitative expression estimates reconstructed from predicted gene ranks.",
+        "node_id": "quantitative_expression_estimates",
+        "origin": "source_annotation",
+        "representation_type": "quantitative_gene_expression_estimates",
+        "symbolic_shape": [
+          "n_predicted_cells",
+          "n_genes"
+        ],
+        "uncertainty": "Exact mapping equation and handling of genes absent from the predicted list are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact linear equation is fitted for each dataset?",
+      "How are rank ties, omitted genes, and rank indexing handled?",
+      "Are the fitted parameters estimated from training data only or another split?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "quantitative_expression_estimates",
+        "port_role": "reconstructed_expression_output"
+      }
+    ],
+    "recipient_component": "TISSUENARRATOR quantitative reconstruction procedure",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Dataset-specific rank-to-expression reconstruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To reconstruct quantitative expression values of single cells from the predicted ranked gene sentence output by TISSUENARRATOR, we fit a linear model for each dataset d , describing the relationship between a gene's expression value e i and its within-cell rank r i :",
+            "section_id": "sec_0020"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The fitted parameters a d and b d are then used to convert predicted gene ranks back into quantitative expression estimates.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "predicted_ranked_gene_sentence",
+            "port_role": "predicted_ranked_gene_sentence"
+          },
+          {
+            "node_id": "rank_to_expression_parameters",
+            "port_role": "fitted_dataset_parameters"
+          }
+        ],
+        "operation_type": "rank_to_expression_linear_mapping",
+        "outputs": [
+          "quantitative_expression_estimates"
+        ],
+        "step_id": "reconstruct_quantitative_expression",
+        "uncertainty": "Unexpanded source-defined mapping."
+      }
+    ],
+    "task_configuration": "Quantitative expression reconstruction from predicted ranked gene sentences using dataset-specific fitted linear parameters",
+    "trajectory_id": "quantitative_rank_to_expression_reconstruction"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "fine_tune_conversational_qa::1",
+        "component": "Task-specific conversational Q&A fine-tuning",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To evaluate TISSUENARRATOR's ability to apply biological prior knowledge and learned spatial knowledge in a Q&amp;A setting, we constructed a proof-of-concept dataset covering three tasks: given the name of an anatomical structure, (1) return the top 5 most abundant cell types, (2) list the top 20 highly expressed genes, and (3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Following large-scale training on spatial sentences, TISSUENARRATOR can be fine-tuned on smaller, task-specific datasets to extend its functionality beyond cell generation.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "qa_training_query",
+            "qa_training_cell_type_targets",
+            "qa_training_gene_targets",
+            "qa_training_description_targets"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": []
+        },
+        "parameters": {
+          "source_operation": "task_specific_conversational_qa_fine_tuning",
+          "source_port_roles": [
+            "task_specific_training_queries",
+            "cell_type_ranking_training_targets",
+            "gene_ranking_training_targets",
+            "structure_description_training_targets"
+          ]
+        },
+        "source_step_id": "fine_tune_conversational_qa",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents fine-tuning on task-specific Q&A data covering three distinct tasks, but does not establish the prompt template, tokenizer, target serialization, or internal model computation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To evaluate TISSUENARRATOR's ability to apply biological prior knowledge and learned spatial knowledge in a Q&amp;A setting, we constructed a proof-of-concept dataset covering three tasks: given the name of an anatomical structure, (1) return the top 5 most abundant cell types, (2) list the top 20 highly expressed genes, and (3) generate a natural-language description of the structure.",
+        "section_id": "sec_0009"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Following large-scale training on spatial sentences, TISSUENARRATOR can be fine-tuned on smaller, task-specific datasets to extend its functionality beyond cell generation.",
+        "section_id": "sec_0020"
+      },
+      {
+        "kind": "table",
+        "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+        "section_id": "sec_0012"
+      },
+      {
+        "kind": "table",
+        "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+        "section_id": "sec_0014"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned for conversational tissue Q&A",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "training query text positions"
+        ],
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "given the name of an anatomical structure",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR generalizes to unseen anatomical structure names in natural language queries",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Natural-language queries containing anatomical structure names for task-specific Q&A fine-tuning.",
+        "node_id": "qa_training_query",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_spatial_query",
+        "symbolic_shape": [
+          "n_query_tokens"
+        ],
+        "uncertainty": "Exact prompt template and tokenizer representation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "training examples",
+          "ranked cell-type positions"
+        ],
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(1) return the top 5 most abundant cell types",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Task-specific target answers listing the most abundant cell types.",
+        "node_id": "qa_training_cell_type_targets",
+        "origin": "source_annotation",
+        "representation_type": "cell_type_ranking_answer_text",
+        "symbolic_shape": [
+          "n_training_examples",
+          "n_cell_type_answer_tokens"
+        ],
+        "uncertainty": "Exact answer formatting and teacher-forcing serialization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "training examples",
+          "ranked gene positions"
+        ],
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(2) list the top 20 highly expressed genes",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Task-specific target answers listing highly expressed genes.",
+        "node_id": "qa_training_gene_targets",
+        "origin": "source_annotation",
+        "representation_type": "gene_ranking_answer_text",
+        "symbolic_shape": [
+          "n_training_examples",
+          "n_gene_answer_tokens"
+        ],
+        "uncertainty": "Exact answer formatting and teacher-forcing serialization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "training examples",
+          "description text positions"
+        ],
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+            "section_id": "sec_0014"
+          }
+        ],
+        "information_content": "Task-specific target answers providing natural-language anatomical descriptions.",
+        "node_id": "qa_training_description_targets",
+        "origin": "source_annotation",
+        "representation_type": "structure_description_answer_text",
+        "symbolic_shape": [
+          "n_training_examples",
+          "n_description_answer_tokens"
+        ],
+        "uncertainty": "Exact answer formatting and teacher-forcing serialization are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What task-specific prompt templates and delimiters are used?",
+      "How are Q&A examples tokenized and formatted for fine-tuning?",
+      "How are the three task-specific target branches represented in the training receipt?",
+      "Where are LoRA adapters inserted in the Qwen model?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "qa_training_query",
+        "port_role": "task_specific_training_queries"
+      },
+      {
+        "node_id": "qa_training_cell_type_targets",
+        "port_role": "cell_type_ranking_training_targets"
+      },
+      {
+        "node_id": "qa_training_gene_targets",
+        "port_role": "gene_ranking_training_targets"
+      },
+      {
+        "node_id": "qa_training_description_targets",
+        "port_role": "structure_description_training_targets"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Task-specific conversational Q&A fine-tuning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To evaluate TISSUENARRATOR's ability to apply biological prior knowledge and learned spatial knowledge in a Q&amp;A setting, we constructed a proof-of-concept dataset covering three tasks: given the name of an anatomical structure, (1) return the top 5 most abundant cell types, (2) list the top 20 highly expressed genes, and (3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Following large-scale training on spatial sentences, TISSUENARRATOR can be fine-tuned on smaller, task-specific datasets to extend its functionality beyond cell generation.",
+            "section_id": "sec_0020"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "qa_training_query",
+            "port_role": "task_specific_training_queries"
+          },
+          {
+            "node_id": "qa_training_cell_type_targets",
+            "port_role": "cell_type_ranking_training_targets"
+          },
+          {
+            "node_id": "qa_training_gene_targets",
+            "port_role": "gene_ranking_training_targets"
+          },
+          {
+            "node_id": "qa_training_description_targets",
+            "port_role": "structure_description_training_targets"
+          }
+        ],
+        "operation_type": "task_specific_conversational_qa_fine_tuning",
+        "outputs": [],
+        "step_id": "fine_tune_conversational_qa",
+        "uncertainty": "Opaque model-input and training boundary."
+      }
+    ],
+    "task_configuration": "Task-specific conversational Q&A fine-tuning on three outputs: top-five cell types, top-20 highly expressed genes, and natural-language structure description",
+    "trajectory_id": "conversational_qa_fine_tuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_qa_query_inference::1",
+        "component": "Conversational Q&A query and tokenizer boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR generalizes to unseen anatomical structure names in natural language queries",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "qa_query"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "qa_query"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prepare_conversational_query",
+          "source_port_roles": [
+            "natural_language_spatial_query"
+          ]
+        },
+        "source_step_id": "prepare_qa_query_inference",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents natural-language questions and held-out-structure evaluation, but does not establish the prompt template, tokenizer vocabulary, special tokens, or internal token sequence."
+      },
+      {
+        "call_id": "answer_cell_type_query::1",
+        "component": "Top-five cell-type Q&A generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(1) return the top 5 most abundant cell types",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "qa_query"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "qa_cell_type_answer"
+          ]
+        },
+        "parameters": {
+          "source_operation": "generate_top_five_cell_types",
+          "source_port_roles": [
+            "cell_type_ranking_query"
+          ]
+        },
+        "source_step_id": "answer_cell_type_query",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents the top-five-cell-type task and its evaluation, but does not establish the internal LLM computation or output serialization."
+      },
+      {
+        "call_id": "answer_gene_query::1",
+        "component": "Top-twenty gene Q&A generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(2) list the top 20 highly expressed genes",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "qa_query"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "qa_gene_answer"
+          ]
+        },
+        "parameters": {
+          "source_operation": "generate_top_twenty_highly_expressed_genes",
+          "source_port_roles": [
+            "gene_ranking_query"
+          ]
+        },
+        "source_step_id": "answer_gene_query",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents the top-twenty-gene task, but does not establish the internal LLM computation or output serialization."
+      },
+      {
+        "call_id": "answer_description_query::1",
+        "component": "Natural-language structure-description Q&A generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+            "section_id": "sec_0014"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "qa_query"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "qa_description_answer"
+          ]
+        },
+        "parameters": {
+          "source_operation": "generate_structure_description",
+          "source_port_roles": [
+            "structure_description_query"
+          ]
+        },
+        "source_step_id": "answer_description_query",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents the natural-language description task and its evaluation, but does not establish the internal LLM computation or output serialization."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To evaluate TISSUENARRATOR's ability to apply biological prior knowledge and learned spatial knowledge in a Q&amp;A setting, we constructed a proof-of-concept dataset covering three tasks: given the name of an anatomical structure, (1) return the top 5 most abundant cell types, (2) list the top 20 highly expressed genes, and (3) generate a natural-language description of the structure.",
+        "section_id": "sec_0009"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+        "section_id": "sec_0009"
+      },
+      {
+        "kind": "table",
+        "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+        "section_id": "sec_0012"
+      },
+      {
+        "kind": "table",
+        "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+        "section_id": "sec_0014"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "inference",
+    "model_role": "primary_model",
+    "model_variant": "TISSUENARRATOR: Qwen3-4B-Base fine-tuned for conversational tissue Q&A, held-out-structure inference",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "query text positions"
+        ],
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR generalizes to unseen anatomical structure names in natural language queries",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "table",
+            "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+            "section_id": "sec_0014"
+          }
+        ],
+        "information_content": "Natural-language question about an anatomical structure or spatial region.",
+        "node_id": "qa_query",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_spatial_query",
+        "symbolic_shape": [
+          "n_query_tokens"
+        ],
+        "uncertainty": "Exact prompt template and tokenizer representation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ranked cell-type positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(1) return the top 5 most abundant cell types",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Generated answer listing the top five most abundant cell types.",
+        "node_id": "qa_cell_type_answer",
+        "origin": "source_annotation",
+        "representation_type": "cell_type_ranking_answer_text",
+        "symbolic_shape": [
+          "n_cell_type_answer_tokens"
+        ],
+        "uncertainty": "Exact answer serialization and decoding settings are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ranked gene positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(2) list the top 20 highly expressed genes",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Generated answer listing the top twenty highly expressed genes.",
+        "node_id": "qa_gene_answer",
+        "origin": "source_annotation",
+        "representation_type": "gene_ranking_answer_text",
+        "symbolic_shape": [
+          "n_gene_answer_tokens"
+        ],
+        "uncertainty": "Exact answer serialization and decoding settings are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "answer text positions"
+        ],
+        "contextual_role": "computed_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+            "section_id": "sec_0014"
+          }
+        ],
+        "information_content": "Generated natural-language description of the queried anatomical structure.",
+        "node_id": "qa_description_answer",
+        "origin": "source_annotation",
+        "representation_type": "structure_description_answer_text",
+        "symbolic_shape": [
+          "n_description_answer_tokens"
+        ],
+        "uncertainty": "Exact answer serialization and decoding settings are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What task-specific prompt templates and delimiters are used?",
+      "How are held-out Q&A queries tokenized and formatted?",
+      "What decoding settings are used during held-out-structure inference?",
+      "How are the three Q&A task outputs selected or distinguished at inference time?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "qa_query",
+        "port_role": "natural_language_spatial_query"
+      }
+    ],
+    "recipient_component": "Qwen3-4B-Base LLM with LoRA adapters",
+    "record_id": "full_2026-07-06__rec_000063",
+    "source_steps": [
+      {
+        "component": "Conversational Q&A query and tokenizer boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "TISSUENARRATOR generalizes to unseen anatomical structure names in natural language queries",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We split the dataset by structure name, fine-tuned TISSUENARRATOR, and evaluated the model on questions derived from held-out structures.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "qa_query",
+            "port_role": "natural_language_spatial_query"
+          }
+        ],
+        "operation_type": "prepare_conversational_query",
+        "outputs": [
+          "qa_query"
+        ],
+        "step_id": "prepare_qa_query_inference",
+        "uncertainty": "The query remains at an opaque text-input boundary."
+      },
+      {
+        "component": "Top-five cell-type Q&A generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(1) return the top 5 most abundant cell types",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "List the major cell classes present in the Dorsal peduncular area region from the mouse brain (include up to five).",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "qa_query",
+            "port_role": "cell_type_ranking_query"
+          }
+        ],
+        "operation_type": "generate_top_five_cell_types",
+        "outputs": [
+          "qa_cell_type_answer"
+        ],
+        "step_id": "answer_cell_type_query",
+        "uncertainty": "Opaque model-input and generation boundary."
+      },
+      {
+        "component": "Top-twenty gene Q&A generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(2) list the top 20 highly expressed genes",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "qa_query",
+            "port_role": "gene_ranking_query"
+          }
+        ],
+        "operation_type": "generate_top_twenty_highly_expressed_genes",
+        "outputs": [
+          "qa_gene_answer"
+        ],
+        "step_id": "answer_gene_query",
+        "uncertainty": "Opaque model-input and generation boundary."
+      },
+      {
+        "component": "Natural-language structure-description Q&A generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(3) generate a natural-language description of the structure.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "table",
+            "quote": "Provide a concise scientific summary of the brain division 'cranial nerves' from the mouse brain. Describe its overall functional role and highlight representative structures and their significance.",
+            "section_id": "sec_0014"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "qa_query",
+            "port_role": "structure_description_query"
+          }
+        ],
+        "operation_type": "generate_structure_description",
+        "outputs": [
+          "qa_description_answer"
+        ],
+        "step_id": "answer_description_query",
+        "uncertainty": "Opaque model-input and generation boundary."
+      }
+    ],
+    "task_configuration": "Held-out-anatomical-structure conversational inference with three task-specific outputs: top-five cell types, top-20 highly expressed genes, and natural-language structure description",
+    "trajectory_id": "conversational_qa_inference"
+  }
+]

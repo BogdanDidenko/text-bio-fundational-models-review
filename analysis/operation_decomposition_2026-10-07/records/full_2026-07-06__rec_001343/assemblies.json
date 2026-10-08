@@ -1,0 +1,1329 @@
+[
+  {
+    "bypasses": [
+      {
+        "condition": "when the documented context mask m is the already-applied artificial-dropout mask M and no separate context masking is performed",
+        "source_node_id": "observed_imputation_expression",
+        "source_step_id": "prepare_masked_context",
+        "target_node_id": "masked_context"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "simulate_dropout::1",
+        "component": "Artificial dropout corruption",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we follow the setting of DCA (Eraslan et al., 2019) and MAGIC (Van Dijk et al., 2018) to mimic the dropout events by masking 10% of the none-zero counts to zeros, where the masking probability is given by the exponential distribution",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "x_0",
+            "dropout_mask",
+            "dropout_policy"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "observed_imputation_expression"
+          ]
+        },
+        "parameters": {
+          "source_operation": "exponential_probability_nonzero_dropout_10_percent_nonzero_counts",
+          "source_port_roles": [
+            "clean_expression",
+            "dropout_mask",
+            "dropout_policy"
+          ]
+        },
+        "source_step_id": "simulate_dropout",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents masking 10% of nonzero counts with an exponential-distribution probability. The exact exponential parameter and masking implementation are unavailable; the policy is retained in the step operation type and dropout_policy node."
+      },
+      {
+        "call_id": "diffuse_imputation_input::1",
+        "component": "Forward diffusion corruption",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Conversely, the forward process gradually corrupts data by adding Gaussian noise",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where { β t } T t =1 is the variance schedule.",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "equation_context",
+            "quote": "Replacing x t with √ ¯ α t x 0 + √ 1 -¯ α t ϵ , the KL divergence term L t -1 simplifies to:",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "x_0",
+            "diffusion_time",
+            "gaussian_noise",
+            "variance_schedule"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "x_t"
+          ]
+        },
+        "parameters": {
+          "source_operation": "forward_diffusion_corruption_with_beta_schedule",
+          "source_port_roles": [
+            "clean_expression",
+            "time",
+            "noise",
+            "variance_schedule"
+          ]
+        },
+        "source_step_id": "diffuse_imputation_input",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states that the forward process adds Gaussian noise using a variance schedule β_t and gives the relation x_t = √ᾱ_t x_0 + √(1−ᾱ_t)ϵ in the parameterization appendix, but the complete displayed equations and schedule are unavailable."
+      },
+      {
+        "call_id": "project_expression::1",
+        "component": "Input expression projection",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use a linear mapping W ∈ R m × d to project the noised gene expression x t ∈ R m into R d",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "x_t"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "x_t_projected"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "linear mapping W",
+          "parameter_state": "learned",
+          "source_port_roles": [
+            "noised_expression"
+          ]
+        },
+        "source_step_id": "project_expression",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "embed_time::1",
+        "component": "Sinusoidal time embedding",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "sinusoidal time embedding",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "diffusion_time"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "time_embedding"
+          ]
+        },
+        "parameters": {
+          "source_operation": "sinusoidal_time_embedding",
+          "source_port_roles": [
+            "diffusion_time"
+          ]
+        },
+        "source_step_id": "embed_time",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper names sinusoidal time embedding, but the displayed equation is unavailable."
+      },
+      {
+        "call_id": "mix_time::1",
+        "component": "Expression-time mixing",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "and further mix it with the sinusoidal time embedding",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "x_t_projected",
+            "time_embedding"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "input_embedding"
+          ]
+        },
+        "parameters": {
+          "source_operation": "expression_time_embedding_mix",
+          "source_port_roles": [
+            "projected_expression",
+            "time_embedding"
+          ]
+        },
+        "source_step_id": "mix_time",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source says the projected expression is mixed with the sinusoidal time embedding without specifying the algebra."
+      },
+      {
+        "call_id": "prepare_masked_context::1",
+        "component": "Context masking",
+        "condition": "if a separate context mask m is applied to the observed expression",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To account for the majority of the settings, we denote the observed expression as M ⊙ X",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "A cell context is a randomly masked expression ˜ x = m ⊙ x , where m ∈ { 0 , 1 } m is the element-wise mask indicator",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "observed_imputation_expression",
+            "context_mask"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "masked_context"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_masking_or_dropout_mask_bypass",
+          "source_port_roles": [
+            "observed_expression_context_operand",
+            "context_mask_control"
+          ]
+        },
+        "source_step_id": "prepare_masked_context",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper defines the context as m ⊙ x but does not establish whether m is identical to the artificial-dropout mask M. The observed imputation expression remains the route operand; no second masking event is asserted."
+      },
+      {
+        "call_id": "project_context::1",
+        "component": "Context linear projection",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We process the context condition similarly as the input embedding using a linear projection, but without the time embedding: f ctxt (˜ x ) = ˜ xW ctxt .",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "masked_context"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "context_projected"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "linear projection W_ctxt",
+          "parameter_state": "learned",
+          "source_port_roles": [
+            "masked_context"
+          ],
+          "time_embedding": "omitted"
+        },
+        "source_step_id": "project_context",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "extract_context_condition::1",
+        "component": "Context conditioner MLP hidden-representation extraction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the masked gene expression context conditioner ψ f ctxt extracts the hidden representations within a single MLP",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the processed condition embeddings are fed into the cross attention blocks in reverse, where the highly processed context embeddings are first mixed with the raw input embeddings.",
+            "section_id": "sec_0021"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "context_projected"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "context_condition"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_single_MLP_hidden_representation_extraction",
+          "source_port_roles": [
+            "projected_context"
+          ]
+        },
+        "source_step_id": "extract_context_condition",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents hidden representations extracted from a single context MLP and their reverse feeding into cross-attention blocks, but the internal MLP equations and complete intermediate states are unavailable."
+      },
+      {
+        "call_id": "lookup_raw_class_condition::1",
+        "component": "Class embedding lookup",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use learnable d dimensional embeddings to represent each class, f cls ( c ) = h c",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "keys": [
+            "cell_type_label"
+          ],
+          "table": [
+            "class_embedding_table"
+          ]
+        },
+        "operation_id": "lookup",
+        "outputs": {
+          "values": [
+            "raw_class_embedding"
+          ]
+        },
+        "parameters": {
+          "key_space": "cell-type class identifiers",
+          "resource_kind": "learnable class embedding matrix",
+          "source_port_roles": [
+            "class_identifier"
+          ],
+          "trainability": "trainable"
+        },
+        "source_step_id": "lookup_raw_class_condition",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "project_class_condition::1",
+        "component": "Class conditioner MLP",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Formally, each conditioner ψ f is a multilayer perceptron (MLP) that converts the raw representation extracted by f into the final condition representation set",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We used six layers of cross attention blocks to encode the cell latent representations. Accordingly, each conditioner ψ f is a collection of six MLPs.",
+            "section_id": "sec_0026"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "raw_class_embedding"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "class_condition"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "collection of six MLPs; class conditioner",
+          "parameter_state": "learned",
+          "source_port_roles": [
+            "raw_class_representation"
+          ]
+        },
+        "source_step_id": "project_class_condition",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "encode_with_conditions::1",
+        "component": "Six-layer reverse-context cross-attention encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Once the input embedding ϕ ( x t , t ) and the condition representations { ψ f ( c ) } f ∈F are calculated, we combine them through multiple layers of cross-attention",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "the highly processed context embeddings are first mixed with the raw input embeddings",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the processed condition embeddings are fed into the cross attention blocks in reverse",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We used six layers of cross attention blocks to encode the cell latent representations.",
+            "section_id": "sec_0026"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "input_embedding",
+            "context_condition",
+            "class_condition"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "hidden_representation"
+          ]
+        },
+        "parameters": {
+          "source_operation": "six_layer_reverse_context_cross_attention_encoding",
+          "source_port_roles": [
+            "input_embedding",
+            "context_condition",
+            "class_condition"
+          ]
+        },
+        "source_step_id": "encode_with_conditions",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents six cross-attention blocks and context-first reverse mixing. The complete ordering and algebra of class conditioning remain unavailable."
+      },
+      {
+        "call_id": "decode_expression::1",
+        "component": "Linear decoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, the cell latent embedding is linearly projected back to the gene expression space to recover the clean expression signals x 0",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "hidden_representation"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "x_0_prediction"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "linear projection to gene expression space",
+          "parameter_state": "learned",
+          "source_port_roles": [
+            "latent_representation"
+          ]
+        },
+        "source_step_id": "decode_expression",
+        "status": "documented_operation",
+        "uncertainty": null
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Missing value imputation aims to recover the true expression levels from the dropout events in sequencing (Hou et al., 2020)",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Specifically, we follow the setting of DCA (Eraslan et al., 2019) and MAGIC (Van Dijk et al., 2018) to mimic the dropout events by masking 10% of the none-zero counts to zeros, where the masking probability is given by the exponential distribution",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "table",
+        "quote": "|              | 293T            |         3000 |              1.00e-8 | ✓         | ✓           |                             |                     |       |",
+        "section_id": "sec_0026"
+      },
+      {
+        "kind": "table",
+        "quote": "|              | PBMC1K          |         3000 |              1.00e-8 | ✓         | ✓           |                             |                     |       |",
+        "section_id": "sec_0026"
+      },
+      {
+        "kind": "table",
+        "quote": "| Denoising         | Jurkat                 | 3,258         | 12,635        | -          | -              | -              |",
+        "section_id": "sec_0027"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We used six layers of cross attention blocks to encode the cell latent representations. Accordingly, each conditioner ψ f is a collection of six MLPs.",
+        "section_id": "sec_0026"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "training",
+    "model_role": "primary_model",
+    "model_variant": "scDiff missing-value imputation: context and cell-type conditioned diffusion",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "clean expression before artificial dropout and diffusion corruption",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Formally, we denote the expression of all cells as X ∈ R n × m , where n is the number of cells and m stands for the number of genes",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Clean single-cell gene-expression data.",
+        "node_id": "x_0",
+        "origin": "source_annotation",
+        "representation_type": "gene_expression",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "indicator for artificial dropout corruption",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "masking 10% of the none-zero counts to zeros",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Masking pattern for nonzero-count dropout simulation.",
+        "node_id": "dropout_mask",
+        "origin": "source_annotation",
+        "representation_type": "dropout_mask",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": "The realized mask and exact exponential parameter are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "artificial-dropout policy parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "to mimic the dropout events by masking 10% of the none-zero counts to zeros, where the masking probability is given by the exponential distribution",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "The documented 10% nonzero-count masking rate and exponential masking-probability policy.",
+        "node_id": "dropout_policy",
+        "origin": "source_annotation",
+        "representation_type": "dropout_policy",
+        "symbolic_shape": null,
+        "uncertainty": "The exact exponential parameter is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "observed imputation input after artificial dropout",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "create the corrupted matrix by dropping out some non-zero entries",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To account for the majority of the settings, we denote the observed expression as M ⊙ X",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Expression with nonzero counts masked to zero.",
+        "node_id": "observed_imputation_expression",
+        "origin": "source_annotation",
+        "representation_type": "partially_observed_gene_expression",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "time"
+        ],
+        "contextual_role": "forward-diffusion time control",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "scDiff aims to recover the clean single cell gene expression x 0 given the corrupted signal x t with added Gaussian noise to time step t",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Diffusion time step.",
+        "node_id": "diffusion_time",
+        "origin": "source_annotation",
+        "representation_type": "diffusion_time_index",
+        "symbolic_shape": [
+          "time"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "forward-diffusion noise",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the forward process gradually corrupts data by adding Gaussian noise",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Gaussian noise used by the forward diffusion process.",
+        "node_id": "gaussian_noise",
+        "origin": "source_annotation",
+        "representation_type": "Gaussian_noise",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": "The displayed forward-process equation is unavailable."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "forward-diffusion variance-schedule parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where { β t } T t =1 is the variance schedule.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Variance schedule β_t used by the forward diffusion process.",
+        "node_id": "variance_schedule",
+        "origin": "source_annotation",
+        "representation_type": "diffusion_variance_schedule",
+        "symbolic_shape": null,
+        "uncertainty": "The schedule values and functional form are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "noised expression received by the input embedder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "scDiff aims to recover the clean single cell gene expression x 0 given the corrupted signal x t with added Gaussian noise to time step t",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "equation_context",
+            "quote": "Replacing x t with √ ¯ α t x 0 + √ 1 -¯ α t ϵ , the KL divergence term L t -1 simplifies to:",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Diffusion-corrupted expression state formed from clean x_0, Gaussian noise, time, and the variance schedule.",
+        "node_id": "x_t",
+        "origin": "source_annotation",
+        "representation_type": "noised_gene_expression",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": "The complete forward-diffusion equation and schedule instantiation are unavailable."
+      },
+      {
+        "axis_semantics": [
+          "latent feature"
+        ],
+        "contextual_role": "linear projection of noised expression",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use a linear mapping W ∈ R m × d to project the noised gene expression x t ∈ R m into R d",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Projected noised expression.",
+        "node_id": "x_t_projected",
+        "origin": "source_annotation",
+        "representation_type": "projected_expression_features",
+        "symbolic_shape": [
+          "latent_feature"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "time embedding feature"
+        ],
+        "contextual_role": "diffusion-time representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "sinusoidal time embedding",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Sinusoidal time embedding.",
+        "node_id": "time_embedding",
+        "origin": "source_annotation",
+        "representation_type": "sinusoidal_time_embedding",
+        "symbolic_shape": [
+          "time_embedding_feature"
+        ],
+        "uncertainty": "The equation in Appendix B.1 is unavailable."
+      },
+      {
+        "axis_semantics": [
+          "latent feature"
+        ],
+        "contextual_role": "query representation for conditional encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Once the input embedding ϕ ( x t , t ) and the condition representations { ψ f ( c ) } f ∈F are calculated",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Time-conditioned noised-expression embedding.",
+        "node_id": "input_embedding",
+        "origin": "source_annotation",
+        "representation_type": "time_conditioned_expression_embedding",
+        "symbolic_shape": [
+          "latent_feature"
+        ],
+        "uncertainty": "The expression-time fusion algebra is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "masked expression supplied to the context conditioner",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "A cell context is a randomly masked expression ˜ x = m ⊙ x , where m ∈ { 0 , 1 } m is the element-wise mask indicator",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Context expression derived under the paper's context-mask notation; the route retains the artificial-dropout observation as the conditioning operand.",
+        "node_id": "masked_context",
+        "origin": "source_annotation",
+        "representation_type": "masked_gene_expression",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": "The paper does not establish whether m is the artificial-dropout mask M or a separate mask. No additional masking event is asserted."
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "control for context masking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "A cell context is a randomly masked expression ˜ x = m ⊙ x , where m ∈ { 0 , 1 } m is the element-wise mask indicator",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Element-wise context mask m.",
+        "node_id": "context_mask",
+        "origin": "source_annotation",
+        "representation_type": "context_mask",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": "Its relationship to dropout_mask M is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "latent feature"
+        ],
+        "contextual_role": "linear context projection before the context MLP",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We process the context condition similarly as the input embedding using a linear projection, but without the time embedding: f ctxt (˜ x ) = ˜ xW ctxt .",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Context features after the W_ctxt projection without time embedding.",
+        "node_id": "context_projected",
+        "origin": "source_annotation",
+        "representation_type": "projected_context_features",
+        "symbolic_shape": [
+          "latent_feature"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "condition slot",
+          "latent feature"
+        ],
+        "contextual_role": "hidden-layer context representations",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the masked gene expression context conditioner ψ f ctxt extracts the hidden representations within a single MLP",
+            "section_id": "sec_0021"
+          }
+        ],
+        "information_content": "Context conditioner representations.",
+        "node_id": "context_condition",
+        "origin": "source_annotation",
+        "representation_type": "context_condition_vectors",
+        "symbolic_shape": [
+          "condition_slot",
+          "latent_feature"
+        ],
+        "uncertainty": "The individual hidden-layer shapes are unavailable."
+      },
+      {
+        "axis_semantics": [
+          "class"
+        ],
+        "contextual_role": "cell-type class identifier",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In our case, class attributes can describe the cell type or the perturbation state of a given cell",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Cell-type class identifier.",
+        "node_id": "cell_type_label",
+        "origin": "source_annotation",
+        "representation_type": "cell_type_identifier",
+        "symbolic_shape": [
+          "class"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "latent feature"
+        ],
+        "contextual_role": "raw class embedding",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use learnable d dimensional embeddings to represent each class, f cls ( c ) = h c",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Embedding selected for the cell-type identifier.",
+        "node_id": "raw_class_embedding",
+        "origin": "source_annotation",
+        "representation_type": "class_embedding",
+        "symbolic_shape": [
+          "latent_feature"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "condition slot",
+          "latent feature"
+        ],
+        "contextual_role": "final class conditioner representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Formally, each conditioner ψ f is a multilayer perceptron (MLP) that converts the raw representation extracted by f into the final condition representation set",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We used six layers of cross attention blocks to encode the cell latent representations. Accordingly, each conditioner ψ f is a collection of six MLPs.",
+            "section_id": "sec_0026"
+          }
+        ],
+        "information_content": "MLP-transformed cell-type condition.",
+        "node_id": "class_condition",
+        "origin": "source_annotation",
+        "representation_type": "class_condition_vectors",
+        "symbolic_shape": [
+          "condition_slot",
+          "latent_feature"
+        ],
+        "uncertainty": "The individual hidden-layer outputs are not separately displayed."
+      },
+      {
+        "axis_semantics": [
+          "latent feature"
+        ],
+        "contextual_role": "cross-attention encoder output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "a cross-attention encoder , E , which combines the input embeddings with the corresponding conditioners and transforms them into the hidden representation of the input cell",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Conditioned cell latent representation.",
+        "node_id": "hidden_representation",
+        "origin": "source_annotation",
+        "representation_type": "cell_latent_representation",
+        "symbolic_shape": [
+          "latent_feature"
+        ],
+        "uncertainty": "The complete multi-condition ordering is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene"
+        ],
+        "contextual_role": "predicted clean expression",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, the cell latent embedding is linearly projected back to the gene expression space to recover the clean expression signals x 0",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Imputed clean-expression prediction.",
+        "node_id": "x_0_prediction",
+        "origin": "source_annotation",
+        "representation_type": "predicted_gene_expression",
+        "symbolic_shape": [
+          "gene"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use learnable d dimensional embeddings to represent each class, f cls ( c ) = h c",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Learnable class embedding table.",
+        "node_id": "class_embedding_table",
+        "origin": "implicit_parameter",
+        "representation_type": "embedding_matrix",
+        "symbolic_shape": [
+          "class",
+          "latent_feature"
+        ],
+        "uncertainty": null
+      }
+    ],
+    "open_questions": [
+      "What exact forward-diffusion equation maps clean x_0 to x_t under the β_t schedule?",
+      "Is the artificial dropout mask M also the context mask m, or is a separate context mask sampled?",
+      "What is the exact algebra of expression-time fusion?",
+      "How are the context hidden representations assigned to the reverse cross-attention blocks?",
+      "How are the class-conditioner outputs ordered across the six cross-attention blocks?",
+      "How does the decoder route handle batch information for datasets whose table entries have no documented batches?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "input_embedding",
+        "port_role": "expression_query_embedding"
+      },
+      {
+        "node_id": "context_condition",
+        "port_role": "context_conditioner"
+      },
+      {
+        "node_id": "class_condition",
+        "port_role": "class_conditioner"
+      }
+    ],
+    "recipient_component": "scDiff cross-attention encoder-decoder generative backbone",
+    "record_id": "full_2026-07-06__rec_001343",
+    "source_steps": [
+      {
+        "component": "Artificial dropout corruption",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we follow the setting of DCA (Eraslan et al., 2019) and MAGIC (Van Dijk et al., 2018) to mimic the dropout events by masking 10% of the none-zero counts to zeros, where the masking probability is given by the exponential distribution",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "x_0",
+            "port_role": "clean_expression"
+          },
+          {
+            "node_id": "dropout_mask",
+            "port_role": "dropout_mask"
+          },
+          {
+            "node_id": "dropout_policy",
+            "port_role": "dropout_policy"
+          }
+        ],
+        "operation_type": "exponential_probability_nonzero_dropout_10_percent_nonzero_counts",
+        "outputs": [
+          "observed_imputation_expression"
+        ],
+        "step_id": "simulate_dropout",
+        "uncertainty": null
+      },
+      {
+        "component": "Forward diffusion corruption",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Conversely, the forward process gradually corrupts data by adding Gaussian noise",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where { β t } T t =1 is the variance schedule.",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "equation_context",
+            "quote": "Replacing x t with √ ¯ α t x 0 + √ 1 -¯ α t ϵ , the KL divergence term L t -1 simplifies to:",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "x_0",
+            "port_role": "clean_expression"
+          },
+          {
+            "node_id": "diffusion_time",
+            "port_role": "time"
+          },
+          {
+            "node_id": "gaussian_noise",
+            "port_role": "noise"
+          },
+          {
+            "node_id": "variance_schedule",
+            "port_role": "variance_schedule"
+          }
+        ],
+        "operation_type": "forward_diffusion_corruption_with_beta_schedule",
+        "outputs": [
+          "x_t"
+        ],
+        "step_id": "diffuse_imputation_input",
+        "uncertainty": null
+      },
+      {
+        "component": "Input expression projection",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use a linear mapping W ∈ R m × d to project the noised gene expression x t ∈ R m into R d",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "x_t",
+            "port_role": "noised_expression"
+          }
+        ],
+        "operation_type": "linear_expression_projection",
+        "outputs": [
+          "x_t_projected"
+        ],
+        "step_id": "project_expression",
+        "uncertainty": null
+      },
+      {
+        "component": "Sinusoidal time embedding",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "sinusoidal time embedding",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "diffusion_time",
+            "port_role": "diffusion_time"
+          }
+        ],
+        "operation_type": "sinusoidal_time_embedding",
+        "outputs": [
+          "time_embedding"
+        ],
+        "step_id": "embed_time",
+        "uncertainty": null
+      },
+      {
+        "component": "Expression-time mixing",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "and further mix it with the sinusoidal time embedding",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "x_t_projected",
+            "port_role": "projected_expression"
+          },
+          {
+            "node_id": "time_embedding",
+            "port_role": "time_embedding"
+          }
+        ],
+        "operation_type": "expression_time_embedding_mix",
+        "outputs": [
+          "input_embedding"
+        ],
+        "step_id": "mix_time",
+        "uncertainty": null
+      },
+      {
+        "component": "Context masking",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To account for the majority of the settings, we denote the observed expression as M ⊙ X",
+            "section_id": "sec_0005"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "A cell context is a randomly masked expression ˜ x = m ⊙ x , where m ∈ { 0 , 1 } m is the element-wise mask indicator",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "observed_imputation_expression",
+            "port_role": "observed_expression_context_operand"
+          },
+          {
+            "node_id": "context_mask",
+            "port_role": "context_mask_control"
+          }
+        ],
+        "operation_type": "context_masking_or_dropout_mask_bypass",
+        "outputs": [
+          "masked_context"
+        ],
+        "step_id": "prepare_masked_context",
+        "uncertainty": null
+      },
+      {
+        "component": "Context linear projection",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We process the context condition similarly as the input embedding using a linear projection, but without the time embedding: f ctxt (˜ x ) = ˜ xW ctxt .",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "masked_context",
+            "port_role": "masked_context"
+          }
+        ],
+        "operation_type": "linear_context_projection_without_time_embedding",
+        "outputs": [
+          "context_projected"
+        ],
+        "step_id": "project_context",
+        "uncertainty": null
+      },
+      {
+        "component": "Context conditioner MLP hidden-representation extraction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the masked gene expression context conditioner ψ f ctxt extracts the hidden representations within a single MLP",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the processed condition embeddings are fed into the cross attention blocks in reverse, where the highly processed context embeddings are first mixed with the raw input embeddings.",
+            "section_id": "sec_0021"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "context_projected",
+            "port_role": "projected_context"
+          }
+        ],
+        "operation_type": "context_single_MLP_hidden_representation_extraction",
+        "outputs": [
+          "context_condition"
+        ],
+        "step_id": "extract_context_condition",
+        "uncertainty": null
+      },
+      {
+        "component": "Class embedding lookup",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We use learnable d dimensional embeddings to represent each class, f cls ( c ) = h c",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cell_type_label",
+            "port_role": "class_identifier"
+          }
+        ],
+        "operation_type": "raw_class_embedding_lookup",
+        "outputs": [
+          "raw_class_embedding"
+        ],
+        "step_id": "lookup_raw_class_condition",
+        "uncertainty": null
+      },
+      {
+        "component": "Class conditioner MLP",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Formally, each conditioner ψ f is a multilayer perceptron (MLP) that converts the raw representation extracted by f into the final condition representation set",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We used six layers of cross attention blocks to encode the cell latent representations. Accordingly, each conditioner ψ f is a collection of six MLPs.",
+            "section_id": "sec_0026"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "raw_class_embedding",
+            "port_role": "raw_class_representation"
+          }
+        ],
+        "operation_type": "class_conditioner_MLP",
+        "outputs": [
+          "class_condition"
+        ],
+        "step_id": "project_class_condition",
+        "uncertainty": null
+      },
+      {
+        "component": "Six-layer reverse-context cross-attention encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Once the input embedding ϕ ( x t , t ) and the condition representations { ψ f ( c ) } f ∈F are calculated, we combine them through multiple layers of cross-attention",
+            "section_id": "sec_0006"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "the highly processed context embeddings are first mixed with the raw input embeddings",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Subsequently, the processed condition embeddings are fed into the cross attention blocks in reverse",
+            "section_id": "sec_0021"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We used six layers of cross attention blocks to encode the cell latent representations.",
+            "section_id": "sec_0026"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "input_embedding",
+            "port_role": "input_embedding"
+          },
+          {
+            "node_id": "context_condition",
+            "port_role": "context_condition"
+          },
+          {
+            "node_id": "class_condition",
+            "port_role": "class_condition"
+          }
+        ],
+        "operation_type": "six_layer_reverse_context_cross_attention_encoding",
+        "outputs": [
+          "hidden_representation"
+        ],
+        "step_id": "encode_with_conditions",
+        "uncertainty": null
+      },
+      {
+        "component": "Linear decoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, the cell latent embedding is linearly projected back to the gene expression space to recover the clean expression signals x 0",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "hidden_representation",
+            "port_role": "latent_representation"
+          }
+        ],
+        "operation_type": "linear_gene_expression_decoding",
+        "outputs": [
+          "x_0_prediction"
+        ],
+        "step_id": "decode_expression",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Missing-value imputation on Jurkat, 293T, and PBMC1K with 10% nonzero-count dropout, context conditioning, and cell-type conditioning",
+    "trajectory_id": "scDiff_missing_value_imputation_training"
+  }
+]

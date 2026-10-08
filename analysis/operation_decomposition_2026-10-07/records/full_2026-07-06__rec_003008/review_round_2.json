@@ -1,0 +1,87 @@
+{
+  "coverage_summary": "Most input paths are conservatively represented, including unresolved tokenization, prompt construction, fusion algebra, and the undocumented 1.5B variant. Revision is required for omitted documented model branches, post-GRPO evaluation, and the GPT-OSS synthesis output link.",
+  "findings": [
+    {
+      "detail": "The GeneAgent trajectory is labeled as BFT-only, while the cited paper states that the framework replaces GPT-4o with SFT-, DFT-, and BFT-aligned 70B models. The SFT and DFT model-input branches are missing or their shared input path is not explicitly bound to those variants.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "for biological process reasoning, we use the GeneAgent [9] framework and replace its default GPT-4o backbone with SFT/DFT/BFT-aligned 70B models",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add separate SFT, DFT, and BFT GeneAgent trajectories, or explicitly document reuse of the reconstructed GeneAgent context path for each model variant.",
+      "severity": "blocking",
+      "step_id": "prepare_geneagent_context",
+      "trajectory_id": "deepseek_70b_bft_geneagent_evaluation"
+    },
+    {
+      "detail": "The VCWorld trajectory covers only the BFT-aligned 70B model, although the paper documents SFT-, DFT-, and BFT-aligned 70B replacements. The omitted variants are part of the documented evaluation path.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We replace the Gemini-2.5Flash backbone in the VCWorld framework with SFT-, DFT-, and BFT-aligned DeepSeek-R1-Distill 70B models.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the SFT and DFT VCWorld model variants, or explicitly bind the same opaque VCWorld input construction to all three documented aligned backbones.",
+      "severity": "blocking",
+      "step_id": "prepare_vcworld_context",
+      "trajectory_id": "deepseek_70b_bft_vcworld_evaluation"
+    },
+    {
+      "detail": "The GRPO trajectory is restricted to BFT initialization, but the cited evidence documents GRPO starting from DFT, SFT, BFT-sample, BFT-token, and full BFT 70B backbones. The corresponding model branches are absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Starting from the DFT, SFT, BFT-sample, BFT-token, and BFTaligned 70B backbones, we apply GRPO using sparse binary rewards from Tahoe-100M [32]",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the documented SFT, DFT, BFT-sample, and BFT-token GRPO variants, preserving their shared Tahoe-100M context path where applicable.",
+      "severity": "blocking",
+      "step_id": "prepare_grpo_context",
+      "trajectory_id": "deepseek_70b_bft_grpo"
+    },
+    {
+      "detail": "The GRPO trajectory represents training inputs and rewards but omits the documented downstream evaluation on five held-out VCWorld cell lines. The earlier VCWorld trajectory does not identify this post-GRPO held-out evaluation branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To assess RL compatibility, we further train SFT/DFT/BFT-aligned LLMs with GRPO on 45 Tahoe-100M cell lines [32] using sparse binary rewards and evaluate on the five held-out VCWorld cell lines.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Starting from the DFT, SFT, BFT-sample, BFT-token, and BFTaligned 70B backbones, we apply GRPO using sparse binary rewards from Tahoe-100M [32] and evaluate again on the held-out VCWorld cell lines.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a post-GRPO evaluation step or trajectory with held-out VCWorld cell-line inputs and an opaque evaluation-context receipt, while keeping the GRPO training branch separate.",
+      "severity": "blocking",
+      "step_id": "apply_sparse_grpo_rewards",
+      "trajectory_id": "deepseek_70b_bft_grpo"
+    },
+    {
+      "detail": "The GPT-OSS trajectory ends at an opaque conditioning context and has no output for the instruction-response pairs that the paper says GPT-OSS synthesizes. The same biological_instruction_response_pairs node is created in a DeepSeek fine-tuning trajectory, so the GPT-OSS receipt-to-output provenance is not explicit.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "biomedical corpus from NCBI is used as the knowledge source in EasyDataset [30], and GPT-OSS-120B [31] synthesizes instruction-response pairs covering broad biological knowledge.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a GPT-OSS synthesis step producing biological_instruction_response_pairs, or add an explicit cross-trajectory edge linking gpt_oss_model_context to that downstream dataset node.",
+      "severity": "blocking",
+      "step_id": "prepare_gpt_oss_context",
+      "trajectory_id": "gpt_oss_120b_biological_synthesis"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003008",
+  "verdict": "revise"
+}

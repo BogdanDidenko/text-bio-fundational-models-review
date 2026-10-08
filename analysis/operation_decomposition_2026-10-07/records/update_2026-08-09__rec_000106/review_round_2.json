@@ -1,0 +1,327 @@
+{
+  "coverage_summary": "All nine trajectories were reviewed against the supplied paper text, including preprocessing, pretraining objectives, reconstruction, classification, clustering, perturbation profiling, batch correction, HPA aggregation, and multichannel representation assembly.",
+  "findings": [
+    {
+      "detail": "The padding step has no bypass for already-square images, although the paper limits zero-padding to segmented images that are not square. The current graph therefore implies unconditional padding.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "When segmented cell images did not conform to a square shape, zero-padding was applied to obtain square inputs.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an already-square bypass or otherwise encode the documented condition.",
+      "severity": "blocking",
+      "step_id": "pad_pretraining_image",
+      "trajectory_id": "pretraining_image_encoder"
+    },
+    {
+      "detail": "Hard-negative mining is bound only to structured captions. The paper describes selecting unmatched image-text pairs, so the caption-only binding is unsupported.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Hard negative mining is applied to select informative unmatched pairs.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the candidate image-text pair context or leave the opaque mining boundary without asserting a caption-only input.",
+      "severity": "blocking",
+      "step_id": "mine_itm_hard_negatives",
+      "trajectory_id": "pretraining_alignment_qformer"
+    },
+    {
+      "detail": "The ITM step binds a separately produced caption embedding, but the cited ITM description specifies query logits for matched image-text pairs and does not establish this caption-embedding port or its use in the classifier.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ITM is a binary classification task that determines whether an image-text pair is matched or not.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each output query embedding, a linear classifier produces a logit.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Remove the unsupported caption-embedding binding or represent the documented text-conditioned pair-processing boundary without inventing its tensor interface.",
+      "severity": "blocking",
+      "step_id": "apply_itm_objective",
+      "trajectory_id": "pretraining_alignment_qformer"
+    },
+    {
+      "detail": "The reconstruction graph gives unmasked_visual_memory a compact n_visible_tokens axis, but the equation only establishes element-wise masking and the paper does not state whether the retained memory is compacted or remains a masked full-length sequence.",
+      "evidence": [
+        {
+          "kind": "equation_context",
+          "quote": "producing masked features X masked = X ⨀ (1 - M).",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the masked tokens are reconstructed using cross-attention to the unmasked memory from the image encoder.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Leave the memory layout unspecified or represent the full-length masked sequence with an explicit mask; do not assert n_visible_tokens without evidence.",
+      "severity": "blocking",
+      "step_id": "mask_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The reconstruction and alignment routes use distinct query-resource nodes despite the paper stating that the reconstruction pathway shares parameters with the image-text alignment Q-Former. The graph records textual sharing but does not establish shared resource identity.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the reconstruction pathway shares parameters with the image-text alignment Q-Former",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Bind both routes to the same documented Q-Former/query parameter resource or add an explicit shared-parameter relation.",
+      "severity": "blocking",
+      "step_id": "encode_masked_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The graph contains separate alignment and reconstruction losses/objective states but no documented joint optimization step connecting all four objectives. The paper explicitly defines a joint pretraining objective.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The four pre-training objectives ... are jointly optimized during pre-training.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The reconstruction objective is weighted by a scalar coefficient and jointly optimized with the image-text alignment objectives during pretraining.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque joint-objective/optimization boundary preserving the four objectives and the reconstruction weighting coefficient.",
+      "severity": "blocking",
+      "step_id": "compute_reconstruction_loss",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The classification preprocessing route lacks the documented exceptions for DIBaS and CM4AI. Its only bypass is the generic already-single-cell condition, while the paper states that these full-field datasets also skipped segmentation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Full-field images were processed using the same preprocessing pipeline as in pretraining ... except for DIBaS ... and CM4AI ...; neither dataset underwent single-cell segmentation.",
+          "section_id": "sec_0050"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add explicit DIBaS and CM4AI no-segmentation bypasses.",
+      "severity": "blocking",
+      "step_id": "prepare_classification_single_cell_images",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The classification trajectory omits the documented multichannel route: independent per-channel feature extraction followed by concatenation. This matters for the multichannel evaluation datasets represented by the classification input node.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For multi-channel microscopy images, features are extracted independently from each channel using the same procedure.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting channel-specific feature vectors are then concatenated to form the final image representation.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Connect classification inputs with multiple channels to the documented channelwise extraction and concatenation path, or explicitly mark that path as the shared upstream boundary.",
+      "severity": "blocking",
+      "step_id": "encode_classification_image",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "classification_scores is shaped only as n_classes, omitting the sample/image axis expected when the classifier is applied to image-level features.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The Q-Former outputs a fixed set of 32 query embeddings for each image.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "a unified classifier architecture is adopted, consisting of a 128-dimensional hidden layer followed by a classification layer.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Represent classification scores with a sample/image axis, such as n_images by n_classes.",
+      "severity": "minor",
+      "step_id": "classify_image_feature",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The perturbation trajectory collapses a documented encoder, Q-Former, and query-mean sequence into one opaque extraction step, although the paper states the ordered operations and their output representation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All images are subsequently processed by the pretrained image encoder and Q-Former to extract visual representations.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we compute the mean of the query embeddings, resulting in a single 768-dimensional feature vector per image.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose or reference the documented image-encoder, Q-Former, and query-mean stages before perturbation aggregation.",
+      "severity": "blocking",
+      "step_id": "extract_perturbation_cell_features",
+      "trajectory_id": "evaluation_perturbation_inference"
+    },
+    {
+      "detail": "The perturbation aggregation steps have no image-to-well or well-to-treatment grouping operands. The source makes these correspondences essential to the well and treatment representations.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "welllevel representations are computed by averaging image-level features",
+          "section_id": "sec_0027"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "aggregating wells subjected to identical perturbation conditions",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add grouping-key/context nodes for image-site-to-well and well-to-treatment correspondence, or explicitly preserve them as unresolved selectors.",
+      "severity": "blocking",
+      "step_id": "aggregate_well_features",
+      "trajectory_id": "evaluation_perturbation_inference"
+    },
+    {
+      "detail": "The results describe site-, well-, and treatment-level representations, while the trajectory contains image-, well-, and treatment-level nodes without documenting whether image-level and site-level are equivalent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "hierarchically aggregated to derive site-, well-, and treatment-level representations",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Image-level features are obtained by average aggregation of single-cell features.",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a site-level node or explicitly document the image-level/site-level equivalence used by this trajectory.",
+      "severity": "minor",
+      "step_id": "aggregate_image_features",
+      "trajectory_id": "evaluation_perturbation_inference"
+    },
+    {
+      "detail": "The batch-distance step uses only image features, although IMAD requires distances measured across experimental batches. No batch or plate identifier context is represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Batch-related variability is quantified using the Inverse Median Absolute Deviation (IMAD)",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "feature distances measured across experimental batches",
+          "section_id": "sec_0036"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add batch/plate identifiers or an explicit batch-correspondence context operand to the distance and IMAD boundaries.",
+      "severity": "blocking",
+      "step_id": "compute_batch_feature_distances",
+      "trajectory_id": "evaluation_batch_correction"
+    },
+    {
+      "detail": "The clustering trajectory starts from raw evaluation images and hides preprocessing exceptions documented for DIBaS and CM4AI. The graph therefore does not preserve the dataset-specific input branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Full-field images were processed using the same preprocessing pipeline as in pretraining ... except for DIBaS ... and CM4AI ...; neither dataset underwent single-cell segmentation.",
+          "section_id": "sec_0050"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For unsupervised evaluation, KMeans clustering is applied to image representations extracted from all datasets.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented segmentation and no-segmentation branches before clustering representation extraction.",
+      "severity": "blocking",
+      "step_id": "extract_clustering_representations",
+      "trajectory_id": "evaluation_cell_clustering"
+    },
+    {
+      "detail": "The HPA aggregation step receives only feature values, while the paper explicitly groups by cell line, protein localization, and protein identity. Those grouping keys are absent from the graph.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "single-cell images are grouped according to cell line, protein localization, and protein identity.",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the three grouping-key/context operands or represent the grouping boundary with explicit unresolved selectors.",
+      "severity": "blocking",
+      "step_id": "aggregate_hpa_profiles",
+      "trajectory_id": "evaluation_hpa_hierarchical_aggregation"
+    },
+    {
+      "detail": "The HPA trajectory also collapses the documented feature-extraction sequence into an opaque boundary despite the general preprocessing section specifying image encoder, Q-Former, query averaging, and multichannel handling.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All images are subsequently processed by the pretrained image encoder and Q-Former to extract visual representations.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we compute the mean of the query embeddings",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose or reference the documented shared feature-extraction stages before HPA grouping.",
+      "severity": "blocking",
+      "step_id": "extract_hpa_single_cell_features",
+      "trajectory_id": "evaluation_hpa_hierarchical_aggregation"
+    },
+    {
+      "detail": "The paper contains a trainability contradiction that the graph does not preserve: the image encoder is described as frozen in the encoder and architecture sections, while the training protocol says the full architecture is optimized end-to-end.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Freezing the image encoder",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The full scMIR architecture ... is optimized end-to-end.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the image encoder ... remains unchanged throughout this work.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Record the contradiction and retain the source-supported uncertainty about image-encoder trainability rather than asserting only the frozen interpretation.",
+      "severity": "minor",
+      "step_id": "encode_pretraining_image",
+      "trajectory_id": "pretraining_image_encoder"
+    }
+  ],
+  "record_id": "update_2026-08-09__rec_000106",
+  "verdict": "revise"
+}

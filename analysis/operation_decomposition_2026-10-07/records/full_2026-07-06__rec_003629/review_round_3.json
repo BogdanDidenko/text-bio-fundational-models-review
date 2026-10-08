@@ -1,0 +1,77 @@
+{
+  "coverage_summary": "The scorer-evaluation trajectory is partially supported, but the record omits the GEMGen model and generation routes and contains an unsupported continuous-score decomposition. It also omits the documented top-K ranking branch.",
+  "findings": [
+    {
+      "detail": "The record contains only a scorer-evaluation trajectory and does not cover the GEMGen model, despite the paper documenting phenotype-guided compound generation, its two training phases, and evaluation-time generation of candidate compounds.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Here we present GEMGen, a large language model-based framework that performs in silico phenotypic drug discovery by generating small molecules directly from transcriptomic representations of cellular states.",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The second task, phenotype-guided compound generation, trained the model to generate chemical structures capable of eliciting a given transcriptomic change.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each input phenotype, GEMGen generated 1,000 candidate compounds in SMILES format predicted to reproduce the corresponding gene expression changes.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Training was performed in two phases to balance data coverage and model performance.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add GEMGen model-variant trajectories covering the documented fine-tuning phases and generation/evaluation input flow, or explicitly record a justified scope exclusion for GEMGen in coverage_questions.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "scorer_evaluation"
+    },
+    {
+      "detail": "The step decomposes the continuous scorer output as a two-layer MLP projection from the response-token hidden state, but the cited text only states that the MLP was used for explicit binary classification. The paper does not establish that the reported continuous match score is produced by this MLP or by a separate projection head.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This scorer outputs a continuous match score between 0 (no match) and 1 (perfect match)",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The training objective combined two complementary losses: a cross-entropy loss for autoregressive language modeling and a binary cross-entropy loss applied to a classification head. Specifically, the final hidden state corresponding to the response token ('yes' or 'no') was passed through a two-layer multilayer perceptron (MLP; hidden dimension = 2,048) for explicit binary classification.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Keep the continuous scorer output as a documented opaque boundary, or add a separately evidenced continuous-score head only if the source establishes its computation. Do not bind the continuous score to the binary-classification MLP based on the current text.",
+      "severity": "blocking",
+      "step_id": "classify_compound_phenotype_score",
+      "trajectory_id": "scorer_evaluation"
+    },
+    {
+      "detail": "The evaluation graph omits the documented score-ranked top-K filtering branch. The paper reports ranking ensemble-generated outputs by scorer score and evaluating multiple K values, while the assembly includes only threshold filtering.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To further assess ranking performance, we performed a top-K analysis using score-ranked ensemble GEMGen outputs (~2,000 molecules per phenotype). As K decreased, the proportion of true hits increased steadily",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "C, Effect of top-K filtering by score ranking on hit rate in the L1000 (top, N=203) and Tahoe-100M (bottom, N=242) test sets.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a documented ranking call using scorer values aligned to candidate compounds, followed by top-K selection, preserving the ensemble-output context and evaluated K settings.",
+      "severity": "blocking",
+      "step_id": "filter_candidates_by_score",
+      "trajectory_id": "scorer_evaluation"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003629",
+  "verdict": "revise"
+}

@@ -1,0 +1,177 @@
+{
+  "coverage_summary": "The assembly captures the major evaluation routes and preserves uncertainty around tokenizer and serialization details. Blocking omissions remain in distillation filtering, supervised-training targets, RL reward/update flow, documented length controls, and answer-only baseline lifecycle roles.",
+  "findings": [
+    {
+      "detail": "The distillation trajectory stops after generating eight candidate responses. The paper documents rejection sampling, acceptance conditions, and a resulting distilled dataset, but no filtering/selection step or accepted-example node is represented.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each instance, we generate 8 candidate responses.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A response is accepted only if it (1) adheres to the expected format and (2) yields a cell-type assignment that exactly matches the ground-truth labels.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add a documented selection/filtering boundary after candidate_responses with the two acceptance criteria and an accepted distilled-dataset output, then connect that output to SFT.",
+      "severity": "blocking",
+      "step_id": "generate_distillation_responses",
+      "trajectory_id": "openai_o1_distillation"
+    },
+    {
+      "detail": "The SFT graph exposes only prompt_tokens as a model input and model_response as an output. It does not represent the distilled response/prediction targets or the distilled dataset used for supervised learning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This distilled dataset is then used for SFT",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We apply SFT on the distilled dataset to initialize the model before RL.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add the accepted distilled examples, including their reasoning/prediction targets, as a training operand or retain an opaque supervised-training boundary whose inputs explicitly include those targets.",
+      "severity": "blocking",
+      "step_id": "sft_training",
+      "trajectory_id": "cell_o1_sft"
+    },
+    {
+      "detail": "The SFT tokenization/input step omits documented left-side padding, truncation, and the maximum sequence length of 8,192 tokens.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using left-side padding and truncation, and a maximum sequence length of 8,192 tokens.",
+          "section_id": "sec_0039"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Preserve the documented left-padding and truncation behavior and the 8,192-token limit as explicit invocation parameters or an adjacent documented boundary.",
+      "severity": "blocking",
+      "step_id": "tokenize_sft_prompt",
+      "trajectory_id": "cell_o1_sft"
+    },
+    {
+      "detail": "The RL trajectory ends at rollout generation and omits the documented reward computation and GRPO update inputs. The paper specifies batch-format/correctness rewards, rollout-group advantages, and policy/reference-policy KL regularization.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "GRPO samples a group of G candidate responses",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we design a rule-based reward function that evaluates both the format and correctness of the model output.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The KL divergence term D KL penalizes deviation from a reference policy",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the reward/GRPO training boundary, including rollout responses, format/correctness reward inputs, reference-policy context, and the policy-update state; use an opaque boundary if no catalog primitive is suitable.",
+      "severity": "blocking",
+      "step_id": "generate_rl_rollouts",
+      "trajectory_id": "cell_o1_rl"
+    },
+    {
+      "detail": "The RL invocation does not preserve the documented five-rollout count or the maximum prompt and response lengths. The node shape suggests a rollout axis but the call parameters are empty.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each training input, 5 rollouts are sampled per prompt.",
+          "section_id": "sec_0039"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We set the maximum prompt length to 3,072 tokens and response length to 3,000 tokens.",
+          "section_id": "sec_0039"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record n_rollouts = 5 and the documented 3,072-token prompt and 3,000-token response limits on the relevant invocation/boundary.",
+      "severity": "blocking",
+      "step_id": "generate_rl_rollouts",
+      "trajectory_id": "cell_o1_rl"
+    },
+    {
+      "detail": "The answer-only Llama trajectory is labeled lifecycle_phase=fine_tuning and model_role=primary_model, but its graph contains an inference prompt/tokenization path and no fine-tuning inputs or update. In the paper, these are instruction-tuned baselines evaluated for answer-only prediction.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we fine-tune LLaMA3.1-8B-Instruct and Qwen2.5-7B-Instruct",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These models are directly optimized for answer-only classification.",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "table",
+          "quote": "Instruction-tuning Performance (w/o reasoning)",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent the fine-tuning stage separately with its training operands, or label this prediction trajectory as evaluation with model_role=baseline.",
+      "severity": "blocking",
+      "step_id": "construct_prompt",
+      "trajectory_id": "llama31_batch_answer_only"
+    },
+    {
+      "detail": "The answer-only Qwen trajectory has the same lifecycle/role mismatch: it is marked fine_tuning/primary_model while the represented path is evaluation-time prediction and no training update is shown.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we fine-tune LLaMA3.1-8B-Instruct and Qwen2.5-7B-Instruct",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These models are directly optimized for answer-only classification.",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "table",
+          "quote": "Instruction-tuning Performance (w/o reasoning)",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Represent the fine-tuning stage separately with its training operands, or label this prediction trajectory as evaluation with model_role=baseline.",
+      "severity": "blocking",
+      "step_id": "construct_prompt",
+      "trajectory_id": "qwen25_batch_answer_only"
+    },
+    {
+      "detail": "The held-out Cell-o1 trajectory binds structured donor_metadata directly into the standardized prompt serializer, while the data-construction section documents an intermediate conversion of structured metadata into natural-language context before downstream reasoning.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each cell, we convert structured metadata fields into natural language context using predefined templates",
+          "section_id": "sec_0030"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The entire batch is associated with a contextual description m, derived from donor-level metadata",
+          "section_id": "sec_0005"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Add the documented structured-metadata-to-natural-language-context step and bind the resulting context node to prompt construction, or mark that conversion as an opaque documented boundary.",
+      "severity": "blocking",
+      "step_id": "construct_prompt",
+      "trajectory_id": "cell_o1_heldout_constrained"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001617",
+  "verdict": "revise"
+}

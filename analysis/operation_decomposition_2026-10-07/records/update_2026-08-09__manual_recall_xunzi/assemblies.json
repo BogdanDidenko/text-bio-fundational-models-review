@@ -1,0 +1,4350 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "tokenize_publications::1",
+        "component": "Biomedical text tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "publication_text"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "publication_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified biomedical text tokenizer",
+          "source_alphabet": "biomedical text",
+          "source_port_roles": [
+            "biomedical_publication_text"
+          ],
+          "vocabulary": "unspecified"
+        },
+        "source_step_id": "tokenize_publications",
+        "status": "documented_operation",
+        "uncertainty": "The paper states that x is tokenized but does not identify the tokenizer."
+      },
+      {
+        "call_id": "mistral_clm_publications::1",
+        "component": "Mistral-7B causal language model; training sequence length 1,024 tokens",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Continual pretraining was implemented in a causal language modelling (CLM) framework 77 ,",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "publication_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "publication_clm_result"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_modeling",
+          "source_port_roles": [
+            "tokenized_biomedical_sequence"
+          ]
+        },
+        "source_step_id": "mistral_clm_publications",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The internal embedding, causal attention, next-token prediction, loss and parameter-update receipt is unresolved. The documented training context is a sequence length of 1,024 tokens; padding, masks and document segmentation are unspecified."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To enable XunZi-R to perform biologist-like logical reasoning, we first selected a leading 7.3-B-parameter LLM, Mistral 7B 27 , as the initial model. Then, continual pretraining was performed using 24,411,924 curated biomedical publications and 2,054,130 structured biological corpus data, such as gene functional descriptions, Disease Ontology (DO) definitions 11 and Gene Ontology (GO) definitions 28 (Supplementary Table 1a-d).",
+        "section_id": "sec_0004"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Continual pretraining was implemented in a causal language modelling (CLM) framework 77 ,",
+        "section_id": "sec_0016"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-R: Mistral-7B continual pretraining on curated biomedical publications",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "publication text sequences",
+          "publication token positions"
+        ],
+        "contextual_role": "external_biological_text_corpus",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "First, we retrieved all available abstracts from published papers in PubMed before 2025, resulting in a corpus of over 24,411,924 biomedical publications. This corpus serves as the foundation for capturing scientific language patterns, terminologies and hypothesis structures commonly used in biological research.",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Curated PubMed biomedical publication abstracts.",
+        "node_id": "publication_text",
+        "origin": "source_annotation",
+        "representation_type": "biomedical_text_sequences",
+        "symbolic_shape": [
+          "n_text_sequences",
+          "n_text_tokens"
+        ],
+        "uncertainty": "Exact document boundaries, ordering and preprocessing are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered token positions"
+        ],
+        "contextual_role": "language_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Tokenized biomedical publication sequence.",
+        "node_id": "publication_tokens",
+        "origin": "source_annotation",
+        "representation_type": "text_token_ids",
+        "symbolic_shape": [
+          "n_tokens"
+        ],
+        "uncertainty": "Tokenizer vocabulary and special-token behavior are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "predicted token positions or training-result coordinates"
+        ],
+        "contextual_role": "causal_language_model_training_result",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Opaque next-token prediction, loss and parameter-update result from continual pretraining.",
+        "node_id": "publication_clm_result",
+        "origin": "source_annotation",
+        "representation_type": "causal_language_model_training_result",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not expose the predicted-token tensor, loss representation or parameter-update result as separate operands."
+      }
+    ],
+    "open_questions": [
+      "What tokenizer and vocabulary were used for the biomedical publication corpus?",
+      "How are publication boundaries, padding and causal masks represented?",
+      "What concrete prediction, loss or parameter-update object is produced by the CLM training step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "publication_tokens",
+        "port_role": "causal_language_model_token_ids"
+      }
+    ],
+    "recipient_component": "Mistral-7B causal language model",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "Biomedical text tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "publication_text",
+            "port_role": "biomedical_publication_text"
+          }
+        ],
+        "operation_type": "biomedical_text_tokenization",
+        "outputs": [
+          "publication_tokens"
+        ],
+        "step_id": "tokenize_publications",
+        "uncertainty": null
+      },
+      {
+        "component": "Mistral-7B causal language model; training sequence length 1,024 tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Continual pretraining was implemented in a causal language modelling (CLM) framework 77 ,",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "publication_tokens",
+            "port_role": "tokenized_biomedical_sequence"
+          }
+        ],
+        "operation_type": "causal_language_modeling",
+        "outputs": [
+          "publication_clm_result"
+        ],
+        "step_id": "mistral_clm_publications",
+        "uncertainty": "The internal embedding, causal attention, next-token prediction, loss and parameter-update receipt is unresolved. The documented training context is a sequence length of 1,024 tokens; padding, masks and document segmentation are unspecified."
+      }
+    ],
+    "task_configuration": "Continual pretraining on PubMed biomedical publication abstracts",
+    "trajectory_id": "xunzir_pretraining_publications"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_and_tokenize_structured_corpus::1",
+        "component": "Structured biological corpus preparation and tokenization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Also, we incorporated 2,054,130 structured biological corpora to enhance the domain-specific understanding of XunZi-R.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "A total of 14,132 disease terms were collected, each containing standardized identifiers, synonyms, hierarchical classifications and curated descriptions of disease characteristics and underlying mechanisms.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "structured_biological_text"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "structured_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "structured_corpus_preparation_and_tokenization",
+          "source_port_roles": [
+            "structured_biological_corpus"
+          ]
+        },
+        "source_step_id": "prepare_and_tokenize_structured_corpus",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The source documents incorporation of structured biological corpora and defines a tokenized biomedical-knowledge sequence, but does not establish a serialization operation, field order, delimiters or tokenizer for these corpora."
+      },
+      {
+        "call_id": "mistral_clm_structured_corpus::1",
+        "component": "Mistral-7B causal language model; training sequence length 1,024 tokens",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Continual pretraining was implemented in a causal language modelling (CLM) framework 77 ,",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "structured_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "structured_clm_result"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_language_modeling",
+          "source_port_roles": [
+            "tokenized_structured_biological_sequence"
+          ]
+        },
+        "source_step_id": "mistral_clm_structured_corpus",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The internal language-model receipt is unresolved. The documented training context is a sequence length of 1,024 tokens; padding, masks and document boundaries remain unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Also, we incorporated 2,054,130 structured biological corpora to enhance the domain-specific understanding of XunZi-R.",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We extracted 297,098 gene entries from the gene\\_info dataset and 1,694,980 literature-derived functional descriptions from the GeneRIF dataset, both of which were obtained from the National Center for Biotechnology Information (NCBI) 58 . These datasets provide concise insights into gene identity, function, related pathways and biological roles across a wide range of organisms. Furthermore, we incorporated disease definitions from the DO database (https://disease-ontology.org/) 11 , which provides hierarchically structured vocabularies for diseases. A total of 14,132 disease terms were collected, each containing standardized identifiers, synonyms, hierarchical classifications and curated descriptions of disease characteristics and underlying mechanisms. We also integrated the texts of 47,920 GO definitions on biological processes, molecular functions and cellular components from the GO knowledgebase (https://geneontology.org/) 28 .",
+        "section_id": "sec_0011"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-R: Mistral-7B continual pretraining on structured biological corpora",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "structured biological records",
+          "record token positions"
+        ],
+        "contextual_role": "external_biological_text_corpus",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Also, we incorporated 2,054,130 structured biological corpora to enhance the domain-specific understanding of XunZi-R.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "A total of 14,132 disease terms were collected, each containing standardized identifiers, synonyms, hierarchical classifications and curated descriptions of disease characteristics and underlying mechanisms.",
+            "section_id": "sec_0011"
+          }
+        ],
+        "information_content": "Gene records, GeneRIF descriptions, Disease Ontology definitions and Gene Ontology definitions.",
+        "node_id": "structured_biological_text",
+        "origin": "source_annotation",
+        "representation_type": "structured_biomedical_corpus",
+        "symbolic_shape": [
+          "n_records",
+          "n_record_fields"
+        ],
+        "uncertainty": "The paper identifies incorporated structured corpora and their fields but does not state their serialization into a particular textual record format."
+      },
+      {
+        "axis_semantics": [
+          "ordered token positions"
+        ],
+        "contextual_role": "language_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Tokenized sequence from the biomedical knowledge data, with the specific preparation of structured records unresolved.",
+        "node_id": "structured_tokens",
+        "origin": "source_annotation",
+        "representation_type": "text_token_ids",
+        "symbolic_shape": [
+          "n_tokens"
+        ],
+        "uncertainty": "The paper does not identify the tokenizer, record-boundary handling or whether the structured corpora were serialized using explicit field markers."
+      },
+      {
+        "axis_semantics": [
+          "predicted token positions or training-result coordinates"
+        ],
+        "contextual_role": "causal_language_model_training_result",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Opaque next-token prediction, loss and parameter-update result from structured-corpus continual pretraining.",
+        "node_id": "structured_clm_result",
+        "origin": "source_annotation",
+        "representation_type": "causal_language_model_training_result",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not expose the predicted-token tensor, loss representation or parameter-update result as separate operands."
+      }
+    ],
+    "open_questions": [
+      "How are structured records prepared before tokenization?",
+      "Are gene, disease and GO fields given explicit textual markers?",
+      "What concrete prediction, loss or parameter-update object is produced by the CLM training step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "structured_tokens",
+        "port_role": "causal_language_model_token_ids"
+      }
+    ],
+    "recipient_component": "Mistral-7B causal language model",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "Structured biological corpus preparation and tokenization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Also, we incorporated 2,054,130 structured biological corpora to enhance the domain-specific understanding of XunZi-R.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "A total of 14,132 disease terms were collected, each containing standardized identifiers, synonyms, hierarchical classifications and curated descriptions of disease characteristics and underlying mechanisms.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "structured_biological_text",
+            "port_role": "structured_biological_corpus"
+          }
+        ],
+        "operation_type": "structured_corpus_preparation_and_tokenization",
+        "outputs": [
+          "structured_tokens"
+        ],
+        "step_id": "prepare_and_tokenize_structured_corpus",
+        "uncertainty": "The source documents incorporation of structured biological corpora and defines a tokenized biomedical-knowledge sequence, but does not establish a serialization operation, field order, delimiters or tokenizer for these corpora."
+      },
+      {
+        "component": "Mistral-7B causal language model; training sequence length 1,024 tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Continual pretraining was implemented in a causal language modelling (CLM) framework 77 ,",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where the model learns to predict the next token xt given the previous context x&lt;t , updating parameters to minimize the negative log-likelihood loss:",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "structured_tokens",
+            "port_role": "tokenized_structured_biological_sequence"
+          }
+        ],
+        "operation_type": "causal_language_modeling",
+        "outputs": [
+          "structured_clm_result"
+        ],
+        "step_id": "mistral_clm_structured_corpus",
+        "uncertainty": "The internal language-model receipt is unresolved. The documented training context is a sequence length of 1,024 tokens; padding, masks and document boundaries remain unresolved."
+      }
+    ],
+    "task_configuration": "Continual pretraining on structured biological corpora",
+    "trajectory_id": "xunzir_pretraining_structured_corpus"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "format_cot_pair::1",
+        "component": "CoT training-instance formatting",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each training instance was formatted as a structured input-output pair, where the input is a natural language instruction (for example, 'Is gene TP53 involved in lung cancer in a functional way?'), and the output contains a binary label (Yes/No) followed by a multistep reasoning trace, including the gene's function, regulatory context and downstream pathway impact.",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "These negative instances were annotated with explicit statements indicating the absence of functional involvement",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "instruction_prompt",
+            "binary_label",
+            "reasoning_trace"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "cot_pair_text"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "natural-language instruction; Yes/No label; literature-derived reasoning text, including explicit negative no-functional-involvement responses",
+          "order": "instruction then binary label then reasoning trace",
+          "source_port_roles": [
+            "instruction",
+            "target_label",
+            "target_reasoning"
+          ],
+          "template": "structured input-output pair with instruction, binary label and reasoning trace"
+        },
+        "source_step_id": "format_cot_pair",
+        "status": "documented_operation",
+        "uncertainty": "Exact delimiters and role markers are unspecified."
+      },
+      {
+        "call_id": "tokenize_cot_pair::1",
+        "component": "Mistral tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "cot_pair_text"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "cot_pair_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified subword tokenization",
+          "source_alphabet": "biomedical instruction and reasoning text",
+          "source_port_roles": [
+            "structured_instruction_response_text"
+          ],
+          "vocabulary": "unspecified Mistral vocabulary"
+        },
+        "source_step_id": "tokenize_cot_pair",
+        "status": "documented_operation",
+        "uncertainty": "The tokenizer is not named in the paper."
+      },
+      {
+        "call_id": "sft_cot_pair::1",
+        "component": "Mistral-7B supervised fine-tuning",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Fine-tuning was conducted using the supervised fine-tuning (SFT) strategy, which minimizes the cross-entropy loss between the predicted output tokens and the gold-standard response:",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "cot_pair_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "cot_sft_result"
+          ]
+        },
+        "parameters": {
+          "source_operation": "causal_supervised_fine_tuning",
+          "source_port_roles": [
+            "supervised_fine_tuning_tokens"
+          ]
+        },
+        "source_step_id": "sft_cot_pair",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Internal token embeddings, teacher forcing, output-loss masking and parameter updates are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Following manual curation, we formatted the verified interpretations into a CoT mechanistic interpretation corpus. Each instance comprises three components:\n\n- (1) A natural language instruction prompt (for example, 'Is gene LRRK2 involved in Parkinson's disease in a functional way?');\n- (2) A binary label (Yes or No) indicating whether the gene is functionally implicated;\n- (3) A reasoning trace, combining literature-derived explanations with the inferred mechanism (for example, altered function, affected pathways and downstream targets).",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Each training instance was formatted as a structured input-output pair, where the input is a natural language instruction (for example, 'Is gene TP53 involved in lung cancer in a functional way?'), and the output contains a binary label (Yes/No) followed by a multistep reasoning trace, including the gene's function, regulatory context and downstream pathway impact.",
+        "section_id": "sec_0016"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-R: Mistral-7B instruction fine-tuned on CoT mechanistic interpretations",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "instruction text positions"
+        ],
+        "contextual_role": "instruction_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each training instance was formatted as a structured input-output pair, where the input is a natural language instruction (for example, 'Is gene TP53 involved in lung cancer in a functional way?'), and the output contains a binary label (Yes/No) followed by a multistep reasoning trace, including the gene's function, regulatory context and downstream pathway impact.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Natural-language gene-disease functional-relevance instruction.",
+        "node_id": "instruction_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_instruction",
+        "symbolic_shape": [
+          "n_instruction_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "response fields"
+        ],
+        "contextual_role": "supervised_target_label",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(2) A binary label (Yes or No) indicating whether the gene is functionally implicated;",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To enable robust discrimination between functional and non-functional associations, we also included 219,807 negative samples for gene-disease pairs lacking supporting evidence or functional relevance.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "These negative instances were annotated with explicit statements indicating the absence of functional involvement",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Yes/No functional-involvement label, including explicit no-functional-involvement responses for negative gene-disease instances.",
+        "node_id": "binary_label",
+        "origin": "source_annotation",
+        "representation_type": "binary_text_label",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify whether negative statements are represented as the label alone or as part of the target response serialization."
+      },
+      {
+        "axis_semantics": [
+          "reasoning-trace text positions"
+        ],
+        "contextual_role": "supervised_target_reasoning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "(3) A reasoning trace, combining literature-derived explanations with the inferred mechanism (for example, altered function, affected pathways and downstream targets).",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "These negative instances were annotated with explicit statements indicating the absence of functional involvement",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Mechanistic reasoning trace, including explicit absence-of-functional-involvement responses for negative instances.",
+        "node_id": "reasoning_trace",
+        "origin": "source_annotation",
+        "representation_type": "chain_of_thought_text",
+        "symbolic_shape": [
+          "n_reasoning_tokens"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered token positions"
+        ],
+        "contextual_role": "language_model_input_and_target_sequence",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each training instance was formatted as a structured input-output pair, where the input is a natural language instruction (for example, 'Is gene TP53 involved in lung cancer in a functional way?'), and the output contains a binary label (Yes/No) followed by a multistep reasoning trace, including the gene's function, regulatory context and downstream pathway impact.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Tokenized structured instruction-response training instance containing positive and negative target responses.",
+        "node_id": "cot_pair_tokens",
+        "origin": "source_annotation",
+        "representation_type": "tokenized_instruction_response_pair",
+        "symbolic_shape": [
+          "n_pair_tokens"
+        ],
+        "uncertainty": "Exact teacher-forcing shift, loss mask and delimiters are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "predicted response positions or training-result coordinates"
+        ],
+        "contextual_role": "supervised_fine_tuning_result",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Fine-tuning was conducted using the supervised fine-tuning (SFT) strategy, which minimizes the cross-entropy loss between the predicted output tokens and the gold-standard response:",
+            "section_id": "sec_0016"
+          }
+        ],
+        "information_content": "Opaque predicted-response, loss and parameter-update result from supervised fine-tuning.",
+        "node_id": "cot_sft_result",
+        "origin": "source_annotation",
+        "representation_type": "supervised_fine_tuning_result",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not expose predicted response tokens, teacher forcing, loss masking or parameter updates as separate operands."
+      },
+      {
+        "axis_semantics": [
+          "structured pair positions"
+        ],
+        "contextual_role": "formatted_supervised_instance",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Following manual curation, we formatted the verified interpretations into a CoT mechanistic interpretation corpus.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Formatted CoT instruction-output instance, including positive and negative responses.",
+        "node_id": "cot_pair_text",
+        "origin": "documented_intermediate",
+        "representation_type": "structured_instruction_output_text",
+        "symbolic_shape": [
+          "n_pair_text_tokens"
+        ],
+        "uncertainty": "Exact separators and system/instruction roles are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Are the label and reasoning trace serialized as one target sequence or supplied through separate fields?",
+      "Which tokens contribute to the supervised loss?",
+      "What concrete prediction, loss or parameter-update object is produced by the SFT step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "cot_pair_tokens",
+        "port_role": "supervised_instruction_response_tokens"
+      }
+    ],
+    "recipient_component": "Mistral-7B supervised fine-tuning interface",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "CoT training-instance formatting",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Each training instance was formatted as a structured input-output pair, where the input is a natural language instruction (for example, 'Is gene TP53 involved in lung cancer in a functional way?'), and the output contains a binary label (Yes/No) followed by a multistep reasoning trace, including the gene's function, regulatory context and downstream pathway impact.",
+            "section_id": "sec_0016"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "These negative instances were annotated with explicit statements indicating the absence of functional involvement",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_prompt",
+            "port_role": "instruction"
+          },
+          {
+            "node_id": "binary_label",
+            "port_role": "target_label"
+          },
+          {
+            "node_id": "reasoning_trace",
+            "port_role": "target_reasoning"
+          }
+        ],
+        "operation_type": "structured_cot_pair_formatting",
+        "outputs": [
+          "cot_pair_text"
+        ],
+        "step_id": "format_cot_pair",
+        "uncertainty": null
+      },
+      {
+        "component": "Mistral tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "where x = ( x 1 , x 2 , …, xT ) is a tokenized sequence from our biomedical knowledge data, and θ denotes the model parameters.",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cot_pair_text",
+            "port_role": "structured_instruction_response_text"
+          }
+        ],
+        "operation_type": "instruction_response_tokenization",
+        "outputs": [
+          "cot_pair_tokens"
+        ],
+        "step_id": "tokenize_cot_pair",
+        "uncertainty": null
+      },
+      {
+        "component": "Mistral-7B supervised fine-tuning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Fine-tuning was conducted using the supervised fine-tuning (SFT) strategy, which minimizes the cross-entropy loss between the predicted output tokens and the gold-standard response:",
+            "section_id": "sec_0016"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "cot_pair_tokens",
+            "port_role": "supervised_fine_tuning_tokens"
+          }
+        ],
+        "operation_type": "causal_supervised_fine_tuning",
+        "outputs": [
+          "cot_sft_result"
+        ],
+        "step_id": "sft_cot_pair",
+        "uncertainty": "Internal token embeddings, teacher forcing, output-loss masking and parameter updates are unresolved."
+      }
+    ],
+    "task_configuration": "Gene-disease functional association classification with mechanistic CoT response generation",
+    "trajectory_id": "xunzir_fine_tuning_cot"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "infer_classification::1",
+        "component": "XunZi-R evaluation prompt and binary-prediction interface",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Models were evaluated on their ability to determine whether a gene is functionally involved in a given disease.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In this task, models received a standardized prompt to ensure consistency and enable extraction of binary predictions (Yes/No) for accuracy assessment:",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene [X] involved in disease [Y] in a functional way? Start with Yes or No.'",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "classification_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "binary_prediction"
+          ]
+        },
+        "parameters": {
+          "source_operation": "language_model_classification_inference",
+          "source_port_roles": [
+            "standardized_natural_language_prompt"
+          ]
+        },
+        "source_step_id": "infer_classification",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents receipt of a standardized natural-language prompt and extraction of a binary prediction. Tokenization, internal decoder computation and Yes/No extraction are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Models were evaluated on their ability to determine whether a gene is functionally involved in a given disease.",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "In this task, models received a standardized prompt to ensure consistency and enable extraction of binary predictions (Yes/No) for accuracy assessment:",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "'Is gene [X] involved in disease [Y] in a functional way? Start with Yes or No.'",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-R: Mistral-7B evaluation classifier prompt",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "prompt text positions"
+        ],
+        "contextual_role": "evaluation_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene [X] involved in disease [Y] in a functional way? Start with Yes or No.'",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Standardized gene-disease functional-involvement question.",
+        "node_id": "classification_prompt",
+        "origin": "source_annotation",
+        "representation_type": "natural_language_question",
+        "symbolic_shape": [
+          "n_prompt_tokens"
+        ],
+        "uncertainty": "The actual gene and disease substitutions vary by evaluation instance."
+      },
+      {
+        "axis_semantics": [
+          "binary prediction classes"
+        ],
+        "contextual_role": "model_prediction_result",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In this task, models received a standardized prompt to ensure consistency and enable extraction of binary predictions (Yes/No) for accuracy assessment:",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Predicted Yes/No functional gene-disease association.",
+        "node_id": "binary_prediction",
+        "origin": "source_annotation",
+        "representation_type": "binary_gene_disease_prediction",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify whether the prediction is extracted from the first generated token, a probability threshold or another decoder interface."
+      }
+    ],
+    "open_questions": [
+      "How are [X] and [Y] substituted and escaped before the model receives the prompt?",
+      "How is the first Yes/No output extracted?",
+      "Does the evaluation interface tokenize the prompt internally, and what special-token or attention-mask handling is used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "classification_prompt",
+        "port_role": "standardized_natural_language_prompt"
+      }
+    ],
+    "recipient_component": "XunZi-R Mistral-7B inference interface",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "XunZi-R evaluation prompt and binary-prediction interface",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Models were evaluated on their ability to determine whether a gene is functionally involved in a given disease.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "In this task, models received a standardized prompt to ensure consistency and enable extraction of binary predictions (Yes/No) for accuracy assessment:",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene [X] involved in disease [Y] in a functional way? Start with Yes or No.'",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "classification_prompt",
+            "port_role": "standardized_natural_language_prompt"
+          }
+        ],
+        "operation_type": "language_model_classification_inference",
+        "outputs": [
+          "binary_prediction"
+        ],
+        "step_id": "infer_classification",
+        "uncertainty": "The paper documents receipt of a standardized natural-language prompt and extraction of a binary prediction. Tokenization, internal decoder computation and Yes/No extraction are unresolved."
+      }
+    ],
+    "task_configuration": "Evaluation of binary functional gene-disease association classification",
+    "trajectory_id": "xunzir_evaluation_classification"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "generate_mechanistic_interpretation::1",
+        "component": "XunZi-R mechanistic evaluation prompt and generation interface",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt template was as follows:",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This structured prompting strategy was applied uniformly across all other evaluated models to standardize output format, minimize response variability and ensure extraction of key biological components for quantitative assessment.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We evaluated the generated interpretations using semantic similarity metrics and lexical overlap measures against expert-verified reference interpretations with biological knowledge.",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "mechanistic_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "generated_interpretation"
+          ]
+        },
+        "parameters": {
+          "source_operation": "mechanistic_interpretation_generation",
+          "source_port_roles": [
+            "structured_natural_language_prompt"
+          ]
+        },
+        "source_step_id": "generate_mechanistic_interpretation",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper establishes a prompt template and structured generated output. Tokenization, internal language-model generation and output-field extraction are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The prompt template was as follows:\n\n'Is Gene [X] involved in disease [Y] in a functional way? Start your answer with 'Yes' or 'No'. Then describe in two sentences how the gene influences the disease, including direct and indirect biological effects. Finally, list the 'Impacted Genes' and 'Impacted Pathways' as shown below:\n\nExample format:\n\nYes/No. [Mechanism description]\n\nImpacted Genes: [list]\n\nImpacted Pathways: [list]'",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "This structured prompting strategy was applied uniformly across all other evaluated models to standardize output format, minimize response variability and ensure extraction of key biological components for quantitative assessment.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-R: Mistral-7B evaluation mechanistic-interpretation prompt",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "prompt text positions"
+        ],
+        "contextual_role": "mechanistic_evaluation_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "'Is Gene [X] involved in disease [Y] in a functional way? Start your answer with 'Yes' or 'No'. Then describe in two sentences how the gene influences the disease, including direct and indirect biological effects. Finally, list the 'Impacted Genes' and 'Impacted Pathways' as shown below:",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Structured gene-disease question requesting label, mechanism, impacted genes and impacted pathways.",
+        "node_id": "mechanistic_prompt",
+        "origin": "source_annotation",
+        "representation_type": "structured_natural_language_prompt",
+        "symbolic_shape": [
+          "n_prompt_tokens"
+        ],
+        "uncertainty": "The actual substituted gene and disease names vary by evaluation instance."
+      },
+      {
+        "axis_semantics": [
+          "generated interpretation fields and text positions"
+        ],
+        "contextual_role": "model_generation_result",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We evaluated the generated interpretations using semantic similarity metrics and lexical overlap measures against expert-verified reference interpretations with biological knowledge.",
+            "section_id": "sec_0017"
+          }
+        ],
+        "information_content": "Generated mechanistic interpretation containing a functional label, mechanism description, impacted genes and impacted pathways.",
+        "node_id": "generated_interpretation",
+        "origin": "source_annotation",
+        "representation_type": "generated_mechanistic_interpretation",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not expose the generated token sequence or field extraction procedure."
+      }
+    ],
+    "open_questions": [
+      "How are the requested output fields delimited during inference?",
+      "Is the output generated autoregressively from the complete prompt without additional input fields?",
+      "Does the evaluation interface tokenize the prompt internally, and what special-token or attention-mask handling is used?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "mechanistic_prompt",
+        "port_role": "structured_natural_language_prompt"
+      }
+    ],
+    "recipient_component": "XunZi-R Mistral-7B inference interface",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "XunZi-R mechanistic evaluation prompt and generation interface",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The prompt template was as follows:",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This structured prompting strategy was applied uniformly across all other evaluated models to standardize output format, minimize response variability and ensure extraction of key biological components for quantitative assessment.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We evaluated the generated interpretations using semantic similarity metrics and lexical overlap measures against expert-verified reference interpretations with biological knowledge.",
+            "section_id": "sec_0017"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "mechanistic_prompt",
+            "port_role": "structured_natural_language_prompt"
+          }
+        ],
+        "operation_type": "mechanistic_interpretation_generation",
+        "outputs": [
+          "generated_interpretation"
+        ],
+        "step_id": "generate_mechanistic_interpretation",
+        "uncertainty": "The paper establishes a prompt template and structured generated output. Tokenization, internal language-model generation and output-field extraction are unresolved."
+      }
+    ],
+    "task_configuration": "Evaluation of structured mechanistic interpretation generation",
+    "trajectory_id": "xunzir_evaluation_mechanistic_interpretation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "normalize_pan_cancer_transcriptomics::1",
+        "component": "Transcriptomic feature normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pan_cancer_transcriptomic_measurements"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "normalized_transcriptomic"
+          ]
+        },
+        "parameters": {
+          "axes": "gene/sample/condition transcriptomic measurements",
+          "method": "FPKM or TPM normalization for RNA-seq expression",
+          "scope": "unspecified",
+          "source_port_roles": [
+            "transcriptomic_measurements"
+          ]
+        },
+        "source_step_id": "normalize_pan_cancer_transcriptomics",
+        "status": "documented_operation",
+        "uncertainty": "The paper identifies FPKM or TPM values as normalized transcriptomic features but does not specify the calculation procedure or its order relative to study-wise standardization."
+      },
+      {
+        "call_id": "normalize_pan_cancer_proteomics::1",
+        "component": "Proteomic feature normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pan_cancer_proteomic_measurements"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "normalized_proteomic"
+          ]
+        },
+        "parameters": {
+          "axes": "molecule/sample/condition proteomic measurements",
+          "method": "normalized proteomic intensity",
+          "scope": "unspecified",
+          "source_port_roles": [
+            "proteomic_measurements"
+          ]
+        },
+        "source_step_id": "normalize_pan_cancer_proteomics",
+        "status": "documented_operation",
+        "uncertainty": "The paper identifies normalized proteomic intensity but does not specify the normalization procedure or its order relative to study-wise standardization."
+      },
+      {
+        "call_id": "aggregate_phosphosite_features::1",
+        "component": "Phosphosite feature aggregation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pan_cancer_phosphoproteomic_measurements"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "mean_phosphosite_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "mean_phosphosite_aggregation",
+          "source_port_roles": [
+            "phosphoproteomic_measurements"
+          ]
+        },
+        "source_step_id": "aggregate_phosphosite_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Mean aggregation across multiple phosphosites is documented but has no catalog primitive."
+      },
+      {
+        "call_id": "integrate_standardize_and_average_pan_cancer_features::1",
+        "component": "Documented multi-omics feature integration, study-wise standardization and condition-wise sample averaging",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Expression values were standardized within each study and averaged across samples under the same condition.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "normalized_transcriptomic",
+            "normalized_proteomic",
+            "mean_phosphosite_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "averaged_pan_cancer_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multi_omics_feature_integration_standardization_and_sample_averaging",
+          "source_port_roles": [
+            "normalized_transcriptomic_features",
+            "normalized_proteomic_features",
+            "mean_phosphosite_features"
+          ]
+        },
+        "source_step_id": "integrate_standardize_and_average_pan_cancer_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents the feature types, within-study standardization and same-condition averaging but does not establish modality assembly, intermediate tensors or the ordering of these operations."
+      },
+      {
+        "call_id": "concatenate_pan_cancer_features::1",
+        "component": "Pan-cancer feature construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final feature vector x i is constructed by concatenating such vectors across all cancer types.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "averaged_pan_cancer_features"
+          ]
+        },
+        "operation_id": "concatenate",
+        "outputs": {
+          "values": [
+            "pan_cancer_gene_features"
+          ]
+        },
+        "parameters": {
+          "axis": "feature slots across cancer types and conditions",
+          "order": "cancer-type order; unspecified",
+          "source_port_roles": [
+            "cancer_type_feature_vectors"
+          ]
+        },
+        "source_step_id": "concatenate_pan_cancer_features",
+        "status": "documented_operation",
+        "uncertainty": "The paper states concatenation across cancer types but does not define exact order."
+      },
+      {
+        "call_id": "tokenize_go_terms::1",
+        "component": "GO-term tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "go_term_text"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "go_term_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified text tokenization",
+          "source_alphabet": "GO-term text",
+          "source_port_roles": [
+            "go_term_text"
+          ],
+          "vocabulary": "unspecified XunZi-M vocabulary"
+        },
+        "source_step_id": "tokenize_go_terms",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not identify the tokenizer."
+      },
+      {
+        "call_id": "encode_go_terms::1",
+        "component": "XunZi-M GO-term semantic encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "go_term_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "go_term_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "last_token_hidden_state_extraction",
+          "source_port_roles": [
+            "go_term_token_ids"
+          ]
+        },
+        "source_step_id": "encode_go_terms",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The internal XunZi-M text encoder and last-token extraction are an opaque boundary."
+      },
+      {
+        "call_id": "assemble_initial_graph_features::1",
+        "component": "Heterogeneous graph node-feature initialization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Next, we conducted semantic embeddings for GO term nodes.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pan_cancer_gene_features",
+            "go_term_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "initial_graph_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "heterogeneous_node_feature_initialization",
+          "source_port_roles": [
+            "gene_or_protein_features",
+            "go_term_features"
+          ]
+        },
+        "source_step_id": "assemble_initial_graph_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states that feature vectors were initialized for all nodes but does not establish concatenation, stacking, alignment, padding or another assembly operation."
+      },
+      {
+        "call_id": "propagate_pan_cancer_graph::1",
+        "component": "Two-layer supervised GCN with A=A+I self-loops, degree normalization, trainable graph weights, ReLU activation and binary-cross-entropy training over labelled nodes",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where A = A + I is the adjacency matrix with added self-loops, D is the degree matrix of A , H Ⴞ l Ⴟ is the hidden representation at layer l, with H Ⴞ Š Ⴟ = X. W Ⴞ l Ⴟ is the trainable weight matrix of layer l , σ is the nonlinear activation function, ReLU",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We stacked two GCN layers to allow for two-hop message aggregation.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The graph model was trained as a binary classifier, predicting whether each gene plays a functional role in cancer.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "initial_graph_features",
+            "protein_go_graph",
+            "pan_cancer_labels"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pan_cancer_node_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "two_layer_graph_convolution_with_self_loops_degree_normalization_relu_and_binary_cross_entropy",
+          "source_port_roles": [
+            "initial_node_features",
+            "heterogeneous_graph_structure",
+            "binary_gene_cancer_training_labels"
+          ]
+        },
+        "source_step_id": "propagate_pan_cancer_graph",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Graph message passing, adjacency normalization, ReLU application, trainable graph weights, labelled-node binary-cross-entropy computation and classifier output remain an unexpanded boundary."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "In both contexts, each node in the graph, representing a gene, was embedded with an expression vector derived from the corresponding transcriptomic, proteomic or phosphoproteomic measurements under different biological conditions.",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "For pan-cancer, each gene node was embedded with a feature vector derived from its expression profiles across 33 cancer types.",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "To construct training labels, we collected all gene-cancer relevance annotations from DisGeNET and the CTD for positive labels. The graph model was trained as a binary classifier, predicting whether each gene plays a functional role in cancer.",
+        "section_id": "sec_0018"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-M: pan-cancer heterogeneous-graph multimodal pretraining model",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene",
+          "sample",
+          "condition",
+          "omics measurement"
+        ],
+        "contextual_role": "external_multi_omics_measurements",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each cancer type, we obtained transcriptomic, proteomic and phosphoproteomic measurements under both tumour and matched normal conditions.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Pan-cancer transcriptomic, proteomic and phosphoproteomic measurements under tumour and matched-normal conditions.",
+        "node_id": "pan_cancer_omics",
+        "origin": "source_annotation",
+        "representation_type": "multi_omics_measurement_values",
+        "symbolic_shape": [
+          "n_genes",
+          "n_samples",
+          "n_conditions",
+          "n_omics"
+        ],
+        "uncertainty": "Exact feature ordering and missing-feature handling are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "genes",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "transcriptomic_measurements",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Transcriptomic measurements used to derive FPKM or TPM feature values.",
+        "node_id": "pan_cancer_transcriptomic_measurements",
+        "origin": "source_annotation",
+        "representation_type": "transcriptomic_measurement_values",
+        "symbolic_shape": [
+          "n_genes",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "Exact source matrix and feature order are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "proteins or genes",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "proteomic_measurements",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Proteomic measurements used to derive normalized proteomic intensity features.",
+        "node_id": "pan_cancer_proteomic_measurements",
+        "origin": "source_annotation",
+        "representation_type": "proteomic_measurement_values",
+        "symbolic_shape": [
+          "n_molecules",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "Exact protein-to-gene mapping and feature order are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "proteins or phosphosites",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "phosphoproteomic_measurements",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Phosphoproteomic measurements used to derive mean phosphosite intensities.",
+        "node_id": "pan_cancer_phosphoproteomic_measurements",
+        "origin": "source_annotation",
+        "representation_type": "phosphoproteomic_measurement_values",
+        "symbolic_shape": [
+          "n_phosphosites",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "The mapping of multiple phosphosites to proteins is documented, but exact alignment and missing-site handling are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "genes",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "normalized_transcriptomic_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Normalized transcriptomic expression features.",
+        "node_id": "normalized_transcriptomic",
+        "origin": "source_annotation",
+        "representation_type": "normalized_transcriptomic_features",
+        "symbolic_shape": [
+          "n_genes",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "The normalization calculation and ordering relative to study-wise standardization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "molecules",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "normalized_proteomic_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Normalized proteomic intensity features.",
+        "node_id": "normalized_proteomic",
+        "origin": "source_annotation",
+        "representation_type": "normalized_proteomic_features",
+        "symbolic_shape": [
+          "n_molecules",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "The normalization calculation and ordering relative to study-wise standardization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "proteins",
+          "samples",
+          "conditions"
+        ],
+        "contextual_role": "phosphosite_aggregated_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Mean phosphosite intensity features mapped to proteins.",
+        "node_id": "mean_phosphosite_features",
+        "origin": "source_annotation",
+        "representation_type": "mean_phosphosite_intensity_features",
+        "symbolic_shape": [
+          "n_proteins",
+          "n_samples",
+          "n_conditions"
+        ],
+        "uncertainty": "The exact aggregation and phosphosite-to-protein alignment are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene",
+          "condition and cancer-type feature slots"
+        ],
+        "contextual_role": "averaged_expression_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Expression values were standardized within each study and averaged across samples under the same condition.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Expression-derived feature values after the documented within-study standardization and same-condition sample averaging; the integration order across modality-specific features is unresolved.",
+        "node_id": "averaged_pan_cancer_features",
+        "origin": "source_annotation",
+        "representation_type": "averaged_pan_cancer_expression_features",
+        "symbolic_shape": [
+          "n_genes",
+          "n_pan_cancer_feature_slots"
+        ],
+        "uncertainty": "The paper does not establish whether modality-specific features are assembled before or after standardization and averaging, or what intermediate combined representation is used."
+      },
+      {
+        "axis_semantics": [
+          "gene",
+          "condition and cancer-type feature slots"
+        ],
+        "contextual_role": "gene_initial_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final feature vector x i is constructed by concatenating such vectors across all cancer types.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Gene feature vector formed from averaged expression values across cancer types and conditions.",
+        "node_id": "pan_cancer_gene_features",
+        "origin": "source_annotation",
+        "representation_type": "concatenated_gene_expression_features",
+        "symbolic_shape": [
+          "n_genes",
+          "n_pan_cancer_features"
+        ],
+        "uncertainty": "The exact feature-slot order is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "graph edges"
+        ],
+        "contextual_role": "heterogeneous_graph_structure",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "In the entire graph, each node was embedded in a 4,096-dimensional vector to represent biological entities, including proteins and GO-defined functional terms, and edges capture either physical protein-protein interactions or functional annotations connecting proteins to their GO terms.",
+            "section_id": "sec_0015"
+          }
+        ],
+        "information_content": "Protein and GO-term nodes with PPI and protein-GO edges.",
+        "node_id": "protein_go_graph",
+        "origin": "source_annotation",
+        "representation_type": "heterogeneous_biological_graph",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "n_graph_edges"
+        ],
+        "uncertainty": "The physical embedding width is retained only in the evidence; symbolic width is left unspecified."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "GO-term text positions"
+        ],
+        "contextual_role": "GO_term_text_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Next, we conducted semantic embeddings for GO term nodes. Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "GO biological-process, molecular-function and cellular-component term text.",
+        "node_id": "go_term_text",
+        "origin": "source_annotation",
+        "representation_type": "go_term_text",
+        "symbolic_shape": [
+          "n_go_terms",
+          "n_term_tokens"
+        ],
+        "uncertainty": "Exact GO-term textual serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "GO-term token positions"
+        ],
+        "contextual_role": "GO_term_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Tokenized GO-term input.",
+        "node_id": "go_term_tokens",
+        "origin": "source_annotation",
+        "representation_type": "text_token_ids",
+        "symbolic_shape": [
+          "n_go_terms",
+          "n_term_tokens"
+        ],
+        "uncertainty": "Tokenizer and vocabulary are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "semantic feature coordinates"
+        ],
+        "contextual_role": "GO_term_initial_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Semantic feature vector extracted from the final hidden state of each GO term's last token.",
+        "node_id": "go_term_features",
+        "origin": "source_annotation",
+        "representation_type": "go_term_semantic_features",
+        "symbolic_shape": [
+          "n_go_terms",
+          "d_go_features"
+        ],
+        "uncertainty": "The paper gives a concrete width in the quotation; the graph uses a symbolic feature axis here."
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "initial feature coordinates"
+        ],
+        "contextual_role": "GCN_input_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Initial features for gene/protein nodes and GO-term nodes.",
+        "node_id": "initial_graph_features",
+        "origin": "source_annotation",
+        "representation_type": "heterogeneous_node_feature_matrix",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "d_node_features"
+        ],
+        "uncertainty": "The paper does not specify the layout or assembly operation for gene/protein and GO-term feature vectors."
+      },
+      {
+        "axis_semantics": [
+          "labelled gene nodes"
+        ],
+        "contextual_role": "supervised_training_labels",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To construct training labels, we collected all gene-cancer relevance annotations from DisGeNET and the CTD for positive labels.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The vast majority of gene-disease pairs remain unexplored due to current knowledge boundaries, creating an implicit bias where uncharacterized associations are treated as negatives.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Positive gene-cancer relevance annotations and the paper's implicit uncharacterized-as-negative label context.",
+        "node_id": "pan_cancer_labels",
+        "origin": "source_annotation",
+        "representation_type": "binary_gene_cancer_labels",
+        "symbolic_shape": [
+          "n_labelled_gene_nodes"
+        ],
+        "uncertainty": "Positive-label provenance and the implicit negative-label assumption are documented, but the exact negative-label construction, coverage and operational sampling are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "hidden feature coordinates"
+        ],
+        "contextual_role": "GCN_output_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We stacked two GCN layers to allow for two-hop message aggregation.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Two-layer graph-propagated node representations.",
+        "node_id": "pan_cancer_node_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "graph_node_embeddings",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "d_hidden"
+        ],
+        "uncertainty": "GCN internal weights, normalization, activation and classifier output are documented in prose/equation context but not recoverable as catalog primitives."
+      }
+    ],
+    "open_questions": [
+      "How are transcriptomic, proteomic and phosphoproteomic feature slots ordered?",
+      "How are gene nodes aligned with protein and GO nodes?",
+      "How are the implicit negative gene-cancer labels operationalized?",
+      "What exact GCN implementation receives the graph adjacency and initial feature matrix?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "initial_graph_features",
+        "port_role": "initial_node_features"
+      },
+      {
+        "node_id": "protein_go_graph",
+        "port_role": "heterogeneous_graph_structure"
+      },
+      {
+        "node_id": "pan_cancer_labels",
+        "port_role": "binary_gene_cancer_training_labels"
+      }
+    ],
+    "recipient_component": "XunZi-M two-layer heterogeneous-graph GCN",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "Transcriptomic feature normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pan_cancer_transcriptomic_measurements",
+            "port_role": "transcriptomic_measurements"
+          }
+        ],
+        "operation_type": "transcriptomic_feature_normalization",
+        "outputs": [
+          "normalized_transcriptomic"
+        ],
+        "step_id": "normalize_pan_cancer_transcriptomics",
+        "uncertainty": null
+      },
+      {
+        "component": "Proteomic feature normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pan_cancer_proteomic_measurements",
+            "port_role": "proteomic_measurements"
+          }
+        ],
+        "operation_type": "proteomic_feature_normalization",
+        "outputs": [
+          "normalized_proteomic"
+        ],
+        "step_id": "normalize_pan_cancer_proteomics",
+        "uncertainty": null
+      },
+      {
+        "component": "Phosphosite feature aggregation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pan_cancer_phosphoproteomic_measurements",
+            "port_role": "phosphoproteomic_measurements"
+          }
+        ],
+        "operation_type": "mean_phosphosite_aggregation",
+        "outputs": [
+          "mean_phosphosite_features"
+        ],
+        "step_id": "aggregate_phosphosite_features",
+        "uncertainty": "Mean aggregation across multiple phosphosites is documented but has no catalog primitive."
+      },
+      {
+        "component": "Documented multi-omics feature integration, study-wise standardization and condition-wise sample averaging",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Expression values were standardized within each study and averaged across samples under the same condition.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "normalized_transcriptomic",
+            "port_role": "normalized_transcriptomic_features"
+          },
+          {
+            "node_id": "normalized_proteomic",
+            "port_role": "normalized_proteomic_features"
+          },
+          {
+            "node_id": "mean_phosphosite_features",
+            "port_role": "mean_phosphosite_features"
+          }
+        ],
+        "operation_type": "multi_omics_feature_integration_standardization_and_sample_averaging",
+        "outputs": [
+          "averaged_pan_cancer_features"
+        ],
+        "step_id": "integrate_standardize_and_average_pan_cancer_features",
+        "uncertainty": "The paper documents the feature types, within-study standardization and same-condition averaging but does not establish modality assembly, intermediate tensors or the ordering of these operations."
+      },
+      {
+        "component": "Pan-cancer feature construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final feature vector x i is constructed by concatenating such vectors across all cancer types.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "averaged_pan_cancer_features",
+            "port_role": "cancer_type_feature_vectors"
+          }
+        ],
+        "operation_type": "pan_cancer_feature_concatenation",
+        "outputs": [
+          "pan_cancer_gene_features"
+        ],
+        "step_id": "concatenate_pan_cancer_features",
+        "uncertainty": null
+      },
+      {
+        "component": "GO-term tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "go_term_text",
+            "port_role": "go_term_text"
+          }
+        ],
+        "operation_type": "go_term_tokenization",
+        "outputs": [
+          "go_term_tokens"
+        ],
+        "step_id": "tokenize_go_terms",
+        "uncertainty": null
+      },
+      {
+        "component": "XunZi-M GO-term semantic encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "go_term_tokens",
+            "port_role": "go_term_token_ids"
+          }
+        ],
+        "operation_type": "last_token_hidden_state_extraction",
+        "outputs": [
+          "go_term_features"
+        ],
+        "step_id": "encode_go_terms",
+        "uncertainty": "The internal XunZi-M text encoder and last-token extraction are an opaque boundary."
+      },
+      {
+        "component": "Heterogeneous graph node-feature initialization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Next, we conducted semantic embeddings for GO term nodes.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pan_cancer_gene_features",
+            "port_role": "gene_or_protein_features"
+          },
+          {
+            "node_id": "go_term_features",
+            "port_role": "go_term_features"
+          }
+        ],
+        "operation_type": "heterogeneous_node_feature_initialization",
+        "outputs": [
+          "initial_graph_features"
+        ],
+        "step_id": "assemble_initial_graph_features",
+        "uncertainty": "The paper states that feature vectors were initialized for all nodes but does not establish concatenation, stacking, alignment, padding or another assembly operation."
+      },
+      {
+        "component": "Two-layer supervised GCN with A=A+I self-loops, degree normalization, trainable graph weights, ReLU activation and binary-cross-entropy training over labelled nodes",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where A = A + I is the adjacency matrix with added self-loops, D is the degree matrix of A , H Ⴞ l Ⴟ is the hidden representation at layer l, with H Ⴞ Š Ⴟ = X. W Ⴞ l Ⴟ is the trainable weight matrix of layer l , σ is the nonlinear activation function, ReLU",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We stacked two GCN layers to allow for two-hop message aggregation.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The graph model was trained as a binary classifier, predicting whether each gene plays a functional role in cancer.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "initial_graph_features",
+            "port_role": "initial_node_features"
+          },
+          {
+            "node_id": "protein_go_graph",
+            "port_role": "heterogeneous_graph_structure"
+          },
+          {
+            "node_id": "pan_cancer_labels",
+            "port_role": "binary_gene_cancer_training_labels"
+          }
+        ],
+        "operation_type": "two_layer_graph_convolution_with_self_loops_degree_normalization_relu_and_binary_cross_entropy",
+        "outputs": [
+          "pan_cancer_node_embeddings"
+        ],
+        "step_id": "propagate_pan_cancer_graph",
+        "uncertainty": "Graph message passing, adjacency normalization, ReLU application, trainable graph weights, labelled-node binary-cross-entropy computation and classifier output remain an unexpanded boundary."
+      }
+    ],
+    "task_configuration": "Pan-cancer molecular representation pretraining across 33 cancer types",
+    "trajectory_id": "xunzim_pretraining_pan_cancer"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "fuse_nsclc_features::1",
+        "component": "NSCLC feature fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "These were then concatenated with NSCLC-specific multi-omics expression vectors.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrained_pan_cancer_embeddings",
+            "nsclc_omics_features"
+          ]
+        },
+        "operation_id": "concatenate",
+        "outputs": {
+          "values": [
+            "nsclc_fused_features"
+          ]
+        },
+        "parameters": {
+          "axis": "gene feature coordinates",
+          "order": "pretrained representation followed by NSCLC-specific multi-omics vector",
+          "source_port_roles": [
+            "pretrained_gene_representation",
+            "NSCLC_multi_omics_vector"
+          ]
+        },
+        "source_step_id": "fuse_nsclc_features",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "train_nsclc_gcn::1",
+        "component": "NSCLC-specific two-layer GCN",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, we used these features to train a tow-layer GCN for NSCLC.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "nsclc_fused_features",
+            "nsclc_task_subgraph"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "nsclc_node_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "NSCLC_graph_convolution",
+          "source_port_roles": [
+            "NSCLC_gene_features",
+            "NSCLC_task_graph"
+          ]
+        },
+        "source_step_id": "train_nsclc_gcn",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Graph message passing and classifier receipt are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To construct a disease-specific model for NSCLC, we fine-tuned the pretrained graph representation on a task-specific subgraph. Specifically, we extracted the final-layer node embedding from the pan-cancer pretrained GCN model as generalized molecular representations. These were then concatenated with NSCLC-specific multi-omics expression vectors.",
+        "section_id": "sec_0018"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-M: NSCLC-specific fine-tuned GCN",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "pretrained hidden feature coordinates"
+        ],
+        "contextual_role": "pretrained_molecular_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we extracted the final-layer node embedding from the pan-cancer pretrained GCN model as generalized molecular representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Final-layer pan-cancer pretrained node embeddings.",
+        "node_id": "pretrained_pan_cancer_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "pretrained_graph_node_embeddings",
+        "symbolic_shape": [
+          "n_genes",
+          "d_pretrained"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "NSCLC omics feature coordinates"
+        ],
+        "contextual_role": "disease_specific_external_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "These were then concatenated with NSCLC-specific multi-omics expression vectors.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "NSCLC-specific multi-omics expression vectors.",
+        "node_id": "nsclc_omics_features",
+        "origin": "source_annotation",
+        "representation_type": "nsclc_multi_omics_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_nsclc"
+        ],
+        "uncertainty": "Exact omics feature ordering and preprocessing are unspecified in this step."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "fused feature coordinates"
+        ],
+        "contextual_role": "task_specific_GCN_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "These were then concatenated with NSCLC-specific multi-omics expression vectors.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Concatenated pretrained and NSCLC-specific gene features.",
+        "node_id": "nsclc_fused_features",
+        "origin": "source_annotation",
+        "representation_type": "concatenated_gene_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_nsclc_fused"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "task-specific graph nodes",
+          "task-specific graph edges"
+        ],
+        "contextual_role": "NSCLC_task_graph",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we fine-tuned the pretrained graph representation on a task-specific subgraph.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "NSCLC-specific task subgraph.",
+        "node_id": "nsclc_task_subgraph",
+        "origin": "source_annotation",
+        "representation_type": "task_specific_heterogeneous_graph",
+        "symbolic_shape": [
+          "n_nsclc_nodes",
+          "n_nsclc_edges"
+        ],
+        "uncertainty": "Subgraph selection rule is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "NSCLC hidden feature coordinates"
+        ],
+        "contextual_role": "NSCLC_model_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, we used these features to train a tow-layer GCN for NSCLC.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "NSCLC-specific graph representations used for regulator prediction.",
+        "node_id": "nsclc_node_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "nsclc_graph_node_embeddings",
+        "symbolic_shape": [
+          "n_genes",
+          "d_nsclc_hidden"
+        ],
+        "uncertainty": "The GCN computation is opaque."
+      }
+    ],
+    "open_questions": [
+      "How are NSCLC-specific multi-omics vectors normalized and aligned to pretrained gene nodes?",
+      "What exact task-specific subgraph is supplied to the fine-tuned GCN?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "nsclc_fused_features",
+        "port_role": "NSCLC_gene_features"
+      },
+      {
+        "node_id": "nsclc_task_subgraph",
+        "port_role": "NSCLC_task_graph"
+      }
+    ],
+    "recipient_component": "NSCLC-specific two-layer GCN",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "NSCLC feature fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "These were then concatenated with NSCLC-specific multi-omics expression vectors.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrained_pan_cancer_embeddings",
+            "port_role": "pretrained_gene_representation"
+          },
+          {
+            "node_id": "nsclc_omics_features",
+            "port_role": "NSCLC_multi_omics_vector"
+          }
+        ],
+        "operation_type": "pretrained_and_disease_specific_feature_concatenation",
+        "outputs": [
+          "nsclc_fused_features"
+        ],
+        "step_id": "fuse_nsclc_features",
+        "uncertainty": null
+      },
+      {
+        "component": "NSCLC-specific two-layer GCN",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Finally, we used these features to train a tow-layer GCN for NSCLC.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "nsclc_fused_features",
+            "port_role": "NSCLC_gene_features"
+          },
+          {
+            "node_id": "nsclc_task_subgraph",
+            "port_role": "NSCLC_task_graph"
+          }
+        ],
+        "operation_type": "NSCLC_graph_convolution",
+        "outputs": [
+          "nsclc_node_embeddings"
+        ],
+        "step_id": "train_nsclc_gcn",
+        "uncertainty": "Graph message passing and classifier receipt are unresolved."
+      }
+    ],
+    "task_configuration": "NSCLC-specific regulator prediction from pretrained pan-cancer representations and NSCLC multi-omics",
+    "trajectory_id": "xunzim_fine_tuning_nsclc"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "average_brain_region_expression::1",
+        "component": "Brain-region normalized-expression aggregation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "for each brain region r , we calculated the averaged expression under case and control conditions:",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where e case ij and e control ik represent the normalized expression of gene i in case and control samples within region r , respectively.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "brain_region_omics"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "region_specific_gene_vectors"
+          ]
+        },
+        "parameters": {
+          "source_operation": "brain_region_case_control_averaging",
+          "source_port_roles": [
+            "normalized_brain_region_expression_values"
+          ]
+        },
+        "source_step_id": "average_brain_region_expression",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The arithmetic aggregation is documented but has no catalog primitive. Normalized expression is documented; the exact normalization method and ordering remain unspecified."
+      },
+      {
+        "call_id": "concatenate_neurodegenerative_features::1",
+        "component": "Brain-region feature construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The full feature vector xi for each gene was constructed by concatenating these region-specific vectors across multiple brain regions.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "region_specific_gene_vectors"
+          ]
+        },
+        "operation_id": "concatenate",
+        "outputs": {
+          "values": [
+            "neurodegenerative_gene_features"
+          ]
+        },
+        "parameters": {
+          "axis": "brain-region feature coordinates",
+          "order": "multiple brain regions; exact order unspecified",
+          "source_port_roles": [
+            "region_specific_vectors"
+          ]
+        },
+        "source_step_id": "concatenate_neurodegenerative_features",
+        "status": "documented_operation",
+        "uncertainty": "The source states concatenation across regions but does not define their order."
+      },
+      {
+        "call_id": "tokenize_neurodegenerative_go_terms::1",
+        "component": "GO-term tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "neurodegenerative_go_term_text"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "neurodegenerative_go_term_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "unspecified text tokenization",
+          "source_alphabet": "GO-term text",
+          "source_port_roles": [
+            "go_term_text"
+          ],
+          "vocabulary": "unspecified XunZi-M vocabulary"
+        },
+        "source_step_id": "tokenize_neurodegenerative_go_terms",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not identify the tokenizer."
+      },
+      {
+        "call_id": "encode_neurodegenerative_go_terms::1",
+        "component": "XunZi-M GO-term semantic encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "neurodegenerative_go_term_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "neurodegenerative_go_term_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "last_token_hidden_state_extraction",
+          "source_port_roles": [
+            "go_term_token_ids"
+          ]
+        },
+        "source_step_id": "encode_neurodegenerative_go_terms",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The internal XunZi-M text encoder and last-token extraction are opaque."
+      },
+      {
+        "call_id": "assemble_neurodegenerative_initial_graph_features::1",
+        "component": "Neurodegenerative heterogeneous graph node-feature initialization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "neurodegenerative_gene_features",
+            "neurodegenerative_go_term_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "neurodegenerative_initial_graph_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "heterogeneous_node_feature_initialization",
+          "source_port_roles": [
+            "gene_or_protein_features",
+            "GO_term_features"
+          ]
+        },
+        "source_step_id": "assemble_neurodegenerative_initial_graph_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The reused initialization is documented at the framework level, but the feature assembly operation and node alignment are not specified."
+      },
+      {
+        "call_id": "propagate_neurodegenerative_graph::1",
+        "component": "Neurodegenerative-disease GCN",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "neurodegenerative_initial_graph_features",
+            "neurodegenerative_graph"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "neurodegenerative_node_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "neurodegenerative_graph_convolution",
+          "source_port_roles": [
+            "initial_node_features",
+            "heterogeneous_graph_structure"
+          ]
+        },
+        "source_step_id": "propagate_neurodegenerative_graph",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The reused GCN computation, graph labels and training objective are not fully restated; graph message passing remains an unexpanded boundary."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework. For each gene node, the feature vector was derived from its expression across distinct brain regions under different disease states.",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Next, we conducted semantic embeddings for GO term nodes. Specifically, each GO term was input into XunZi-M for token-level representations.",
+        "section_id": "sec_0018"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-M: neurodegenerative-disease heterogeneous-graph multimodal pretraining model",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene",
+          "brain region",
+          "sample",
+          "disease state",
+          "normalized expression measurement"
+        ],
+        "contextual_role": "external_neurodegenerative_normalized_expression_values",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "for each brain region r , we calculated the averaged expression under case and control conditions:",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where e case ij and e control ik represent the normalized expression of gene i in case and control samples within region r , respectively.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Normalized multi-omics expression measurements from distinct brain regions under case and control states.",
+        "node_id": "brain_region_omics",
+        "origin": "source_annotation",
+        "representation_type": "normalized_brain_region_expression_values",
+        "symbolic_shape": [
+          "n_genes",
+          "n_regions",
+          "n_samples",
+          "n_states",
+          "n_omics"
+        ],
+        "uncertainty": "The exact normalization method, feature ordering and relation to the region-wise averaging equation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene",
+          "neurodegenerative feature coordinates"
+        ],
+        "contextual_role": "neurodegenerative_gene_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The full feature vector xi for each gene was constructed by concatenating these region-specific vectors across multiple brain regions.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Gene feature vectors concatenated across brain regions.",
+        "node_id": "neurodegenerative_gene_features",
+        "origin": "source_annotation",
+        "representation_type": "concatenated_brain_region_expression_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_neurodegenerative"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "graph edges"
+        ],
+        "contextual_role": "heterogeneous_graph_structure",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Protein/GO heterogeneous graph reused by the neurodegenerative model.",
+        "node_id": "neurodegenerative_graph",
+        "origin": "source_annotation",
+        "representation_type": "heterogeneous_biological_graph",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "n_graph_edges"
+        ],
+        "uncertainty": "Exact graph reuse and node coverage are not restated in this subsection."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "GO-term text positions"
+        ],
+        "contextual_role": "GO_term_text_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Next, we conducted semantic embeddings for GO term nodes. Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "GO-term text reused from the graph framework.",
+        "node_id": "neurodegenerative_go_term_text",
+        "origin": "source_annotation",
+        "representation_type": "go_term_text",
+        "symbolic_shape": [
+          "n_go_terms",
+          "n_term_tokens"
+        ],
+        "uncertainty": "Exact GO-term textual serialization is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "GO-term token positions"
+        ],
+        "contextual_role": "GO_term_encoder_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Tokenized GO-term input for the reused semantic branch.",
+        "node_id": "neurodegenerative_go_term_tokens",
+        "origin": "source_annotation",
+        "representation_type": "text_token_ids",
+        "symbolic_shape": [
+          "n_go_terms",
+          "n_term_tokens"
+        ],
+        "uncertainty": "Tokenizer and vocabulary are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "GO-term nodes",
+          "semantic feature coordinates"
+        ],
+        "contextual_role": "GO_term_initial_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "GO-term semantic vectors reused from the graph framework.",
+        "node_id": "neurodegenerative_go_term_features",
+        "origin": "source_annotation",
+        "representation_type": "go_term_semantic_features",
+        "symbolic_shape": [
+          "n_go_terms",
+          "d_go_features"
+        ],
+        "uncertainty": "The paper does not restate whether the exact pan-cancer GO encoder is reused, although it states that the same graph-based framework was adopted."
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "initial feature coordinates"
+        ],
+        "contextual_role": "GCN_input_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Initial neurodegenerative graph features for gene/protein and GO-term nodes.",
+        "node_id": "neurodegenerative_initial_graph_features",
+        "origin": "source_annotation",
+        "representation_type": "heterogeneous_node_feature_matrix",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "d_node_features"
+        ],
+        "uncertainty": "Exact alignment and assembly of gene/protein and GO-term features are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "graph nodes",
+          "hidden feature coordinates"
+        ],
+        "contextual_role": "neurodegenerative_GCN_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Graph-propagated neurodegenerative molecular representations.",
+        "node_id": "neurodegenerative_node_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "graph_node_embeddings",
+        "symbolic_shape": [
+          "n_graph_nodes",
+          "d_hidden"
+        ],
+        "uncertainty": "The GCN computation is opaque."
+      },
+      {
+        "axis_semantics": [
+          "gene",
+          "brain region feature coordinates"
+        ],
+        "contextual_role": "region_specific_aggregated_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The full feature vector xi for each gene was constructed by concatenating these region-specific vectors across multiple brain regions.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Region-specific gene vectors after case/control averaging of normalized expression values.",
+        "node_id": "region_specific_gene_vectors",
+        "origin": "documented_intermediate",
+        "representation_type": "region_specific_gene_expression_features",
+        "symbolic_shape": [
+          "n_genes",
+          "n_region_feature_slots"
+        ],
+        "uncertainty": "Exact averaging equation and feature-slot order are not recoverable from the supplied text."
+      }
+    ],
+    "open_questions": [
+      "Are transcriptomic, proteomic and phosphoproteomic values separately normalized before region-wise averaging?",
+      "Which graph nodes receive brain-region-derived features?",
+      "How are the reused GO-term semantic vectors assembled with gene/protein features?",
+      "Does the neurodegenerative model use the same graph labels and supervised objective as the pan-cancer model?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "neurodegenerative_gene_features",
+        "port_role": "gene_expression_features"
+      },
+      {
+        "node_id": "neurodegenerative_go_term_features",
+        "port_role": "GO_term_features"
+      },
+      {
+        "node_id": "neurodegenerative_graph",
+        "port_role": "heterogeneous_graph_structure"
+      }
+    ],
+    "recipient_component": "XunZi-M neurodegenerative-disease GCN",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "Brain-region normalized-expression aggregation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "for each brain region r , we calculated the averaged expression under case and control conditions:",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "where e case ij and e control ik represent the normalized expression of gene i in case and control samples within region r , respectively.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "brain_region_omics",
+            "port_role": "normalized_brain_region_expression_values"
+          }
+        ],
+        "operation_type": "brain_region_case_control_averaging",
+        "outputs": [
+          "region_specific_gene_vectors"
+        ],
+        "step_id": "average_brain_region_expression",
+        "uncertainty": "The arithmetic aggregation is documented but has no catalog primitive. Normalized expression is documented; the exact normalization method and ordering remain unspecified."
+      },
+      {
+        "component": "Brain-region feature construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The full feature vector xi for each gene was constructed by concatenating these region-specific vectors across multiple brain regions.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "region_specific_gene_vectors",
+            "port_role": "region_specific_vectors"
+          }
+        ],
+        "operation_type": "brain_region_feature_concatenation",
+        "outputs": [
+          "neurodegenerative_gene_features"
+        ],
+        "step_id": "concatenate_neurodegenerative_features",
+        "uncertainty": null
+      },
+      {
+        "component": "GO-term tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, each GO term was input into XunZi-M for token-level representations.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neurodegenerative_go_term_text",
+            "port_role": "go_term_text"
+          }
+        ],
+        "operation_type": "go_term_tokenization",
+        "outputs": [
+          "neurodegenerative_go_term_tokens"
+        ],
+        "step_id": "tokenize_neurodegenerative_go_terms",
+        "uncertainty": null
+      },
+      {
+        "component": "XunZi-M GO-term semantic encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final hidden state of the last token from the output layer (dimension = 4,096) was extracted and used as the semantic feature vector.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neurodegenerative_go_term_tokens",
+            "port_role": "go_term_token_ids"
+          }
+        ],
+        "operation_type": "last_token_hidden_state_extraction",
+        "outputs": [
+          "neurodegenerative_go_term_features"
+        ],
+        "step_id": "encode_neurodegenerative_go_terms",
+        "uncertainty": "The internal XunZi-M text encoder and last-token extraction are opaque."
+      },
+      {
+        "component": "Neurodegenerative heterogeneous graph node-feature initialization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neurodegenerative_gene_features",
+            "port_role": "gene_or_protein_features"
+          },
+          {
+            "node_id": "neurodegenerative_go_term_features",
+            "port_role": "GO_term_features"
+          }
+        ],
+        "operation_type": "heterogeneous_node_feature_initialization",
+        "outputs": [
+          "neurodegenerative_initial_graph_features"
+        ],
+        "step_id": "assemble_neurodegenerative_initial_graph_features",
+        "uncertainty": "The reused initialization is documented at the framework level, but the feature assembly operation and node alignment are not specified."
+      },
+      {
+        "component": "Neurodegenerative-disease GCN",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For neurodegenerative disease, we adopted the same graph-based learning framework.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "After initializing the feature vectors for all nodes, we employed a GCN to propagate features across the heterogeneous graph structure.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "neurodegenerative_initial_graph_features",
+            "port_role": "initial_node_features"
+          },
+          {
+            "node_id": "neurodegenerative_graph",
+            "port_role": "heterogeneous_graph_structure"
+          }
+        ],
+        "operation_type": "neurodegenerative_graph_convolution",
+        "outputs": [
+          "neurodegenerative_node_embeddings"
+        ],
+        "step_id": "propagate_neurodegenerative_graph",
+        "uncertainty": "The reused GCN computation, graph labels and training objective are not fully restated; graph message passing remains an unexpanded boundary."
+      }
+    ],
+    "task_configuration": "Neurodegenerative-disease molecular representation pretraining across brain regions and disease states",
+    "trajectory_id": "xunzim_pretraining_neurodegenerative"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "combine_pd_gene_features::1",
+        "component": "PD feature combination",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrained_neurodegenerative_embeddings",
+            "pd_omics_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pd_gene_fused_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "pretrained_and_pd_feature_combination",
+          "source_port_roles": [
+            "pretrained_node_embeddings",
+            "PD_specific_omics_features"
+          ]
+        },
+        "source_step_id": "combine_pd_gene_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the fusion algebra."
+      },
+      {
+        "call_id": "train_pd_gene_gcn::1",
+        "component": "PD gene two-layer GCN",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pd_gene_fused_features",
+            "pd_gene_subgraph",
+            "pd_gene_labels"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pd_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "PD_gene_graph_convolution",
+          "source_port_roles": [
+            "PD_gene_features",
+            "PD_task_graph",
+            "PD_gene_training_labels"
+          ]
+        },
+        "source_step_id": "train_pd_gene_gcn",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Graph message passing and classification are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To identify functional regulators in PD, we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features. We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+        "section_id": "sec_0018"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-M: PD-specific gene regulator fine-tuning",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "pretrained hidden feature coordinates"
+        ],
+        "contextual_role": "pretrained_node_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Pretrained neurodegenerative graph node embeddings.",
+        "node_id": "pretrained_neurodegenerative_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "pretrained_graph_node_embeddings",
+        "symbolic_shape": [
+          "n_genes",
+          "d_pretrained"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "PD omics feature coordinates"
+        ],
+        "contextual_role": "PD_external_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Parkinson's-disease-specific multi-omics features.",
+        "node_id": "pd_omics_features",
+        "origin": "source_annotation",
+        "representation_type": "pd_multi_omics_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_pd"
+        ],
+        "uncertainty": "Exact feature construction is not restated for PD in this subsection."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "fused feature coordinates"
+        ],
+        "contextual_role": "PD_GCN_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To identify functional regulators in PD, we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Combined pretrained and PD-specific gene features.",
+        "node_id": "pd_gene_fused_features",
+        "origin": "source_annotation",
+        "representation_type": "fused_pd_gene_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_pd_fused"
+        ],
+        "uncertainty": "The paper does not state whether combination is concatenation or another fusion algebra."
+      },
+      {
+        "axis_semantics": [
+          "PD task nodes",
+          "PD task edges"
+        ],
+        "contextual_role": "PD_specific_subgraph",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "PD-specific subgraph used for classification.",
+        "node_id": "pd_gene_subgraph",
+        "origin": "source_annotation",
+        "representation_type": "pd_task_graph",
+        "symbolic_shape": [
+          "n_pd_nodes",
+          "n_pd_edges"
+        ],
+        "uncertainty": "Subgraph selection is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "labelled PD gene nodes"
+        ],
+        "contextual_role": "supervised_training_labels",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Curated PD gene relevance labels from DisGeNET and CTD.",
+        "node_id": "pd_gene_labels",
+        "origin": "source_annotation",
+        "representation_type": "binary_pd_gene_labels",
+        "symbolic_shape": [
+          "n_labelled_pd_gene_nodes"
+        ],
+        "uncertainty": "Exact label construction, negative-label definition and gene coverage are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "PD hidden feature coordinates"
+        ],
+        "contextual_role": "PD_gene_prediction_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "PD gene-level representations for functional-regulator classification.",
+        "node_id": "pd_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "pd_graph_node_embeddings",
+        "symbolic_shape": [
+          "n_genes",
+          "d_pd_hidden"
+        ],
+        "uncertainty": "The GCN computation and classifier head are opaque."
+      }
+    ],
+    "open_questions": [
+      "Does 'combining' mean concatenation for the PD model, as in the explicitly defined NSCLC model?",
+      "How are PD-specific omics features aligned with pretrained node embeddings?",
+      "How are curated PD gene labels and negative examples constructed?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "pd_gene_fused_features",
+        "port_role": "PD_gene_features"
+      },
+      {
+        "node_id": "pd_gene_subgraph",
+        "port_role": "PD_task_graph"
+      },
+      {
+        "node_id": "pd_gene_labels",
+        "port_role": "PD_gene_training_labels"
+      }
+    ],
+    "recipient_component": "PD-specific two-layer GCN for gene classification",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "PD feature combination",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrained_neurodegenerative_embeddings",
+            "port_role": "pretrained_node_embeddings"
+          },
+          {
+            "node_id": "pd_omics_features",
+            "port_role": "PD_specific_omics_features"
+          }
+        ],
+        "operation_type": "pretrained_and_pd_feature_combination",
+        "outputs": [
+          "pd_gene_fused_features"
+        ],
+        "step_id": "combine_pd_gene_features",
+        "uncertainty": "The paper does not establish the fusion algebra."
+      },
+      {
+        "component": "PD gene two-layer GCN",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pd_gene_fused_features",
+            "port_role": "PD_gene_features"
+          },
+          {
+            "node_id": "pd_gene_subgraph",
+            "port_role": "PD_task_graph"
+          },
+          {
+            "node_id": "pd_gene_labels",
+            "port_role": "PD_gene_training_labels"
+          }
+        ],
+        "operation_type": "PD_gene_graph_convolution",
+        "outputs": [
+          "pd_gene_embeddings"
+        ],
+        "step_id": "train_pd_gene_gcn",
+        "uncertainty": "Graph message passing and classification are unresolved."
+      }
+    ],
+    "task_configuration": "PD-associated gene functional-regulator prediction",
+    "trajectory_id": "xunzim_fine_tuning_pd_genes"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "combine_pd_kinase_features::1",
+        "component": "PD kinase feature combination",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pretrained_kinase_embeddings",
+            "pd_kinase_omics_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pd_kinase_fused_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "pd_kinase_feature_combination",
+          "source_port_roles": [
+            "pretrained_kinase_embeddings",
+            "PD_kinase_omics_features"
+          ]
+        },
+        "source_step_id": "combine_pd_kinase_features",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the fusion algebra."
+      },
+      {
+        "call_id": "train_pd_kinase_gcn::1",
+        "component": "PD kinase two-layer GCN",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "pd_kinase_fused_features",
+            "pd_kinase_subgraph",
+            "pd_kinase_labels"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "pd_kinase_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "PD_kinase_graph_convolution",
+          "source_port_roles": [
+            "PD_kinase_features",
+            "PD_kinase_task_subgraph",
+            "PD_kinase_training_labels"
+          ]
+        },
+        "source_step_id": "train_pd_kinase_gcn",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "Graph message passing and kinase classification are unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To identify functional regulators in PD, we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features. We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+        "section_id": "sec_0005"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "XunZi-M: PD-associated protein-kinase fine-tuning",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "kinase nodes",
+          "pretrained hidden feature coordinates"
+        ],
+        "contextual_role": "pretrained_kinase_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Pretrained graph representations for kinase entities.",
+        "node_id": "pretrained_kinase_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "pretrained_kinase_node_embeddings",
+        "symbolic_shape": [
+          "n_kinases",
+          "d_pretrained"
+        ],
+        "uncertainty": "The paper does not state whether kinase nodes use a separate table or the shared node representation."
+      },
+      {
+        "axis_semantics": [
+          "kinase nodes",
+          "PD omics feature coordinates"
+        ],
+        "contextual_role": "PD_kinase_external_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "PD-specific omics features aligned to kinase nodes.",
+        "node_id": "pd_kinase_omics_features",
+        "origin": "source_annotation",
+        "representation_type": "pd_kinase_multi_omics_features",
+        "symbolic_shape": [
+          "n_kinases",
+          "d_pd"
+        ],
+        "uncertainty": "Exact feature construction and kinase coverage are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "kinase nodes",
+          "fused feature coordinates"
+        ],
+        "contextual_role": "PD_kinase_GCN_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "PD kinase features supplied to the refined PD model.",
+        "node_id": "pd_kinase_fused_features",
+        "origin": "source_annotation",
+        "representation_type": "pd_kinase_fused_features",
+        "symbolic_shape": [
+          "n_kinases",
+          "d_pd_fused"
+        ],
+        "uncertainty": "Fusion algebra is not documented."
+      },
+      {
+        "axis_semantics": [
+          "PD kinase task nodes",
+          "PD kinase task edges"
+        ],
+        "contextual_role": "PD_kinase_subgraph",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To identify functional regulators in PD, we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "PD-specific graph used for kinase prediction.",
+        "node_id": "pd_kinase_subgraph",
+        "origin": "source_annotation",
+        "representation_type": "pd_kinase_task_graph",
+        "symbolic_shape": [
+          "n_pd_kinase_nodes",
+          "n_pd_kinase_edges"
+        ],
+        "uncertainty": "The kinase-specific subgraph construction is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "labelled kinase nodes"
+        ],
+        "contextual_role": "supervised_training_labels",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Curated PD kinase relevance labels from DisGeNET and CTD.",
+        "node_id": "pd_kinase_labels",
+        "origin": "source_annotation",
+        "representation_type": "binary_pd_kinase_labels",
+        "symbolic_shape": [
+          "n_labelled_pd_kinase_nodes"
+        ],
+        "uncertainty": "Kinase subset selection, exact label construction and negative-label definition are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "kinase nodes",
+          "PD kinase hidden feature coordinates"
+        ],
+        "contextual_role": "PD_kinase_prediction_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "information_content": "Graph representations used to classify PD-associated protein kinases.",
+        "node_id": "pd_kinase_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "pd_kinase_graph_node_embeddings",
+        "symbolic_shape": [
+          "n_kinases",
+          "d_pd_kinase_hidden"
+        ],
+        "uncertainty": "The graph computation and classifier head are opaque."
+      }
+    ],
+    "open_questions": [
+      "How is the kinase subset selected from the PD model's graph nodes?",
+      "Is the kinase pathway identical to the PD-gene pathway apart from labels and node selection?",
+      "How are curated PD kinase labels and negative examples constructed?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "pd_kinase_fused_features",
+        "port_role": "PD_kinase_features"
+      },
+      {
+        "node_id": "pd_kinase_subgraph",
+        "port_role": "PD_kinase_task_graph"
+      },
+      {
+        "node_id": "pd_kinase_labels",
+        "port_role": "PD_kinase_training_labels"
+      }
+    ],
+    "recipient_component": "PD-specific two-layer GCN for kinase classification",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "PD kinase feature combination",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "we constructed a PD-specific subgraph by combining the pretrained node embeddings with PD-specific omics features.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrained_kinase_embeddings",
+            "port_role": "pretrained_kinase_embeddings"
+          },
+          {
+            "node_id": "pd_kinase_omics_features",
+            "port_role": "PD_kinase_omics_features"
+          }
+        ],
+        "operation_type": "pd_kinase_feature_combination",
+        "outputs": [
+          "pd_kinase_fused_features"
+        ],
+        "step_id": "combine_pd_kinase_features",
+        "uncertainty": "The paper does not establish the fusion algebra."
+      },
+      {
+        "component": "PD kinase two-layer GCN",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then trained a two-layer GCN to classify PD-relevant genes and kinases, using curated labels from DisGeNET and CTD.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We therefore refined our PD model to predict PD-associated PKs.",
+            "section_id": "sec_0005"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pd_kinase_fused_features",
+            "port_role": "PD_kinase_features"
+          },
+          {
+            "node_id": "pd_kinase_subgraph",
+            "port_role": "PD_kinase_task_subgraph"
+          },
+          {
+            "node_id": "pd_kinase_labels",
+            "port_role": "PD_kinase_training_labels"
+          }
+        ],
+        "operation_type": "PD_kinase_graph_convolution",
+        "outputs": [
+          "pd_kinase_embeddings"
+        ],
+        "step_id": "train_pd_kinase_gcn",
+        "uncertainty": "Graph message passing and kinase classification are unresolved."
+      }
+    ],
+    "task_configuration": "PD-associated protein-kinase prediction",
+    "trajectory_id": "xunzim_fine_tuning_pd_kinases"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "obtain_reasoning_response::1",
+        "component": "XunZi-R structured mechanistic reasoning with confidence prompt",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "reasoning_query_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "reasoning_response"
+          ]
+        },
+        "parameters": {
+          "source_operation": "XunZi_R_structured_reasoning_response",
+          "source_port_roles": [
+            "gene_disease_reasoning_prompt"
+          ]
+        },
+        "source_step_id": "obtain_reasoning_response",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The internal XunZi-R prompt processing, tokenization, generation and response fields are unresolved."
+      },
+      {
+        "call_id": "extract_reasoning_confidence::1",
+        "component": "Confidence extraction from XunZi-R response",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To capture confidence in the reasoning outcome, we appended an explicit instruction asking for a self-assessed certainty score:",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "reasoning_response"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "reasoning_confidence_raw"
+          ]
+        },
+        "parameters": {
+          "source_operation": "confidence_score_extraction",
+          "source_port_roles": [
+            "XunZi_R_reasoning_response"
+          ]
+        },
+        "source_step_id": "extract_reasoning_confidence",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper documents the requested confidence score and its later normalization but does not specify how the generated response is parsed into the raw scalar."
+      },
+      {
+        "call_id": "normalize_reasoning_confidence::1",
+        "component": "XunZi-R confidence normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "reasoning_confidence_raw"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "reasoning_confidence_normalized"
+          ]
+        },
+        "parameters": {
+          "axes": "gene-node confidence scalar",
+          "method": "normalization to range [0, 1]",
+          "scope": "per gene node",
+          "source_port_roles": [
+            "raw_confidence_score"
+          ]
+        },
+        "source_step_id": "normalize_reasoning_confidence",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "align_reasoning_confidence_for_fusion::1",
+        "component": "Hybrid confidence-feature alignment",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Formally, for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer, and let s i ∈ ℝ d be the corresponding normalized confidence score.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "reasoning_confidence_normalized"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "reasoning_confidence_aligned"
+          ]
+        },
+        "parameters": {
+          "source_operation": "confidence_feature_expansion_or_alignment",
+          "source_port_roles": [
+            "normalized_scalar_confidence"
+          ]
+        },
+        "source_step_id": "align_reasoning_confidence_for_fusion",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The expansion or projection from a scalar feature to the stated d-dimensional representation is unresolved."
+      },
+      {
+        "call_id": "concatenate_hybrid_features::1",
+        "component": "Hybrid representation fusion",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We constructed a fused input vector by concatenation:",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Formally, for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer, and let s i ∈ ℝ d be the corresponding normalized confidence score.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "gene_gcn_representation",
+            "reasoning_confidence_aligned"
+          ]
+        },
+        "operation_id": "concatenate",
+        "outputs": {
+          "values": [
+            "hybrid_fused_input"
+          ]
+        },
+        "parameters": {
+          "axis": "gene feature coordinates",
+          "order": "unspecified",
+          "source_port_roles": [
+            "XunZi-M_gene_representation",
+            "XunZi-R_confidence_feature"
+          ]
+        },
+        "source_step_id": "concatenate_hybrid_features",
+        "status": "documented_operation",
+        "uncertainty": "The source states concatenation but the supplied fusion equation does not establish feature order."
+      },
+      {
+        "call_id": "predict_from_hybrid_features::1",
+        "component": "Hybrid linear prediction layer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final  prediction ė i ∈ℝ was  then  computed  via  a  linear transformation:",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "hybrid_fused_input"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "hybrid_prediction"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "linear transformation",
+          "parameter_state": "trainable model parameters",
+          "source_port_roles": [
+            "fused_gene_features"
+          ]
+        },
+        "source_step_id": "predict_from_hybrid_features",
+        "status": "documented_operation",
+        "uncertainty": "The equation is not recoverable in the supplied text."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To integrate logical reasoning with multimodal data fusion, we designed a hybrid framework that integrates the outputs of XunZi-R and XunZi-M. Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting. To capture confidence in the reasoning outcome, we appended an explicit instruction asking for a self-assessed certainty score:",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We constructed a fused input vector by concatenation:",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "XunZi: XunZi-R plus XunZi-M hybrid multimodal predictor",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene-disease query text positions"
+        ],
+        "contextual_role": "XunZi-R_reasoning_query",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Gene-disease query with an explicit request for a 0-to-10 self-assessed confidence level.",
+        "node_id": "reasoning_query_prompt",
+        "origin": "source_annotation",
+        "representation_type": "structured_gene_disease_confidence_prompt",
+        "symbolic_shape": [
+          "n_query_tokens"
+        ],
+        "uncertainty": "The response serialization and prompt substitution for other gene-disease instances are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene-disease response text positions"
+        ],
+        "contextual_role": "XunZi-R_reasoning_response",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "XunZi-R structured mechanistic reasoning response containing a self-assessed confidence result.",
+        "node_id": "reasoning_response",
+        "origin": "source_annotation",
+        "representation_type": "structured_mechanistic_reasoning_response",
+        "symbolic_shape": [
+          "n_response_tokens"
+        ],
+        "uncertainty": "The exact response fields, confidence syntax and extraction rule are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes"
+        ],
+        "contextual_role": "raw_reasoning_confidence_feature",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Raw self-assessed XunZi-R confidence score on the documented 0-to-10 scale for each gene node.",
+        "node_id": "reasoning_confidence_raw",
+        "origin": "source_annotation",
+        "representation_type": "raw_scalar_confidence",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": "The paper gives the requested scale but does not specify the response formatting, parsing or missing-value behavior."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "XunZi-M hidden feature coordinates"
+        ],
+        "contextual_role": "molecular_graph_representation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Last-GCN hidden representation for a gene node.",
+        "node_id": "gene_gcn_representation",
+        "origin": "source_annotation",
+        "representation_type": "gene_graph_hidden_representation",
+        "symbolic_shape": [
+          "n_genes",
+          "d_gcn"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene nodes"
+        ],
+        "contextual_role": "normalized_reasoning_confidence",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Normalized XunZi-R self-assessed confidence score for each gene.",
+        "node_id": "reasoning_confidence_normalized",
+        "origin": "source_annotation",
+        "representation_type": "normalized_scalar_confidence",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": "The normalization rule beyond the stated range is unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "confidence feature coordinates"
+        ],
+        "contextual_role": "confidence_feature_aligned_for_fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Formally, for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer, and let s i ∈ ℝ d be the corresponding normalized confidence score.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Confidence representation after an unresolved expansion or alignment to the fusion feature space.",
+        "node_id": "reasoning_confidence_aligned",
+        "origin": "source_annotation",
+        "representation_type": "aligned_confidence_feature",
+        "symbolic_shape": [
+          "n_genes",
+          "d_confidence"
+        ],
+        "uncertainty": "The paper does not establish whether the scalar is broadcast, projected, expanded or otherwise transformed into the d-dimensional representation."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes",
+          "fused feature coordinates"
+        ],
+        "contextual_role": "hybrid_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We constructed a fused input vector by concatenation:",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Concatenated graph representation and normalized reasoning-confidence feature.",
+        "node_id": "hybrid_fused_input",
+        "origin": "source_annotation",
+        "representation_type": "concatenated_hybrid_gene_features",
+        "symbolic_shape": [
+          "n_genes",
+          "d_fused"
+        ],
+        "uncertainty": "The supplied equation is unavailable; feature order and exact confidence dimensionalization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "gene nodes"
+        ],
+        "contextual_role": "hybrid_prediction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final  prediction ė i ∈ℝ was  then  computed  via  a  linear transformation:",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Final disease-relevance prediction from fused representation.",
+        "node_id": "hybrid_prediction",
+        "origin": "source_annotation",
+        "representation_type": "gene_disease_prediction_score",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": "The omitted equation prevents reconstruction of the precise linear interface."
+      }
+    ],
+    "open_questions": [
+      "How is the raw 0-to-10 confidence response parsed?",
+      "How is the scalar confidence expanded or aligned to the stated d-dimensional fusion representation?",
+      "Which XunZi-M task representation is used for each disease-specific hybrid prediction?",
+      "How are XunZi-R and XunZi-M outputs aligned by gene identifier before fusion?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "hybrid_fused_input",
+        "port_role": "hybrid_gene_feature_vector"
+      }
+    ],
+    "recipient_component": "XunZi hybrid feature-fusion classifier",
+    "record_id": "update_2026-08-09__manual_recall_xunzi",
+    "source_steps": [
+      {
+        "component": "XunZi-R structured mechanistic reasoning with confidence prompt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "reasoning_query_prompt",
+            "port_role": "gene_disease_reasoning_prompt"
+          }
+        ],
+        "operation_type": "XunZi_R_structured_reasoning_response",
+        "outputs": [
+          "reasoning_response"
+        ],
+        "step_id": "obtain_reasoning_response",
+        "uncertainty": "The internal XunZi-R prompt processing, tokenization, generation and response fields are unresolved."
+      },
+      {
+        "component": "Confidence extraction from XunZi-R response",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To capture confidence in the reasoning outcome, we appended an explicit instruction asking for a self-assessed certainty score:",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "reasoning_response",
+            "port_role": "XunZi_R_reasoning_response"
+          }
+        ],
+        "operation_type": "confidence_score_extraction",
+        "outputs": [
+          "reasoning_confidence_raw"
+        ],
+        "step_id": "extract_reasoning_confidence",
+        "uncertainty": "The paper documents the requested confidence score and its later normalization but does not specify how the generated response is parsed into the raw scalar."
+      },
+      {
+        "component": "XunZi-R confidence normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "reasoning_confidence_raw",
+            "port_role": "raw_confidence_score"
+          }
+        ],
+        "operation_type": "confidence_score_normalization",
+        "outputs": [
+          "reasoning_confidence_normalized"
+        ],
+        "step_id": "normalize_reasoning_confidence",
+        "uncertainty": null
+      },
+      {
+        "component": "Hybrid confidence-feature alignment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This confidence level was then normalized to the range [0, 1] and treated as a scalar feature s i for each gene node i .",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Formally, for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer, and let s i ∈ ℝ d be the corresponding normalized confidence score.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "reasoning_confidence_normalized",
+            "port_role": "normalized_scalar_confidence"
+          }
+        ],
+        "operation_type": "confidence_feature_expansion_or_alignment",
+        "outputs": [
+          "reasoning_confidence_aligned"
+        ],
+        "step_id": "align_reasoning_confidence_for_fusion",
+        "uncertainty": "The expansion or projection from a scalar feature to the stated d-dimensional representation is unresolved."
+      },
+      {
+        "component": "Hybrid representation fusion",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We constructed a fused input vector by concatenation:",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Formally, for each gene node i , let h i ∈ ℝ d denote the hidden representation obtained from the last GCN layer, and let s i ∈ ℝ d be the corresponding normalized confidence score.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_gcn_representation",
+            "port_role": "XunZi-M_gene_representation"
+          },
+          {
+            "node_id": "reasoning_confidence_aligned",
+            "port_role": "XunZi-R_confidence_feature"
+          }
+        ],
+        "operation_type": "feature_level_concatenation",
+        "outputs": [
+          "hybrid_fused_input"
+        ],
+        "step_id": "concatenate_hybrid_features",
+        "uncertainty": "The confidence expansion/alignment is represented by a preceding unresolved boundary; the equation does not establish the concatenation order."
+      },
+      {
+        "component": "Hybrid linear prediction layer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The final  prediction ė i ∈ℝ was  then  computed  via  a  linear transformation:",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "hybrid_fused_input",
+            "port_role": "fused_gene_features"
+          }
+        ],
+        "operation_type": "linear_prediction_projection",
+        "outputs": [
+          "hybrid_prediction"
+        ],
+        "step_id": "predict_from_hybrid_features",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Hybrid disease-relevant gene prediction using XunZi-R confidence and XunZi-M graph representations",
+    "trajectory_id": "xunzi_hybrid_fine_tuning"
+  }
+]

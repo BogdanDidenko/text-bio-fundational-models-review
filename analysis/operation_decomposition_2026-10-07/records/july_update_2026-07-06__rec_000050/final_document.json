@@ -1,0 +1,2828 @@
+{
+  "coverage_questions": [
+    "The paper does not document the internal tokenization, pooling, or exact hidden-state extraction performed inside Evo2-1B, TranscriptFormer, or ESM-3.",
+    "The paper does not specify whether DNA paired reference and variant sequences are encoded jointly or independently before projection.",
+    "The paper does not document the exact serialization of CPT examples beyond native tokenization and the stated 1024-token input constraint.",
+    "The Gemma RNA backbone is identified as an ablation, but its tokenizer vocabulary, tokenization procedure, embedding lookup, and exact multimodal input interface are not documented in the cited text.",
+    "The paper does not specify the exact variable-length replacement mechanics when protein residue embeddings occupy protein placeholder positions.",
+    "The atlas entry combining Qwen3-1.7B, Qwen3-4B, and Gemma 4 E2B is covered through separate Qwen primary and Gemma ablation trajectories because the paper distinguishes Gemma 4 E2B as a backbone ablation."
+  ],
+  "operation_proposals": [],
+  "record_id": "july_update_2026-07-06__rec_000050",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Pathway prediction asks the model to infer how a genetic variant propagates through a molecular pathway to produce a disease phenotype. We use the KEGG-derived benchmark introduced in BIOREASON [1], which evaluates mechanistic reasoning over pathway structure rather than variant classification alone. Each example combines a reference DNA sequence, a variant DNA sequence, and textual pathway and gene context; the model generates a natural-language answer grounded in both sequence and pathway information.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings. DNA sequences are clipped to a maximum length of 2048 nucleotides, with 1024 nucleotides retained on each flank around the variant locus.",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The maximum DNA sequence length is 2048 nucleotides and the maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "Qwen3-1.7B",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "sequence kind: reference or variant",
+            "nucleotide positions"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each example combines a reference DNA sequence, a variant DNA sequence, and textual pathway and gene context; the model generates a natural-language answer grounded in both sequence and pathway information.",
+              "section_id": "sec_0011"
+            }
+          ],
+          "information_content": "Paired reference and variant DNA sequences around a variant locus.",
+          "node_id": "paired_dna_sequences",
+          "representation_type": "paired_nucleotide_sequences",
+          "symbolic_shape": [
+            "sequence_kind",
+            "n_nucleotides"
+          ],
+          "uncertainty": "The paper does not establish whether the pair is encoded jointly or independently."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The final supervised example consists of variant details, a network definition, and gene-level context on the input side, together with a concise mechanism-to-disease answer and a full reasoning trace on the output side.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Variant details, pathway network definition, gene annotations, and task question.",
+          "node_id": "pathway_text_context",
+          "representation_type": "structured_biological_prompt_context",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ordered prompt positions"
+          ],
+          "contextual_role": "prompt_special_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of two versions of the same DNA sequence region, with and without the mutation, including DNA-specific start and padding tokens, followed by a pathway network definition and gene annotations.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "DNA-specific start and padding-token elements in the pathway prompt.",
+          "node_id": "dna_prompt_special_tokens",
+          "representation_type": "DNA_prompt_start_and_padding_tokens",
+          "symbolic_shape": [
+            "n_prompt_special_positions"
+          ],
+          "uncertainty": "The exact token vocabulary, placement relative to projected DNA features, and relation to the text tokenizer are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "sequence kind",
+            "retained nucleotide positions"
+          ],
+          "contextual_role": "encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "DNA sequences are clipped to a maximum length of 2048 nucleotides, with 1024 nucleotides retained on each flank around the variant locus.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Variant-centered clipped reference and variant sequences.",
+          "node_id": "clipped_dna_sequences",
+          "representation_type": "clipped_nucleotide_sequences",
+          "symbolic_shape": [
+            "sequence_kind",
+            "n_retained_nucleotides"
+          ],
+          "uncertainty": "The treatment of sequences shorter than the maximum and the exact boundary convention are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "DNA hidden-state positions",
+            "Evo2 feature coordinates"
+          ],
+          "contextual_role": "biological_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Frozen Evo2-1B hidden state for the DNA input.",
+          "node_id": "dna_hidden_state",
+          "representation_type": "Evo2_DNA_hidden_state",
+          "symbolic_shape": [
+            "n_dna_hidden_positions",
+            "d_evo"
+          ],
+          "uncertainty": "Internal Evo2 tokenization, pooling, sequence-pair handling, and hidden-state selection are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "DNA hidden-state positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "projected_biological_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Evo2 hidden state mapped into the Qwen text-embedding space.",
+          "node_id": "projected_dna_features",
+          "representation_type": "projected_DNA_embeddings",
+          "symbolic_shape": [
+            "n_dna_hidden_positions",
+            "d_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions including DNA-specific start and padding positions"
+          ],
+          "contextual_role": "text_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of two versions of the same DNA sequence region, with and without the mutation, including DNA-specific start and padding tokens, followed by a pathway network definition and gene annotations. The model is then asked to infer the biological or disease effect associated with the allele.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Structured pathway-prediction prompt containing DNA-specific start/padding elements, pathway and gene context, and the question.",
+          "node_id": "text_prompt",
+          "representation_type": "structured_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "The exact prompt template, role delimiters, and relation between DNA-specific prompt tokens and projected DNA features are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text-token positions including DNA-specific prompt positions"
+          ],
+          "contextual_role": "LLM_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for DNA continued pre-training (CPT) and the downstream SFT/RL stages are Qwen3-1.7B and Qwen3-4B, loaded with their native tokenizers [75].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum DNA sequence length is 2048 nucleotides and the maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Native Qwen tokenizer output for the pathway prompt subject to the documented 1024-token input constraint.",
+          "node_id": "text_tokens",
+          "representation_type": "Qwen_text_token_ids",
+          "symbolic_shape": [
+            "n_text_tokens"
+          ],
+          "uncertainty": "The tokenizer/input boundary establishes a maximum text length, but the exact enforcement, vocabulary, special-token handling, and truncation convention are not specified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "text_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Qwen text-token embeddings for the pathway prompt.",
+          "node_id": "text_embeddings",
+          "representation_type": "Qwen_text_embeddings",
+          "symbolic_shape": [
+            "n_text_tokens",
+            "d_text"
+          ],
+          "uncertainty": "The embedding lookup table is implicit and its trainability at this boundary is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered multimodal input positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "generative_backbone_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Projected DNA representations followed by tokenized pathway-prompt embeddings containing documented DNA-specific prompt elements.",
+          "node_id": "qwen_multimodal_input",
+          "representation_type": "DNA_prefix_plus_text_embeddings",
+          "symbolic_shape": [
+            "n_multimodal_positions",
+            "d_text"
+          ],
+          "uncertainty": "Attention masks, positional encodings, exact special-token placement, and supervised target-token receipt are unspecified."
+        }
+      ],
+      "open_questions": [
+        "Are the reference and variant DNA sequences encoded jointly or independently?",
+        "Which Evo2 hidden positions are retained and projected?",
+        "What exact prompt delimiters and special tokens are used beyond the documented DNA-specific start and padding tokens?",
+        "How are SFT teacher-forcing inputs and RL rollout prefixes serialized?",
+        "How is the 1024-token text constraint enforced at the tokenizer/input boundary?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "qwen_multimodal_input",
+          "port_role": "multimodal_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "Qwen3-1.7B generative backbone",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "DNA sequence clipping",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "paired_dna_sequences"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "clipped_dna_sequences"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain variant-centered sequence window"
+                },
+                {
+                  "name": "method",
+                  "value": "symmetric clipping"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "variant locus"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "DNA sequences are clipped to a maximum length of 2048 nucleotides, with 1024 nucleotides retained on each flank around the variant locus.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "paired_dna_sequences",
+              "port_role": "paired_reference_and_variant_sequences"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "variant_centered_sequence_clipping",
+          "outputs": [
+            "clipped_dna_sequences"
+          ],
+          "step_id": "clip_dna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Frozen Evo2-1B DNA encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that Evo2-1B encodes the DNA input but does not establish its internal computation or exact input/output interface."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "clipped_dna_sequences",
+              "port_role": "clipped_DNA_sequences"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "Evo2_hidden_state_extraction",
+          "outputs": [
+            "dna_hidden_state"
+          ],
+          "step_id": "encode_dna",
+          "uncertainty": "Opaque frozen biological-foundation-model boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Trainable DNA-to-text projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "dna_hidden_state"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_dna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "dna_hidden_state",
+              "port_role": "DNA_hidden_state"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "DNA_feature_projection",
+          "outputs": [
+            "projected_dna_features"
+          ],
+          "step_id": "project_dna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Pathway prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pathway_text_context",
+                    "dna_prompt_special_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "pathway prediction prompt"
+                },
+                {
+                  "name": "order",
+                  "value": "DNA-specific start and padding tokens followed by pathway network definition, gene annotations, and question"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "natural-language template"
+                }
+              ],
+              "uncertainty": "The exact relation between the DNA-specific prompt elements and projected DNA features is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of two versions of the same DNA sequence region, with and without the mutation, including DNA-specific start and padding tokens, followed by a pathway network definition and gene annotations. The model is then asked to infer the biological or disease effect associated with the allele.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pathway_text_context",
+              "port_role": "pathway_and_gene_context"
+            },
+            {
+              "node_id": "dna_prompt_special_tokens",
+              "port_role": "DNA_specific_start_and_padding_tokens"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "structured_pathway_prompt_serialization",
+          "outputs": [
+            "text_prompt"
+          ],
+          "step_id": "serialize_pathway_prompt",
+          "uncertainty": "The exact template is not fully specified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen native tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "native Qwen tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "native Qwen tokenization"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "text with DNA-specific prompt tokens"
+                },
+                {
+                  "name": "maximum_length",
+                  "value": "1024 tokens at the documented tokenizer/input boundary"
+                }
+              ],
+              "uncertainty": "The paper states the maximum text length but does not establish separate post-tokenization truncation or its ordering."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for DNA continued pre-training (CPT) and the downstream SFT/RL stages are Qwen3-1.7B and Qwen3-4B, loaded with their native tokenizers [75].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum DNA sequence length is 2048 nucleotides and the maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_prompt",
+              "port_role": "text_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "text_tokenization_with_input_constraint",
+          "outputs": [
+            "text_tokens"
+          ],
+          "step_id": "tokenize_text",
+          "uncertainty": "The exact tokenizer/input enforcement and truncation convention are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen text embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "text_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "text_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "Qwen tokenizer vocabulary indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "text-token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "The text backbones for DNA continued pre-training (CPT) and the downstream SFT/RL stages are Qwen3-1.7B and Qwen3-4B, loaded with their native tokenizers [75].",
+                  "section_id": "sec_0032"
+                }
+              ],
+              "information_content": "Implicit Qwen text embedding table.",
+              "node_id": "text_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "text_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "The paper does not specify the table shape or sharing details."
+            }
+          ],
+          "operation_type": "text_embedding_lookup",
+          "outputs": [
+            "text_embeddings"
+          ],
+          "step_id": "embed_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen multimodal input assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "projected_dna_features",
+                    "text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qwen_multimodal_input"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "sequence position"
+                },
+                {
+                  "name": "order",
+                  "value": "projected DNA hidden state before text embeddings"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the post-CPT SFT and RL stages we couple the text backbone to a frozen Evo2-1B encoder via a trainable linear projection [38]; the DNA hidden state is prepended to the text embeddings.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "projected_dna_features",
+              "port_role": "projected_DNA_features"
+            },
+            {
+              "node_id": "text_embeddings",
+              "port_role": "text_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "DNA_prefix_concatenation",
+          "outputs": [
+            "qwen_multimodal_input"
+          ],
+          "step_id": "prepend_dna_hidden_state",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "DNA pathway prediction using paired reference and variant DNA sequences, DNA-specific prompt tokens, pathway network definitions, and gene context",
+      "trajectory_id": "dna_qwen17_finetuning"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We mid-train the two Qwen3 backbones on the biology subset of FineFineWeb [77].",
+          "section_id": "sec_0033"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Inputs are tokenized with a maximum length of 1024 tokens.",
+          "section_id": "sec_0033"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "Qwen3-1.7B and Qwen3-4B",
+      "nodes": [
+        {
+          "axis_semantics": null,
+          "contextual_role": "external_text_corpus",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We mid-train the two Qwen3 backbones on the biology subset of FineFineWeb [77].",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Biology-domain FineFineWeb documents.",
+          "node_id": "biology_free_text",
+          "representation_type": "biological_free_text",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ordered text-token positions"
+          ],
+          "contextual_role": "LLM_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Inputs are tokenized with a maximum length of 1024 tokens.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Tokenized biological free text subject to the documented 1024-token input constraint.",
+          "node_id": "cpt_text_tokens",
+          "representation_type": "Qwen_text_token_ids",
+          "symbolic_shape": [
+            "n_cpt_tokens"
+          ],
+          "uncertainty": "The exact tokenizer segmentation, special-token handling, input-boundary enforcement, and truncation convention are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered token positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "LLM_input_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Text embeddings supplied to the Qwen language model.",
+          "node_id": "cpt_text_embeddings",
+          "representation_type": "Qwen_text_embeddings",
+          "symbolic_shape": [
+            "n_cpt_tokens",
+            "d_text"
+          ],
+          "uncertainty": "The embedding lookup implementation and parameter state are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact FineFineWeb document serialization is used before tokenization?",
+        "Are document boundaries or special separators inserted?",
+        "How is the 1024-token maximum enforced at the tokenizer/input boundary?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "cpt_text_embeddings",
+          "port_role": "text_embeddings"
+        }
+      ],
+      "recipient_component": "Qwen3-1.7B or Qwen3-4B language model",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Qwen native tokenizer for CPT",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "biology_free_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cpt_text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "native Qwen tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "native Qwen tokenization"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "biological free text"
+                },
+                {
+                  "name": "maximum_length",
+                  "value": "1024 tokens at the documented tokenizer/input boundary"
+                }
+              ],
+              "uncertainty": "The paper documents tokenization with a maximum length but does not document a separate post-tokenization truncation step or its order."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Inputs are tokenized with a maximum length of 1024 tokens.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "biology_free_text",
+              "port_role": "biological_free_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "biological_text_tokenization_with_input_constraint",
+          "outputs": [
+            "cpt_text_tokens"
+          ],
+          "step_id": "tokenize_cpt_text",
+          "uncertainty": "The exact tokenizer/input enforcement and truncation convention are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen CPT text embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cpt_text_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "cpt_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cpt_text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "Qwen tokenizer vocabulary indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "text-token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cpt_text_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "For CPT we train the language model alone on tokenized biological free-text (no DNA encoder is attached).",
+                  "section_id": "sec_0032"
+                }
+              ],
+              "information_content": "Implicit Qwen text embedding table used during CPT.",
+              "node_id": "cpt_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "text_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "The paper does not specify the table shape or sharing details."
+            }
+          ],
+          "operation_type": "text_embedding_lookup",
+          "outputs": [
+            "cpt_text_embeddings"
+          ],
+          "step_id": "embed_cpt_text",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Continued pre-training on FineFineWeb biology text with causal next-token prediction",
+      "trajectory_id": "cpt_qwen1p7_qwen4"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model receives a natural-language description of the disease, cell type, and candidate genes, together with TranscriptFormer embeddings [45] for five candidates in normal and disease states, and identifies the best-supported target.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the downstream SFT and RL stages, we couple the text backbone to a frozen TranscriptFormer encoder through a trainable linear projection [45]. Each target-identification example contains a natural-language disease and cell-type context, a five-gene candidate set, and TranscriptFormer representations for the candidate genes in normal and disease states [45, 73]. The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "Qwen3-1.7B and Qwen3-4B",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state: normal or disease",
+            "TranscriptFormer feature coordinates"
+          ],
+          "contextual_role": "external_biological_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model receives a natural-language description of the disease, cell type, and candidate genes, together with TranscriptFormer embeddings [45] for five candidates in normal and disease states, and identifies the best-supported target.",
+              "section_id": "sec_0011"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "we supply aligned TranscriptFormer embeddings [45] for the five candidate genes in both normal and disease states for the relevant context.",
+              "section_id": "sec_0026"
+            }
+          ],
+          "information_content": "TranscriptFormer representations supplied for five candidate genes in normal and disease states.",
+          "node_id": "transcriptformer_candidate_representations",
+          "representation_type": "TranscriptFormer_hidden_representations",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_transcriptformer"
+          ],
+          "uncertainty": "The paper supplies aligned representations but does not establish whether computational alignment occurs before or after projection."
+        },
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "projected_biological_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "TranscriptFormer representations projected into the text-embedding space before insertion-order alignment is resolved.",
+          "node_id": "projected_rna_features",
+          "representation_type": "projected_RNA_hidden_states",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_text"
+          ],
+          "uncertainty": "The paper establishes the insertion order of projected representations but does not specify the computational order of projection and alignment."
+        },
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "aligned_biological_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The five projected TranscriptFormer representations are inserted before the text prompt in the same order as the five candidate gene names listed in the question; this fixed ordering defines the alignment between continuous RNA embeddings and discrete gene symbols.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Projected RNA representations aligned to the gene order in the textual question.",
+          "node_id": "aligned_projected_rna_features",
+          "representation_type": "candidate_order_aligned_projected_RNA_representations",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_special_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Prepended RNA padding-token positions in the target-identification prompt.",
+          "node_id": "rna_prompt_padding_tokens",
+          "representation_type": "RNA_prompt_padding_tokens",
+          "symbolic_shape": [
+            "n_rna_padding_positions"
+          ],
+          "uncertainty": "The exact relation between RNA padding positions and projected RNA representations is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "task_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For each prompt, the model receives the disease, cell type, five candidate genes, and projected TranscriptFormer representations for the corresponding normal and disease states [45, 73].",
+              "section_id": "sec_0035"
+            }
+          ],
+          "information_content": "Disease, cell type, five candidate genes, and target-selection question.",
+          "node_id": "rna_text_context",
+          "representation_type": "natural_language_target_identification_context",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions including RNA padding positions"
+          ],
+          "contextual_role": "text_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Natural-language target-identification prompt with prepended RNA padding positions and candidate genes.",
+          "node_id": "rna_text_prompt",
+          "representation_type": "target_identification_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact prompt template, special-token delimiters, and relation between RNA padding positions and projected representations are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text-token positions"
+          ],
+          "contextual_role": "LLM_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for RNA CPT, SFT, and RL are Qwen3-1.7B and Qwen34B, loaded with their native tokenizers [75].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Native Qwen tokenizer output for the RNA prompt subject to the documented 1024-token input constraint.",
+          "node_id": "rna_text_tokens",
+          "representation_type": "Qwen_text_token_ids",
+          "symbolic_shape": [
+            "n_rna_text_tokens"
+          ],
+          "uncertainty": "The tokenizer/input boundary establishes a maximum text length, but vocabulary, special-token handling, enforcement, and truncation convention are not specified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "text_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Qwen text-token embeddings for the RNA prompt.",
+          "node_id": "rna_text_embeddings",
+          "representation_type": "Qwen_text_embeddings",
+          "symbolic_shape": [
+            "n_rna_text_tokens",
+            "d_text"
+          ],
+          "uncertainty": "The embedding table and its trainability are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered multimodal input positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "generative_backbone_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Aligned projected candidate RNA representations followed by tokenized textual target-identification embeddings, with documented RNA padding-token positions preserved at an unresolved boundary.",
+          "node_id": "rna_multimodal_input",
+          "representation_type": "RNA_prefix_plus_text_embeddings",
+          "symbolic_shape": [
+            "n_multimodal_positions",
+            "d_text"
+          ],
+          "uncertainty": "Attention masks, positional encodings, padding-position semantics, and target-response receipt are unspecified."
+        }
+      ],
+      "open_questions": [
+        "How are normal and disease representations ordered after projection?",
+        "How are the documented prepended RNA padding-token positions related to the projected RNA prefix?",
+        "What computational order, if any, connects alignment and projection?",
+        "What exact text-token truncation convention or tokenizer/input enforcement is used at the 1024-token maximum?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "rna_multimodal_input",
+          "port_role": "multimodal_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "Qwen3-1.7B or Qwen3-4B generative backbone",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Trainable RNA-to-text projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "transcriptformer_candidate_representations"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable"
+                }
+              ],
+              "uncertainty": "The paper does not establish whether the supplied candidate-order alignment is computationally applied before or after projection."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the downstream SFT and RL stages, we couple the text backbone to a frozen TranscriptFormer encoder through a trainable linear projection [45].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "we supply aligned TranscriptFormer embeddings [45] for the five candidate genes in both normal and disease states for the relevant context.",
+              "section_id": "sec_0026"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "transcriptformer_candidate_representations",
+              "port_role": "TranscriptFormer_representations"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "RNA_feature_projection",
+          "outputs": [
+            "projected_rna_features"
+          ],
+          "step_id": "project_rna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Candidate-order RNA alignment",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "align",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "aligned_projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "basis",
+                  "value": "candidate-gene order in the textual question"
+                },
+                {
+                  "name": "method",
+                  "value": "fixed candidate-order alignment"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The five projected TranscriptFormer representations are inserted before the text prompt in the same order as the five candidate gene names listed in the question; this fixed ordering defines the alignment between continuous RNA embeddings and discrete gene symbols.",
+              "section_id": "sec_0028"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "we supply aligned TranscriptFormer embeddings [45] for the five candidate genes in both normal and disease states for the relevant context.",
+              "section_id": "sec_0026"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "projected_rna_features",
+              "port_role": "projected_RNA_representations"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "candidate_gene_order_alignment",
+          "outputs": [
+            "aligned_projected_rna_features"
+          ],
+          "step_id": "align_projected_candidate_representations",
+          "uncertainty": "The source establishes insertion-order alignment but does not establish that this is a separately executed operation or that it follows projection computationally."
+        },
+        {
+          "bypasses": [],
+          "component": "RNA target-identification prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "rna_text_context",
+                    "rna_prompt_padding_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "rna_text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "target-identification question template"
+                },
+                {
+                  "name": "order",
+                  "value": "prepended RNA padding tokens followed by disease, cell type, candidate genes, and question"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "natural-language template"
+                }
+              ],
+              "uncertainty": "The exact relation between prompt padding positions and projected RNA representations is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "rna_text_context",
+              "port_role": "disease_cell_type_candidate_gene_context"
+            },
+            {
+              "node_id": "rna_prompt_padding_tokens",
+              "port_role": "prepended_RNA_padding_tokens"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "target_identification_prompt_serialization",
+          "outputs": [
+            "rna_text_prompt"
+          ],
+          "step_id": "serialize_rna_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen native tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "rna_text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "rna_text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "native Qwen tokenizer vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "native Qwen tokenization"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "text with RNA padding positions"
+                },
+                {
+                  "name": "maximum_length",
+                  "value": "1024 tokens at the documented tokenizer/input boundary"
+                }
+              ],
+              "uncertainty": "The paper states the maximum text length but does not establish separate post-tokenization truncation or its ordering."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for RNA CPT, SFT, and RL are Qwen3-1.7B and Qwen34B, loaded with their native tokenizers [75].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "rna_text_prompt",
+              "port_role": "text_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "RNA_prompt_tokenization_with_input_constraint",
+          "outputs": [
+            "rna_text_tokens"
+          ],
+          "step_id": "tokenize_rna_prompt",
+          "uncertainty": "The exact tokenizer/input enforcement and truncation convention are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen RNA text embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "rna_text_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "rna_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "rna_text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "Qwen tokenizer vocabulary indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "text-token embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "rna_text_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "The text backbones for RNA CPT, SFT, and RL are Qwen3-1.7B and Qwen34B, loaded with their native tokenizers [75].",
+                  "section_id": "sec_0032"
+                }
+              ],
+              "information_content": "Implicit Qwen text embedding table.",
+              "node_id": "rna_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "text_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "The table shape, sharing, and trainability are unspecified."
+            }
+          ],
+          "operation_type": "text_embedding_lookup",
+          "outputs": [
+            "rna_text_embeddings"
+          ],
+          "step_id": "embed_rna_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "RNA multimodal input assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "aligned_projected_rna_features",
+                    "rna_text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "rna_multimodal_input"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "sequence position"
+                },
+                {
+                  "name": "order",
+                  "value": "aligned projected RNA hidden states before text-token embeddings"
+                }
+              ],
+              "uncertainty": "The relation between projected RNA features and documented RNA padding-token positions remains unresolved."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "aligned_projected_rna_features",
+              "port_role": "projected_RNA_hidden_states"
+            },
+            {
+              "node_id": "rna_text_embeddings",
+              "port_role": "text-token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "RNA_prefix_concatenation",
+          "outputs": [
+            "rna_multimodal_input"
+          ],
+          "step_id": "prepend_rna_features",
+          "uncertainty": "Exact padding-position replacement and assembly mechanics are unspecified."
+        }
+      ],
+      "task_configuration": "RNA drug-target identification from disease/cell-type context, five candidate genes, and normal/disease TranscriptFormer representations",
+      "trajectory_id": "rna_qwen_finetuning"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The same sweep is repeated for the Gemma 4 E2B RNA backbone in the backbone ablation [76].",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The maximum text length is 1024 tokens.",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the downstream SFT and RL stages, we couple the text backbone to a frozen TranscriptFormer encoder through a trainable linear projection [45]. Each target-identification example contains a natural-language disease and cell-type context, a five-gene candidate set, and TranscriptFormer representations for the candidate genes in normal and disease states [45, 73]. The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+          "section_id": "sec_0032"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "ablation",
+      "model_variant": "Gemma 4 E2B",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state: normal or disease",
+            "TranscriptFormer feature coordinates"
+          ],
+          "contextual_role": "external_biological_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model receives a natural-language description of the disease, cell type, and candidate genes, together with TranscriptFormer embeddings [45] for five candidates in normal and disease states, and identifies the best-supported target.",
+              "section_id": "sec_0011"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "we supply aligned TranscriptFormer embeddings [45] for the five candidate genes in both normal and disease states for the relevant context.",
+              "section_id": "sec_0026"
+            }
+          ],
+          "information_content": "TranscriptFormer representations supplied for five candidate genes in normal and disease states.",
+          "node_id": "transcriptformer_candidate_representations",
+          "representation_type": "TranscriptFormer_hidden_representations",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_transcriptformer"
+          ],
+          "uncertainty": "The paper supplies aligned representations but does not establish whether computational alignment occurs before or after projection."
+        },
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "projected_biological_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "TranscriptFormer representations projected into the Gemma text-embedding space before insertion-order alignment is resolved.",
+          "node_id": "projected_rna_features",
+          "representation_type": "projected_RNA_hidden_states",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_text"
+          ],
+          "uncertainty": "The paper establishes the insertion order of projected representations but does not specify the computational order of projection and alignment."
+        },
+        {
+          "axis_semantics": [
+            "candidate-gene index",
+            "state",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "aligned_biological_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The five projected TranscriptFormer representations are inserted before the text prompt in the same order as the five candidate gene names listed in the question; this fixed ordering defines the alignment between continuous RNA embeddings and discrete gene symbols.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Projected RNA representations aligned to the gene order in the textual question.",
+          "node_id": "aligned_projected_rna_features",
+          "representation_type": "candidate_order_aligned_projected_RNA_representations",
+          "symbolic_shape": [
+            "n_candidates",
+            "state",
+            "d_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_special_tokens",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Prepended RNA padding-token positions in the target-identification prompt.",
+          "node_id": "rna_prompt_padding_tokens",
+          "representation_type": "RNA_prompt_padding_tokens",
+          "symbolic_shape": [
+            "n_rna_padding_positions"
+          ],
+          "uncertainty": "The exact relation between RNA padding positions and projected RNA representations is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "task_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For each prompt, the model receives the disease, cell type, five candidate genes, and projected TranscriptFormer representations for the corresponding normal and disease states [45, 73].",
+              "section_id": "sec_0035"
+            }
+          ],
+          "information_content": "Disease, cell type, five candidate genes, and target-selection question.",
+          "node_id": "gemma_rna_text_context",
+          "representation_type": "natural_language_target_identification_context",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ordered prompt positions including RNA padding positions"
+          ],
+          "contextual_role": "text_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Natural-language target-identification prompt with prepended RNA padding positions and candidate genes.",
+          "node_id": "gemma_rna_text_prompt",
+          "representation_type": "target_identification_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact prompt template, special-token delimiters, and relation between RNA padding positions and projected representations are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text-token positions"
+          ],
+          "contextual_role": "LLM_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Gemma tokenizer output for the RNA prompt subject to the documented 1024-token input constraint.",
+          "node_id": "gemma_rna_text_tokens",
+          "representation_type": "Gemma_text_token_ids",
+          "symbolic_shape": [
+            "n_gemma_rna_text_tokens"
+          ],
+          "uncertainty": "The paper does not document Gemma tokenizer vocabulary, segmentation, special-token handling, input-boundary enforcement, or truncation convention."
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "text_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+              "section_id": "sec_0017"
+            }
+          ],
+          "information_content": "Gemma text-token embeddings for the RNA prompt, with lookup details unresolved.",
+          "node_id": "gemma_rna_text_embeddings",
+          "representation_type": "Gemma_text_embeddings",
+          "symbolic_shape": [
+            "n_gemma_rna_text_tokens",
+            "d_text"
+          ],
+          "uncertainty": "The paper does not document the Gemma embedding table or its parameter state."
+        },
+        {
+          "axis_semantics": [
+            "ordered multimodal input positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "generative_backbone_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Projected candidate RNA representations followed by Gemma textual target-identification embeddings, with documented RNA padding-token positions preserved at an unresolved boundary.",
+          "node_id": "gemma_rna_multimodal_input",
+          "representation_type": "RNA_prefix_plus_Gemma_text_embeddings",
+          "symbolic_shape": [
+            "n_multimodal_positions",
+            "d_text"
+          ],
+          "uncertainty": "The exact Gemma tokenization, embedding lookup, input-boundary enforcement, attention masks, positional encodings, padding semantics, and target-response receipt are unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact tokenizer and embedding lookup are used for Gemma 4 E2B?",
+        "Are normal and disease representations ordered after projection as separate state blocks or interleaved?",
+        "How are the documented prepended RNA padding-token positions related to projected RNA representations?",
+        "What computational order, if any, connects alignment and projection?",
+        "How is the 1024-token maximum enforced at the Gemma tokenizer/input boundary?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "gemma_rna_multimodal_input",
+          "port_role": "multimodal_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "Gemma 4 E2B generative backbone",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Trainable RNA-to-text projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "transcriptformer_candidate_representations"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable"
+                }
+              ],
+              "uncertainty": "The paper does not establish whether the supplied candidate-order alignment is computationally applied before or after projection."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For the downstream SFT and RL stages, we couple the text backbone to a frozen TranscriptFormer encoder through a trainable linear projection [45].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "transcriptformer_candidate_representations",
+              "port_role": "TranscriptFormer_representations"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "RNA_feature_projection",
+          "outputs": [
+            "projected_rna_features"
+          ],
+          "step_id": "project_gemma_rna",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Candidate-order RNA alignment",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "align",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "aligned_projected_rna_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "basis",
+                  "value": "candidate-gene order in the textual question"
+                },
+                {
+                  "name": "method",
+                  "value": "fixed candidate-order alignment"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The five projected TranscriptFormer representations are inserted before the text prompt in the same order as the five candidate gene names listed in the question; this fixed ordering defines the alignment between continuous RNA embeddings and discrete gene symbols.",
+              "section_id": "sec_0028"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "we supply aligned TranscriptFormer embeddings [45] for the five candidate genes in both normal and disease states for the relevant context.",
+              "section_id": "sec_0026"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "projected_rna_features",
+              "port_role": "projected_RNA_representations"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "candidate_gene_order_alignment",
+          "outputs": [
+            "aligned_projected_rna_features"
+          ],
+          "step_id": "align_gemma_projected_candidate_representations",
+          "uncertainty": "The source establishes insertion-order alignment but does not establish that this is a separately executed operation or that it follows projection computationally."
+        },
+        {
+          "bypasses": [],
+          "component": "RNA target-identification prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gemma_rna_text_context",
+                    "rna_prompt_padding_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gemma_rna_text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "target-identification question template"
+                },
+                {
+                  "name": "order",
+                  "value": "prepended RNA padding tokens followed by disease, cell type, candidate genes, and question"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "natural-language template"
+                }
+              ],
+              "uncertainty": "The exact relation between prompt padding positions and projected RNA representations is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of prepended RNA padding tokens followed by a disease- and cell-type-specific target selection question over candidate genes.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gemma_rna_text_context",
+              "port_role": "disease_cell_type_candidate_gene_context"
+            },
+            {
+              "node_id": "rna_prompt_padding_tokens",
+              "port_role": "prepended_RNA_padding_tokens"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "target_identification_prompt_serialization",
+          "outputs": [
+            "gemma_rna_text_prompt"
+          ],
+          "step_id": "serialize_gemma_rna_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Gemma tokenizer boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies Gemma 4 E2B as a backbone ablation and states a 1024-token maximum, but does not document its tokenizer vocabulary, segmentation, or input-boundary enforcement."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+              "section_id": "sec_0017"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text length is 1024 tokens.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gemma_rna_text_prompt",
+              "port_role": "text_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "Gemma_text_tokenization_with_unresolved_input_constraint",
+          "outputs": [
+            "gemma_rna_text_tokens"
+          ],
+          "step_id": "tokenize_gemma_rna_prompt",
+          "uncertainty": "Opaque Gemma tokenizer/input boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Gemma text embedding boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper does not document the Gemma embedding lookup table, its parameter state, or exact embedding interface."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To test whether our main findings depend on the choice of base model, we repeat the RNA experiments with an off-the-shelf backbone Gemma model [76].",
+              "section_id": "sec_0017"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gemma_rna_text_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "Gemma_text_embedding_lookup",
+          "outputs": [
+            "gemma_rna_text_embeddings"
+          ],
+          "step_id": "embed_gemma_rna_text",
+          "uncertainty": "Opaque Gemma embedding boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Gemma RNA multimodal input assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper supports the same overall multimodal setup for the Gemma ablation but does not document the exact Gemma fusion interface or the relation between RNA padding positions and projected features."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The same sweep is repeated for the Gemma 4 E2B RNA backbone in the backbone ablation [76].",
+              "section_id": "sec_0034"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The projected RNA hidden states are prepended to the text-token embeddings before the prompt tokens, so that the language model conditions jointly on transcriptomic representations and the textual task description.",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "aligned_projected_rna_features",
+              "port_role": "projected_RNA_hidden_states"
+            },
+            {
+              "node_id": "gemma_rna_text_embeddings",
+              "port_role": "text-token_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "Gemma_RNA_prefix_assembly",
+          "outputs": [
+            "gemma_rna_multimodal_input"
+          ],
+          "step_id": "prepend_gemma_rna_features",
+          "uncertainty": "The exact Gemma multimodal input assembly is unresolved."
+        }
+      ],
+      "task_configuration": "RNA drug-target identification backbone ablation using Gemma 4 E2B",
+      "trajectory_id": "rna_gemma_finetuning"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each example provides protein embeddings and text context, including organism, InterPro domain annotations [74], and protein-protein interactions. The model predicts protein function from this combined representation.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For SFT and GRPO we use the same BioReason-Pro-style protein-conditioned interface, except that we omit the GO-graph encoder [3]. The text backbone is paired with a frozen ESM-3 small protein encoder [52]. Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+          "section_id": "sec_0032"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The maximum text sequence length is 10 , 000 tokens and the maximum protein length is 2000 residues.",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We include InterPro features in the prompt but exclude protein-protein interactions [74, 90].",
+          "section_id": "sec_0035"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "Qwen3-1.7B and Qwen3-4B-Thinking",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "residue positions"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both the SFT and RL prompts concatenate (i) a system instruction describing the task and available biological context, (ii) a header containing the protein name, organism, and amino-acid sequence, and (iii) a user instruction asking the model to emit GO identifiers across the molecular function, biological process, and cellular component aspects [89].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Protein amino-acid sequence supplied to the frozen ESM-3 encoder and represented by protein placeholder positions in the prompt.",
+          "node_id": "protein_sequence",
+          "representation_type": "amino_acid_sequence",
+          "symbolic_shape": [
+            "n_residues"
+          ],
+          "uncertainty": "The exact ESM-3 input tokenization is unspecified; the paper states a maximum protein length but does not document how it is enforced."
+        },
+        {
+          "axis_semantics": [
+            "ordered prompt fields"
+          ],
+          "contextual_role": "prompt_header_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both the SFT and RL prompts concatenate (i) a system instruction describing the task and available biological context, (ii) a header containing the protein name, organism, and amino-acid sequence, and (iii) a user instruction asking the model to emit GO identifiers across the molecular function, biological process, and cellular component aspects [89].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Protein name, organism, and amino-acid sequence in the prompt header.",
+          "node_id": "protein_prompt_header",
+          "representation_type": "protein_name_organism_sequence_header",
+          "symbolic_shape": null,
+          "uncertainty": "The exact header serialization and relationship to protein placeholder positions are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "initial_prediction_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of protein-specific padding tokens, followed by organism metadata, InterPro domain annotations, optional protein-protein interaction context, and initial GO term speculations.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Initial GO term speculations supplied in the protein prompt.",
+          "node_id": "initial_go_speculations",
+          "representation_type": "initial_GO_term_speculations",
+          "symbolic_shape": null,
+          "uncertainty": "The exact serialization and whether all routes include these speculations are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "residue positions",
+            "ESM-3 feature coordinates"
+          ],
+          "contextual_role": "biological_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Frozen ESM-3 layer-37 per-residue protein embeddings.",
+          "node_id": "protein_residue_embeddings",
+          "representation_type": "ESM3_layer37_residue_embeddings",
+          "symbolic_shape": [
+            "n_residues",
+            "d_esm"
+          ],
+          "uncertainty": "The input sequence tokenization, maximum-length enforcement, and exact ESM-3 extraction interface are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "residue positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "projected_biological_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Per-residue protein features in the Qwen text-embedding space.",
+          "node_id": "projected_protein_features",
+          "representation_type": "projected_protein_residue_embeddings",
+          "symbolic_shape": [
+            "n_residues",
+            "d_text"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both the SFT and RL prompts concatenate (i) a system instruction describing the task and available biological context, (ii) a header containing the protein name, organism, and amino-acid sequence, and (iii) a user instruction asking the model to emit GO identifiers across the molecular function, biological process, and cellular component aspects [89].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "System instruction, organism and InterPro context, protein identity/header structure, and GO-output instruction.",
+          "node_id": "protein_text_context",
+          "representation_type": "protein_function_prompt_context",
+          "symbolic_shape": null,
+          "uncertainty": "The exact role-token and metadata serialization is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "optional_textual_biological_context",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each example provides protein embeddings and text context, including organism, InterPro domain annotations [74], and protein-protein interactions. The model predicts protein function from this combined representation.",
+              "section_id": "sec_0011"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We include InterPro features in the prompt but exclude protein-protein interactions [74, 90].",
+              "section_id": "sec_0035"
+            }
+          ],
+          "information_content": "Protein-protein interaction context available on the documented prompt route and explicitly excluded on the protein RL route.",
+          "node_id": "protein_interaction_context",
+          "representation_type": "protein_protein_interaction_context",
+          "symbolic_shape": null,
+          "uncertainty": "The exact interaction serialization is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered prompt positions including protein placeholder positions"
+          ],
+          "contextual_role": "text_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of protein-specific padding tokens, followed by organism metadata, InterPro domain annotations, optional protein-protein interaction context, and initial GO term speculations.",
+              "section_id": "sec_0028"
+            }
+          ],
+          "information_content": "Protein-conditioned prompt with protein padding/placeholder positions, organism metadata, InterPro annotations, optional interaction context, and initial GO-term speculations.",
+          "node_id": "protein_text_prompt",
+          "representation_type": "protein_function_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "The exact number and placement of protein placeholder positions and header fields are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text-token positions including protein placeholders"
+          ],
+          "contextual_role": "LLM_token_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for the protein experiments are Qwen3-1.7B and Qwen34B-Thinking, loaded with their native BPE tokenizer [75]. The padding token is aliased to the end-of-sequence token.",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text sequence length is 10 , 000 tokens and the maximum protein length is 2000 residues.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "information_content": "Native Qwen BPE token IDs including protein padding positions subject to the documented text-length constraint.",
+          "node_id": "protein_text_tokens",
+          "representation_type": "Qwen_BPE_token_ids",
+          "symbolic_shape": [
+            "n_protein_prompt_tokens"
+          ],
+          "uncertainty": "The tokenizer/input boundary establishes a maximum text sequence length, but exact enforcement and truncation convention are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered text positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "text_features_with_placeholders",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Qwen text embeddings for the protein prompt before protein-feature insertion.",
+          "node_id": "protein_text_embeddings",
+          "representation_type": "Qwen_text_embeddings_with_protein_placeholders",
+          "symbolic_shape": [
+            "n_protein_prompt_tokens",
+            "d_text"
+          ],
+          "uncertainty": "The placeholder lookup representation and its removal or replacement are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered multimodal input positions",
+            "text embedding coordinates"
+          ],
+          "contextual_role": "generative_backbone_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "information_content": "Projected per-residue protein embeddings inserted into the protein-conditioned text prompt.",
+          "node_id": "protein_multimodal_input",
+          "representation_type": "protein_placeholder_replaced_text_embeddings",
+          "symbolic_shape": [
+            "n_multimodal_positions",
+            "d_text"
+          ],
+          "uncertainty": "Exact variable-length replacement and positional-mask mechanics are unspecified."
+        }
+      ],
+      "open_questions": [
+        "How are amino-acid sequences tokenized inside ESM-3?",
+        "How is the 2,000-residue maximum enforced at the protein encoder/input boundary?",
+        "How are variable-length residue embeddings inserted at protein padding positions?",
+        "Are protein placeholder embeddings removed, replaced, or expanded?",
+        "How are the protein name, organism, amino-acid sequence header, optional interaction context, and initial GO speculations serialized in every example?",
+        "How is the 10,000-token text maximum enforced at the tokenizer/input boundary?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "protein_multimodal_input",
+          "port_role": "protein_conditioned_prompt_embeddings"
+        }
+      ],
+      "recipient_component": "Qwen3-1.7B or Qwen3-4B-Thinking generative backbone",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Frozen ESM-3 layer-37 protein encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents extraction of per-residue embeddings from ESM-3 layer 37 and states a 2,000-residue maximum, but does not establish the internal encoder computation or input-boundary enforcement."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text sequence length is 10 , 000 tokens and the maximum protein length is 2000 residues.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_sequence",
+              "port_role": "amino_acid_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "ESM3_layer37_per_residue_embedding_extraction",
+          "outputs": [
+            "protein_residue_embeddings"
+          ],
+          "step_id": "encode_protein",
+          "uncertainty": "Opaque frozen protein-foundation-model boundary; the source does not document sequence truncation or selection."
+        },
+        {
+          "bypasses": [],
+          "component": "Trainable protein-to-text projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_residue_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_protein_features"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "linear projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_residue_embeddings",
+              "port_role": "ESM3_per_residue_embeddings"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "protein_feature_projection",
+          "outputs": [
+            "projected_protein_features"
+          ],
+          "step_id": "project_protein",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [
+            {
+              "condition": "protein RL/GRPO route",
+              "source_node_id": "protein_interaction_context",
+              "target_node_id": "protein_text_prompt"
+            }
+          ],
+          "component": "Protein function prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_text_context",
+                    "protein_prompt_header",
+                    "initial_go_speculations",
+                    "protein_interaction_context"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "BioReason-Pro-style protein-conditioned prompt without GO-graph input"
+                },
+                {
+                  "name": "order",
+                  "value": "system instruction; protein header containing protein name, organism, and amino-acid sequence; organism/InterPro/optional interaction context and initial GO-term speculations; user GO-output instruction"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "natural-language prompt template"
+                }
+              ],
+              "uncertainty": "The protein RL route bypasses protein-protein interaction context; exact template and role-token serialization are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both the SFT and RL prompts concatenate (i) a system instruction describing the task and available biological context, (ii) a header containing the protein name, organism, and amino-acid sequence, and (iii) a user instruction asking the model to emit GO identifiers across the molecular function, biological process, and cellular component aspects [89].",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "A representative input consists of protein-specific padding tokens, followed by organism metadata, InterPro domain annotations, optional protein-protein interaction context, and initial GO term speculations.",
+              "section_id": "sec_0028"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "We include InterPro features in the prompt but exclude protein-protein interactions [74, 90].",
+              "section_id": "sec_0035"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_text_context",
+              "port_role": "protein_prompt_context"
+            },
+            {
+              "node_id": "protein_prompt_header",
+              "port_role": "protein_name_organism_amino_acid_sequence_header"
+            },
+            {
+              "node_id": "initial_go_speculations",
+              "port_role": "initial_GO_term_speculations"
+            },
+            {
+              "node_id": "protein_interaction_context",
+              "port_role": "optional_protein_interaction_context"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "protein_prompt_serialization",
+          "outputs": [
+            "protein_text_prompt"
+          ],
+          "step_id": "serialize_protein_prompt",
+          "uncertainty": "The protein RL route bypasses protein-protein interaction context; exact template, field placement, and role-token serialization are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen native BPE tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_text_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "native Qwen BPE vocabulary"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "native BPE tokenization"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "text with protein placeholders"
+                },
+                {
+                  "name": "padding_token_alias",
+                  "value": "padding token aliased to end-of-sequence token"
+                },
+                {
+                  "name": "maximum_length",
+                  "value": "10,000 tokens at the documented tokenizer/input boundary"
+                }
+              ],
+              "uncertainty": "The paper states the maximum text sequence length but does not establish separate post-tokenization truncation or its ordering."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The text backbones for the protein experiments are Qwen3-1.7B and Qwen34B-Thinking, loaded with their native BPE tokenizer [75]. The padding token is aliased to the end-of-sequence token.",
+              "section_id": "sec_0032"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The maximum text sequence length is 10 , 000 tokens and the maximum protein length is 2000 residues.",
+              "section_id": "sec_0034"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_text_prompt",
+              "port_role": "protein_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "protein_prompt_tokenization_with_input_constraint",
+          "outputs": [
+            "protein_text_tokens"
+          ],
+          "step_id": "tokenize_protein_prompt",
+          "uncertainty": "The exact tokenizer/input enforcement and truncation convention are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen protein-prompt embedding lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "protein_text_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "protein_embedding_table::lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "protein_text_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "native Qwen BPE vocabulary indices"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "text-token embedding matrix including protein placeholder/padding entries"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_text_tokens",
+              "port_role": "token_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "model_parameter",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "The text backbones for the protein experiments are Qwen3-1.7B and Qwen34B-Thinking, loaded with their native BPE tokenizer [75]. The padding token is aliased to the end-of-sequence token.",
+                  "section_id": "sec_0032"
+                }
+              ],
+              "information_content": "Implicit Qwen text embedding table.",
+              "node_id": "protein_embedding_table::lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "text_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "The table shape and exact placeholder-entry handling are unspecified."
+            }
+          ],
+          "operation_type": "protein_prompt_text_embedding_lookup",
+          "outputs": [
+            "protein_text_embeddings"
+          ],
+          "step_id": "embed_protein_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Protein placeholder insertion boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that projected per-residue embeddings are inserted at protein placeholder positions, but does not establish whether placeholders are replaced, removed, expanded, or updated by an indexed operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Per-residue embeddings are extracted from layer 37 of ESM-3, projected through a trainable linear layer into the text-embedding space, and inserted at the protein placeholder positions before the text tokens [52].",
+              "section_id": "sec_0032"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "protein_text_embeddings",
+              "port_role": "text_embeddings_with_placeholders"
+            },
+            {
+              "node_id": "projected_protein_features",
+              "port_role": "projected_protein_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "protein_placeholder_insertion",
+          "outputs": [
+            "protein_multimodal_input"
+          ],
+          "step_id": "insert_protein_features",
+          "uncertainty": "Opaque insertion/replacement boundary; concatenate is not asserted."
+        }
+      ],
+      "task_configuration": "Protein function prediction from ESM-3 residue embeddings and organism/InterPro/interaction/initial-GO textual context, with GO-graph input omitted",
+      "trajectory_id": "protein_qwen_finetuning"
+    }
+  ]
+}

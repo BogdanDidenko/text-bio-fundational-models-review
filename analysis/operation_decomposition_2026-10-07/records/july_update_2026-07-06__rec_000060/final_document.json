@@ -1,0 +1,2864 @@
+{
+  "coverage_questions": [
+    "The exact tokenizer, special-token handling, padding, attention masks, and input-embedding implementation at the Qwen/backbone boundary are unspecified.",
+    "The paper documents HCA preprocessing explicitly, but does not establish that the same QC and normalization path applies to Tahoe data.",
+    "The exact T0b mask-selection procedure, serialization, tokenizer handling, and input-embedding receipt are unspecified.",
+    "Evaluation reuses the documented model interface; no additional evaluation-time input transformation is stated.",
+    "R-GCN message passing and RotatE scoring are outside the operation catalog and remain an opaque Stage 0 boundary."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "normalize",
+        "log_transform"
+      ],
+      "source_operation": "combined log-normalisation to library size",
+      "why_no_existing_operation": "The paper gives one combined preprocessing phrase without establishing the order of scaling and logarithm operations."
+    },
+    {
+      "compared_operation_ids": [
+        "lookup",
+        "project",
+        "self_attention"
+      ],
+      "source_operation": "heterogeneous R-GCN entity encoding with RotatE triple scoring",
+      "why_no_existing_operation": "The documented relation-aware graph message passing and RotatE scoring are not represented by a catalog primitive."
+    }
+  ],
+  "record_id": "july_update_2026-07-06__rec_000060",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The graph is encoded by a 2-layer R-GCN (type-aware message passing) with a RotatE triple-scoring decoder, and gene rows are warm-started from frozen ESM-2 650M [Lin et al., 2023] protein embeddings",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellTosg2Sequence Stage 0 KG encoder: R-GCN + RotatE",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "heterogeneous entities",
+            "typed relations"
+          ],
+          "contextual_role": "external_biological_knowledge",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We merge standard public databases (STRING, Reactome, KEGG, DrugBank, Open Targets, DisGeNET, Gene Ontology, UniProt, DoRothEA, TRRUST, OmniPath, Complex Portal) into a single heterogeneous graph of 62,507 nodes",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Curated biomedical knowledge graph.",
+          "node_id": "kg_triples",
+          "representation_type": "heterogeneous_knowledge_graph",
+          "symbolic_shape": [
+            "n_entities",
+            "n_relations"
+          ],
+          "uncertainty": "Tensor serialization is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "gene rows",
+            "protein embedding coordinates"
+          ],
+          "contextual_role": "warm_start_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "gene rows are warm-started from frozen ESM-2 650M [Lin et al., 2023] protein embeddings",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen ESM-2-derived gene vectors.",
+          "node_id": "esm2_gene_embeddings",
+          "representation_type": "frozen_protein_embedding_table",
+          "symbolic_shape": [
+            "n_gene_rows",
+            "d_protein"
+          ],
+          "uncertainty": "Initialization of non-gene rows is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "entity rows",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "frozen_output_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen KG entity table produced by Stage 0.",
+          "node_id": "entity_table",
+          "representation_type": "frozen_kg_entity_embedding_table",
+          "symbolic_shape": [
+            "n_entities",
+            "d_kg"
+          ],
+          "uncertainty": "The source reports the concrete width; this graph uses a symbolic feature axis."
+        }
+      ],
+      "open_questions": [
+        "The exact R-GCN update and RotatE training equations are not recoverable from the supplied text."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "kg_triples",
+          "port_role": "raw_heterogeneous_graph"
+        },
+        {
+          "node_id": "esm2_gene_embeddings",
+          "port_role": "gene_row_warm_start"
+        }
+      ],
+      "recipient_component": "R-GCN + RotatE heterogeneous KG encoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Stage 0 KG encoding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The source states R-GCN message passing, RotatE scoring, and ESM-2 warm starts, but no catalog operation represents relational graph encoding."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The graph is encoded by a 2-layer R-GCN (type-aware message passing) with a RotatE triple-scoring decoder",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "kg_triples",
+              "port_role": "raw_heterogeneous_graph"
+            },
+            {
+              "node_id": "esm2_gene_embeddings",
+              "port_role": "gene_row_warm_start"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "heterogeneous_graph_entity_encoding",
+          "outputs": [
+            "entity_table"
+          ],
+          "step_id": "encode_kg_entity_table",
+          "uncertainty": "Opaque module boundary retained."
+        }
+      ],
+      "task_configuration": "Stage 0 frozen biomedical entity-table construction",
+      "trajectory_id": "stage0_kg_pretraining"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage I: Pretraining (KG-channel anchoring). We pretrain on the HCA training split (3,017,766 cells; Section 3.2) with a single language-modelling objective:",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "After quality control (min. 500 genes per cell, &lt; 20% mitochondrial reads), log-normalisation to library size 10 4 , and conversion to ranked Cell Sentences of topK =200 HGNC gene symbols",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The virtual tokens are prepended to the textual prompt (cell sentence + metadata + task instruction) and fed into the Qwen2.5-32B-Instruct backbone.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "CellTosg2Sequence Stage I: Qwen2.5-32B-Instruct with KGProjector",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We compile a training corpus from the Human Cell Atlas (HCA)",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "Raw HCA single-cell RNA-seq expression.",
+          "node_id": "raw_expression",
+          "representation_type": "single_cell_expression_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "QC_filtered_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After quality control (min. 500 genes per cell, &lt; 20% mitochondrial reads)",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "HCA expression after cell-level QC.",
+          "node_id": "qc_expression",
+          "representation_type": "qc_filtered_expression_matrix",
+          "symbolic_shape": [
+            "n_qc_cells",
+            "n_genes"
+          ],
+          "uncertainty": "The paper does not state whether QC changes gene columns."
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "preprocessed_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "log-normalisation to library size 10 4",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "Expression after the documented combined log-normalisation step.",
+          "node_id": "normalized_expression",
+          "representation_type": "log_normalized_expression",
+          "symbolic_shape": [
+            "n_qc_cells",
+            "n_genes"
+          ],
+          "uncertainty": "Internal operation order is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "identifier_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "keep the topK ( K =200 ) HGNC symbols",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "HGNC symbols aligned to expression values.",
+          "node_id": "gene_ids",
+          "representation_type": "hgnc_gene_symbols",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "ordered_gene_candidates",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we sort genes by expression magnitude",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "Genes ordered by expression magnitude.",
+          "node_id": "ranked_gene_ids",
+          "representation_type": "ranked_gene_identifiers",
+          "symbolic_shape": [
+            "n_ranked_genes"
+          ],
+          "uncertainty": "Tie handling is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "top-ranked positions"
+          ],
+          "contextual_role": "cell_sentence_source",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a ranked list of HGNC gene symbols",
+              "section_id": "sec_0003"
+            }
+          ],
+          "information_content": "Selected ranked genes.",
+          "node_id": "top_gene_ids",
+          "representation_type": "selected_ranked_gene_symbols",
+          "symbolic_shape": [
+            "n_top_genes"
+          ],
+          "uncertainty": "The source reports K=200."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_metadata",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Biological metadata [Meta] : short natural-language fields (tissue, compartment, disease, optional KG triples)",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "Natural-language metadata fields.",
+          "node_id": "metadata_fields",
+          "representation_type": "biological_metadata_fields",
+          "symbolic_shape": null,
+          "uncertainty": "Exact fields vary by example."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Task instruction [Task] : one short line specifying the output format.",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "Task instruction text.",
+          "node_id": "task_instruction",
+          "representation_type": "task_instruction_text",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt (cell sentence + metadata + task instruction)",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Cell Sentence, metadata, and task instruction in textual form.",
+          "node_id": "text_prompt",
+          "representation_type": "structured_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact block and special-token serialization is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-token positions"
+          ],
+          "contextual_role": "language_model_input_boundary",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "that any LM tokeniser can read directly",
+              "section_id": "sec_0003"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "fed into the Qwen2.5-32B-Instruct backbone",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Text prompt at the unspecified tokenizer/backbone input boundary.",
+          "node_id": "text_input_boundary",
+          "representation_type": "opaque_text_to_backbone_input",
+          "symbolic_shape": [
+            "n_text_input_positions"
+          ],
+          "uncertainty": "The tokenizer, special tokens, padding, masks, and input-embedding implementation are unspecified; no token-ID lookup is asserted."
+        },
+        {
+          "axis_semantics": [
+            "selected gene positions",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "gene_lookup_result",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "for each gene g ( i ) in a cell sentence we read its row e g ( i ) ∈ R 256 from E",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "KG vectors selected for Cell Sentence genes.",
+          "node_id": "gene_entity_vectors",
+          "representation_type": "kg_entity_vectors",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "selected gene positions",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "virtual_prefix",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "producing one virtual token per gene",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "KGProjector outputs aligned to ranked genes.",
+          "node_id": "gene_virtual_tokens",
+          "representation_type": "kg_virtual_token_embeddings",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "one separator",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "learned_boundary_parameter",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The learnable [KG\\_SEP] token at position 201 acts as a hard boundary",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Learnable KG/text separator.",
+          "node_id": "kg_separator_token",
+          "representation_type": "learnable_separator_embedding",
+          "symbolic_shape": [
+            "one_separator",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prefix and text positions",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "language_model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Final multimodal embedding sequence received by Qwen.",
+          "node_id": "lm_input_embeddings",
+          "representation_type": "kg_prefixed_text_embeddings",
+          "symbolic_shape": [
+            "n_lm_input_positions",
+            "d_lm"
+          ],
+          "uncertainty": "Masks and exact position handling are unspecified"
+        },
+        {
+          "axis_semantics": [
+            "entity rows",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "frozen_lookup_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen KG entity table.",
+          "node_id": "entity_table",
+          "representation_type": "frozen_kg_entity_embedding_table",
+          "symbolic_shape": [
+            "n_entities",
+            "d_kg"
+          ],
+          "uncertainty": null
+        }
+      ],
+      "open_questions": [
+        "The exact Qwen tokenizer, special-token handling, and input-embedding implementation are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "lm_input_embeddings",
+          "port_role": "qwen_multimodal_embedding_sequence"
+        }
+      ],
+      "recipient_component": "Qwen2.5-32B-Instruct backbone",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "HCA quality control",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qc_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "minimum 500 genes per cell and less than 20% mitochondrial reads"
+                },
+                {
+                  "name": "method",
+                  "value": "retain cells satisfying both QC criteria"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After quality control (min. 500 genes per cell, &lt; 20% mitochondrial reads), log-normalisation to library size 10 4",
+              "section_id": "sec_0009"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_expression",
+              "port_role": "raw_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "quality_control_filtering",
+          "outputs": [
+            "qc_expression"
+          ],
+          "step_id": "qc_hca_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Expression preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states combined log-normalisation to library size but does not establish an order for catalog normalization and logarithm calls."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "log-normalisation to library size 10 4",
+              "section_id": "sec_0009"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qc_expression",
+              "port_role": "qc_filtered_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log_normalisation_to_library_size",
+          "outputs": [
+            "normalized_expression"
+          ],
+          "step_id": "normalize_hca_expression",
+          "uncertainty": "Opaque combined preprocessing boundary retained."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene ranking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "normalized_expression"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "gene_ids"
+                  ],
+                  "port": "identifiers"
+                }
+              ],
+              "operation_id": "rank",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "order",
+                  "value": "descending expression magnitude"
+                },
+                {
+                  "name": "tie_handling",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "scope",
+                  "value": "within each cell"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we sort genes by expression magnitude",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "normalized_expression",
+              "port_role": "expression_values"
+            },
+            {
+              "node_id": "gene_ids",
+              "port_role": "gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "rank_genes_by_expression",
+          "outputs": [
+            "ranked_gene_ids"
+          ],
+          "step_id": "rank_hca_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Cell Sentence selection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "topK ranked positions; K=200"
+                },
+                {
+                  "name": "method",
+                  "value": "retain highest-ranked HGNC symbols"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "keep the topK ( K =200 ) HGNC symbols",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ranked_gene_ids",
+              "port_role": "ranked_gene_candidates"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "select_top_ranked_genes",
+          "outputs": [
+            "top_gene_ids"
+          ],
+          "step_id": "select_hca_top_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids",
+                    "metadata_fields",
+                    "task_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "Cell Sentence + metadata + task instruction"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined textual prompt order"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "HGNC symbols and natural-language fields"
+                }
+              ],
+              "uncertainty": "Exact delimiters and field order are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each prompt has four blocks: (1) KG virtual tokens [KG\\_VT] : one virtual token per input gene (block length K =200 ), aligned one-to-one with the Cell Sentence; (2) Biological metadata [Meta] : short natural-language fields (tissue, compartment, disease, optional KG triples); (3) Cell Sentence [CellSentence] : the ranked gene list as HGNC symbols; (4) Task instruction [Task] : one short line specifying the output format.",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "metadata_fields",
+              "port_role": "metadata"
+            },
+            {
+              "node_id": "task_instruction",
+              "port_role": "task"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_prompt_blocks",
+          "outputs": [
+            "text_prompt"
+          ],
+          "step_id": "serialize_hca_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Text tokenizer and Qwen input boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that the Cell Sentence can be read by an LM tokenizer and that the prompt is fed to Qwen, but does not document the exact tokenizer, token IDs, padding, masks, or input-embedding implementation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a ranked list of HGNC gene symbols that any LM tokeniser can read directly",
+              "section_id": "sec_0003"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "fed into the Qwen2.5-32B-Instruct backbone",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_prompt",
+              "port_role": "textual_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "text_to_backbone_input_boundary",
+          "outputs": [
+            "text_input_boundary"
+          ],
+          "step_id": "prepare_hca_text_input",
+          "uncertainty": "Unexpanded tokenizer/backbone boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Nucleotide-free KG lookup and projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "entity_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "HGNC gene identifiers"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "frozen KG entity table"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen at LLM time"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "KGProjector MLP 256 → 5120 → 5120"
+                },
+                {
+                  "name": "activation",
+                  "value": "SiLU"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable during Stage I"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "for each gene g ( i ) in a cell sentence we read its row e g ( i ) ∈ R 256 from E and lift it into the 5120dim LM hidden space with a small KGProjector MLP ( 256 → 5120 → 5120 , SiLU), producing one virtual token per gene.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "gene_keys"
+            },
+            {
+              "node_id": "entity_table",
+              "port_role": "frozen_entity_table"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_gene_virtual_tokens",
+          "outputs": [
+            "gene_virtual_tokens"
+          ],
+          "step_id": "project_hca_gene_vectors",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Virtual-token injection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens",
+                    "kg_separator_token",
+                    "text_input_boundary"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "lm_input_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "LM sequence/token axis"
+                },
+                {
+                  "name": "order",
+                  "value": "gene virtual tokens, [KG_SEP], textual input"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The K =200 virtual tokens are length-matched to the cell sentence - the i -th virtual token carries graph context for exactly the i -th ranked gene - and prepended to the textual prompt, separated by a single learnable [KG\\_SEP] token.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_virtual_tokens",
+              "port_role": "virtual_prefix"
+            },
+            {
+              "node_id": "kg_separator_token",
+              "port_role": "separator"
+            },
+            {
+              "node_id": "text_input_boundary",
+              "port_role": "text_backbone_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepend_virtual_tokens_to_text_input",
+          "outputs": [
+            "lm_input_embeddings"
+          ],
+          "step_id": "inject_hca_kg_prefix",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "HCA autoregressive language-model pretraining",
+      "trajectory_id": "stage1_hca_pretraining"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage II: SFT with KG-anchored alignment. We fine-tune on labelled data (HCA cell-state labels and Tahoe drug-response) using two complementary InfoNCE alignment losses alongside standard supervised fine-tuning.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each batch contains 70% HCA cell-state label examples and 30% Tahoe drug-response examples, sampled uniformly within each task.",
+          "section_id": "sec_0032"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "CellTosg2Sequence Stage II SFT: HCA cell-state branch",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We fine-tune on labelled data (HCA cell-state labels and Tahoe drug-response)",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "HCA single-cell expression input for cell-state supervision.",
+          "node_id": "raw_expression",
+          "representation_type": "single_cell_expression_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "QC_filtered_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After quality control (min. 500 genes per cell, &lt; 20% mitochondrial reads)",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "HCA expression after documented QC.",
+          "node_id": "qc_expression",
+          "representation_type": "qc_filtered_expression_matrix",
+          "symbolic_shape": [
+            "n_qc_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "preprocessed_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "log-normalisation to library size 10 4",
+              "section_id": "sec_0009"
+            }
+          ],
+          "information_content": "HCA expression after documented preprocessing.",
+          "node_id": "normalized_expression",
+          "representation_type": "log_normalized_expression",
+          "symbolic_shape": [
+            "n_qc_cells",
+            "n_genes"
+          ],
+          "uncertainty": "Internal order of scaling and logarithm is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "genes"
+          ],
+          "contextual_role": "identifier_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "keep the topK ( K =200 ) HGNC symbols",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "HGNC symbols aligned to expression.",
+          "node_id": "gene_ids",
+          "representation_type": "hgnc_gene_symbols",
+          "symbolic_shape": [
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "ranked gene positions"
+          ],
+          "contextual_role": "ordered_gene_candidates",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we sort genes by expression magnitude",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "Genes ordered by expression magnitude.",
+          "node_id": "ranked_gene_ids",
+          "representation_type": "ranked_gene_identifiers",
+          "symbolic_shape": [
+            "n_ranked_genes"
+          ],
+          "uncertainty": "Tie handling is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "top-ranked positions"
+          ],
+          "contextual_role": "cell_sentence_source",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model reads the top-200 ranked genes of a cell",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Selected ranked genes.",
+          "node_id": "top_gene_ids",
+          "representation_type": "selected_ranked_gene_symbols",
+          "symbolic_shape": [
+            "n_top_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_metadata",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Biological metadata [Meta] : short natural-language fields (tissue, compartment, disease, optional KG triples)",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "HCA metadata fields.",
+          "node_id": "metadata_fields",
+          "representation_type": "biological_metadata_fields",
+          "symbolic_shape": null,
+          "uncertainty": "Exact fields vary by task."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Task instruction [Task] : one short line specifying the output format.",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "HCA supervised task instruction.",
+          "node_id": "task_instruction",
+          "representation_type": "task_instruction_text",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The same skeleton serves classification, free-generation annotation, and drug-response tasks through the same interface.",
+              "section_id": "sec_0007"
+            }
+          ],
+          "information_content": "Serialized HCA supervised prompt.",
+          "node_id": "text_prompt",
+          "representation_type": "structured_text_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact serialization is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-token positions"
+          ],
+          "contextual_role": "language_model_input_boundary",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fed into the Qwen2.5-32B-Instruct backbone",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Textual prompt at unspecified tokenizer/backbone input boundary.",
+          "node_id": "text_input_boundary",
+          "representation_type": "opaque_text_to_backbone_input",
+          "symbolic_shape": [
+            "n_text_input_positions"
+          ],
+          "uncertainty": "Tokenizer and input-embedding implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected genes",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "gene_lookup_result",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we read its row e g ( i ) ∈ R 256 from E",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Selected frozen KG entity vectors.",
+          "node_id": "gene_entity_vectors",
+          "representation_type": "kg_entity_vectors",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "selected genes",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "virtual_prefix",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "producing one virtual token per gene",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "KG virtual tokens.",
+          "node_id": "gene_virtual_tokens",
+          "representation_type": "kg_virtual_token_embeddings",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "one separator",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "learned_boundary_parameter",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The learnable [KG\\_SEP] token at position 201 acts as a hard boundary",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Learnable separator token.",
+          "node_id": "kg_separator_token",
+          "representation_type": "learnable_separator_embedding",
+          "symbolic_shape": [
+            "one_separator",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "entity rows",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "frozen_lookup_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen KG entity table.",
+          "node_id": "entity_table",
+          "representation_type": "frozen_kg_entity_embedding_table",
+          "symbolic_shape": [
+            "n_entities",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prefix and text positions",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "language_model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Final HCA Stage-II input receipt.",
+          "node_id": "lm_input_embeddings",
+          "representation_type": "kg_prefixed_text_backbone_input",
+          "symbolic_shape": [
+            "n_lm_input_positions",
+            "d_lm"
+          ],
+          "uncertainty": "Attention and loss masks are unspecified."
+        }
+      ],
+      "open_questions": [
+        "The paper does not provide a separate complete HCA Stage-II prompt example.",
+        "The text input tokenizer and embedding implementation are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "lm_input_embeddings",
+          "port_role": "qwen_hca_sft_input"
+        }
+      ],
+      "recipient_component": "Qwen2.5-32B-Instruct with Stage-II QLoRA",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "HCA quality control",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qc_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "minimum 500 genes per cell and less than 20% mitochondrial reads"
+                },
+                {
+                  "name": "method",
+                  "value": "retain cells satisfying both QC criteria"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "After quality control (min. 500 genes per cell, &lt; 20% mitochondrial reads)",
+              "section_id": "sec_0009"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_expression",
+              "port_role": "raw_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "quality_control_filtering",
+          "outputs": [
+            "qc_expression"
+          ],
+          "step_id": "qc_hca_sft",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "HCA expression preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "Combined log-normalisation is documented, but its internal order is not."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "log-normalisation to library size 10 4",
+              "section_id": "sec_0009"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qc_expression",
+              "port_role": "qc_filtered_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "hca_log_normalisation",
+          "outputs": [
+            "normalized_expression"
+          ],
+          "step_id": "normalize_hca_sft",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "HCA Cell Sentence construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "normalized_expression"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "gene_ids"
+                  ],
+                  "port": "identifiers"
+                }
+              ],
+              "operation_id": "rank",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "order",
+                  "value": "descending expression magnitude"
+                },
+                {
+                  "name": "tie_handling",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "scope",
+                  "value": "within each cell"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "ranked_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "topK=200 ranked positions"
+                },
+                {
+                  "name": "method",
+                  "value": "retain highest-ranked HGNC symbols"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "we sort genes by expression magnitude and keep the topK ( K =200 ) HGNC symbols",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "normalized_expression",
+              "port_role": "expression_values"
+            },
+            {
+              "node_id": "gene_ids",
+              "port_role": "gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "rank_and_select_hca_cell_sentence",
+          "outputs": [
+            "top_gene_ids"
+          ],
+          "step_id": "construct_hca_sft_cell_sentence",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "HCA supervised prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids",
+                    "metadata_fields",
+                    "task_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "four-block prompt: KG virtual tokens, metadata, Cell Sentence, task instruction"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined four-block order; exact delimiters unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "HGNC symbols and natural-language fields"
+                }
+              ],
+              "uncertainty": "The paper documents the common prompt skeleton but not exact serialization details."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each prompt has four blocks: (1) KG virtual tokens [KG\\_VT] : one virtual token per input gene (block length K =200 ), aligned one-to-one with the Cell Sentence; (2) Biological metadata [Meta] : short natural-language fields (tissue, compartment, disease, optional KG triples); (3) Cell Sentence [CellSentence] : the ranked gene list as HGNC symbols; (4) Task instruction [Task] : one short line specifying the output format.",
+              "section_id": "sec_0007"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The same skeleton serves classification, free-generation annotation, and drug-response tasks through the same interface.",
+              "section_id": "sec_0007"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "metadata_fields",
+              "port_role": "metadata"
+            },
+            {
+              "node_id": "task_instruction",
+              "port_role": "task"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_hca_sft_prompt",
+          "outputs": [
+            "text_prompt"
+          ],
+          "step_id": "prepare_hca_sft_text",
+          "uncertainty": "Exact delimiters and special-token serialization are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "HCA SFT tokenizer and Qwen input boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The tokenizer and input-embedding implementation are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "a ranked list of HGNC gene symbols that any LM tokeniser can read directly",
+              "section_id": "sec_0003"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "fed into the Qwen2.5-32B-Instruct backbone",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_prompt",
+              "port_role": "textual_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepare_hca_sft_backbone_input",
+          "outputs": [
+            "text_input_boundary"
+          ],
+          "step_id": "prepare_hca_sft_text_input",
+          "uncertainty": "Opaque tokenizer/backbone boundary retained."
+        },
+        {
+          "bypasses": [],
+          "component": "HCA KG virtual-token construction and injection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "entity_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "HGNC gene identifiers"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "frozen KG entity table"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen at LLM time"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "KGProjector MLP 256 → 5120 → 5120"
+                },
+                {
+                  "name": "activation",
+                  "value": "SiLU"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable during Stage II"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens",
+                    "kg_separator_token",
+                    "text_input_boundary"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "lm_input_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "LM sequence/token axis"
+                },
+                {
+                  "name": "order",
+                  "value": "gene virtual tokens, [KG_SEP], textual input"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The K =200 virtual tokens are length-matched to the cell sentence - the i -th virtual token carries graph context for exactly the i -th ranked gene - and prepended to the textual prompt, separated by a single learnable [KG\\_SEP] token.",
+              "section_id": "sec_0010"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "gene_keys"
+            },
+            {
+              "node_id": "entity_table",
+              "port_role": "frozen_entity_table"
+            },
+            {
+              "node_id": "kg_separator_token",
+              "port_role": "separator"
+            },
+            {
+              "node_id": "text_input_boundary",
+              "port_role": "text_backbone_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_and_prepend_hca_kg_tokens",
+          "outputs": [
+            "lm_input_embeddings"
+          ],
+          "step_id": "inject_hca_sft_kg_prefix",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "HCA cell-state supervised fine-tuning branch; batch context is 70% HCA and 30% Tahoe sampled uniformly within task",
+      "trajectory_id": "stage2_hca_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage II: SFT with KG-anchored alignment. We fine-tune on labelled data (HCA cell-state labels and Tahoe drug-response) using two complementary InfoNCE alignment losses alongside standard supervised fine-tuning.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "D1 (pre-treatment): given the cell's baseline gene profile plus the drug's KG embedding, predict expression direction for each gene. D2 (post-perturbation): same task, but using the post-treatment gene profile.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "CellTosg2Sequence Stage II SFT: Tahoe drug-response branch",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cells",
+            "genes"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Tahoe-100M [Vivek et al., 2025] measures how 380 drugs change gene expression across 50 cancer cell lines",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Tahoe baseline or post-treatment single-cell expression input.",
+          "node_id": "raw_expression",
+          "representation_type": "tahoe_single_cell_expression_profile",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": "The paper does not specify a Tahoe-specific preprocessing sequence beyond task-level profile descriptions."
+        },
+        {
+          "axis_semantics": [
+            "top-ranked gene positions"
+          ],
+          "contextual_role": "cell_sentence_source",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For each drug-cell condition, we label each of the 200 top-expressed genes as up-regulated, down-regulated, or unchanged",
+              "section_id": "sec_0018"
+            }
+          ],
+          "information_content": "Top-expressed Tahoe gene identifiers used by the drug-response route.",
+          "node_id": "top_gene_ids",
+          "representation_type": "selected_ranked_gene_symbols",
+          "symbolic_shape": [
+            "n_top_genes"
+          ],
+          "uncertainty": "Tahoe normalization, ranking implementation, and tie handling are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "perturbation_metadata",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The topK genes (plus perturbation conditions such as drug, time, and dose)",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Drug, time, dose, and related perturbation context.",
+          "node_id": "perturbation_context",
+          "representation_type": "drug_perturbation_metadata",
+          "symbolic_shape": null,
+          "uncertainty": "Exact field availability differs between D1 and D2 examples."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "[Task] Predict the expression direction (up/down/null) for each gene.",
+              "section_id": "sec_0043"
+            }
+          ],
+          "information_content": "Drug-response task instruction.",
+          "node_id": "task_instruction",
+          "representation_type": "perturbation_prediction_instruction",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both are merged with virtual KG tokens into a structured prompt fed to CellTosg2Sequence",
+              "section_id": "sec_0041"
+            }
+          ],
+          "information_content": "Serialized Tahoe drug-response prompt.",
+          "node_id": "text_prompt",
+          "representation_type": "structured_perturbation_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "Exact serialization and text-input implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-token positions"
+          ],
+          "contextual_role": "language_model_input_boundary",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both are merged with virtual KG tokens into a structured prompt fed to CellTosg2Sequence",
+              "section_id": "sec_0041"
+            }
+          ],
+          "information_content": "Text prompt at unspecified tokenizer/backbone input boundary.",
+          "node_id": "text_input_boundary",
+          "representation_type": "opaque_text_to_backbone_input",
+          "symbolic_shape": [
+            "n_text_input_positions"
+          ],
+          "uncertainty": "Tokenizer, special-token handling, and input-embedding implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected genes and perturbation entities",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "KG_selection_result",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The topK genes (plus perturbation conditions such as drug, time, and dose) are used to select their corresponding subgraph node vectors from the frozen KG entity table.",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Vectors selected jointly from gene and perturbation identifiers/context.",
+          "node_id": "selected_entity_vectors",
+          "representation_type": "selected_kg_entity_vectors",
+          "symbolic_shape": [
+            "n_selected_entities",
+            "d_kg"
+          ],
+          "uncertainty": "Exact selection order and alignment rule are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected entities",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "virtual_prefix",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Node vectors are passed through the KGProjector MLP (256 → 5120 → 5120, SiLU; see ğ3.3) to produce virtual tokens matching the LM embedding dimension.",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Projected gene and perturbation virtual tokens.",
+          "node_id": "virtual_tokens",
+          "representation_type": "kg_virtual_token_embeddings",
+          "symbolic_shape": [
+            "n_virtual_tokens",
+            "d_lm"
+          ],
+          "uncertainty": "Exact ordering and grouping are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "entity rows",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "frozen_lookup_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen KG entity table.",
+          "node_id": "entity_table",
+          "representation_type": "frozen_kg_entity_embedding_table",
+          "symbolic_shape": [
+            "n_entities",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prefix and text positions",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "language_model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Step 5 : Virtual tokens are prepended to the textual token sequence in the LM embedding space.",
+              "section_id": "sec_0012"
+            }
+          ],
+          "information_content": "Final Tahoe Stage-II multimodal input receipt.",
+          "node_id": "lm_input_embeddings",
+          "representation_type": "kg_prefixed_text_backbone_input",
+          "symbolic_shape": [
+            "n_lm_input_positions",
+            "d_lm"
+          ],
+          "uncertainty": "Exact target-token placement, masks, and tokenizer receipt are unspecified."
+        }
+      ],
+      "open_questions": [
+        "The paper does not establish whether Tahoe preprocessing follows the HCA QC and log-normalisation path.",
+        "The exact D1/D2 prompt serialization and tokenizer/input-embedding implementation are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "lm_input_embeddings",
+          "port_role": "qwen_tahoe_sft_input"
+        }
+      ],
+      "recipient_component": "Qwen2.5-32B-Instruct with Stage-II QLoRA",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Tahoe expression-to-Cell-Sentence preparation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents top-expressed genes and Tahoe task inputs, but does not specify Tahoe normalization, QC, ranking, or serialization order sufficiently for catalog decomposition."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For each drug-cell condition, we label each of the 200 top-expressed genes as up-regulated, down-regulated, or unchanged",
+              "section_id": "sec_0018"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_expression",
+              "port_role": "tahoe_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "tahoe_expression_to_ranked_gene_context",
+          "outputs": [
+            "top_gene_ids"
+          ],
+          "step_id": "prepare_tahoe_gene_context",
+          "uncertainty": "Opaque Tahoe preprocessing boundary retained."
+        },
+        {
+          "bypasses": [],
+          "component": "Tahoe prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids",
+                    "perturbation_context",
+                    "task_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "structured Tahoe perturbation prompt"
+                },
+                {
+                  "name": "order",
+                  "value": "source-defined structured prompt order; exact field order unspecified"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "HGNC symbols, perturbation fields, and task instruction"
+                }
+              ],
+              "uncertainty": "Exact field order and delimiters are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both are merged with virtual KG tokens into a structured prompt fed to CellTosg2Sequence",
+              "section_id": "sec_0041"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "perturbation_context",
+              "port_role": "perturbation_metadata"
+            },
+            {
+              "node_id": "task_instruction",
+              "port_role": "task"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_tahoe_prompt",
+          "outputs": [
+            "text_prompt"
+          ],
+          "step_id": "prepare_tahoe_text_input",
+          "uncertainty": "Structured textual assembly is documented; exact serialization is unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Tahoe tokenizer and backbone boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents a structured prompt fed to CellTosg2Sequence but not the exact tokenizer or input-embedding implementation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Both are merged with virtual KG tokens into a structured prompt fed to CellTosg2Sequence",
+              "section_id": "sec_0041"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_prompt",
+              "port_role": "serialized_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_tahoe_prompt_to_backbone_input",
+          "outputs": [
+            "text_input_boundary"
+          ],
+          "step_id": "prepare_tahoe_backbone_input",
+          "uncertainty": "Opaque tokenizer/backbone boundary retained."
+        },
+        {
+          "bypasses": [],
+          "component": "Tahoe KG entity selection and projection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids",
+                    "perturbation_context"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "entity_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "selected_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "HGNC genes plus perturbation-condition identifiers"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "frozen KG entity table"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen"
+                }
+              ],
+              "uncertainty": "The exact selection ordering and correspondence between perturbation fields and selected rows are unspecified."
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "selected_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "virtual_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "KGProjector MLP 256 → 5120 → 5120"
+                },
+                {
+                  "name": "activation",
+                  "value": "SiLU"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "Stage-II trainable checkpoint"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Step 3 : The topK genes (plus perturbation conditions such as drug, time, and dose) are used to select their corresponding subgraph node vectors from the frozen KG entity table. Step 4 : Node vectors are passed through the KGProjector MLP (256 → 5120 → 5120, SiLU; see ğ3.3) to produce virtual tokens matching the LM embedding dimension.",
+              "section_id": "sec_0012"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "gene_and_condition_identifiers"
+            },
+            {
+              "node_id": "perturbation_context",
+              "port_role": "perturbation_selection_context"
+            },
+            {
+              "node_id": "entity_table",
+              "port_role": "frozen_entity_table"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "select_and_project_tahoe_kg_context",
+          "outputs": [
+            "selected_entity_vectors",
+            "virtual_tokens"
+          ],
+          "step_id": "project_tahoe_virtual_tokens",
+          "uncertainty": "Selection ordering remains unresolved; the documented selection-to-project order is preserved."
+        },
+        {
+          "bypasses": [],
+          "component": "Tahoe virtual-token injection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "virtual_tokens",
+                    "text_input_boundary"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "lm_input_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "LM sequence/token axis"
+                },
+                {
+                  "name": "order",
+                  "value": "virtual tokens, then textual input"
+                }
+              ],
+              "uncertainty": "Exact token grouping and target-token details are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Step 5 : Virtual tokens are prepended to the textual token sequence in the LM embedding space.",
+              "section_id": "sec_0012"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "virtual_tokens",
+              "port_role": "virtual_prefix"
+            },
+            {
+              "node_id": "text_input_boundary",
+              "port_role": "text_backbone_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepend_tahoe_virtual_tokens",
+          "outputs": [
+            "lm_input_embeddings"
+          ],
+          "step_id": "inject_tahoe_kg_prefix",
+          "uncertainty": "Unresolved grouping and target-token details are retained."
+        }
+      ],
+      "task_configuration": "Tahoe D1/D2 drug-response supervised fine-tuning branch; batch context is 30% Tahoe and 70% HCA sampled uniformly within task",
+      "trajectory_id": "stage2_tahoe_sft"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage III: GRPO with Ontology Reward. Stage III replaces constrained decoding with free-text generation and trains the model to produce Cell Ontology (CL)-aligned labels using Group Relative Policy Optimization (GRPO)",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For each cell-type annotation prompt x , we draw N =8 independent responses",
+          "section_id": "sec_0012"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "CellTosg2Sequence Stage III GRPO: free-generation cell-type annotation",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "top-ranked gene positions"
+          ],
+          "contextual_role": "cell_sentence_source",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The model reads the top-200 ranked genes of a cell and generates its cell type as free text",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Top-ranked HGNC genes.",
+          "node_id": "top_gene_ids",
+          "representation_type": "selected_ranked_gene_symbols",
+          "symbolic_shape": [
+            "n_top_genes"
+          ],
+          "uncertainty": "Upstream normalization and ranking are inherited from the documented corpus path."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_metadata",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "[Tissue] lung [Compartment] immune [Disease] normal",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Natural-language metadata.",
+          "node_id": "metadata_fields",
+          "representation_type": "biological_metadata_fields",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "prompt_instruction",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Answer with ONLY the most specific Cell Ontology term.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Cell Ontology generation instruction.",
+          "node_id": "task_instruction",
+          "representation_type": "cell_type_generation_instruction",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "textual_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "<|im_start|>system You are CellTosg2Sequence. Given a CellSentence , predict the cell type.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "information_content": "Serialized GRPO cell-type prompt.",
+          "node_id": "text_prompt",
+          "representation_type": "structured_chat_prompt",
+          "symbolic_shape": null,
+          "uncertainty": "The supplied example is not established as the complete serialization for every input."
+        },
+        {
+          "axis_semantics": [
+            "text-token positions"
+          ],
+          "contextual_role": "language_model_input_boundary",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Prompt at unspecified tokenizer/backbone input boundary.",
+          "node_id": "text_input_boundary",
+          "representation_type": "opaque_text_to_backbone_input",
+          "symbolic_shape": [
+            "n_text_input_positions"
+          ],
+          "uncertainty": "Tokenizer and input-embedding implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected genes",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "gene_lookup_result",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "for each gene g ( i ) in a cell sentence we read its row e g ( i ) ∈ R 256 from E",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "KG vectors for selected genes.",
+          "node_id": "gene_entity_vectors",
+          "representation_type": "kg_entity_vectors",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "selected genes",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "virtual_prefix",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "producing one virtual token per gene",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Projected gene virtual tokens.",
+          "node_id": "gene_virtual_tokens",
+          "representation_type": "kg_virtual_token_embeddings",
+          "symbolic_shape": [
+            "n_top_genes",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "one separator",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "learned_boundary_parameter",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The learnable [KG\\_SEP] token at position 201 acts as a hard boundary",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "KG/text separator.",
+          "node_id": "kg_separator_token",
+          "representation_type": "learnable_separator_embedding",
+          "symbolic_shape": [
+            "one_separator",
+            "d_lm"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "entity rows",
+            "KG feature coordinates"
+          ],
+          "contextual_role": "frozen_lookup_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+              "section_id": "sec_0010"
+            }
+          ],
+          "information_content": "Frozen entity table.",
+          "node_id": "entity_table",
+          "representation_type": "frozen_kg_entity_embedding_table",
+          "symbolic_shape": [
+            "n_entities",
+            "d_kg"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "prefix and text positions",
+            "LM feature coordinates"
+          ],
+          "contextual_role": "language_model_receipt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "GRPO prompt receipt.",
+          "node_id": "lm_input_embeddings",
+          "representation_type": "kg_prefixed_text_backbone_input",
+          "symbolic_shape": [
+            "n_lm_input_positions",
+            "d_lm"
+          ],
+          "uncertainty": "Response sampling is downstream of this receipt."
+        }
+      ],
+      "open_questions": [
+        "The paper documents output sampling for GRPO, but not an additional input-side transformation.",
+        "The exact tokenizer and input-embedding implementation are unspecified."
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "lm_input_embeddings",
+          "port_role": "qwen_grpo_prompt_input"
+        }
+      ],
+      "recipient_component": "Qwen2.5-32B-Instruct Stage-II policy under GRPO",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "GRPO prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids",
+                    "metadata_fields",
+                    "task_instruction"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "text_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "B1 four-block Cell Ontology chat prompt"
+                },
+                {
+                  "name": "order",
+                  "value": "metadata, CellSentence, task instruction, with KG virtual-token block represented separately"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "HGNC symbols and natural-language fields"
+                }
+              ],
+              "uncertainty": "Exact delimiters and complete system/user serialization are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each prompt has four blocks: (1) KG virtual tokens [KG\\_VT] : one virtual token per input gene (block length K =200 ), aligned one-to-one with the Cell Sentence; (2) Biological metadata [Meta] : short natural-language fields (tissue, compartment, disease, optional KG triples); (3) Cell Sentence [CellSentence] : the ranked gene list as HGNC symbols; (4) Task instruction [Task] : one short line specifying the output format.",
+              "section_id": "sec_0007"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "[Tissue] lung [Compartment] immune [Disease] normal [CellSentence] MALAT1 , TMSB4X , RPL10 , RPS27 , PTPRC , CD3D , IL7R , LTB, ... [Task] Predict the cell type.",
+              "section_id": "sec_0042"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "cell_sentence"
+            },
+            {
+              "node_id": "metadata_fields",
+              "port_role": "metadata"
+            },
+            {
+              "node_id": "task_instruction",
+              "port_role": "task"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_grpo_prompt",
+          "outputs": [
+            "text_prompt"
+          ],
+          "step_id": "prepare_grpo_text",
+          "uncertainty": "The concrete example supports the four-block textual assembly; exact serialization remains unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "GRPO tokenizer and backbone boundary",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper does not specify tokenizer, special-token handling, or input-embedding implementation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "fed into the Qwen2.5-32B-Instruct backbone",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "text_prompt",
+              "port_role": "textual_prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepare_grpo_backbone_input",
+          "outputs": [
+            "text_input_boundary"
+          ],
+          "step_id": "prepare_grpo_text_input",
+          "uncertainty": "Opaque tokenizer/input-embedding boundary retained."
+        },
+        {
+          "bypasses": [],
+          "component": "GRPO KG prefix construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "top_gene_ids"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "entity_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "HGNC identifiers"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "frozen KG entity table"
+                },
+                {
+                  "name": "trainability",
+                  "value": "frozen"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_entity_vectors"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "KGProjector MLP 256 → 5120 → 5120"
+                },
+                {
+                  "name": "activation",
+                  "value": "SiLU"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "Stage-III checkpoint state"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_virtual_tokens",
+                    "kg_separator_token",
+                    "text_input_boundary"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "concatenate",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "lm_input_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "axis",
+                  "value": "LM sequence/token axis"
+                },
+                {
+                  "name": "order",
+                  "value": "gene virtual tokens, [KG_SEP], textual input"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The virtual tokens are prepended to the textual prompt",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "top_gene_ids",
+              "port_role": "gene_keys"
+            },
+            {
+              "node_id": "entity_table",
+              "port_role": "frozen_entity_table"
+            },
+            {
+              "node_id": "kg_separator_token",
+              "port_role": "separator"
+            },
+            {
+              "node_id": "text_input_boundary",
+              "port_role": "text_backbone_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "inject_grpo_kg_prefix",
+          "outputs": [
+            "lm_input_embeddings"
+          ],
+          "step_id": "inject_grpo_prefix",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "B1 cell-type annotation with free-text Cell Ontology generation",
+      "trajectory_id": "stage3_grpo_b1"
+    }
+  ]
+}

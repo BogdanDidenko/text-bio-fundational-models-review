@@ -50,11 +50,17 @@ def collect(run, include_open, include_withdrawn=False):
             OperationAssembly.model_validate(assembly)
             validate_operation_ports(assembly, catalog)
             assemblies.append(assembly)
+        reviews = sorted(folder.glob("review_round_*.json"), key=lambda p: int(p.stem.rsplit("_", 1)[1]))
+        last_review = json.loads(reviews[-1].read_text()) if reviews else {"findings": [], "verdict": None}
         label = ", ".join(dict.fromkeys(names.get(record, [record])))
         records[record] = {"paper": label + (" (WITHDRAWN source)" if record in WITHDRAWN else ""),
                            "source_sha256": manifest["source_sha256"], "input_packet_sha256": manifest["packet_sha256"],
                            "decomposition_status": status["status"],
-                           "open_blocking_findings": status.get("open_blocking_findings", 0)}
+                           "open_blocking_findings": status.get("open_blocking_findings", 0),
+                           "review_rounds": len(reviews), "final_review_verdict": last_review["verdict"],
+                           "open_findings": [{k: f[k] for k in ("trajectory_id", "step_id", "issue_type", "severity",
+                                                                "detail", "required_change")}
+                                             for f in last_review["findings"]]}
     return {"contract_version": "operation-corpus-v1", "records": records, "assemblies": assemblies,
             "evidence": sorted(evidence.values(), key=lambda e: e["evidence_id"]), "skipped": skipped}
 

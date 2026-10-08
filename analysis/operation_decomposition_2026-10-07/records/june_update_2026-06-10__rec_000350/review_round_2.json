@@ -1,0 +1,112 @@
+{
+  "coverage_summary": "The reconstruction covers the vocabulary-extension and major CPT corpus branches, including DNA, protein, structural, OpenWebText, and instruction-replay inputs. It omits the documented SFT/v3, benchmark-evaluation, and router-audit input trajectories. One DNA sampling call also uses an unsupported probability-distribution operation, and the instruction-replay branch conflates raw and mixed corpus states.",
+  "findings": [
+    {
+      "detail": "The documented OmniGene-4 v3 SFT configuration is absent from the trajectories and from model_variant coverage. The paper documents Bio-SFT v2/v3, the 20,000 remote-homology additions, and the wrapped instruction/input/output format.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Supervised fine-tuning is performed in two passes: Bio-SFT v2 on 179K examples ... and an incremental Bio-SFT v3 that injects 20K remote-homology pairs",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We construct OmniGene-SFT-v1, a 199,576-row instruction dataset unified in {instruction, input, output} triple form",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Inputs are wrapped as <User>\\n### Instruction:\\n{instr}\\n\\n{input}\\n### Answer:\\n<Assistant>\\n{output}",
+          "section_id": "sec_0015"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add SFT trajectories for Bio-SFT v2 and v3, including their source pools, remote-homology branch, lifecycle phase, wrapper serialization, and the OmniGene-4 v3 model variant. Preserve undisclosed field parsing and label masking as unresolved.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "coverage_missing_sft_and_omnigene4_v3"
+    },
+    {
+      "detail": "The benchmark evaluation input paths are missing. The paper documents standard homology, remote homology, and BixBench tasks with distinct sampling, prompt/parser, and result-field preprocessing details.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Standard homology : 30% random sample of dnagpt/biopaws::protein_pair_short (6,000 pairs, balanced labels, seed 42).",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Remote homology : 2,000 pairs (1,000 per label) sampled with seed 42",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "BixBench Knowledge [15]: all True / False questions (≈ 200). Input truncated to 500 characters of the result field.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add evaluation trajectories for standard homology, remote homology, and BixBench, retaining the documented sampling, prompt/parser behavior, and 500-character BixBench preprocessing as separate documented operations or opaque boundaries where implementation is unspecified.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "coverage_missing_benchmark_evaluation"
+    },
+    {
+      "detail": "The router-audit input flow is missing. This is a documented evaluation lifecycle using eight task pools, 50 samples per task, 384-token sequence caps, three checkpoints, and token-ID capture aligned with routing events at layers 11–13.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We repeat for 8 task pools with 50 samples each (≈ 400 samples total), capping sequences at 384 tokens.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We run the pipeline on three checkpoints: baseline ..., CPT-only, and v3.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "for every routing event at layers 11, 12, 13, the input token ID that triggered it",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a router-audit trajectory covering the eight task-pool prompt sources, checkpoint branches, sequence-cap preprocessing, and token-ID/routing-event alignment. Keep cap implementation and any padding or masking unspecified unless separately supported.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "coverage_missing_router_audit"
+    },
+    {
+      "detail": "The DNA corpus branch uses the catalog's sample operation with a required probability-distribution input, but the paper establishes only a 25%/8GB sampled subset. It does not document a probability distribution or distribution-based sampling algorithm.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| DNA ( dna_32g.txt )                   | 31GB  | 8GB (sampled 25%) |",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Replace the sample call with a documented selection boundary using the 25%/8GB criterion, or retain an opaque corpus-subset operation. Do not represent the percentage as a probability distribution unless the paper establishes one.",
+      "severity": "blocking",
+      "step_id": "sample_dna_corpus",
+      "trajectory_id": "omnigene4_pretraining_dna_cpt"
+    },
+    {
+      "detail": "The instruction-replay preparation step uses the same node as both input and output, conflating the documented 5GB raw source with the distinct 8GB mixed component.",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| Instruction replay (12 open corpora)  | 5GB   | 8GB mixed         |",
+          "section_id": "sec_0010"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Introduce a distinct node for the 8GB mixed instruction-replay corpus and connect it through an opaque preparation boundary from the 5GB source. Preserve the mixing/resampling mechanism as unspecified.",
+      "severity": "blocking",
+      "step_id": "prepare_instruction_replay",
+      "trajectory_id": "omnigene4_pretraining_openwebtext_cpt"
+    }
+  ],
+  "record_id": "june_update_2026-06-10__rec_000350",
+  "verdict": "revise"
+}

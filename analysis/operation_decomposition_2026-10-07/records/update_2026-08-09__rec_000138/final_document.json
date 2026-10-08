@@ -1,0 +1,1881 @@
+{
+  "coverage_questions": [
+    "The paper does not provide exact task-specific input formats for all seven Stage 1 representation-learning branches, so their internal branch construction remains opaque.",
+    "The Stage 4 description is internally inconsistent: the figure describes final GNN and agent-LoRA training, while the Methods text describes Stage 4 as producing a final merged checkpoint. Exact ordering and merge operands are unresolved.",
+    "The exact Qwen tokenizer invocation, special-token placement, masks, teacher-forcing inputs, and hidden-state extraction details are not documented.",
+    "The internal OCellus Transformer Encoder, data-integration/alignment mechanism, graph convolution, LayerNorm, activation, dropout, and MLP internals remain opaque where the paper does not establish their tensor algebra.",
+    "The exact OCellus-Agent tokenizer, JSON parsing implementation, tool argument serialization, expert input representations, verifier predicates, and retry-state representation are not documented.",
+    "The paper documents gene-symbol embedding extraction by averaging last-layer hidden states, but the catalog has no operation for hidden-state extraction followed by token-axis averaging.",
+    "The exact per-tool verification, rejection, retry, and warning-state serialization in the single-cell workflow is not documented."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "project",
+        "reshape",
+        "lookup"
+      ],
+      "source_operation": "Averaging last-layer hidden states over tokens to produce fixed-length per-gene embeddings.",
+      "why_no_existing_operation": "The catalog has projection, reshaping, and lookup, but none represents hidden-state extraction followed by token-axis averaging."
+    },
+    {
+      "compared_operation_ids": [
+        "project",
+        "self_attention",
+        "update"
+      ],
+      "source_operation": "Graph convolution over STRING protein-interaction edges with LayerNorm, rectified-linear activation, dropout, and subsequent message passing.",
+      "why_no_existing_operation": "The catalog has attention, projection, and indexed update operations but no graph-neighborhood message-passing primitive."
+    },
+    {
+      "compared_operation_ids": [
+        "bin",
+        "partition",
+        "select",
+        "align"
+      ],
+      "source_operation": "EvenClock geometric neighbor search, median-neighbor-distance normalization, angular/radial sector assignment, and tie handling.",
+      "why_no_existing_operation": "No single catalog operation represents cKDTree neighbor search combined with coordinate-scale normalization and geometric sector assignment."
+    }
+  ],
+  "record_id": "update_2026-08-09__rec_000138",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+          "section_id": "sec_0014"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OCellus Stage 1 pretraining and multimodal encoder/alignment pipeline on Qwen3.5-9B",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "multimodal biological training records"
+          ],
+          "contextual_role": "biological_training_input",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Multimodal biological training examples from single-cell RNA-seq, spatial transcriptomics, perturbation screens, and protein-protein interaction databases.",
+          "node_id": "pretraining_biological_examples",
+          "representation_type": "multimodal_biological_records",
+          "symbolic_shape": [
+            "n_examples"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "cell_sentence_prediction_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for the cell-sentence prediction branch.",
+          "node_id": "pretraining_cell_sentence_records",
+          "representation_type": "cell_sentence_prediction_records",
+          "symbolic_shape": [
+            "n_cell_sentence_examples"
+          ],
+          "uncertainty": "Exact source fields and masking/target format are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "gene_node_masking_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for gene-network node masking.",
+          "node_id": "pretraining_gene_node_mask_records",
+          "representation_type": "gene_network_node_masking_records",
+          "symbolic_shape": [
+            "n_gene_node_mask_examples"
+          ],
+          "uncertainty": "Exact graph source, mask construction, and target format are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "gene_link_masking_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for gene-network link masking.",
+          "node_id": "pretraining_gene_link_mask_records",
+          "representation_type": "gene_network_link_masking_records",
+          "symbolic_shape": [
+            "n_gene_link_mask_examples"
+          ],
+          "uncertainty": "Exact graph source, mask construction, and target format are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "spatial_variant_1_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for one of the four documented spatial representation-learning variants.",
+          "node_id": "pretraining_spatial_variant_1_records",
+          "representation_type": "spatial_representation_learning_records",
+          "symbolic_shape": [
+            "n_spatial_variant_examples"
+          ],
+          "uncertainty": "The paper does not identify the individual variant format in the cited sentence."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "spatial_variant_2_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for one of the four documented spatial representation-learning variants.",
+          "node_id": "pretraining_spatial_variant_2_records",
+          "representation_type": "spatial_representation_learning_records",
+          "symbolic_shape": [
+            "n_spatial_variant_examples"
+          ],
+          "uncertainty": "The paper does not identify the individual variant format in the cited sentence."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "spatial_variant_3_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for one of the four documented spatial representation-learning variants.",
+          "node_id": "pretraining_spatial_variant_3_records",
+          "representation_type": "spatial_representation_learning_records",
+          "symbolic_shape": [
+            "n_spatial_variant_examples"
+          ],
+          "uncertainty": "The paper does not identify the individual variant format in the cited sentence."
+        },
+        {
+          "axis_semantics": [
+            "task-specific representation-learning records"
+          ],
+          "contextual_role": "spatial_variant_4_branch",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Records for one of the four documented spatial representation-learning variants.",
+          "node_id": "pretraining_spatial_variant_4_records",
+          "representation_type": "spatial_representation_learning_records",
+          "symbolic_shape": [
+            "n_spatial_variant_examples"
+          ],
+          "uncertainty": "The paper does not identify the individual variant format in the cited sentence."
+        },
+        {
+          "axis_semantics": [
+            "ordered serialized prompt fields"
+          ],
+          "contextual_role": "prompt_serialization_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "OCellusProtocol/ChatML-formatted biological task records.",
+          "node_id": "pretraining_prompt",
+          "representation_type": "serialized_language_model_prompt",
+          "symbolic_shape": [
+            "n_prompt_fields"
+          ],
+          "uncertainty": "Exact task-specific field values, delimiters, and branch-specific serialization are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered model-input positions"
+          ],
+          "contextual_role": "tokenized_training_input",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Tokenized multimodal biological training representation.",
+          "node_id": "pretraining_tokens",
+          "representation_type": "language_model_input_tokens",
+          "symbolic_shape": [
+            "n_input_positions"
+          ],
+          "uncertainty": "Exact vocabulary, tokenizer invocation, masks, and task-specific token placement are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "encoded multimodal-cell positions",
+            "encoder feature coordinates"
+          ],
+          "contextual_role": "OCellus_encoder_output",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Encoded multimodal biological representations produced by the OCellus Transformer Encoder.",
+          "node_id": "ocellus_encoder_embeddings",
+          "representation_type": "multimodal_cell_embeddings",
+          "symbolic_shape": [
+            "n_encoded_positions",
+            "d_encoder"
+          ],
+          "uncertainty": "Encoder architecture, pooling, axes, and correspondence between input records and embedding positions are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "Qwen_alignment_input",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Representation delivered by the documented data-integration/alignment stage to the Qwen backbone.",
+          "node_id": "aligned_qwen_input",
+          "representation_type": "aligned_multimodal_model_input",
+          "symbolic_shape": null,
+          "uncertainty": "The paper does not establish whether this boundary contains token IDs, projected embeddings, integrated embeddings, or another alignment representation."
+        }
+      ],
+      "open_questions": [
+        "What are the exact OCellus Transformer Encoder inputs and task-specific token formats?",
+        "What are the seven Stage 1 branch-specific serialization formats?",
+        "What operations comprise data integration and alignment to Qwen?",
+        "What role and input/output representation does the Tiny LLM have in the alignment schematic?",
+        "Which encoder outputs are passed to the Qwen backbone during Stage 1 pretraining?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "aligned_qwen_input",
+          "port_role": "Qwen3.5-9B aligned multimodal input"
+        }
+      ],
+      "recipient_component": "Qwen3.5-9B language-model backbone through the OCellus alignment stage",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Cell-sentence prediction branch construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies a cell-sentence prediction task but does not establish its internal record construction."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_cell_sentence_prediction_branch",
+          "outputs": [
+            "pretraining_cell_sentence_records"
+          ],
+          "step_id": "branch_cell_sentence_prediction",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Gene-network node-masking branch construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies gene-network node masking but does not establish its internal record construction."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_gene_node_masking_branch",
+          "outputs": [
+            "pretraining_gene_node_mask_records"
+          ],
+          "step_id": "branch_gene_node_masking",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Gene-network link-masking branch construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies gene-network link masking but does not establish its internal record construction."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_gene_link_masking_branch",
+          "outputs": [
+            "pretraining_gene_link_mask_records"
+          ],
+          "step_id": "branch_gene_link_masking",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial representation-learning variant 1 construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies four spatial variants but does not establish the internal format of this variant."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_spatial_variant_1_branch",
+          "outputs": [
+            "pretraining_spatial_variant_1_records"
+          ],
+          "step_id": "branch_spatial_variant_1",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial representation-learning variant 2 construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies four spatial variants but does not establish the internal format of this variant."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_spatial_variant_2_branch",
+          "outputs": [
+            "pretraining_spatial_variant_2_records"
+          ],
+          "step_id": "branch_spatial_variant_2",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial representation-learning variant 3 construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies four spatial variants but does not establish the internal format of this variant."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_spatial_variant_3_branch",
+          "outputs": [
+            "pretraining_spatial_variant_3_records"
+          ],
+          "step_id": "branch_spatial_variant_3",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial representation-learning variant 4 construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper identifies four spatial variants but does not establish the internal format of this variant."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 1 (pretraining) trains on seven representation-learning tasks -cell-sentence prediction, gene-network node and link masking, and four spatial variants",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_biological_examples",
+              "port_role": "multimodal biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "construct_spatial_variant_4_branch",
+          "outputs": [
+            "pretraining_spatial_variant_4_records"
+          ],
+          "step_id": "branch_spatial_variant_4",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellusProtocol cell-sentence prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pretraining_cell_sentence_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "pretraining_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "OCellusProtocol using ChatML convention"
+                },
+                {
+                  "name": "order",
+                  "value": "task description, input data, expected output, end-of-sequence marker, packing separator"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "documented special tokens; exact lexical mapping unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_cell_sentence_records",
+              "port_role": "cell-sentence prediction records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_cell_sentence_pretraining_prompt",
+          "outputs": [
+            "pretraining_prompt"
+          ],
+          "step_id": "serialize_cell_sentence_pretraining_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellusProtocol gene-node-mask prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pretraining_gene_node_mask_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "pretraining_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "OCellusProtocol using ChatML convention"
+                },
+                {
+                  "name": "order",
+                  "value": "task description, input data, expected output, end-of-sequence marker, packing separator"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "documented special tokens; exact lexical mapping unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_gene_node_mask_records",
+              "port_role": "gene-network node-masking records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_gene_node_mask_pretraining_prompt",
+          "outputs": [
+            "pretraining_prompt"
+          ],
+          "step_id": "serialize_gene_node_mask_pretraining_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellusProtocol gene-link-mask prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pretraining_gene_link_mask_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "pretraining_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "OCellusProtocol using ChatML convention"
+                },
+                {
+                  "name": "order",
+                  "value": "task description, input data, expected output, end-of-sequence marker, packing separator"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "documented special tokens; exact lexical mapping unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_gene_link_mask_records",
+              "port_role": "gene-network link-masking records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_gene_link_mask_pretraining_prompt",
+          "outputs": [
+            "pretraining_prompt"
+          ],
+          "step_id": "serialize_gene_link_mask_pretraining_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellusProtocol spatial-variant prompt serialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pretraining_spatial_variant_1_records",
+                    "pretraining_spatial_variant_2_records",
+                    "pretraining_spatial_variant_3_records",
+                    "pretraining_spatial_variant_4_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "pretraining_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "OCellusProtocol using ChatML convention"
+                },
+                {
+                  "name": "order",
+                  "value": "task description, input data, expected output, end-of-sequence marker, packing separator"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "documented special tokens; exact lexical mapping unspecified"
+                }
+              ],
+              "uncertainty": "The four spatial variants are preserved as parallel source branches, but their individual prompt formats are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_spatial_variant_1_records",
+              "port_role": "spatial variant 1 records"
+            },
+            {
+              "node_id": "pretraining_spatial_variant_2_records",
+              "port_role": "spatial variant 2 records"
+            },
+            {
+              "node_id": "pretraining_spatial_variant_3_records",
+              "port_role": "spatial variant 3 records"
+            },
+            {
+              "node_id": "pretraining_spatial_variant_4_records",
+              "port_role": "spatial variant 4 records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "serialize_spatial_pretraining_prompts",
+          "outputs": [
+            "pretraining_prompt"
+          ],
+          "step_id": "serialize_spatial_pretraining_prompts",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellus training-data tokenization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "pretraining_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "pretraining_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "Qwen3.5-9B vocabulary, exact mapping unspecified"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "OCellusProtocol/ChatML serialized prompts, exact segmentation unspecified"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "multimodal biological records and prompt text"
+                }
+              ],
+              "uncertainty": "The paper states that multimodal biological data is tokenized but does not specify tokenizer implementation, masks, or branch-specific segmentation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_prompt",
+              "port_role": "serialized Stage 1 prompts"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_biological_tokenization",
+          "outputs": [
+            "pretraining_tokens"
+          ],
+          "step_id": "pretraining_tokenize",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellus Transformer Encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents that tokenized multimodal biological data is passed through a transformer encoder but does not establish the encoder's internal computation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "pretraining_tokens",
+              "port_role": "tokenized multimodal biological input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_transformer_encoding",
+          "outputs": [
+            "ocellus_encoder_embeddings"
+          ],
+          "step_id": "encode_multimodal_biology",
+          "uncertainty": "Transformer depth, attention pattern, pooling, and output layout are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Data integration and OCellus-to-Qwen alignment",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that encoder outputs are aligned to a Qwen large-language-model backbone but does not specify the integration, projection, alignment loss, or intermediate representations."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ocellus_encoder_embeddings",
+              "port_role": "OCellus Transformer Encoder output"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multimodal_alignment_to_qwen",
+          "outputs": [
+            "aligned_qwen_input"
+          ],
+          "step_id": "align_to_qwen_backbone",
+          "uncertainty": "The representation received by Qwen is unresolved."
+        }
+      ],
+      "task_configuration": "Stage 1 representation-learning pretraining on seven tasks: cell-sentence prediction, gene-network node masking, gene-network link masking, and four spatial variants",
+      "trajectory_id": "ocellus_pretraining_stage1"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Cross-database gene-identifier harmonization resolves inconsistencies between gene symbols, human Ensembl identifiers, and mouse Ensembl identifiers; cellxgene uses Ensembl identifiers as variable names but stores the corresponding symbol in a feature-name column, and a subtle but consequential bug is that the standard regular expression ^ENS[GT] silently passes mouse identifiers because it matches only human identifiers -the correct pattern is ^ENS.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 merges the pretrained adapters into the base weights via standard PEFT merging, producing the OCellus-Pretrain checkpoint.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 3 (multi-task finetuning) trains on twenty-six tasks -sixteen single-cell and ten spatial -covering perturbation prediction, gene-interaction classification (synthetic lethality, phenotypic, general, dosage),",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "caption",
+          "quote": "(c) Four-stage OCellus training pipeline: pretraining on representation-learning tasks, multimodel adapter merging to produce the OCellus-Pretrain checkpoint, multi-task instruction tuning to produce the OCellus checkpoint, and final graph-neural-network and agent LoRA training.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The Planner LoRA is fine-tuned on five thousand natural-language to directed-acyclic-graph pairs",
+          "section_id": "sec_0011"
+        }
+      ],
+      "lifecycle_phase": "fine_tuning",
+      "model_role": "primary_model",
+      "model_variant": "OCellus full multitask checkpoint on Qwen3.5-9B with LoRA, including Stage 2 merge, Stage 3 multitask tuning, and documented Stage 4 specialized GNN/agent training and checkpoint production",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "raw single-cell, spatial, perturbation, and task records"
+          ],
+          "contextual_role": "multitask_fine_tuning_records",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 3 (multi-task finetuning) trains on twenty-six tasks -sixteen single-cell and ten spatial -covering perturbation prediction, gene-interaction classification (synthetic lethality, phenotypic, general, dosage),",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Training records for the twenty-six Stage 3 tasks.",
+          "node_id": "multitask_records",
+          "representation_type": "multitask_biological_records",
+          "symbolic_shape": [
+            "n_task_examples"
+          ],
+          "uncertainty": "The paper does not provide a separate serialization specification for every task."
+        },
+        {
+          "axis_semantics": [
+            "records with harmonized gene identifiers"
+          ],
+          "contextual_role": "identifier_harmonized_records",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Cross-database gene-identifier harmonization resolves inconsistencies between gene symbols, human Ensembl identifiers, and mouse Ensembl identifiers; cellxgene uses Ensembl identifiers as variable names but stores the corresponding symbol in a feature-name column, and a subtle but consequential bug is that the standard regular expression ^ENS[GT] silently passes mouse identifiers because it matches only human identifiers -the correct pattern is ^ENS.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Training records after cross-database gene-symbol and Ensembl-identifier harmonization.",
+          "node_id": "harmonized_records",
+          "representation_type": "gene_identifier_harmonized_records",
+          "symbolic_shape": [
+            "n_task_examples"
+          ],
+          "uncertainty": "Exact mapping tables and behavior for unresolved identifiers are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "quality-controlled records"
+          ],
+          "contextual_role": "technology_adaptive_qc_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Technology-adaptive quality control replaces the standard fixed n\\_genes ≥ 200 threshold with an adaptive formula min\\_genes = max(20, min(200, n\\_total // 5)), because targeted-panel technologies such as MERFISH detect only 161 to 374 genes per cell and would be entirely filtered by the fixed threshold.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Records retained under the technology-adaptive minimum-gene rule.",
+          "node_id": "qc_records",
+          "representation_type": "quality_controlled_biological_records",
+          "symbolic_shape": [
+            "n_qc_examples"
+          ],
+          "uncertainty": "Application to each modality and handling of non-cell records are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "records with housekeeping genes removed where applicable"
+          ],
+          "contextual_role": "contamination_filtered_records",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We apply a regular-expression filter before gene ranking, increasing the count of unique informative marker genes 19.6-fold.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Expression records after regular-expression filtering of mitochondrial, ribosomal, hemoglobin, and pseudogene entries.",
+          "node_id": "filtered_records",
+          "representation_type": "housekeeping_filtered_records",
+          "symbolic_shape": [
+            "n_filtered_examples"
+          ],
+          "uncertainty": "The exact regular expression and behavior for records without expression matrices are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "records eligible for spatial processing"
+          ],
+          "contextual_role": "spatial_coordinate_quality_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Spatial-coordinate normalization excludes datasets whose median nearest-neighbor distance is below five, a signature of pixel-scale rather than micrometer-scale coordinates.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "information_content": "Preprocessed records after the documented spatial-coordinate eligibility rule.",
+          "node_id": "preprocessed_multitask_records",
+          "representation_type": "preprocessed_multitask_records",
+          "symbolic_shape": [
+            "n_preprocessed_examples"
+          ],
+          "uncertainty": "The paper does not establish the relative execution order of all preprocessing decisions across modalities."
+        },
+        {
+          "axis_semantics": [
+            "ordered packed prompt positions"
+          ],
+          "contextual_role": "serialized_multitask_prompt",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "ChatML/OCellusProtocol-formatted task examples with sequence packing enabled during Stage 3.",
+          "node_id": "multitask_prompt",
+          "representation_type": "serialized_packed_language_model_prompt",
+          "symbolic_shape": [
+            "n_packed_positions"
+          ],
+          "uncertainty": "Exact task-specific fields, packing boundaries, and loss masks are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "ordered packed model-input positions"
+          ],
+          "contextual_role": "Qwen_tokenized_multitask_input",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Tokenized packed multitask input received by the Qwen backbone.",
+          "node_id": "multitask_tokens",
+          "representation_type": "packed_language_model_input_tokens",
+          "symbolic_shape": [
+            "n_packed_positions"
+          ],
+          "uncertainty": "Tokenizer vocabulary, special-token sequence, masks, and target-token receipt are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "pretrained_adapter_state",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 2 merges the pretrained adapters into the base weights via standard PEFT merging, producing the OCellus-Pretrain checkpoint.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Stage 1 pretrained adapters before the Stage 2 PEFT merge.",
+          "node_id": "stage1_pretrained_adapters",
+          "representation_type": "LoRA_adapter_state",
+          "symbolic_shape": null,
+          "uncertainty": "The adapter tensor structure is not documented in this paper."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "base_model_weights",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 2 merges the pretrained adapters into the base weights via standard PEFT merging, producing the OCellus-Pretrain checkpoint.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Base model weights receiving the pretrained adapters.",
+          "node_id": "base_model_weights",
+          "representation_type": "base_model_checkpoint",
+          "symbolic_shape": null,
+          "uncertainty": "The exact base checkpoint identity and merge implementation are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "merged_pretraining_checkpoint",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 2 merges the pretrained adapters into the base weights via standard PEFT merging, producing the OCellus-Pretrain checkpoint.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "OCellus-Pretrain model checkpoint after merging Stage 1 adapters.",
+          "node_id": "ocellus_pretrain_checkpoint",
+          "representation_type": "merged_model_checkpoint",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "stage3_finetuned_state",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 3 (multi-task finetuning) trains on twenty-six tasks -sixteen single-cell and ten spatial -covering perturbation prediction, gene-interaction classification (synthetic lethality, phenotypic, general, dosage),",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Model state after Stage 3 multitask fine-tuning and before documented Stage 4 operations.",
+          "node_id": "stage3_multitask_state",
+          "representation_type": "multitask_finetuned_adapter_state",
+          "symbolic_shape": null,
+          "uncertainty": "The paper does not specify the exact checkpoint/adaptor serialization."
+        },
+        {
+          "axis_semantics": [
+            "gene graph nodes",
+            "gene graph edges"
+          ],
+          "contextual_role": "stage4_gnn_training_inputs",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The graph neural network module consists of a linear embedding-projection layer (4,096 to 128 dimensions) mapping frozen OCellus gene embeddings to the working dimension, an indicator-projection layer encoding knockout and baseline gene indicators, three graphconvolution layers with hidden dimension 128, LayerNorm, rectified-linear activation, and dropout 0.1, followed by a multi-layer-perceptron head producing continuous log2 fold-change predictions; total parameter count is approximately 583,000.",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Inputs to the specialized perturbation GNN branch, including frozen gene embeddings, perturbation indicators, graph structure, and response targets.",
+          "node_id": "stage4_gnn_training_inputs",
+          "representation_type": "GNN_training_inputs",
+          "symbolic_shape": null,
+          "uncertainty": "The complete packaged training record and its checkpoint relationship to Stage 3 are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "stage4_gnn_state",
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "(c) Four-stage OCellus training pipeline: pretraining on representation-learning tasks, multimodel adapter merging to produce the OCellus-Pretrain checkpoint, multi-task instruction tuning to produce the OCellus checkpoint, and final graph-neural-network and agent LoRA training.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "information_content": "Specialized graph-neural-network state produced by the documented Stage 4 branch.",
+          "node_id": "stage4_gnn_state",
+          "representation_type": "trained_GNN_state",
+          "symbolic_shape": null,
+          "uncertainty": "Exact relation to the final OCellus checkpoint is unresolved because the figure and Methods describe Stage 4 differently."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "stage4_agent_lora_training_inputs",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The Planner LoRA is fine-tuned on five thousand natural-language to directedacyclic-graph pairs",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Natural-language-to-DAG training pairs for the Planner LoRA branch.",
+          "node_id": "stage4_agent_lora_training_inputs",
+          "representation_type": "planner_lora_training_pairs",
+          "symbolic_shape": [
+            "n_planner_pairs"
+          ],
+          "uncertainty": "Exact pair serialization is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "stage4_agent_lora_state",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The Planner LoRA is fine-tuned on five thousand natural-language to directedacyclic-graph pairs",
+              "section_id": "sec_0016"
+            }
+          ],
+          "information_content": "Specialized agent-LoRA state produced by the documented Stage 4 branch.",
+          "node_id": "stage4_agent_lora_state",
+          "representation_type": "trained_agent_LoRA_state",
+          "symbolic_shape": null,
+          "uncertainty": "The paper describes several agent configurations and does not specify the exact final checkpoint packaging."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "final_model_state",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 4 produces the final merged OCellus checkpoint.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "information_content": "Final merged OCellus checkpoint used throughout the paper.",
+          "node_id": "ocellus_final_checkpoint",
+          "representation_type": "merged_model_checkpoint",
+          "symbolic_shape": null,
+          "uncertainty": "The Methods sentence describes a final merge, while the Figure 1 caption describes final GNN and agent-LoRA training; exact Stage 4 ordering and merge operands are unresolved."
+        }
+      ],
+      "open_questions": [
+        "What are the exact input fields and serialization order for each of the twenty-six tasks?",
+        "Which preprocessing decisions are applied to each modality and in what relative order?",
+        "How are sequence-packing boundaries and loss masks represented?",
+        "What exact PEFT state is consumed and produced by the Stage 2 merge?",
+        "How are the Stage 4 GNN and agent-LoRA states combined with the language-model checkpoint?",
+        "Does Stage 4 mean specialized training followed by a merge, or only the final merge described in Methods?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "multitask_tokens",
+          "port_role": "Qwen3.5-9B multitask input"
+        },
+        {
+          "node_id": "ocellus_final_checkpoint",
+          "port_role": "final merged OCellus model state"
+        }
+      ],
+      "recipient_component": "Qwen3.5-9B transformer backbone with Stage 3 task adapters, specialized GNN and agent-LoRA branches, and final merged checkpoint",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Housekeeping-gene contamination filtering",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "multitask_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "filtered_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "regular-expression removal of mitochondrial, ribosomal, hemoglobin, and pseudogene genes"
+                },
+                {
+                  "name": "method",
+                  "value": "regex-based filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We apply a regular-expression filter before gene ranking, increasing the count of unique informative marker genes 19.6-fold.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "multitask_records",
+              "port_role": "raw multitask biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "housekeeping_gene_filtering",
+          "outputs": [
+            "filtered_records"
+          ],
+          "step_id": "filter_training_housekeeping_genes",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Cross-database gene-identifier harmonization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "filtered_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "align",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "harmonized_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "basis",
+                  "value": "gene symbols, human Ensembl identifiers, and mouse Ensembl identifiers"
+                },
+                {
+                  "name": "method",
+                  "value": "cross-database identifier harmonization"
+                }
+              ],
+              "uncertainty": "The exact identifier mapping table and unresolved-identifier handling are unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Cross-database gene-identifier harmonization resolves inconsistencies between gene symbols, human Ensembl identifiers, and mouse Ensembl identifiers; cellxgene uses Ensembl identifiers as variable names but stores the corresponding symbol in a feature-name column, and a subtle but consequential bug is that the standard regular expression ^ENS[GT] silently passes mouse identifiers because it matches only human identifiers -the correct pattern is ^ENS.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "filtered_records",
+              "port_role": "gene-bearing biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_identifier_harmonization",
+          "outputs": [
+            "harmonized_records"
+          ],
+          "step_id": "harmonize_training_gene_identifiers",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Technology-adaptive quality control",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "harmonized_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "qc_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain cells satisfying min_genes = max(20, min(200, n_total // 5))"
+                },
+                {
+                  "name": "method",
+                  "value": "technology-adaptive quality-control filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": "The paper documents the formula but does not specify all modality-specific QC fields."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Technology-adaptive quality control replaces the standard fixed n\\_genes ≥ 200 threshold with an adaptive formula min\\_genes = max(20, min(200, n\\_total // 5)), because targeted-panel technologies such as MERFISH detect only 161 to 374 genes per cell and would be entirely filtered by the fixed threshold.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "harmonized_records",
+              "port_role": "harmonized biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "technology_adaptive_quality_control",
+          "outputs": [
+            "qc_records"
+          ],
+          "step_id": "quality_control_training_records",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Spatial-coordinate eligibility filtering",
+          "decomposition": [
+            {
+              "condition": "spatial records",
+              "inputs": [
+                {
+                  "node_ids": [
+                    "qc_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "preprocessed_multitask_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "exclude datasets whose median nearest-neighbor distance is below five"
+                },
+                {
+                  "name": "method",
+                  "value": "spatial-coordinate normalization eligibility filter"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": "The paper describes exclusion based on dataset-level coordinate scale; treatment of non-spatial records is unspecified."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Spatial-coordinate normalization excludes datasets whose median nearest-neighbor distance is below five, a signature of pixel-scale rather than micrometer-scale coordinates.",
+              "section_id": "sec_0015"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "qc_records",
+              "port_role": "quality-controlled training records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "spatial_coordinate_quality_filter",
+          "outputs": [
+            "preprocessed_multitask_records"
+          ],
+          "step_id": "filter_spatial_coordinate_scale",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "OCellusProtocol multitask prompt construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "preprocessed_multitask_records"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "multitask_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "OCellusProtocol with ChatML convention"
+                },
+                {
+                  "name": "order",
+                  "value": "task description, input data, expected output, end-of-sequence marker, packing separator"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "documented special tokens; exact mapping unspecified"
+                },
+                {
+                  "name": "sequence_packing",
+                  "value": "enabled during Stage 3; exact packing boundaries unspecified"
+                }
+              ],
+              "uncertainty": "The source documents the common prompt template but not each task's concrete field order."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A custom prompt template (OCellusProtocol) wraps instruction formatting using the ChatML convention with special tokens for task description, input data, expected output, end-of-sequence marker, and packing separator; representative prompt templates by task category are shown in Supplementary Table S1.",
+              "section_id": "sec_0014"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Training uses two epochs, per-device batch size thirty-two, sequence packing enabled, with a total wall time of 35.5 hours and final training loss 0.6649.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "preprocessed_multitask_records",
+              "port_role": "preprocessed multitask biological records"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multitask_prompt_serialization",
+          "outputs": [
+            "multitask_prompt"
+          ],
+          "step_id": "serialize_multitask_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Qwen tokenizer",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "multitask_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "multitask_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "Qwen3.5-9B vocabulary; exact mapping unspecified"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "OCellusProtocol/ChatML serialized prompt; exact segmentation unspecified"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "biological task text"
+                }
+              ],
+              "uncertainty": "The paper establishes a Qwen language-model input but does not specify tokenizer invocation, special-token sequence, or masks."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "Figure 1 . OCellus framework overview (architectural schematic, not empirical data). (a) Training overview: multi-modal biological data (single-cell RNA-seq, spatial transcriptomics, perturbation screens, protein-protein interaction databases) is tokenized and passed through a transformer encoder, then aligned to a Qwen large-language-model backbone to produce the OCellus base model.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "multitask_prompt",
+              "port_role": "serialized multitask prompt"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multitask_language_model_tokenization",
+          "outputs": [
+            "multitask_tokens"
+          ],
+          "step_id": "tokenize_multitask_prompt",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Stage 2 PEFT adapter merge",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents standard PEFT merging of pretrained adapters into base weights but the catalog has no merge operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 2 merges the pretrained adapters into the base weights via standard PEFT merging, producing the OCellus-Pretrain checkpoint.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "base_model_weights",
+              "port_role": "base model weights"
+            },
+            {
+              "node_id": "stage1_pretrained_adapters",
+              "port_role": "pretrained adapter state"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "peft_adapter_merge",
+          "outputs": [
+            "ocellus_pretrain_checkpoint"
+          ],
+          "step_id": "merge_stage2_pretraining_adapters",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Stage 3 multitask fine-tuning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents multitask fine-tuning and its training configuration but does not establish a catalog operation for parameter updates."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 3 (multi-task finetuning) trains on twenty-six tasks -sixteen single-cell and ten spatial -covering perturbation prediction, gene-interaction classification (synthetic lethality, phenotypic, general, dosage),",
+              "section_id": "sec_0014"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Training uses two epochs, per-device batch size thirty-two, sequence packing enabled, with a total wall time of 35.5 hours and final training loss 0.6649.",
+              "section_id": "sec_0014"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "ocellus_pretrain_checkpoint",
+              "port_role": "OCellus-Pretrain checkpoint"
+            },
+            {
+              "node_id": "multitask_tokens",
+              "port_role": "packed tokenized multitask examples"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "multitask_finetuning",
+          "outputs": [
+            "stage3_multitask_state"
+          ],
+          "step_id": "train_stage3_multitask_model",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Stage 4 graph-neural-network specialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The figure documents final graph-neural-network training, while the Methods text describes Stage 4 as producing a final merged checkpoint; the GNN training computation is not represented by the catalog."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "(c) Four-stage OCellus training pipeline: pretraining on representation-learning tasks, multimodel adapter merging to produce the OCellus-Pretrain checkpoint, multi-task instruction tuning to produce the OCellus checkpoint, and final graph-neural-network and agent LoRA training.",
+              "section_id": "sec_0005"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The graph neural network module consists of a linear embedding-projection layer (4,096 to 128 dimensions) mapping frozen OCellus gene embeddings to the working dimension, an indicator-projection layer encoding knockout and baseline gene indicators, three graphconvolution layers with hidden dimension 128, LayerNorm, rectified-linear activation, and dropout 0.1, followed by a multi-layer-perceptron head producing continuous log2 fold-change predictions; total parameter count is approximately 583,000.",
+              "section_id": "sec_0016"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "stage3_multitask_state",
+              "port_role": "Stage 3 model state"
+            },
+            {
+              "node_id": "stage4_gnn_training_inputs",
+              "port_role": "GNN training inputs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "stage4_gnn_training",
+          "outputs": [
+            "stage4_gnn_state"
+          ],
+          "step_id": "train_stage4_gnn",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Stage 4 agent-LoRA specialization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no LoRA-training operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "caption",
+              "quote": "(c) Four-stage OCellus training pipeline: pretraining on representation-learning tasks, multimodel adapter merging to produce the OCellus-Pretrain checkpoint, multi-task instruction tuning to produce the OCellus checkpoint, and final graph-neural-network and agent LoRA training.",
+              "section_id": "sec_0005"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The Planner LoRA is fine-tuned on five thousand natural-language to directedacyclic-graph pairs",
+              "section_id": "sec_0016"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "stage3_multitask_state",
+              "port_role": "Stage 3 model state"
+            },
+            {
+              "node_id": "stage4_agent_lora_training_inputs",
+              "port_role": "agent-LoRA training pairs"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "stage4_agent_lora_training",
+          "outputs": [
+            "stage4_agent_lora_state"
+          ],
+          "step_id": "train_stage4_agent_lora",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Stage 4 final checkpoint production",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states that Stage 4 produces the final merged checkpoint, but does not establish whether the GNN and agent-LoRA states are merged into the language-model checkpoint or remain plug-in states."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Stage 4 produces the final merged OCellus checkpoint.",
+              "section_id": "sec_0014"
+            },
+            {
+              "kind": "caption",
+              "quote": "(c) Four-stage OCellus training pipeline: pretraining on representation-learning tasks, multimodel adapter merging to produce the OCellus-Pretrain checkpoint, multi-task instruction tuning to produce the OCellus checkpoint, and final graph-neural-network and agent LoRA training.",
+              "section_id": "sec_0005"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "stage3_multitask_state",
+              "port_role": "Stage 3 multitask state"
+            },
+            {
+              "node_id": "stage4_gnn_state",
+              "port_role": "specialized GNN state"
+            },
+            {
+              "node_id": "stage4_agent_lora_state",
+              "port_role": "specialized agent-LoRA state"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "final_adapter_and_plugin_checkpoint_production",
+          "outputs": [
+            "ocellus_final_checkpoint"
+          ],
+          "step_id": "merge_stage4_final_ocellus_checkpoint",
+          "uncertainty": null
+        }
+      ],
+      "task_configuration": "Stage 3 multitask fine-tuning across twenty-six trained tasks, followed by documented Stage 4 GNN/agent specialization and final checkpoint production",
+      "trajectory_id": "ocellus_multitask_finetuning"
+    }
+  ]
+}

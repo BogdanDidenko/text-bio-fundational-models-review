@@ -1,0 +1,1785 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "tokenize_gene_expression::1",
+        "component": "Geneformer tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "expression_profile"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "gene_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "Geneformer gene-expression tokenization",
+          "source_alphabet": "unspecified",
+          "source_port_roles": [
+            "single_cell_expression_profile"
+          ],
+          "vocabulary": "Geneformer tokenizer vocabulary"
+        },
+        "source_step_id": "tokenize_gene_expression",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not specify the exact value-to-token mapping."
+      },
+      {
+        "call_id": "adjust_gene_context_length::1",
+        "component": "Geneformer context-length adjustment",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_length_adjustment",
+          "source_port_roles": [
+            "tokenized_gene_sequence"
+          ]
+        },
+        "source_step_id": "adjust_gene_context_length",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "call_id": "encode_gene_sequence::1",
+        "component": "Pretrained Geneformer encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "contextual_gene_sequence_encoding",
+          "source_port_roles": [
+            "gene_sequence_tokens"
+          ]
+        },
+        "source_step_id": "encode_gene_sequence",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "call_id": "adapt_gene_embeddings::1",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "gene_embeddings"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "activation": "non-linear activation; exact function unspecified",
+          "method": "two-layer feedforward network",
+          "parameter_state": "trainable during fine-tuning",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "adapt_gene_embeddings::2",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "normalized_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "axes": "LLM embedding feature coordinates, per gene position",
+          "method": "L2 normalization",
+          "scope": "each projected gene embedding",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "assemble_decoder_input::1",
+        "component": "Gemma3-4B-it prompt integration",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "instruction_prompt",
+            "normalized_gene_embeddings"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_and_gene_embedding_integration",
+          "source_port_roles": [
+            "instruction_template",
+            "projected_gene_sequence_embeddings"
+          ]
+        },
+        "source_step_id": "assemble_decoder_input",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Gemma3-4B-it : Google's 4-billion parameter model featuring a distinctive hybrid attention mechanism with 5:1 interleaving of local sliding window and global self-attention layers, contrasting with Llama's uniform attention architecture.",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We performed full fine-tuning on both Meta-Llama-3.2-1B-Instruct and Gemma3-4B-it models, updating all parameters to adapt the pre-trained LLMs to our domain-specific cell description task.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Given that Geneformer is already pre-trained on extensive single-cell data and its gene embeddings effectively capture biological information and gene-gene interactions, we freeze the Geneformer encoder throughout training to preserve these learned representations. The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+        "section_id": "sec_0012"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "Cell2Text-Gemma-4B (paper: Gemma3-4B-it)",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene features for one cell"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Cell Encoder module represents the first critical component of Cell2Text, responsible for converting raw single-cell gene expression data into meaningful, context-aware embeddings that our language model can effectively interpret.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Raw single-cell RNA-seq gene expression profile.",
+        "node_id": "expression_profile",
+        "origin": "source_annotation",
+        "representation_type": "single_cell_gene_expression_profile",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered Geneformer gene-token positions"
+        ],
+        "contextual_role": "encoder_input_tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer-tokenized gene-expression sequence.",
+        "node_id": "gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "gene_token_ids",
+        "symbolic_shape": [
+          "n_gene_tokens"
+        ],
+        "uncertainty": "The exact mapping from expression values to tokens is unspecified. The paper states that some sequences are adjusted to the 4096-token maximum, but does not establish whether this uses padding, selection, truncation, or masking."
+      },
+      {
+        "axis_semantics": [
+          "adjusted Geneformer input-token positions"
+        ],
+        "contextual_role": "encoder_input_after_context_adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer token sequence after the documented but unspecified adjustment to the encoder context limit.",
+        "node_id": "adjusted_gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "context_adjusted_gene_token_ids",
+        "symbolic_shape": [
+          "n_encoder_input_tokens"
+        ],
+        "uncertainty": "The adjustment rule is unresolved; the paper does not establish padding, selection, truncation, or masking, and does not establish whether every sequence has the same realized length."
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "Geneformer feature coordinates"
+        ],
+        "contextual_role": "encoder_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Contextualized gene-level embeddings produced by Geneformer.",
+        "node_id": "gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "contextualized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_geneformer"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "adapter_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Gene-level embeddings after the trainable adapter projection.",
+        "node_id": "projected_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "projected_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_conditioning_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "L2-normalized projected gene embeddings supplied toward the decoder.",
+        "node_id": "normalized_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "l2_normalized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Instruction-following prompt containing a system message, a sequence-embedding field, and an assistant cell-description target position.",
+        "node_id": "instruction_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_prompt_template",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify tokenizer output, role-token serialization, positional handling, or target teacher-forcing details."
+      },
+      {
+        "axis_semantics": [
+          "decoder input positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "The documented multimodal conditioning receipt for Gemma3-4B-it.",
+        "node_id": "decoder_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_decoder_input_embeddings",
+        "symbolic_shape": [
+          "n_decoder_positions",
+          "d_llm_input"
+        ],
+        "uncertainty": "The exact integration algebra, decoder tokenization, positional encodings, attention masks, and supervised target receipt are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact tokenizer transformation produces the Geneformer gene-token sequence from expression values?",
+      "Does context-length adjustment use padding, selected genes, truncation, masking, or another procedure?",
+      "How are the system message and projected gene embeddings combined at the Gemma decoder input?",
+      "How are the assistant target description and previous target tokens represented during supervised fine-tuning?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input",
+        "port_role": "multimodal_prompt_embeddings"
+      }
+    ],
+    "recipient_component": "Gemma3-4B-it natural language decoder",
+    "record_id": "full_2026-07-06__rec_001838",
+    "source_steps": [
+      {
+        "component": "Geneformer tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "expression_profile",
+            "port_role": "single_cell_expression_profile"
+          }
+        ],
+        "operation_type": "gene_expression_tokenization",
+        "outputs": [
+          "gene_tokens"
+        ],
+        "step_id": "tokenize_gene_expression",
+        "uncertainty": "The documented context-length adjustment is represented by a separate opaque step."
+      },
+      {
+        "component": "Geneformer context-length adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_tokens",
+            "port_role": "tokenized_gene_sequence"
+          }
+        ],
+        "operation_type": "context_length_adjustment",
+        "outputs": [
+          "adjusted_gene_tokens"
+        ],
+        "step_id": "adjust_gene_context_length",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "component": "Pretrained Geneformer encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "adjusted_gene_tokens",
+            "port_role": "gene_sequence_tokens"
+          }
+        ],
+        "operation_type": "contextual_gene_sequence_encoding",
+        "outputs": [
+          "gene_embeddings"
+        ],
+        "step_id": "encode_gene_sequence",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "component": "Cell2Text adapter module",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_embeddings",
+            "port_role": "gene_level_embeddings"
+          }
+        ],
+        "operation_type": "adapter_projection_and_l2_normalization",
+        "outputs": [
+          "normalized_gene_embeddings"
+        ],
+        "step_id": "adapt_gene_embeddings",
+        "uncertainty": null
+      },
+      {
+        "component": "Gemma3-4B-it prompt integration",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_prompt",
+            "port_role": "instruction_template"
+          },
+          {
+            "node_id": "normalized_gene_embeddings",
+            "port_role": "projected_gene_sequence_embeddings"
+          }
+        ],
+        "operation_type": "instruction_and_gene_embedding_integration",
+        "outputs": [
+          "decoder_input"
+        ],
+        "step_id": "assemble_decoder_input",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "task_configuration": "Supervised fine-tuning for structured natural-language single-cell description generation from scRNA-seq profiles",
+    "trajectory_id": "cell2text_gemma4b_finetuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "tokenize_gene_expression::1",
+        "component": "Geneformer tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "expression_profile"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "gene_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "Geneformer gene-expression tokenization",
+          "source_alphabet": "unspecified",
+          "source_port_roles": [
+            "single_cell_expression_profile"
+          ],
+          "vocabulary": "Geneformer tokenizer vocabulary"
+        },
+        "source_step_id": "tokenize_gene_expression",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not specify the exact value-to-token mapping."
+      },
+      {
+        "call_id": "adjust_gene_context_length::1",
+        "component": "Geneformer context-length adjustment",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_length_adjustment",
+          "source_port_roles": [
+            "tokenized_gene_sequence"
+          ]
+        },
+        "source_step_id": "adjust_gene_context_length",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "call_id": "encode_gene_sequence::1",
+        "component": "Pretrained Geneformer encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "contextual_gene_sequence_encoding",
+          "source_port_roles": [
+            "gene_sequence_tokens"
+          ]
+        },
+        "source_step_id": "encode_gene_sequence",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "call_id": "adapt_gene_embeddings::1",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "gene_embeddings"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "activation": "non-linear activation; exact function unspecified",
+          "method": "two-layer feedforward network",
+          "parameter_state": "trainable during fine-tuning",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "adapt_gene_embeddings::2",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "normalized_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "axes": "LLM embedding feature coordinates, per gene position",
+          "method": "L2 normalization",
+          "scope": "each projected gene embedding",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "assemble_decoder_input::1",
+        "component": "Meta-Llama-3.2-1B-Instruct prompt integration",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "instruction_prompt",
+            "normalized_gene_embeddings"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_and_gene_embedding_integration",
+          "source_port_roles": [
+            "instruction_template",
+            "projected_gene_sequence_embeddings"
+          ]
+        },
+        "source_step_id": "assemble_decoder_input",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Meta-Llama-3.2-1B-Instruct : A compact variant of the Meta-Llama series, selected for its efficiency and strong performance on instruction-following tasks, offering a balance between computational demands and descriptive capabilities.",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We performed full fine-tuning on both Meta-Llama-3.2-1B-Instruct and Gemma3-4B-it models, updating all parameters to adapt the pre-trained LLMs to our domain-specific cell description task.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Given that Geneformer is already pre-trained on extensive single-cell data and its gene embeddings effectively capture biological information and gene-gene interactions, we freeze the Geneformer encoder throughout training to preserve these learned representations. The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+        "section_id": "sec_0012"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "Cell2Text-Llama-1B (paper: Meta-Llama-3.2-1B-Instruct)",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene features for one cell"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Cell Encoder module represents the first critical component of Cell2Text, responsible for converting raw single-cell gene expression data into meaningful, context-aware embeddings that our language model can effectively interpret.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Raw single-cell RNA-seq gene expression profile.",
+        "node_id": "expression_profile",
+        "origin": "source_annotation",
+        "representation_type": "single_cell_gene_expression_profile",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered Geneformer gene-token positions"
+        ],
+        "contextual_role": "encoder_input_tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer-tokenized gene-expression sequence.",
+        "node_id": "gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "gene_token_ids",
+        "symbolic_shape": [
+          "n_gene_tokens"
+        ],
+        "uncertainty": "The exact mapping from expression values to tokens is unspecified. The paper states that some sequences are adjusted to the 4096-token maximum, but does not establish whether this uses padding, selection, truncation, or masking."
+      },
+      {
+        "axis_semantics": [
+          "adjusted Geneformer input-token positions"
+        ],
+        "contextual_role": "encoder_input_after_context_adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer token sequence after the documented but unspecified adjustment to the encoder context limit.",
+        "node_id": "adjusted_gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "context_adjusted_gene_token_ids",
+        "symbolic_shape": [
+          "n_encoder_input_tokens"
+        ],
+        "uncertainty": "The adjustment rule is unresolved; the paper does not establish padding, selection, truncation, or masking, and does not establish whether every sequence has the same realized length."
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "Geneformer feature coordinates"
+        ],
+        "contextual_role": "encoder_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Contextualized gene-level embeddings produced by Geneformer.",
+        "node_id": "gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "contextualized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_geneformer"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "adapter_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Gene-level embeddings after the trainable adapter projection.",
+        "node_id": "projected_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "projected_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_conditioning_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "L2-normalized projected gene embeddings supplied toward the decoder.",
+        "node_id": "normalized_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "l2_normalized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Instruction-following prompt containing a system message, a sequence-embedding field, and an assistant cell-description target position.",
+        "node_id": "instruction_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_prompt_template",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify tokenizer output, role-token serialization, positional handling, or target teacher-forcing details."
+      },
+      {
+        "axis_semantics": [
+          "decoder input positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "The documented multimodal conditioning receipt for Meta-Llama-3.2-1B-Instruct.",
+        "node_id": "decoder_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_decoder_input_embeddings",
+        "symbolic_shape": [
+          "n_decoder_positions",
+          "d_llm_input"
+        ],
+        "uncertainty": "The exact integration algebra, decoder tokenization, positional encodings, attention masks, and supervised target receipt are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact tokenizer transformation produces the Geneformer gene-token sequence from expression values?",
+      "Does context-length adjustment use padding, selected genes, truncation, masking, or another procedure?",
+      "How are the system message and projected gene embeddings combined at the Llama decoder input?",
+      "How are the assistant target description and previous target tokens represented during supervised fine-tuning?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input",
+        "port_role": "multimodal_prompt_embeddings"
+      }
+    ],
+    "recipient_component": "Meta-Llama-3.2-1B-Instruct natural language decoder",
+    "record_id": "full_2026-07-06__rec_001838",
+    "source_steps": [
+      {
+        "component": "Geneformer tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "expression_profile",
+            "port_role": "single_cell_expression_profile"
+          }
+        ],
+        "operation_type": "gene_expression_tokenization",
+        "outputs": [
+          "gene_tokens"
+        ],
+        "step_id": "tokenize_gene_expression",
+        "uncertainty": "The documented context-length adjustment is represented by a separate opaque step."
+      },
+      {
+        "component": "Geneformer context-length adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_tokens",
+            "port_role": "tokenized_gene_sequence"
+          }
+        ],
+        "operation_type": "context_length_adjustment",
+        "outputs": [
+          "adjusted_gene_tokens"
+        ],
+        "step_id": "adjust_gene_context_length",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "component": "Pretrained Geneformer encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "adjusted_gene_tokens",
+            "port_role": "gene_sequence_tokens"
+          }
+        ],
+        "operation_type": "contextual_gene_sequence_encoding",
+        "outputs": [
+          "gene_embeddings"
+        ],
+        "step_id": "encode_gene_sequence",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "component": "Cell2Text adapter module",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_embeddings",
+            "port_role": "gene_level_embeddings"
+          }
+        ],
+        "operation_type": "adapter_projection_and_l2_normalization",
+        "outputs": [
+          "normalized_gene_embeddings"
+        ],
+        "step_id": "adapt_gene_embeddings",
+        "uncertainty": null
+      },
+      {
+        "component": "Meta-Llama-3.2-1B-Instruct prompt integration",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_prompt",
+            "port_role": "instruction_template"
+          },
+          {
+            "node_id": "normalized_gene_embeddings",
+            "port_role": "projected_gene_sequence_embeddings"
+          }
+        ],
+        "operation_type": "instruction_and_gene_embedding_integration",
+        "outputs": [
+          "decoder_input"
+        ],
+        "step_id": "assemble_decoder_input",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "task_configuration": "Supervised fine-tuning for structured natural-language single-cell description generation from scRNA-seq profiles",
+    "trajectory_id": "cell2text_llama1b_finetuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "tokenize_gene_expression::1",
+        "component": "Geneformer tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "expression_profile"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "gene_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "Geneformer gene-expression tokenization",
+          "source_alphabet": "unspecified",
+          "source_port_roles": [
+            "single_cell_expression_profile"
+          ],
+          "vocabulary": "Geneformer tokenizer vocabulary"
+        },
+        "source_step_id": "tokenize_gene_expression",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not specify the exact value-to-token mapping."
+      },
+      {
+        "call_id": "adjust_gene_context_length::1",
+        "component": "Geneformer context-length adjustment",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "parameters": {
+          "source_operation": "context_length_adjustment",
+          "source_port_roles": [
+            "tokenized_gene_sequence"
+          ]
+        },
+        "source_step_id": "adjust_gene_context_length",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "call_id": "encode_gene_sequence::1",
+        "component": "Pretrained Geneformer encoder",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "adjusted_gene_tokens"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "source_operation": "contextual_gene_sequence_encoding",
+          "source_port_roles": [
+            "gene_sequence_tokens"
+          ]
+        },
+        "source_step_id": "encode_gene_sequence",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "call_id": "adapt_gene_embeddings::1",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "gene_embeddings"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "activation": "non-linear activation; exact function unspecified",
+          "method": "two-layer feedforward network",
+          "parameter_state": "trainable during fine-tuning",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "adapt_gene_embeddings::2",
+        "component": "Cell2Text adapter module",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "projected_gene_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "normalized_gene_embeddings"
+          ]
+        },
+        "parameters": {
+          "axes": "LLM embedding feature coordinates, per gene position",
+          "method": "L2 normalization",
+          "scope": "each projected gene embedding",
+          "source_port_roles": [
+            "gene_level_embeddings"
+          ]
+        },
+        "source_step_id": "adapt_gene_embeddings",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "assemble_decoder_input::1",
+        "component": "LoRA-adapted Meta-Llama-3.2-1B-Instruct prompt integration",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "instruction_prompt",
+            "normalized_gene_embeddings"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "decoder_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_and_gene_embedding_integration",
+          "source_port_roles": [
+            "instruction_template",
+            "projected_gene_sequence_embeddings"
+          ]
+        },
+        "source_step_id": "assemble_decoder_input",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "Meta-Llama-3.2-1B-Instruct : A compact variant of the Meta-Llama series, selected for its efficiency and strong performance on instruction-following tasks, offering a balance between computational demands and descriptive capabilities.",
+        "section_id": "sec_0011"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "LoRA selectively injects trainable low-rank matrices into the transformer architecture's attention mechanism, significantly reducing the number of trainable parameters while maintaining a performance close to full fine-tuning.",
+        "section_id": "sec_0014"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Given that Geneformer is already pre-trained on extensive single-cell data and its gene embeddings effectively capture biological information and gene-gene interactions, we freeze the Geneformer encoder throughout training to preserve these learned representations. The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+        "section_id": "sec_0012"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "Cell2Text-Llama-1B-LoRA (paper: Meta-Llama-3.2-1B-Instruct with LoRA)",
+    "nodes": [
+      {
+        "axis_semantics": [
+          "gene features for one cell"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The Cell Encoder module represents the first critical component of Cell2Text, responsible for converting raw single-cell gene expression data into meaningful, context-aware embeddings that our language model can effectively interpret.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Raw single-cell RNA-seq gene expression profile.",
+        "node_id": "expression_profile",
+        "origin": "source_annotation",
+        "representation_type": "single_cell_gene_expression_profile",
+        "symbolic_shape": [
+          "n_genes"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered Geneformer gene-token positions"
+        ],
+        "contextual_role": "encoder_input_tokens",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer-tokenized gene-expression sequence.",
+        "node_id": "gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "gene_token_ids",
+        "symbolic_shape": [
+          "n_gene_tokens"
+        ],
+        "uncertainty": "The exact mapping from expression values to tokens is unspecified. The paper states that some sequences are adjusted to the 4096-token maximum, but does not establish whether this uses padding, selection, truncation, or masking."
+      },
+      {
+        "axis_semantics": [
+          "adjusted Geneformer input-token positions"
+        ],
+        "contextual_role": "encoder_input_after_context_adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "information_content": "Geneformer token sequence after the documented but unspecified adjustment to the encoder context limit.",
+        "node_id": "adjusted_gene_tokens",
+        "origin": "source_annotation",
+        "representation_type": "context_adjusted_gene_token_ids",
+        "symbolic_shape": [
+          "n_encoder_input_tokens"
+        ],
+        "uncertainty": "The adjustment rule is unresolved; the paper does not establish padding, selection, truncation, or masking, and does not establish whether every sequence has the same realized length."
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "Geneformer feature coordinates"
+        ],
+        "contextual_role": "encoder_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "information_content": "Contextualized gene-level embeddings produced by Geneformer.",
+        "node_id": "gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "contextualized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_geneformer"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "adapter_output_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Gene-level embeddings after the trainable adapter projection.",
+        "node_id": "projected_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "projected_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "gene-token positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_conditioning_features",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "L2-normalized projected gene embeddings supplied toward the decoder.",
+        "node_id": "normalized_gene_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "l2_normalized_gene_embeddings",
+        "symbolic_shape": [
+          "n_gene_tokens",
+          "d_llm_input"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "external_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Instruction-following prompt containing a system message, a sequence-embedding field, and an assistant cell-description target position.",
+        "node_id": "instruction_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_prompt_template",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify tokenizer output, role-token serialization, positional handling, or target teacher-forcing details."
+      },
+      {
+        "axis_semantics": [
+          "decoder input positions",
+          "LLM input embedding coordinates"
+        ],
+        "contextual_role": "decoder_receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Here, H g, 1 | H g, 2 | ... | H g,N represents the sequence of gene embeddings from the Cell Encoder, which are projected into the LLM's input embedding space.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "The documented multimodal conditioning receipt for the LoRA-adapted Meta-Llama-3.2-1B-Instruct decoder.",
+        "node_id": "decoder_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_decoder_input_embeddings",
+        "symbolic_shape": [
+          "n_decoder_positions",
+          "d_llm_input"
+        ],
+        "uncertainty": "The exact integration algebra, decoder tokenization, positional encodings, attention masks, and supervised target receipt are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What exact tokenizer transformation produces the Geneformer gene-token sequence from expression values?",
+      "Does context-length adjustment use padding, selected genes, truncation, masking, or another procedure?",
+      "How are the system message and projected gene embeddings combined at the Llama decoder input?",
+      "How are the assistant target description and previous target tokens represented during supervised fine-tuning?",
+      "Which attention projections receive the LoRA matrices beyond the paper's statement that they are applied to self-attention modules?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "decoder_input",
+        "port_role": "multimodal_prompt_embeddings"
+      }
+    ],
+    "recipient_component": "LoRA-adapted Meta-Llama-3.2-1B-Instruct natural language decoder",
+    "record_id": "full_2026-07-06__rec_001838",
+    "source_steps": [
+      {
+        "component": "Geneformer tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Figure 2 depicts the token length distribution of gene expression sequences post-tokenization with the Geneformer tokenizer, averaging 1843.2 tokens.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "expression_profile",
+            "port_role": "single_cell_expression_profile"
+          }
+        ],
+        "operation_type": "gene_expression_tokenization",
+        "outputs": [
+          "gene_tokens"
+        ],
+        "step_id": "tokenize_gene_expression",
+        "uncertainty": "The documented context-length adjustment is represented by a separate opaque step."
+      },
+      {
+        "component": "Geneformer context-length adjustment",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The value of N is fixed based on the maximum context length supported by the encoder, which is 4096 genes for Geneformer-V2-316M",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "h a spike at the 4096-token maximum, indicating some sequences are adjusted to this limit.",
+            "section_id": "sec_0031"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_tokens",
+            "port_role": "tokenized_gene_sequence"
+          }
+        ],
+        "operation_type": "context_length_adjustment",
+        "outputs": [
+          "adjusted_gene_tokens"
+        ],
+        "step_id": "adjust_gene_context_length",
+        "uncertainty": "The paper does not establish whether adjustment means padding, selection, truncation, masking, or another procedure."
+      },
+      {
+        "component": "Pretrained Geneformer encoder",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For a given cell, Geneformer produces a sequence of N gene embeddings, where N corresponds to the number of genes in the sequence.",
+            "section_id": "sec_0009"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We chose Geneformer (Theodoris et al., 2023b; Chen et al., 2024), a transformer-based model pre-trained specifically on single-cell genomics data on masked gene prediction task, as our cell encoder due to its proven ability to capture the complex relationships between genes.",
+            "section_id": "sec_0009"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "adjusted_gene_tokens",
+            "port_role": "gene_sequence_tokens"
+          }
+        ],
+        "operation_type": "contextual_gene_sequence_encoding",
+        "outputs": [
+          "gene_embeddings"
+        ],
+        "step_id": "encode_gene_sequence",
+        "uncertainty": "The encoder's internal token lookup, attention schedule, masking, and output construction are not established by the paper."
+      },
+      {
+        "component": "Cell2Text adapter module",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "This module consists of a two-layer feedforward network with non-linear activation that projects each gene embedding to the natural language semantic space. The resulting gene embeddings are L2-normalized to stabilize the training process before being passed to the LLM.",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The adapter module remains trainable in both training strategies to enable proper projection from the gene embedding space to the natural language semantic space.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "gene_embeddings",
+            "port_role": "gene_level_embeddings"
+          }
+        ],
+        "operation_type": "adapter_projection_and_l2_normalization",
+        "outputs": [
+          "normalized_gene_embeddings"
+        ],
+        "step_id": "adapt_gene_embeddings",
+        "uncertainty": null
+      },
+      {
+        "component": "LoRA-adapted Meta-Llama-3.2-1B-Instruct prompt integration",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To guide the LLM's generative process and ensure consistent output format, we adopted a specific instruction-following prompt structure that integrates a system message and the contextualized gene embeddings:",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "System : You are a scientific assistant specialized in cell description predictions. Given the cell sentence embeddings, describe it clearly and concisely in professional language. User : Sequence embeddings: H g, 1 | H g, 2 | ... | H g,N Assistant : &lt; CELL DESCRIPTION &gt;",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_prompt",
+            "port_role": "instruction_template"
+          },
+          {
+            "node_id": "normalized_gene_embeddings",
+            "port_role": "projected_gene_sequence_embeddings"
+          }
+        ],
+        "operation_type": "instruction_and_gene_embedding_integration",
+        "outputs": [
+          "decoder_input"
+        ],
+        "step_id": "assemble_decoder_input",
+        "uncertainty": "The exact fusion and serialization mechanism is unresolved."
+      }
+    ],
+    "task_configuration": "Supervised parameter-efficient fine-tuning with LoRA for structured natural-language single-cell description generation from scRNA-seq profiles",
+    "trajectory_id": "cell2text_llama1b_lora_finetuning"
+  }
+]

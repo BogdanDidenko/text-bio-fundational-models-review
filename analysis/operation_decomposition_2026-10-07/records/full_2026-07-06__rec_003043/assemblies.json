@@ -1,0 +1,3128 @@
+[
+  {
+    "bypasses": [
+      {
+        "condition": "For noncoding genes and pseudogenes, GPT-3.5 response generation is skipped and NCBI descriptions are used.",
+        "source_node_id": "noncoding_pseudogene_records",
+        "source_step_id": "generate_gpt35_responses",
+        "target_node_id": "gpt35_gene_responses"
+      }
+    ],
+    "calls": [
+      {
+        "call_id": "prepare_ncbi::1",
+        "component": "NCBI text preparation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the real data, we use scripts to access the gene information from NCBI pages and rephrase the content of each gene with GPT 3.5 to normal sequence.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "ncbi_gene_information"
+          ]
+        },
+        "operation_id": "augment",
+        "outputs": {
+          "values": [
+            "ncbi_rephrased_descriptions"
+          ]
+        },
+        "parameters": {
+          "phase": "fine_tuning",
+          "policy": "GPT-3.5 rephrasing of gene information to normal sequence",
+          "source_port_roles": [
+            "source_gene_information"
+          ]
+        },
+        "source_step_id": "prepare_ncbi",
+        "status": "documented_operation",
+        "uncertainty": "The paper documents this real-data preparation but does not specify all record fields or gene-type-specific details."
+      },
+      {
+        "call_id": "branch_gene_types::1",
+        "component": "Gene-type conditional branch",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To ensure the correctness of training datasets, we only focused on protein-encoding genes for the outputs of GPT 3.5.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "ncbi_rephrased_descriptions",
+            "ncbi_gene_information"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_encoding_gene_records",
+            "noncoding_pseudogene_records"
+          ]
+        },
+        "parameters": {
+          "source_operation": "gene_type_conditional_branching",
+          "source_port_roles": [
+            "rephrased_gene_records",
+            "original_ncbi_records"
+          ]
+        },
+        "source_step_id": "branch_gene_types",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper states the conditional policy but does not document its implementation or establish the exact relation between the rephrased records and the NCBI-only branch."
+      },
+      {
+        "call_id": "generate_gpt35_responses::1",
+        "component": "GPT-3.5 synthetic response generation",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the synthetic data, we use the same prompt to ask GPT 3.5 to generate responses for protein-encoding genes.",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To ensure the correctness of training datasets, we only focused on protein-encoding genes for the outputs of GPT 3.5.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_encoding_gene_records",
+            "gpt35_generation_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "gpt35_gene_responses"
+          ]
+        },
+        "parameters": {
+          "source_operation": "synthetic_response_generation",
+          "source_port_roles": [
+            "protein_encoding_gene_records",
+            "generation_prompt"
+          ]
+        },
+        "source_step_id": "generate_gpt35_responses",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The GPT-3.5 generation procedure and response alignment are opaque."
+      },
+      {
+        "call_id": "combine_training_data::1",
+        "component": "Real and synthetic dataset combination",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "ncbi_rephrased_descriptions",
+            "gpt35_gene_responses",
+            "noncoding_pseudogene_records"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "training_examples"
+          ]
+        },
+        "parameters": {
+          "source_operation": "training_dataset_combination_and_formatting",
+          "source_port_roles": [
+            "real_dataset",
+            "synthetic_dataset",
+            "conditional_ncbi_only_dataset"
+          ]
+        },
+        "source_step_id": "combine_training_data",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish concatenation, pairing, ordering, or final example serialization; the relation between the real rephrased dataset and the conditional NCBI-only records remains unresolved."
+      },
+      {
+        "call_id": "prepare_gene_model_input::1",
+        "component": "Supervised instruction-fine-tuning input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We finetuned these models based on both Parameter-Efficient FineTuning (PEFT) technology and full-parameter finetuning technology, and the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "training_examples"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "gene_model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "supervised_instruction_fine_tuning_input_preparation",
+          "source_port_roles": [
+            "finalized_supervised_examples"
+          ]
+        },
+        "source_step_id": "prepare_gene_model_input",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation, nor how prompts, response targets, masks, or teacher-forcing inputs are constructed."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "To finetune an LLM as an AI assistant for genomic and proteomic information queries, we prepare the training dataset with both real data and synthetic data with a data augmentation policy.",
+        "section_id": "sec_0012"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "To collect the real data, we use scripts to access the gene information from NCBI pages and rephrase the content of each gene with GPT 3.5 to normal sequence.",
+        "section_id": "sec_0012"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "To collect the synthetic data, we use the same prompt to ask GPT 3.5 to generate responses for protein-encoding genes.",
+        "section_id": "sec_0012"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+        "section_id": "sec_0018"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We finetuned these models based on both Parameter-Efficient FineTuning (PEFT) technology and full-parameter finetuning technology, and the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+        "section_id": "sec_0011"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "Geneverse text LLM collection: LLaMA2-7B, LLaMA2-13B, Mistral-7B, Gemma-7B, LLaMAPro-8B, and LLaMA3-8B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "gene-information source",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the real data, we use scripts to access the gene information from NCBI pages and rephrase the content of each gene with GPT 3.5 to normal sequence.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Gene information accessed from NCBI pages.",
+        "node_id": "ncbi_gene_information",
+        "origin": "source_annotation",
+        "representation_type": "gene_description_text",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "real training data after documented rephrasing",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the real data, we use scripts to access the gene information from NCBI pages and rephrase the content of each gene with GPT 3.5 to normal sequence.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "NCBI gene information rephrased into normal sequence.",
+        "node_id": "ncbi_rephrased_descriptions",
+        "origin": "source_annotation",
+        "representation_type": "rephrased_gene_description_text",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify the exact fields or whether this real-data preparation is applied identically to every gene type."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "protein-encoding branch for synthetic augmentation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To ensure the correctness of training datasets, we only focused on protein-encoding genes for the outputs of GPT 3.5.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Protein-encoding gene records selected for GPT-3.5 augmentation.",
+        "node_id": "protein_encoding_gene_records",
+        "origin": "source_annotation",
+        "representation_type": "protein_encoding_gene_records",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify the selection implementation or exact record fields."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "noncoding and pseudogene branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "information_content": "Noncoding-gene and pseudogene records retained from NCBI descriptions under the documented NCBI-only policy.",
+        "node_id": "noncoding_pseudogene_records",
+        "origin": "source_annotation",
+        "representation_type": "ncbi_gene_description_records",
+        "symbolic_shape": null,
+        "uncertainty": "The exact relationship between these records and the rephrased real-data dataset is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "synthetic-generation instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the synthetic data, we use the same prompt to ask GPT 3.5 to generate responses for protein-encoding genes.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Prompt used to request GPT-3.5 responses for protein-encoding genes.",
+        "node_id": "gpt35_generation_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "The prompt text and its serialization are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "synthetic training data",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the synthetic data, we use the same prompt to ask GPT 3.5 to generate responses for protein-encoding genes.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "GPT-3.5-generated responses for protein-encoding genes.",
+        "node_id": "gpt35_gene_responses",
+        "origin": "source_annotation",
+        "representation_type": "synthetic_gene_description_text",
+        "symbolic_shape": null,
+        "uncertainty": "The response format and alignment to source records are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "combined fine-tuning dataset",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Finalized fine-tuning dataset formed from the documented real, synthetic, and conditional NCBI-only branches.",
+        "node_id": "training_examples",
+        "origin": "source_annotation",
+        "representation_type": "fine_tuning_dataset",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not establish pairing, ordering, field structure, serialization, or the exact relation between rephrased descriptions and NCBI-only noncoding/pseudogene records."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "receiving model input during supervised fine-tuning",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "information_content": "Opaque model-input receipt derived from finalized supervised examples.",
+        "node_id": "gene_model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Prompt/target serialization, tokenizer, embedding representation, special tokens, padding, attention masks, loss masks, and teacher-forcing arrangement are unspecified. This node is not bound to the evaluation prompt example."
+      }
+    ],
+    "open_questions": [
+      "How are protein-encoding, noncoding, and pseudogene records selected and represented in the final datasets?",
+      "Are NCBI-derived and GPT-3.5-generated records paired by gene identifier or combined as separate examples?",
+      "Which tokenizer and chat template are used by each base LLM?",
+      "How are supervised response targets serialized and masked during SIFT?",
+      "Is the prompt used for GPT-3.5 synthetic generation identical to the prompt used for Geneverse supervised fine-tuning?",
+      "What exact relation connects the rephrased NCBI descriptions to the NCBI-only noncoding/pseudogene branch?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "gene_model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "Geneverse text LLM base models during supervised fine-tuning",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "NCBI text preparation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the real data, we use scripts to access the gene information from NCBI pages and rephrase the content of each gene with GPT 3.5 to normal sequence.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ncbi_gene_information",
+            "port_role": "source_gene_information"
+          }
+        ],
+        "operation_type": "gene_information_rephrasing",
+        "outputs": [
+          "ncbi_rephrased_descriptions"
+        ],
+        "step_id": "prepare_ncbi",
+        "uncertainty": null
+      },
+      {
+        "component": "Gene-type conditional branch",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To ensure the correctness of training datasets, we only focused on protein-encoding genes for the outputs of GPT 3.5.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ncbi_rephrased_descriptions",
+            "port_role": "rephrased_gene_records"
+          },
+          {
+            "node_id": "ncbi_gene_information",
+            "port_role": "original_ncbi_records"
+          }
+        ],
+        "operation_type": "gene_type_conditional_branching",
+        "outputs": [
+          "protein_encoding_gene_records",
+          "noncoding_pseudogene_records"
+        ],
+        "step_id": "branch_gene_types",
+        "uncertainty": "The paper states the conditional policy but does not document its implementation or establish the exact relation between the rephrased records and the NCBI-only branch."
+      },
+      {
+        "component": "GPT-3.5 synthetic response generation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "To collect the synthetic data, we use the same prompt to ask GPT 3.5 to generate responses for protein-encoding genes.",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "To ensure the correctness of training datasets, we only focused on protein-encoding genes for the outputs of GPT 3.5.",
+            "section_id": "sec_0018"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_encoding_gene_records",
+            "port_role": "protein_encoding_gene_records"
+          },
+          {
+            "node_id": "gpt35_generation_prompt",
+            "port_role": "generation_prompt"
+          }
+        ],
+        "operation_type": "synthetic_response_generation",
+        "outputs": [
+          "gpt35_gene_responses"
+        ],
+        "step_id": "generate_gpt35_responses",
+        "uncertainty": "The GPT-3.5 generation procedure and response alignment are opaque."
+      },
+      {
+        "component": "Real and synthetic dataset combination",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "While for noncoding genes and pseudogenes, we only used the descriptions from NCBI.",
+            "section_id": "sec_0018"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "ncbi_rephrased_descriptions",
+            "port_role": "real_dataset"
+          },
+          {
+            "node_id": "gpt35_gene_responses",
+            "port_role": "synthetic_dataset"
+          },
+          {
+            "node_id": "noncoding_pseudogene_records",
+            "port_role": "conditional_ncbi_only_dataset"
+          }
+        ],
+        "operation_type": "training_dataset_combination_and_formatting",
+        "outputs": [
+          "training_examples"
+        ],
+        "step_id": "combine_training_data",
+        "uncertainty": "The paper does not establish concatenation, pairing, ordering, or final example serialization; the relation between the real rephrased dataset and the conditional NCBI-only records remains unresolved."
+      },
+      {
+        "component": "Supervised instruction-fine-tuning input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We finetuned these models based on both Parameter-Efficient FineTuning (PEFT) technology and full-parameter finetuning technology, and the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+            "section_id": "sec_0011"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "By combining two dif- ferent datasets together, we finalize our finetuning datasets.",
+            "section_id": "sec_0012"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "training_examples",
+            "port_role": "finalized_supervised_examples"
+          }
+        ],
+        "operation_type": "supervised_instruction_fine_tuning_input_preparation",
+        "outputs": [
+          "gene_model_input"
+        ],
+        "step_id": "prepare_gene_model_input",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation, nor how prompts, response targets, masks, or teacher-forcing inputs are constructed."
+      }
+    ],
+    "task_configuration": "Supervised fine-tuning for gene-function description generation from a text instruction",
+    "trajectory_id": "geneverse_text_fine_tuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "Gemma-7B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| Gemma-7B (LoRA)    |           0.950 |              1.000 |     0.975 |  0.425 |    0.613 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "Gemma-7B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by Gemma-7B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "Gemma-7B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Gemma-7B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "gemma7b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "LLaMA2-13B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| LLaMA2-13B (LoRA)  |           0.900 |              1.000 |     0.950 |  0.374 |    0.600 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaMA2-13B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by LLaMA2-13B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "LLaMA2-13B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "LLaMA2-13B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "llama2_13b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "LLaMA2-7B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| LLaMA2-7B (LoRA)   |           0.850 |              1.000 |     0.925 |  0.395 |    0.580 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaMA2-7B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by LLaMA2-7B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "LLaMA2-7B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "LLaMA2-7B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "llama2_7b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "LLaMA3-8B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| LLaMA3-8B (LoRA)   |           0.900 |              1.000 |     0.950 |  0.324 |    0.541 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaMA3-8B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by LLaMA3-8B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "LLaMA3-8B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "LLaMA3-8B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "llama3_8b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "LLaMAPro-8B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| LLaMAPro-8B (LoRA) |           0.950 |              1.000 |     0.975 |  0.387 |    0.627 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaMAPro-8B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by LLaMAPro-8B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "LLaMAPro-8B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "LLaMAPro-8B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "llamapro8b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "prepare_prompt::1",
+        "component": "Mistral-7B prompt acceptance boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "prompt_to_model_input",
+          "source_port_roles": [
+            "instruction_prompt"
+          ]
+        },
+        "source_step_id": "prepare_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "table",
+        "quote": "| Mistral-7B (LoRA)  |           0.950 |              1.000 |     0.975 |  0.349 |    0.592 | Y             |",
+        "section_id": "sec_0017"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+        "section_id": "sec_0017"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "Mistral-7B",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "external instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "- Q: Please summarize the major function of gene: GLI1. Use academic language in one paragraph and include pathway information.",
+            "section_id": "sec_0030"
+          }
+        ],
+        "information_content": "Gene-function summarization instruction with gene name and output-format requirements.",
+        "node_id": "prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact benchmark prompt serialization and tokenizer details are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For an LLM, we set I as an empty item.",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text prompt input accepted by the evaluated LLM.",
+        "node_id": "model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, padding, and masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "Which tokenizer and chat template are used by Mistral-7B in evaluation?",
+      "Are gene names inserted into a fixed prompt template or supplied through another preprocessing step?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "model_input",
+        "port_role": "prompt_model_input"
+      }
+    ],
+    "recipient_component": "Mistral-7B language model",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Mistral-7B prompt acceptance boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Our task is to generate the summary of gene functions based on the prompt only containing the task description.",
+            "section_id": "sec_0017"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "which accepts the prompt P ( T, I, m ) as input",
+            "section_id": "sec_0010"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "prompt",
+            "port_role": "instruction_prompt"
+          }
+        ],
+        "operation_type": "prompt_to_model_input",
+        "outputs": [
+          "model_input"
+        ],
+        "step_id": "prepare_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      }
+    ],
+    "task_configuration": "Gene function description evaluation",
+    "trajectory_id": "mistral7b_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "encode_protein_image::1",
+        "component": "Protein image preparation and LLaVA image-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the protein task, we downloaded the protein structure images from the DeepMind Alphafold2 website (Jumper et al., 2021) with the fixed capture angle. We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_structure_image"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_image_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "protein_image_to_model_input",
+          "source_port_roles": [
+            "image"
+          ]
+        },
+        "source_step_id": "encode_protein_image",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "call_id": "prepare_protein_prompt::1",
+        "component": "Protein text-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_text_model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "protein_prompt_to_model_input",
+          "source_port_roles": [
+            "text_prompt"
+          ]
+        },
+        "source_step_id": "prepare_protein_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "call_id": "fuse_protein_inputs::1",
+        "component": "LLaVA multimodal image-text fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_text_model_input",
+            "protein_image_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_multimodal_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_image_text_fusion",
+          "source_port_roles": [
+            "text_input",
+            "image_input"
+          ]
+        },
+        "source_step_id": "fuse_protein_inputs",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      },
+      {
+        "call_id": "construct_protein_instruction_dataset::1",
+        "component": "Protein instruction-tuning dataset construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_structure_image",
+            "protein_multimodal_input"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_instruction_dataset"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_tuning_dataset_construction",
+          "source_port_roles": [
+            "loaded_image_information",
+            "representative_multimodal_example"
+          ]
+        },
+        "source_step_id": "construct_protein_instruction_dataset",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact instruction fields, response targets, example alignment, and relation between the representative multimodal input and the complete dataset are unspecified."
+      },
+      {
+        "call_id": "finetune_protein_llava::1",
+        "component": "LLaVA LoRA supervised fine-tuning boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We finetuned these models based on both Parameter-Efficient FineTuning (PEFT) technology and full-parameter finetuning technology, and the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_instruction_dataset",
+            "protein_multimodal_input"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_finetuning_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_supervised_fine_tuning",
+          "source_port_roles": [
+            "instruction_tuning_dataset",
+            "multimodal_training_receipt"
+          ]
+        },
+        "source_step_id": "finetune_protein_llava",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish prompt-target serialization, masking, batching, or the exact model-visible receipt."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "For the protein task, we downloaded the protein structure images from the DeepMind Alphafold2 website (Jumper et al., 2021) with the fixed capture angle. We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "LLaVA-7B (LoRA)",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "protein structure image",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the protein task, we downloaded the protein structure images from the DeepMind Alphafold2 website (Jumper et al., 2021) with the fixed capture angle.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Downloaded AlphaFold2 protein-structure raster image rendered at a fixed capture angle.",
+        "node_id": "protein_structure_image",
+        "origin": "source_annotation",
+        "representation_type": "protein_structure_raster",
+        "symbolic_shape": null,
+        "uncertainty": "Exact resolution, color encoding, crop, normalization, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text instruction",
+        "evidence": [
+          {
+            "kind": "vlm_description",
+            "quote": "l **a** includes a protein structure image and asks for the protein name; the LLM answer is “AF-O43280-F1.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "information_content": "Question associated with the protein structure image.",
+        "node_id": "protein_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "The figure gives a representative task instruction, but the exact fine-tuning prompt set is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "image-derived model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the protein task, we downloaded the protein structure images from the DeepMind Alphafold2 website (Jumper et al., 2021) with the fixed capture angle.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "information_content": "Opaque image-derived representation supplied to LLaVA.",
+        "node_id": "protein_image_features",
+        "origin": "source_annotation",
+        "representation_type": "image_derived_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Patchification, vision encoder, projector, feature axes, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque text-side input supplied to the multimodal model.",
+        "node_id": "protein_text_model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, and image-placeholder handling are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "multimodal generator input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque combined image-text representation received by LLaVA.",
+        "node_id": "protein_multimodal_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_image_text_representation",
+        "symbolic_shape": null,
+        "uncertainty": "Fusion algebra, insertion positions, receiving tensor representation, and attention masks are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "instruction-tuning dataset",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Instruction-tuning dataset constructed from the loaded protein-image information and task instructions.",
+        "node_id": "protein_instruction_dataset",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_instruction_dataset",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify dataset fields, prompt-response pairing, target answers, serialization, or masking."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "fine-tuning receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque supervised fine-tuning receipt supplied to LLaVA-7B with LoRA.",
+        "node_id": "protein_finetuning_receipt",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_supervised_fine_tuning_input",
+        "symbolic_shape": null,
+        "uncertainty": "The exact model-visible training representation and LoRA placement are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What LLaVA-v1.5 image preprocessing, vision encoder, projector, image-token placement, and attention masks are used?",
+      "What exact protein-task prompt and supervised target format are used?",
+      "How does the Pymol-loaded image information become the instruction-tuning dataset?",
+      "Does the documented training path differ from the test-time path used for the reported evaluation scores?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "protein_finetuning_receipt",
+        "port_role": "multimodal_model_input"
+      }
+    ],
+    "recipient_component": "LLaVA-7B (LoRA) multimodal generator during supervised fine-tuning",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Protein image preparation and LLaVA image-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the protein task, we downloaded the protein structure images from the DeepMind Alphafold2 website (Jumper et al., 2021) with the fixed capture angle. We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_structure_image",
+            "port_role": "image"
+          }
+        ],
+        "operation_type": "protein_image_to_model_input",
+        "outputs": [
+          "protein_image_features"
+        ],
+        "step_id": "encode_protein_image",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "component": "Protein text-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_prompt",
+            "port_role": "text_prompt"
+          }
+        ],
+        "operation_type": "protein_prompt_to_model_input",
+        "outputs": [
+          "protein_text_model_input"
+        ],
+        "step_id": "prepare_protein_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "component": "LLaVA multimodal image-text fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_text_model_input",
+            "port_role": "text_input"
+          },
+          {
+            "node_id": "protein_image_features",
+            "port_role": "image_input"
+          }
+        ],
+        "operation_type": "multimodal_image_text_fusion",
+        "outputs": [
+          "protein_multimodal_input"
+        ],
+        "step_id": "fuse_protein_inputs",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      },
+      {
+        "component": "Protein instruction-tuning dataset construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_structure_image",
+            "port_role": "loaded_image_information"
+          },
+          {
+            "node_id": "protein_multimodal_input",
+            "port_role": "representative_multimodal_example"
+          }
+        ],
+        "operation_type": "instruction_tuning_dataset_construction",
+        "outputs": [
+          "protein_instruction_dataset"
+        ],
+        "step_id": "construct_protein_instruction_dataset",
+        "uncertainty": "The exact instruction fields, response targets, example alignment, and relation between the representative multimodal input and the complete dataset are unspecified."
+      },
+      {
+        "component": "LLaVA LoRA supervised fine-tuning boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We finetuned these models based on both Parameter-Efficient FineTuning (PEFT) technology and full-parameter finetuning technology, and the finetuning setting is consistent with the Supervised Instruct Finetuning (SIFT) approach.",
+            "section_id": "sec_0011"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_instruction_dataset",
+            "port_role": "instruction_tuning_dataset"
+          },
+          {
+            "node_id": "protein_multimodal_input",
+            "port_role": "multimodal_training_receipt"
+          }
+        ],
+        "operation_type": "multimodal_supervised_fine_tuning",
+        "outputs": [
+          "protein_finetuning_receipt"
+        ],
+        "step_id": "finetune_protein_llava",
+        "uncertainty": "The paper does not establish prompt-target serialization, masking, batching, or the exact model-visible receipt."
+      }
+    ],
+    "task_configuration": "Protein classification from AlphaFold2 protein-structure images",
+    "trajectory_id": "llava7b_lora_protein_fine_tuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "encode_protein_eval_image::1",
+        "component": "Protein evaluation image-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_test_image"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_eval_image_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "protein_image_to_model_input",
+          "source_port_roles": [
+            "image"
+          ]
+        },
+        "source_step_id": "encode_protein_eval_image",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "call_id": "prepare_protein_eval_prompt::1",
+        "component": "Protein evaluation text-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "vlm_description",
+            "quote": "l **a** includes a protein structure image and asks for the protein name; the LLM answer is “AF-O43280-F1.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_eval_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_eval_text_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "protein_prompt_to_model_input",
+          "source_port_roles": [
+            "text_prompt"
+          ]
+        },
+        "source_step_id": "prepare_protein_eval_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "call_id": "fuse_protein_eval_inputs::1",
+        "component": "LLaVA protein evaluation fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |            0.29 |                  1 |     0.645 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "protein_eval_text_input",
+            "protein_eval_image_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "protein_eval_multimodal_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_image_text_fusion",
+          "source_port_roles": [
+            "text_input",
+            "image_input"
+          ]
+        },
+        "source_step_id": "fuse_protein_eval_inputs",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "table",
+        "quote": "| LLaVA-7B (LoRA) |            0.29 |                  1 |     0.645 | Y             |",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaVA-7B (LoRA)",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "test protein structure image",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "AlphaFold2 protein-structure raster image used in the protein-classification evaluation.",
+        "node_id": "protein_test_image",
+        "origin": "source_annotation",
+        "representation_type": "protein_structure_raster",
+        "symbolic_shape": null,
+        "uncertainty": "Exact resolution, color encoding, crop, normalization, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "evaluation text instruction",
+        "evidence": [
+          {
+            "kind": "vlm_description",
+            "quote": "l **a** includes a protein structure image and asks for the protein name; the LLM answer is “AF-O43280-F1.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "information_content": "Protein-identification question associated with the test image.",
+        "node_id": "protein_eval_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact prompt serialization is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "image-derived model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "information_content": "Opaque image-derived representation supplied to LLaVA during evaluation.",
+        "node_id": "protein_eval_image_features",
+        "origin": "source_annotation",
+        "representation_type": "image_derived_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Patchification, vision encoder, projector, feature axes, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text-side input supplied to the multimodal model during evaluation.",
+        "node_id": "protein_eval_text_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, and image-placeholder handling are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "multimodal generator input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |            0.29 |                  1 |     0.645 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Opaque combined image-text representation received by LLaVA during protein-task evaluation.",
+        "node_id": "protein_eval_multimodal_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_image_text_representation",
+        "symbolic_shape": null,
+        "uncertainty": "Fusion algebra, insertion positions, receiving tensor representation, and attention masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "What LLaVA image preprocessing, vision encoder, projector, image-token placement, and attention masks are used at evaluation?",
+      "What exact protein-task evaluation prompt serialization is used?",
+      "Does test-time preprocessing differ from the documented training path?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "protein_eval_multimodal_input",
+        "port_role": "multimodal_model_input"
+      }
+    ],
+    "recipient_component": "LLaVA-7B (LoRA) multimodal generator during protein-task evaluation",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Protein evaluation image-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The images of protein structure for training and testing come from the databases of AlphaFold2 (Jumper et al., 2021).",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_test_image",
+            "port_role": "image"
+          }
+        ],
+        "operation_type": "protein_image_to_model_input",
+        "outputs": [
+          "protein_eval_image_features"
+        ],
+        "step_id": "encode_protein_eval_image",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "component": "Protein evaluation text-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "vlm_description",
+            "quote": "l **a** includes a protein structure image and asks for the protein name; the LLM answer is “AF-O43280-F1.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_eval_prompt",
+            "port_role": "text_prompt"
+          }
+        ],
+        "operation_type": "protein_prompt_to_model_input",
+        "outputs": [
+          "protein_eval_text_input"
+        ],
+        "step_id": "prepare_protein_eval_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "component": "LLaVA protein evaluation fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |            0.29 |                  1 |     0.645 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "protein_eval_text_input",
+            "port_role": "text_input"
+          },
+          {
+            "node_id": "protein_eval_image_features",
+            "port_role": "image_input"
+          }
+        ],
+        "operation_type": "multimodal_image_text_fusion",
+        "outputs": [
+          "protein_eval_multimodal_input"
+        ],
+        "step_id": "fuse_protein_eval_inputs",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      }
+    ],
+    "task_configuration": "Protein classification evaluation from AlphaFold2 protein-structure images",
+    "trajectory_id": "llava7b_lora_protein_evaluation"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "encode_marker_image::1",
+        "component": "Spatial image preparation and LLaVA image-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "spatial_transcriptomics_image"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_image_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "spatial_image_to_model_input",
+          "source_port_roles": [
+            "image"
+          ]
+        },
+        "source_step_id": "encode_marker_image",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "call_id": "prepare_marker_prompt::1",
+        "component": "Marker-gene text-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_gene_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_text_model_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "marker_prompt_to_model_input",
+          "source_port_roles": [
+            "text_prompt"
+          ]
+        },
+        "source_step_id": "prepare_marker_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "call_id": "fuse_marker_inputs::1",
+        "component": "LLaVA multimodal image-text fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_text_model_input",
+            "marker_image_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_multimodal_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_image_text_fusion",
+          "source_port_roles": [
+            "text_input",
+            "image_input"
+          ]
+        },
+        "source_step_id": "fuse_marker_inputs",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      },
+      {
+        "call_id": "construct_marker_instruction_dataset::1",
+        "component": "Marker-gene instruction-tuning dataset construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "spatial_transcriptomics_image",
+            "marker_multimodal_input"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_instruction_dataset"
+          ]
+        },
+        "parameters": {
+          "source_operation": "instruction_tuning_dataset_construction",
+          "source_port_roles": [
+            "task_image_information",
+            "representative_multimodal_example"
+          ]
+        },
+        "source_step_id": "construct_marker_instruction_dataset",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The exact instruction fields, response targets, example alignment, and relation between the representative multimodal input and the complete dataset are unspecified."
+      },
+      {
+        "call_id": "finetune_marker_llava::1",
+        "component": "LLaVA LoRA supervised fine-tuning boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_instruction_dataset",
+            "marker_multimodal_input"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_finetuning_receipt"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_supervised_fine_tuning",
+          "source_port_roles": [
+            "instruction_tuning_dataset",
+            "multimodal_training_receipt"
+          ]
+        },
+        "source_step_id": "finetune_marker_llava",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish prompt-target serialization, masking, batching, or the exact model-visible receipt."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+        "section_id": "sec_0013"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+        "section_id": "sec_0013"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "fine_tuning",
+    "model_role": "primary_model",
+    "model_variant": "LLaVA-7B (LoRA)",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "spatial transcriptomics image",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Image depicting spatial transcriptomic information from human breast tissue.",
+        "node_id": "spatial_transcriptomics_image",
+        "origin": "source_annotation",
+        "representation_type": "spatial_transcriptomics_raster",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify image rendering, color scale, gene selection, legends, or normalization."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text instruction",
+        "evidence": [
+          {
+            "kind": "vlm_description",
+            "quote": "l **b** includes a histology/microscopy image and asks whether gene **APOC1** is a marker gene of **macrophage** cell type; the LLM answer is “Yes.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "information_content": "Question asking whether a named gene is a marker gene for a named cell type.",
+        "node_id": "marker_gene_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "The figure gives a representative task instruction, but the exact fine-tuning prompt set is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "image-derived model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Opaque image-derived spatial-transcriptomics representation supplied to LLaVA.",
+        "node_id": "marker_image_features",
+        "origin": "source_annotation",
+        "representation_type": "image_derived_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Patchification, vision encoder, projector, feature axes, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque text-side input supplied to the multimodal model.",
+        "node_id": "marker_text_model_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, and image-placeholder handling are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "multimodal generator input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque combined image-text representation received by LLaVA.",
+        "node_id": "marker_multimodal_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_image_text_representation",
+        "symbolic_shape": null,
+        "uncertainty": "Fusion algebra, insertion positions, receiving tensor representation, and attention masks are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "instruction-tuning dataset",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Marker-gene instruction-tuning dataset constructed using the task-specific image dataset and instructions.",
+        "node_id": "marker_instruction_dataset",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_instruction_dataset",
+        "symbolic_shape": null,
+        "uncertainty": "The paper does not specify dataset fields, prompt-response pairing, target answers, serialization, or masking."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "fine-tuning receipt",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque supervised fine-tuning receipt supplied to LLaVA-7B with LoRA.",
+        "node_id": "marker_finetuning_receipt",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_supervised_fine_tuning_input",
+        "symbolic_shape": null,
+        "uncertainty": "The exact model-visible training representation and LoRA placement are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are spatial transcriptomic values and cell locations rendered into the image?",
+      "What LLaVA image preprocessing, vision encoder, projector, image-token placement, and attention masks are used?",
+      "What exact marker-gene prompt and target serialization are used?",
+      "How does the task-specific image and instruction set become the instruction-tuning dataset?",
+      "Does the documented training path differ from the test-time path used for the reported evaluation scores?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "marker_finetuning_receipt",
+        "port_role": "multimodal_model_input"
+      }
+    ],
+    "recipient_component": "LLaVA-7B (LoRA) multimodal generator during supervised fine-tuning",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Spatial image preparation and LLaVA image-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "spatial_transcriptomics_image",
+            "port_role": "image"
+          }
+        ],
+        "operation_type": "spatial_image_to_model_input",
+        "outputs": [
+          "marker_image_features"
+        ],
+        "step_id": "encode_marker_image",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "component": "Marker-gene text-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_gene_prompt",
+            "port_role": "text_prompt"
+          }
+        ],
+        "operation_type": "marker_prompt_to_model_input",
+        "outputs": [
+          "marker_text_model_input"
+        ],
+        "step_id": "prepare_marker_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "component": "LLaVA multimodal image-text fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "The base model we choose for finetuning is from LLaVA-v1.5, which is recommended in the tutorials of LLaVA.",
+            "section_id": "sec_0028"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_text_model_input",
+            "port_role": "text_input"
+          },
+          {
+            "node_id": "marker_image_features",
+            "port_role": "image_input"
+          }
+        ],
+        "operation_type": "multimodal_image_text_fusion",
+        "outputs": [
+          "marker_multimodal_input"
+        ],
+        "step_id": "fuse_marker_inputs",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      },
+      {
+        "component": "Marker-gene instruction-tuning dataset construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We load the image information using Pymol (Yuan et al., 2017) and construct the instruction tuning dataset.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "spatial_transcriptomics_image",
+            "port_role": "task_image_information"
+          },
+          {
+            "node_id": "marker_multimodal_input",
+            "port_role": "representative_multimodal_example"
+          }
+        ],
+        "operation_type": "instruction_tuning_dataset_construction",
+        "outputs": [
+          "marker_instruction_dataset"
+        ],
+        "step_id": "construct_marker_instruction_dataset",
+        "uncertainty": "The exact instruction fields, response targets, example alignment, and relation between the representative multimodal input and the complete dataset are unspecified."
+      },
+      {
+        "component": "LLaVA LoRA supervised fine-tuning boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "We then finetune LLaVA with LoRA based on our datasets.",
+            "section_id": "sec_0013"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_instruction_dataset",
+            "port_role": "instruction_tuning_dataset"
+          },
+          {
+            "node_id": "marker_multimodal_input",
+            "port_role": "multimodal_training_receipt"
+          }
+        ],
+        "operation_type": "multimodal_supervised_fine_tuning",
+        "outputs": [
+          "marker_finetuning_receipt"
+        ],
+        "step_id": "finetune_marker_llava",
+        "uncertainty": "The paper does not establish prompt-target serialization, masking, batching, or the exact model-visible receipt."
+      }
+    ],
+    "task_configuration": "Marker-gene identification from spatial transcriptomic images",
+    "trajectory_id": "llava7b_lora_marker_gene_fine_tuning"
+  },
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "encode_marker_eval_image::1",
+        "component": "Spatial evaluation image-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_test_image"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_eval_image_features"
+          ]
+        },
+        "parameters": {
+          "source_operation": "spatial_image_to_model_input",
+          "source_port_roles": [
+            "image"
+          ]
+        },
+        "source_step_id": "encode_marker_eval_image",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "call_id": "prepare_marker_eval_prompt::1",
+        "component": "Marker evaluation text-input boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "vlm_description",
+            "quote": "l **b** includes a histology/microscopy image and asks whether gene **APOC1** is a marker gene of **macrophage** cell type; the LLM answer is “Yes.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_eval_prompt"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_eval_text_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "marker_prompt_to_model_input",
+          "source_port_roles": [
+            "text_prompt"
+          ]
+        },
+        "source_step_id": "prepare_marker_eval_prompt",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "call_id": "fuse_marker_eval_inputs::1",
+        "component": "LLaVA marker-gene evaluation fusion boundary",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |             0.9 |                  1 |      0.95 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": {
+          "source_operands": [
+            "marker_eval_text_input",
+            "marker_eval_image_features"
+          ]
+        },
+        "operation_id": null,
+        "outputs": {
+          "source_results": [
+            "marker_eval_multimodal_input"
+          ]
+        },
+        "parameters": {
+          "source_operation": "multimodal_image_text_fusion",
+          "source_port_roles": [
+            "text_input",
+            "image_input"
+          ]
+        },
+        "source_step_id": "fuse_marker_eval_inputs",
+        "status": "unexpanded_source_boundary",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+        "section_id": "sec_0019"
+      },
+      {
+        "kind": "table",
+        "quote": "| LLaVA-7B (LoRA) |             0.9 |                  1 |      0.95 | Y             |",
+        "section_id": "sec_0019"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "evaluation",
+    "model_role": "primary_model",
+    "model_variant": "LLaVA-7B (LoRA)",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "test spatial transcriptomics image",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Spatial-transcriptomics image from human breast tissue used in marker-gene evaluation.",
+        "node_id": "marker_test_image",
+        "origin": "source_annotation",
+        "representation_type": "spatial_transcriptomics_raster",
+        "symbolic_shape": null,
+        "uncertainty": "Image rendering, color scale, gene selection, legends, and normalization are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "evaluation text instruction",
+        "evidence": [
+          {
+            "kind": "vlm_description",
+            "quote": "l **b** includes a histology/microscopy image and asks whether gene **APOC1** is a marker gene of **macrophage** cell type; the LLM answer is “Yes.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "information_content": "Question asking whether a named gene is a marker gene for a named cell type.",
+        "node_id": "marker_eval_prompt",
+        "origin": "source_annotation",
+        "representation_type": "instruction_text",
+        "symbolic_shape": null,
+        "uncertainty": "Exact prompt serialization is unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "image-derived model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "information_content": "Opaque image-derived spatial-transcriptomics representation supplied to LLaVA during evaluation.",
+        "node_id": "marker_eval_image_features",
+        "origin": "source_annotation",
+        "representation_type": "image_derived_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Patchification, vision encoder, projector, feature axes, and image-token layout are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "text model input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          }
+        ],
+        "information_content": "Opaque text-side input supplied to the multimodal model during evaluation.",
+        "node_id": "marker_eval_text_input",
+        "origin": "source_annotation",
+        "representation_type": "text_model_input",
+        "symbolic_shape": null,
+        "uncertainty": "Tokenizer, embedding representation, special tokens, and image-placeholder handling are unspecified."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "multimodal generator input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |             0.9 |                  1 |      0.95 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "information_content": "Opaque combined image-text representation received by LLaVA during marker-gene evaluation.",
+        "node_id": "marker_eval_multimodal_input",
+        "origin": "source_annotation",
+        "representation_type": "multimodal_image_text_representation",
+        "symbolic_shape": null,
+        "uncertainty": "Fusion algebra, insertion positions, receiving tensor representation, and attention masks are unspecified."
+      }
+    ],
+    "open_questions": [
+      "How are spatial transcriptomic values and cell locations rendered into the evaluation image?",
+      "What LLaVA image preprocessing, vision encoder, projector, image-token placement, and attention masks are used?",
+      "What exact marker-gene evaluation prompt serialization is used?",
+      "Does test-time preprocessing differ from the documented training path?"
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "marker_eval_multimodal_input",
+        "port_role": "multimodal_model_input"
+      }
+    ],
+    "recipient_component": "LLaVA-7B (LoRA) multimodal generator during marker-gene evaluation",
+    "record_id": "full_2026-07-06__rec_003043",
+    "source_steps": [
+      {
+        "component": "Spatial evaluation image-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The spatial transcriptomic data for training and testing come from (Lin et al., 2020) collected from human breast tissue.",
+            "section_id": "sec_0019"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "For the marker gene task, the pipeline is the same but we utilize different image datasets (Lin et al., 2020) as well as different instructions.",
+            "section_id": "sec_0013"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_test_image",
+            "port_role": "image"
+          }
+        ],
+        "operation_type": "spatial_image_to_model_input",
+        "outputs": [
+          "marker_eval_image_features"
+        ],
+        "step_id": "encode_marker_eval_image",
+        "uncertainty": "The paper does not establish the internal image-processing order or representation layout."
+      },
+      {
+        "component": "Marker evaluation text-input boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "vlm_description",
+            "quote": "l **b** includes a histology/microscopy image and asks whether gene **APOC1** is a marker gene of **macrophage** cell type; the LLM answer is “Yes.”",
+            "section_id": "sec_0029"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_eval_prompt",
+            "port_role": "text_prompt"
+          }
+        ],
+        "operation_type": "marker_prompt_to_model_input",
+        "outputs": [
+          "marker_eval_text_input"
+        ],
+        "step_id": "prepare_marker_eval_prompt",
+        "uncertainty": "The paper does not document a separate serialization or tokenization operation."
+      },
+      {
+        "component": "LLaVA marker-gene evaluation fusion boundary",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "For an MLLM, we use both T and I .",
+            "section_id": "sec_0010"
+          },
+          {
+            "kind": "table",
+            "quote": "| LLaVA-7B (LoRA) |             0.9 |                  1 |      0.95 | Y             |",
+            "section_id": "sec_0019"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "marker_eval_text_input",
+            "port_role": "text_input"
+          },
+          {
+            "node_id": "marker_eval_image_features",
+            "port_role": "image_input"
+          }
+        ],
+        "operation_type": "multimodal_image_text_fusion",
+        "outputs": [
+          "marker_eval_multimodal_input"
+        ],
+        "step_id": "fuse_marker_eval_inputs",
+        "uncertainty": "The selected LLaVA-7B path does not establish the fusion algebra, insertion positions, or receiving tensor representation."
+      }
+    ],
+    "task_configuration": "Marker-gene identification evaluation from spatial transcriptomic images",
+    "trajectory_id": "llava7b_lora_marker_gene_evaluation"
+  }
+]

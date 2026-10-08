@@ -1,0 +1,202 @@
+{
+  "coverage_summary": "The three GPT-2 Small pretraining task paths partially cover preprocessing, prompting, and BPE tokenization. The reconstruction omits plaintext cell-sentence serialization, dataset sampling/splitting, GPT-2 Medium, fine-tuning, inference sampling, EOS handling, and documented post-generation transformations.",
+  "findings": [
+    {
+      "detail": "The top-100 select call outputs a node represented as a plaintext gene-name sequence, but selection alone does not create the documented plaintext cell sentence. This defect is repeated in the other two trajectories.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "C2S transforms each cell's gene expression profile into a plaintext sequence of gene names (also known as gene symbols) ordered by expression level",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the sequence of gene names resulting from S (C i ) as cell sentence s i",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add a serialize call after top-100 selection, preserving gene order while leaving delimiters unspecified; state the select criterion explicitly as top 100 genes.",
+      "severity": "blocking",
+      "step_id": "prepare_cell_sentence",
+      "trajectory_id": "gpt2_small_c2s_pretraining_unconditional"
+    },
+    {
+      "detail": "The top-100 select call outputs a node represented as a plaintext gene-name sequence, but selection alone does not create the documented plaintext cell sentence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "C2S transforms each cell's gene expression profile into a plaintext sequence of gene names (also known as gene symbols) ordered by expression level",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we truncate each cell sentence to only keep the 100 highest expressed (top 100 ranked) genes",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add a serialize call after top-100 selection and record the explicit top-100 limit.",
+      "severity": "blocking",
+      "step_id": "prepare_cell_sentence",
+      "trajectory_id": "gpt2_small_c2s_pretraining_conditional"
+    },
+    {
+      "detail": "The top-100 select call outputs a node represented as a plaintext gene-name sequence, but selection alone does not create the documented plaintext cell sentence.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "C2S transforms each cell's gene expression profile into a plaintext sequence of gene names (also known as gene symbols) ordered by expression level",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we truncate each cell sentence to only keep the 100 highest expressed (top 100 ranked) genes",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Add a serialize call after top-100 selection and record the explicit top-100 limit.",
+      "severity": "blocking",
+      "step_id": "prepare_cell_sentence",
+      "trajectory_id": "gpt2_small_c2s_pretraining_cell_type_prediction"
+    },
+    {
+      "detail": "The documented dataset construction is absent: there is no sampling operation or train/validation/test split before the pretraining paths.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We construct our dataset by sampling 49,920 cells from a large dataset of human immune tissue cells [39]. We apply the previously outlined normalization steps and convert to cell sentences. We split the resulting cell sentences into training (39,936), validation (4,992), and test (4,992) sets.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the documented cell sampling and the explicit training, validation, and test partitions, or state that these dataset-level operations are intentionally outside the assembly.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "GPT-2 Medium is present in the atlas seed but has no trajectory or operation assembly in the document.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We train four GPT-2 models [26] on a corpus of cell sentences sampled from [39].",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The GPT-2 small model is initialized with 12 layers and 768 hidden dimensions, and the medium model with 24 layers and 1024 hidden dimensions",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add GPT-2 Medium coverage for the documented task and lifecycle configurations, or provide an evidence-backed exclusion decision.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "Only pretraining trajectories are reconstructed, while the paper explicitly reports fine-tuning pretrained GPT-2 models and provides a distinct labels-only fine-tuning procedure.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "While we pretrain models exclusively on cell sentences, we also experiment with fine-tuning pretrained GPT-2 models.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Unlike for our pretraining setup, we apply the instruction fine-tuning task in a classical manner, computing the loss exclusively on labels.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add fine-tuning lifecycle paths for the small and medium models, including pretrained-weight initialization, pretrained-tokenizer use, and labels-only loss.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The document has no inference phase, although the paper specifies prompt construction, top-p/top-k sampling, and autoregressive generation for the tasks.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "At inference, we follow the training procedure in Section 3.2",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We set the hyperparameters top_p = 0 . 95 and top_k = 50 to promote diversity in cell generation.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For conditional cell generation and unconditional cell generation used in our experiments from Section 2.2, we randomly sample prompt templates as input, inserting the cell type where needed for conditional generation.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add inference trajectories and preserve the prompt-template branches, conditional cell-type insertion, autoregressive model boundary, and sampling call with top_p 0.95 and top_k 50.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "The tokenizer node says special-token handling is unspecified, but the paper explicitly documents EOS insertion and EOS-based stopping.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "All outputs are generated until an end-of-sequence (EOS) token is predicted, which was appended to all training samples.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record EOS as a documented training-sample token and generation stopping condition; leave only other unspecified special-token details uncertain.",
+      "severity": "minor",
+      "step_id": "tokenize_prompt",
+      "trajectory_id": "gpt2_small_c2s_pretraining_unconditional"
+    },
+    {
+      "detail": "The proposed regex extraction is not represented in any trajectory, despite the paper documenting post-generation prompt removal.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Post-generation, gene and cell type extraction is done using regex to remove prompts.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the post-generation regex operation as an opaque boundary with its documented input/output relation and preserve regex details as unknown.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    },
+    {
+      "detail": "Documented post-generation handling and inverse expression reconstruction are absent, including invalid-gene replacement, duplicate-rank averaging, fitted linear conversion, and zero filling for absent genes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Generated cell sentences output by different models are first run through a postprocessing procedure which replaces any invalid generated gene names with a special ignore token, and averages the rank of any duplicate genes",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The fitted linear model parameters are then applied to the log of the rank of the generated genes to convert the sequence of genes back to an expression vector.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "any genes which are not present in the generated cell sentence are considered to have zero expression, and are filled with zeros in the resulting expression vector.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented output postprocessing and inverse-transformation branch, using existing operations where justified and an opaque boundary where the paper omits algebraic detail.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "record_coverage"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_003206",
+  "verdict": "revise"
+}

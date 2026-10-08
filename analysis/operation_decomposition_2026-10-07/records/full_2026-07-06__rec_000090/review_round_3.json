@@ -1,0 +1,212 @@
+{
+  "coverage_summary": "The reconstruction captures the main cell-sentence, tokenizer, embedding, prompt, spatial-interaction, perturbation, and virtual-screen concepts. Several blocking issues remain: one pretraining route is supported by downstream evidence, spatial branches omit documented transformations and controls, SciPlex pathway handling is over-decomposed, and perturbation objectives are merged without preserving their separate directions.",
+  "findings": [
+    {
+      "detail": "This trajectory is labeled as pretraining multiple-cell language modeling, but its evidence and sampling step describe downstream cluster captioning. The paper’s pretraining table identifies multiple-cell language modeling separately, while the cited two-cell cluster sampling belongs to the cluster-captioning task.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each training sample, we randomly sampled two cells from a cluster to form a multi-cell context prompt",
+          "section_id": "sec_0036"
+        },
+        {
+          "kind": "table",
+          "quote": "Multiple cell language modeling           | Multi-cell  | -                            | Multiple cell sentences",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For multi-cell tasks, multiple cells are sampled from the same donor sample with the same tissue label.",
+          "section_id": "sec_0023"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Separate the pretraining multiple-cell language-modeling route from the fine-tuned cluster-captioning route. Use the documented donor/tissue sampling description for the pretraining route and retain two-cell cluster sampling plus caption output only for cluster captioning.",
+      "severity": "blocking",
+      "step_id": "sample_multicell_context",
+      "trajectory_id": "c2s_scale_multicell_pretraining"
+    },
+    {
+      "detail": "The condition-matched pairing step binds pseudo-bulk expression profiles to the select operation’s selectors port. The paper documents random sampling of ten single-cell samples from matching conditions; pseudo-bulk profiles are data objects, not selection indices or masks.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each pseudo-bulk sample, we randomly sampled ten single-cell samples from the same conditions to construct pairs.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the condition correspondence with an explicit condition-key/context operand or retain the pairing as an opaque boundary. Use a sampling/selection decomposition whose controls are condition selectors, rather than binding pseudo_bulk_profiles directly as selectors.",
+      "severity": "blocking",
+      "step_id": "sample_paired_single_cells",
+      "trajectory_id": "c2s_scale_bulk_integration"
+    },
+    {
+      "detail": "The spatial expression-to-sentence transformation is left opaque even though the paper documents the shared transformation elsewhere: rank genes by expression, retain the top K, and serialize gene names as a sentence. The spatial section explicitly states that these cell sentences are the prompt inputs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The cell sentence for X is constructed by rank-ordering the genes within a cell by their expression levels and taking the K most highly expressed",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The gene names are in natural language, forming a sentence interpretable by language models",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "To construct prompts, cell sentences were randomly sampled from the appropriate data split.",
+          "section_id": "sec_0038"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Decompose the spatial expression-to-sentence path into rank, top-K selection, and text serialization using the shared operations. Keep K and exact gene-identifier mapping unspecified where the paper does not establish them.",
+      "severity": "blocking",
+      "step_id": "convert_spatial_profiles_to_sentences",
+      "trajectory_id": "c2s_scale_spatial_tasks"
+    },
+    {
+      "detail": "The positive-neighborhood selection claims to select cells around a sampled central cell using a 0.02-pixel radius, but the graph supplies only the full spatial coordinate table and no sampled-center or neighborhood-control operand.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We define a neighborhood to be a radius of 0.02 pixels (approximately 20 µ m)",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Multi-cell contexts were created by taking all cells in the sampled cell's neighborhood for positive samples",
+          "section_id": "sec_0038"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add an explicit sampled-cell/neighborhood control with the coordinate correspondence, or retain neighborhood construction as an opaque boundary. Do not encode the central-cell selection solely as an unbound parameter.",
+      "severity": "blocking",
+      "step_id": "select_positive_spatial_context",
+      "trajectory_id": "c2s_scale_spatial_tasks"
+    },
+    {
+      "detail": "The negative sampling step claims a distribution restricted outside the sampled neighborhood, but its only input is the unrestricted spatial cell-sentence pool. The exclusion condition is therefore asserted in a parameter without a bound control.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "or an equivalent number of randomly sampled cells outside the neighborhood as negative samples.",
+          "section_id": "sec_0038"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Supply the sampled neighborhood or an explicit exclusion mask/context to the sampling call, or represent the outside-neighborhood sampling boundary opaquely.",
+      "severity": "blocking",
+      "step_id": "sample_negative_spatial_context",
+      "trajectory_id": "c2s_scale_spatial_tasks"
+    },
+    {
+      "detail": "The four spatial tasks are collapsed into one prompt-construction boundary with only positive and negative contexts as inputs. The paper documents distinct task queries and outputs—neighborhood prediction, neighbor generation, niche-label prediction, and same-niche prediction—and the examples show task-specific instructions.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "1. Spatial neighborhood prediction: Given multiple cell sentences, predict whether these cells come from the same neighborhood. 2. Conditional neighbor generation: Given multiple cell sentences from a neighborhood, generate a novel cell sentence that would belong to the same neighborhood. 3. Niche label prediction: Given a cell sentence for a single cell, predict the niche label annotation for that cell. 4. Same niche prediction: Given multiple cell sentences, predict whether all of these cells have the same niche label or different niches.",
+          "section_id": "sec_0038"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The following are 6 cell sentences from human liver tissue. Determine if these cells belong to the same spatial neighborhood.",
+          "section_id": "sec_0072"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Create task-specific prompt branches or add a documented task-instruction operand and preserve the single-cell versus multi-cell input differences. Keep positive and negative neighborhood cases conditional rather than presenting both as simultaneous prompt inputs.",
+      "severity": "blocking",
+      "step_id": "construct_spatial_task_prompt",
+      "trajectory_id": "c2s_scale_spatial_tasks"
+    },
+    {
+      "detail": "The SciPlex branch is decomposed as a serialize operation that writes pathway information into the same perturbation_prompt. The cited paper text establishes a replacement of RDKit embeddings with pathway information, but does not establish textual serialization or its placement in the prompt.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To limit token usage and sequence length, C2S models utilized pathway information contained in the SciPlex data rather than RDKit embeddings.",
+          "section_id": "sec_0040"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Represent the SciPlex pathway-versus-RDKit substitution as an opaque conditional input/context boundary, or provide evidence for its textual placement before using serialize. Preserve the replacement relation without inventing prompt fusion algebra.",
+      "severity": "blocking",
+      "step_id": "add_sciplex_pathway_context",
+      "trajectory_id": "c2s_scale_perturbation_prediction"
+    },
+    {
+      "detail": "The perturbation route presents one universal serialization of source sentence, condition metadata, and instruction, while the paper documents two objectives with bidirectional relationships: cell-sentence generation and natural-language label prediction. The current chain does not preserve the reverse label-prediction branch or objective-specific prompt paths.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the first stage, the model was fine-tuned using supervised learning on both cell sentence generation and natural language label prediction, where it simultaneously predicted all three labels-cell type, perturbation, and exposure-ensuring it learned bidirectional relationships between conditions and gene expression.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Prompt: Analyze how IL-6 affects the expression hierarchy of CD4 T cells, presented as an ordered list of genes by decreasing expression in 'Source:', under chronic stimulation.",
+          "section_id": "sec_0069"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent separate generation and label-prediction branches, with dataset-specific condition placement, or retain the objective-specific prompt construction as an opaque boundary. Do not imply one shared serialization for both directions.",
+      "severity": "blocking",
+      "step_id": "construct_perturbation_prompt",
+      "trajectory_id": "c2s_scale_perturbation_prediction"
+    },
+    {
+      "detail": "The virtual-screen replicate step leaves replicate counts unspecified even though the paper gives distinct documented branches: three perturbations per bulk tumor sample and twenty perturbations for each of twenty representative WAGA cells. The current conditions identify the branches but omit these parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each bulk tumor sample was perturbed in silico with every drug in the library three times",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the WAGA cell line, 20 representative cells were each perturbed 20 times with every drug",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Replicates corresponded to independent forward passes through the model, with stochastic sampling at a temperature of 0.3 to introduce variability across predictions.",
+          "section_id": "sec_0042"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the branch-specific replicate counts and source populations while retaining temperature 0.3 and independent forward-pass sampling.",
+      "severity": "minor",
+      "step_id": "sample_delta_replicates",
+      "trajectory_id": "c2s_scale_perturbation_model_virtual_screen"
+    },
+    {
+      "detail": "The virtual-screen chain ends at the predicted transcriptome and omits the documented antigen-presentation scoring transformation used to obtain screening results.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Antigen-presentation activity was quantified by calculating enrichment scores for each perturbed profile.",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We applied single-sample gene set enrichment analysis (ssGSEA) with the 'Class I MHC-mediated antigen processing and presentation' gene set",
+          "section_id": "sec_0042"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Scores were aggregated across replicates for each drug and z-scored.",
+          "section_id": "sec_0042"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an opaque postprocessing boundary for ssGSEA, replicate aggregation, and z-scoring, since the operation catalog has no gene-set enrichment primitive.",
+      "severity": "minor",
+      "step_id": "add_effects_to_control",
+      "trajectory_id": "c2s_scale_perturbation_model_virtual_screen"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_000090",
+  "verdict": "revise"
+}

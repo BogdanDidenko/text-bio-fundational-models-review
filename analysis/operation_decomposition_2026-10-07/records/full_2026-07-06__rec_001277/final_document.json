@@ -1,0 +1,4295 @@
+{
+  "coverage_questions": [
+    "The atlas lists Clinical-LongFormer with two routes; the paper documents its textual-encoder route and reliability-screening route, but does not document a separate generative-backbone receipt for Clinical-LongFormer.",
+    "The paper does not specify the exact Clinical-LongFormer tokenizer, pooling implementation, or text feature layout beyond a 768-dimensional feature output.",
+    "The relative placement of non-zero filtering, 1200-gene random sampling, and zero-retaining expression binning is not fully established by the paper."
+  ],
+  "operation_proposals": [
+    {
+      "compared_operation_ids": [
+        "add",
+        "normalize",
+        "project"
+      ],
+      "source_operation": "cosine_similarity",
+      "why_no_existing_operation": "The paper explicitly computes cosine similarity between two feature vectors; the catalog has no cosine-similarity primitive."
+    },
+    {
+      "compared_operation_ids": [
+        "lookup",
+        "rank",
+        "select"
+      ],
+      "source_operation": "top_k_semantic_retrieval",
+      "why_no_existing_operation": "The paper describes vector-database semantic search followed by top-K retrieval; no catalog operation represents nearest-neighbor retrieval over a vector database."
+    },
+    {
+      "compared_operation_ids": [
+        "serialize",
+        "tokenize",
+        "self_attention"
+      ],
+      "source_operation": "llm_text_generation",
+      "why_no_existing_operation": "The paper describes Deepseek-V3 generation from a combined prompt sequence, but the catalog contains no language-model generation operation."
+    },
+    {
+      "compared_operation_ids": [
+        "concatenate"
+      ],
+      "source_operation": "biomedical_source_integration",
+      "why_no_existing_operation": "The paper describes aggregating domain-specific resources into a corpus, but does not establish an ordered concatenation interface or equivalent catalog operation."
+    },
+    {
+      "compared_operation_ids": [
+        "select",
+        "augment"
+      ],
+      "source_operation": "text_noise_cleaning",
+      "why_no_existing_operation": "The paper explicitly removes redundant formatting and other noise before chunking; the catalog has no general text-cleaning operation."
+    },
+    {
+      "compared_operation_ids": [
+        "lookup",
+        "select"
+      ],
+      "source_operation": "vector_database_storage",
+      "why_no_existing_operation": "The paper documents storing BioBERT vectors in a vector database; lookup retrieves from a table but does not represent database construction or indexed storage."
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001277",
+  "trajectories": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OKR-CELL adopts a multi-task learning framework, which leverages scGPT as backbone to process RNA-seq data and Clinical-LongFormer as the textual encoder.",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The employed text encoder is the off-the-shelf Clinical-Longformer [28], which convert an input texts into 768-dim features. For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+          "section_id": "sec_0033"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "auxiliary_component",
+      "model_variant": "Clinical-LongFormer textual encoder in OKR-CELL",
+      "nodes": [
+        {
+          "axis_semantics": null,
+          "contextual_role": "external_textual_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The textual descriptions of each cell are generated with cellular metadata and the OBO Foundry [45].",
+              "section_id": "sec_0024"
+            }
+          ],
+          "information_content": "Cell textual descriptions used by the textual branch.",
+          "node_id": "cell_text",
+          "representation_type": "cell_text_description",
+          "symbolic_shape": null,
+          "uncertainty": "Exact serialization, tokenizer, special tokens, attention mask, and pooling are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-feature coordinates"
+          ],
+          "contextual_role": "text_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The employed text encoder is the off-the-shelf Clinical-Longformer [28], which convert an input texts into 768-dim features. For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Clinical-LongFormer textual representation for cross-modal alignment.",
+          "node_id": "text_features",
+          "representation_type": "clinical_longformer_features",
+          "symbolic_shape": [
+            "d_text"
+          ],
+          "uncertainty": "The paper establishes a 768-dimensional feature output but does not specify pooling or whether sequence-position features are retained."
+        }
+      ],
+      "open_questions": [
+        "What tokenizer, serialization template, special tokens, attention mask, and pooling operation are supplied to Clinical-LongFormer?",
+        "How does the stated 1024 maximum truncation length relate to the stated 4096-token maximum input sequence length?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "text_features",
+          "port_role": "textual_representation"
+        }
+      ],
+      "recipient_component": "cell-to-text projector and CRA alignment",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Clinical-LongFormer textual encoder",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The employed text encoder is the off-the-shelf Clinical-Longformer [28], which convert an input texts into 768-dim features. For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cell_text",
+              "port_role": "textual_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "clinical_longformer_text_encoding",
+          "outputs": [
+            "text_features"
+          ],
+          "step_id": "encode_text",
+          "uncertainty": "The paper establishes the encoder boundary and 768-dimensional output, but does not document an internal decomposition into catalog operations."
+        }
+      ],
+      "task_configuration": "Cross-modal cell-text pretraining using cell textual descriptions",
+      "trajectory_id": "clinical_longformer_text_encoder"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To mitigate these hallucinations, we integrates a Reliability Screening (RS) operation to exclude unfaithful augmented texts. Concretely, Leveraging the ClinicalLongFormer as textual feature extractor f RS ( · ), RS operates in two steps: 1) Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer; 2) Calculate their semantic relevance using cosine similarity: s ( T ori i , T aug i ) = f RS ( T ori i ) ⊤ · f st ( T aug i ) ∥ f st ( T ori i ) ∥∥ f st ( T aug i ) ∥ .",
+          "section_id": "sec_0025"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "auxiliary_component",
+      "model_variant": "Clinical-Long-Former reliability-screening feature extractor",
+      "nodes": [
+        {
+          "axis_semantics": null,
+          "contextual_role": "original_text_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer;",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Original cell description used as the reliability-screening reference.",
+          "node_id": "original_text",
+          "representation_type": "original_cell_text",
+          "symbolic_shape": null,
+          "uncertainty": "Exact serialization and tokenizer operations are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "augmented_text_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer;",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "LLM-augmented cell description evaluated for semantic faithfulness.",
+          "node_id": "augmented_text",
+          "representation_type": "augmented_cell_text",
+          "symbolic_shape": null,
+          "uncertainty": "Exact serialization and tokenizer operations are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-feature coordinates"
+          ],
+          "contextual_role": "original_dense_feature",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer;",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Dense feature of original text.",
+          "node_id": "original_features",
+          "representation_type": "clinical_longformer_dense_vector",
+          "symbolic_shape": [
+            "d_text"
+          ],
+          "uncertainty": "Exact feature width is not stated in the RS subsection."
+        },
+        {
+          "axis_semantics": [
+            "text-feature coordinates"
+          ],
+          "contextual_role": "augmented_dense_feature",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer;",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Dense feature of augmented text.",
+          "node_id": "augmented_features",
+          "representation_type": "clinical_longformer_dense_vector",
+          "symbolic_shape": [
+            "d_text"
+          ],
+          "uncertainty": "Exact feature width is not stated in the RS subsection."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "screening_score",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "redefined threshold α determines whether the augmented text is qualified: s &lt; α means the augmented text is discarded, while s ≥ α means it is retained as semantically faithful.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Semantic relevance score used by the reliability threshold.",
+          "node_id": "semantic_relevance",
+          "representation_type": "cosine_similarity_score",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "screening_decision",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "redefined threshold α determines whether the augmented text is qualified: s &lt; α means the augmented text is discarded, while s ≥ α means it is retained as semantically faithful.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Retained or discarded status for the augmented text.",
+          "node_id": "reliability_decision",
+          "representation_type": "reliability_screening_decision",
+          "symbolic_shape": null,
+          "uncertainty": "Exact downstream representation is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "screened_text_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "redefined threshold α determines whether the augmented text is qualified: s &lt; α means the augmented text is discarded, while s ≥ α means it is retained as semantically faithful.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Augmented text retained when its semantic relevance reaches the threshold.",
+          "node_id": "retained_augmented_text",
+          "representation_type": "screened_augmented_cell_text",
+          "symbolic_shape": null,
+          "uncertainty": "The materialization of the retained corpus entry is unspecified."
+        }
+      ],
+      "open_questions": [
+        "What tokenizer and pooling operation produce the dense vectors used by the RS equation?",
+        "Are both feature vectors produced by identical Clinical-LongFormer parameters?",
+        "How is retained text materialized for downstream training?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "retained_augmented_text",
+          "port_role": "screened_text"
+        },
+        {
+          "node_id": "reliability_decision",
+          "port_role": "screened_text_selection"
+        }
+      ],
+      "recipient_component": "reliability-screening output for the LLM-enriched textual corpus",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Clinical-Long-Former RS feature extraction",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Encode original text T ori i and augmented text T aug i into dense vectors via Clinical-LongFormer;",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "original_text",
+              "port_role": "original_text"
+            },
+            {
+              "node_id": "augmented_text",
+              "port_role": "augmented_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "dual_text_feature_extraction",
+          "outputs": [
+            "original_features",
+            "augmented_features"
+          ],
+          "step_id": "encode_rs_texts",
+          "uncertainty": "The internal encoder is an opaque module boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Reliability Screening cosine relevance calculation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper states cosine similarity, but the pinned catalog has no cosine-similarity operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Calculate their semantic relevance using cosine similarity: s ( T ori i , T aug i ) = f RS ( T ori i ) ⊤ · f st ( T aug i ) ∥ f st ( T ori i ) ∥∥ f st ( T aug i ) ∥ .",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "original_features",
+              "port_role": "original_feature"
+            },
+            {
+              "node_id": "augmented_features",
+              "port_role": "augmented_feature"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "cosine_similarity_relevance",
+          "outputs": [
+            "semantic_relevance"
+          ],
+          "step_id": "calculate_relevance",
+          "uncertainty": "The operation remains an unexpanded boundary because no catalog primitive represents cosine similarity."
+        },
+        {
+          "bypasses": [],
+          "component": "Reliability Screening threshold",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "augmented_text"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "semantic_relevance"
+                  ],
+                  "port": "selectors"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "retained_augmented_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain augmented_text when semantic relevance s ≥ α; discard when s < α"
+                },
+                {
+                  "name": "method",
+                  "value": "threshold selection"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "redefined threshold α determines whether the augmented text is qualified: s &lt; α means the augmented text is discarded, while s ≥ α means it is retained as semantically faithful.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "augmented_text",
+              "port_role": "candidate_augmented_text"
+            },
+            {
+              "node_id": "semantic_relevance",
+              "port_role": "semantic_relevance_selector"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "reliability_threshold_screening",
+          "outputs": [
+            "retained_augmented_text"
+          ],
+          "step_id": "screen_augmented_text",
+          "uncertainty": "The select operation emits the retained augmented text; the discard/retain status is represented separately by the reliability-decision branch."
+        },
+        {
+          "bypasses": [
+            {
+              "condition": "semantic relevance s < α; augmented text is discarded",
+              "source_node_id": "augmented_text",
+              "target_node_id": "reliability_decision"
+            },
+            {
+              "condition": "semantic relevance s ≥ α; augmented text is retained as semantically faithful",
+              "source_node_id": "augmented_text",
+              "target_node_id": "reliability_decision"
+            }
+          ],
+          "component": "Reliability Screening decision record",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "redefined threshold α determines whether the augmented text is qualified: s &lt; α means the augmented text is discarded, while s ≥ α means it is retained as semantically faithful.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "semantic_relevance",
+              "port_role": "semantic_relevance"
+            },
+            {
+              "node_id": "augmented_text",
+              "port_role": "candidate_augmented_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "reliability_decision_recording",
+          "outputs": [
+            "reliability_decision"
+          ],
+          "step_id": "record_screening_decision",
+          "uncertainty": "The paper defines the threshold branches but does not specify the stored decision representation."
+        }
+      ],
+      "task_configuration": "Reliability screening during RAG textual-corpus curation",
+      "trajectory_id": "clinical_longformer_reliability_screening"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For RAG, we first split the preprocessed input text and obtain the chunked information including ( Cell Type, Tissue, Sex, Development Stage ), followed by combining them into a templated query text. Then, the BioBERT encoded this query text into feature and used it to search the vector database, retrieving the topK most semantically similar knowledge snippets ( K i ).",
+          "section_id": "sec_0025"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Afterwards, we select the Deepseek-V3 [49], an cutting-edge LLM for text augmentation. Specifically, to generate augmented text, we inject both the standardized original text (from Step (1)) and the retrieved knowledge snippets into our designed prompt template, followed by feeding the combined prompt sequence into the LLM.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "auxiliary_component",
+      "model_variant": "Deepseek-V3 LLM for RAG text augmentation",
+      "nodes": [
+        {
+          "axis_semantics": null,
+          "contextual_role": "raw_textual_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The textual descriptions of each cell are generated with cellular metadata and the OBO Foundry [45].",
+              "section_id": "sec_0024"
+            }
+          ],
+          "information_content": "Original cell textual description before Cell Ontology-based standardization.",
+          "node_id": "raw_cell_text",
+          "representation_type": "original_cell_text_description",
+          "symbolic_shape": null,
+          "uncertainty": "The exact source serialization and field layout are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "standardized_textual_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, information including disease, gender, tissue and cell type is mapped to corresponding standardized textual descriptions by referencing the Cell Ontology database.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Standardized original cell text produced from the source description and Cell Ontology-based metadata lookup.",
+          "node_id": "standardized_original_text",
+          "representation_type": "standardized_cell_text_description",
+          "symbolic_shape": null,
+          "uncertainty": "Exact lexical mapping and serialization are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "standardized_biological_metadata",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For RAG, we first split the preprocessed input text and obtain the chunked information including ( Cell Type, Tissue, Sex, Development Stage ), followed by combining them into a templated query text.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Standardized cell metadata fields: cell type, tissue, sex, and developmental stage.",
+          "node_id": "standardized_metadata",
+          "representation_type": "structured_cell_metadata",
+          "symbolic_shape": null,
+          "uncertainty": "Exact field extraction and field serialization are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "retrieval_query",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For RAG, we first split the preprocessed input text and obtain the chunked information including ( Cell Type, Tissue, Sex, Development Stage ), followed by combining them into a templated query text.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Templated query text assembled from standardized metadata.",
+          "node_id": "query_text",
+          "representation_type": "templated_biomedical_query",
+          "symbolic_shape": null,
+          "uncertainty": "Exact template is not included in the Methods text."
+        },
+        {
+          "axis_semantics": [
+            "query-feature coordinates"
+          ],
+          "contextual_role": "retrieval_query_features",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then, the BioBERT encoded this query text into feature and used it to search the vector database, retrieving the topK most semantically similar knowledge snippets ( K i ).",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "BioBERT-encoded query feature used for vector-database search.",
+          "node_id": "query_features",
+          "representation_type": "biomedical_query_embedding",
+          "symbolic_shape": [
+            "d_query"
+          ],
+          "uncertainty": "BioBERT's internal tokenization and exact feature layout are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "external_knowledge_sources",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We aggregate domain-specific resources (e.g., papers from PubMed database) to form a comprehensive biomedical knowledge corpus. Specifically, we only extract the abstract part of each paper for condensing knowledge.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Domain-specific biomedical resources, including PubMed papers.",
+          "node_id": "knowledge_sources",
+          "representation_type": "biomedical_resource_collection",
+          "symbolic_shape": null,
+          "uncertainty": "The complete source inventory is unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "biomedical_corpus",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We aggregate domain-specific resources (e.g., papers from PubMed database) to form a comprehensive biomedical knowledge corpus. Specifically, we only extract the abstract part of each paper for condensing knowledge.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Aggregated biomedical knowledge corpus before abstract extraction.",
+          "node_id": "biomedical_corpus",
+          "representation_type": "biomedical_text_corpus",
+          "symbolic_shape": null,
+          "uncertainty": "Corpus contents and resource integration details are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "abstract_corpus",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, we only extract the abstract part of each paper for condensing knowledge.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Abstract-only biomedical corpus extracted from the integrated resources.",
+          "node_id": "abstract_corpus",
+          "representation_type": "biomedical_abstract_collection",
+          "symbolic_shape": null,
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "cleaned_corpus",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The corpus is processed to remove noise (e.g., redundant formatting) and split into small, semantically coherent snippets (e.g., 500token chunks) to optimize retrieval relevance.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Biomedical corpus after documented noise removal and before or during chunking.",
+          "node_id": "cleaned_corpus",
+          "representation_type": "cleaned_biomedical_text_corpus",
+          "symbolic_shape": null,
+          "uncertainty": "The exact cleaning rules are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "indexed snippet positions"
+          ],
+          "contextual_role": "retrieval_database_entries",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The corpus is processed to remove noise (e.g., redundant formatting) and split into small, semantically coherent snippets (e.g., 500token chunks) to optimize retrieval relevance.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Semantically coherent biomedical knowledge snippets used to construct the retrieval database.",
+          "node_id": "knowledge_snippets",
+          "representation_type": "biomedical_text_snippets",
+          "symbolic_shape": [
+            "n_knowledge_snippets"
+          ],
+          "uncertainty": "The exact chunk size implementation and snippet boundaries are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "retrieved snippet positions"
+          ],
+          "contextual_role": "query_specific_retrieval_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then, the BioBERT encoded this query text into feature and used it to search the vector database, retrieving the topK most semantically similar knowledge snippets ( K i ).",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Top-K knowledge snippets returned for the current retrieval query.",
+          "node_id": "retrieved_snippets",
+          "representation_type": "retrieved_biomedical_text_snippets",
+          "symbolic_shape": [
+            "n_retrieved_snippets"
+          ],
+          "uncertainty": "The exact K value, ordering, and retrieval implementation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "snippet positions",
+            "feature coordinates"
+          ],
+          "contextual_role": "knowledge_vector_entries",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each cleaned snippet is encoded into a dense vector using a biomedical text encoder (e.g., BioBERT [48]). These vectors are stored in a vector database to enable efficient semantic similarity search.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Dense vectors for cleaned biomedical snippets produced by an unspecified biomedical text encoder; BioBERT is given as an example.",
+          "node_id": "snippet_features",
+          "representation_type": "biomedical_text_encoder_embeddings",
+          "symbolic_shape": [
+            "n_knowledge_snippets",
+            "d_query"
+          ],
+          "uncertainty": "The exact biomedical text encoder, pooling, and vector layout are unspecified; BioBERT is documented only as an example."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "retrieval_resource",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "These vectors are stored in a vector database to enable efficient semantic similarity search.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "Vector database containing dense vectors for cleaned biomedical snippets.",
+          "node_id": "vector_database",
+          "representation_type": "biomedical_vector_database",
+          "symbolic_shape": null,
+          "uncertainty": "Database index, similarity implementation, and stored metadata are unspecified."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "llm_prompt_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, to generate augmented text, we inject both the standardized original text (from Step (1)) and the retrieved knowledge snippets into our designed prompt template, followed by feeding the combined prompt sequence into the LLM.",
+              "section_id": "sec_0025"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Your goal is to perform a Comprehensive Textual Expansion of the provided cell metadata. You must synthesize the Standardized Cell Metadata with the Retrieved Reference Information , while leveraging your own extensive internal expert knowledge to generate a highly information-dense and scientifically rigorous description.",
+              "section_id": "sec_0057"
+            }
+          ],
+          "information_content": "Prompt containing the standardized original text and query-specific retrieved knowledge snippets, with supplementary synthesis instructions.",
+          "node_id": "combined_prompt",
+          "representation_type": "rag_prompt_sequence",
+          "symbolic_shape": null,
+          "uncertainty": "Exact delimiters and tokenizer are unspecified; the supplementary prompt documents the required sections and synthesis policy."
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "augmented_text_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "to generate augmented text, we inject both the standardized original text (from Step (1)) and the retrieved knowledge snippets into our designed prompt template, followed by feeding the combined prompt sequence into the LLM.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "information_content": "LLM-generated enriched textual description of the cell.",
+          "node_id": "augmented_text",
+          "representation_type": "llm_augmented_cell_text",
+          "symbolic_shape": null,
+          "uncertainty": "Decoding and stopping behavior are unspecified; the supplementary prompt requires a single continuous academic essay and specifies the documented output constraints."
+        }
+      ],
+      "open_questions": [
+        "What is the exact top-K retrieval value and ordering?",
+        "What exact tokenization and generation settings are used by Deepseek-V3?",
+        "How are generated texts passed through reliability screening?",
+        "What exact cleaning rules and vector-database index are used for the knowledge base?",
+        "What exact Cell Ontology table representation and key-to-description serialization are used?",
+        "Which biomedical text encoder is used for indexing snippets, since BioBERT is stated only as an example?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "combined_prompt",
+          "port_role": "llm_prompt_sequence"
+        }
+      ],
+      "recipient_component": "Deepseek-V3",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Cell Ontology metadata lookup",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "raw_cell_text"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "standardize_source_text::cell_ontology_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "standardized_original_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "disease, gender, tissue, and cell type metadata"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "Cell Ontology database/table"
+                },
+                {
+                  "name": "trainability",
+                  "value": "external reference table; trainability unspecified"
+                }
+              ],
+              "uncertainty": "The paper documents the metadata-to-standardized-description mapping and its Cell Ontology reference, but does not specify the key extraction, table schema, or exact output serialization."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Initially, a standardization process is applied to the terminology and metadata annotations within the textual descriptions.",
+              "section_id": "sec_0025"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, information including disease, gender, tissue and cell type is mapped to corresponding standardized textual descriptions by referencing the Cell Ontology database.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "raw_cell_text",
+              "port_role": "source_textual_description"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": null,
+              "contextual_role": "ontology_reference_resource",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Specifically, information including disease, gender, tissue and cell type is mapped to corresponding standardized textual descriptions by referencing the Cell Ontology database.",
+                  "section_id": "sec_0025"
+                }
+              ],
+              "information_content": "Cell Ontology database/table used as the lookup resource.",
+              "node_id": "standardize_source_text::cell_ontology_table",
+              "origin": "implicit_parameter",
+              "representation_type": "cell_ontology_lookup_table",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table schema, version, and key coverage are unspecified."
+            }
+          ],
+          "operation_type": "ontology_based_metadata_standardization",
+          "outputs": [
+            "standardized_original_text"
+          ],
+          "step_id": "standardize_source_text",
+          "uncertainty": "The documented mapping supports a lookup interface; the exact extraction of metadata keys and reconstruction of the standardized textual description remain unresolved."
+        },
+        {
+          "bypasses": [],
+          "component": "Preprocessed-text field extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "standardized_original_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "partition",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "standardized_metadata"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "split preprocessed text into documented metadata fields"
+                },
+                {
+                  "name": "axis",
+                  "value": "textual field structure"
+                },
+                {
+                  "name": "partition_rule",
+                  "value": "Cell Type, Tissue, Sex, Development Stage"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For RAG, we first split the preprocessed input text and obtain the chunked information including ( Cell Type, Tissue, Sex, Development Stage ), followed by combining them into a templated query text.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "standardized_original_text",
+              "port_role": "preprocessed_standardized_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "split_preprocessed_text_into_metadata_fields",
+          "outputs": [
+            "standardized_metadata"
+          ],
+          "step_id": "split_query_fields",
+          "uncertainty": "The exact field-extraction implementation is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Metadata standardization and query construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "standardized_metadata"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "query_text"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "templated query text from Cell Type, Tissue, Sex, Development Stage"
+                },
+                {
+                  "name": "order",
+                  "value": "Cell Type, Tissue, Sex, Development Stage"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For RAG, we first split the preprocessed input text and obtain the chunked information including ( Cell Type, Tissue, Sex, Development Stage ), followed by combining them into a templated query text.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "standardized_metadata",
+              "port_role": "metadata_fields"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "templated_query_construction",
+          "outputs": [
+            "query_text"
+          ],
+          "step_id": "construct_query",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Biomedical source integration",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents aggregation of domain-specific resources into a corpus, but the catalog has no resource-integration operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We aggregate domain-specific resources (e.g., papers from PubMed database) to form a comprehensive biomedical knowledge corpus. Specifically, we only extract the abstract part of each paper for condensing knowledge.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "knowledge_sources",
+              "port_role": "domain_specific_resources"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "biomedical_source_integration",
+          "outputs": [
+            "biomedical_corpus"
+          ],
+          "step_id": "integrate_knowledge_sources",
+          "uncertainty": "The source inventory and aggregation mechanism are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Abstract extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "biomedical_corpus"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "abstract_corpus"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain abstract part of each paper"
+                },
+                {
+                  "name": "method",
+                  "value": "abstract extraction"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, we only extract the abstract part of each paper for condensing knowledge.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "biomedical_corpus",
+              "port_role": "biomedical_corpus"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "abstract_part_extraction",
+          "outputs": [
+            "abstract_corpus"
+          ],
+          "step_id": "extract_abstracts",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Biomedical text cleaning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents removal of redundant formatting and other noise, but the catalog has no general text-cleaning operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The corpus is processed to remove noise (e.g., redundant formatting) and split into small, semantically coherent snippets (e.g., 500token chunks) to optimize retrieval relevance.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "abstract_corpus",
+              "port_role": "abstract_corpus"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "text_noise_cleaning",
+          "outputs": [
+            "cleaned_corpus"
+          ],
+          "step_id": "clean_knowledge_corpus",
+          "uncertainty": "Exact cleaning rules are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Biomedical text chunking",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cleaned_corpus"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "partition",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "knowledge_snippets"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "semantic text chunking"
+                },
+                {
+                  "name": "axis",
+                  "value": "text sequence"
+                },
+                {
+                  "name": "partition_rule",
+                  "value": "small semantically coherent snippets; example 500token chunks"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The corpus is processed to remove noise (e.g., redundant formatting) and split into small, semantically coherent snippets (e.g., 500token chunks) to optimize retrieval relevance.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cleaned_corpus",
+              "port_role": "cleaned_biomedical_corpus"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "semantic_text_chunking",
+          "outputs": [
+            "knowledge_snippets"
+          ],
+          "step_id": "chunk_knowledge_corpus",
+          "uncertainty": "The exact chunk-size implementation and boundaries are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Unspecified biomedical text encoder",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each cleaned snippet is encoded into a dense vector using a biomedical text encoder (e.g., BioBERT [48]).",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "knowledge_snippets",
+              "port_role": "cleaned_snippets"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "biomedical_knowledge_snippet_encoding",
+          "outputs": [
+            "snippet_features"
+          ],
+          "step_id": "encode_knowledge_snippets",
+          "uncertainty": "The exact biomedical text encoder is unresolved; BioBERT is stated only as an example."
+        },
+        {
+          "bypasses": [],
+          "component": "Vector-database construction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The paper documents storage of snippet vectors in a vector database, but the catalog has no database-construction operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each cleaned snippet is encoded into a dense vector using a biomedical text encoder (e.g., BioBERT [48]). These vectors are stored in a vector database to enable efficient semantic similarity search.",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "snippet_features",
+              "port_role": "snippet_vectors"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "vector_database_storage",
+          "outputs": [
+            "vector_database"
+          ],
+          "step_id": "store_vector_database",
+          "uncertainty": "Database indexing and stored correspondence metadata are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Unspecified biomedical text encoder query encoding",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then, the BioBERT encoded this query text into feature and used it to search the vector database, retrieving the topK most semantically similar knowledge snippets ( K i ).",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "query_text",
+              "port_role": "query_text"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "biomedical_query_encoding",
+          "outputs": [
+            "query_features"
+          ],
+          "step_id": "encode_query",
+          "uncertainty": "The paper names BioBERT for this query-encoding sentence but does not establish whether it is the actual encoder configuration used elsewhere; tokenization and feature layout are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Vector-database semantic retrieval",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no vector-database semantic-retrieval operation."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Then, the BioBERT encoded this query text into feature and used it to search the vector database, retrieving the topK most semantically similar knowledge snippets ( K i ).",
+              "section_id": "sec_0025"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "query_features",
+              "port_role": "query_features"
+            },
+            {
+              "node_id": "vector_database",
+              "port_role": "vector_database"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "top_k_semantic_retrieval",
+          "outputs": [
+            "retrieved_snippets"
+          ],
+          "step_id": "retrieve_knowledge",
+          "uncertainty": "Nearest-neighbor retrieval, exact K, ranking ties, and database search implementation are not represented by the catalog."
+        },
+        {
+          "bypasses": [],
+          "component": "RAG prompt assembly",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "standardized_original_text",
+                    "retrieved_snippets"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "serialize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "combined_prompt"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "template",
+                  "value": "Comprehensive Textual Expansion via RAG prompt template with Standardized Cell Metadata and Retrieved Reference Information sections"
+                },
+                {
+                  "name": "order",
+                  "value": "Standardized Cell Metadata followed by Retrieved Reference Information"
+                },
+                {
+                  "name": "lexical_mapping",
+                  "value": "unspecified; supplementary prompt requires context-anchored synthesis and biomedical expansion"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Specifically, to generate augmented text, we inject both the standardized original text (from Step (1)) and the retrieved knowledge snippets into our designed prompt template, followed by feeding the combined prompt sequence into the LLM.",
+              "section_id": "sec_0025"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Your goal is to perform a Comprehensive Textual Expansion of the provided cell metadata. You must synthesize the Standardized Cell Metadata with the Retrieved Reference Information , while leveraging your own extensive internal expert knowledge to generate a highly information-dense and scientifically rigorous description.",
+              "section_id": "sec_0057"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "##### # Input Data: Standardized Cell Metadata",
+              "section_id": "sec_0058"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "### # Retrieved Reference Information (Contextual Knowledge Snippets)",
+              "section_id": "sec_0059"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "standardized_original_text",
+              "port_role": "standardized_original_text"
+            },
+            {
+              "node_id": "retrieved_snippets",
+              "port_role": "retrieved_knowledge"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "rag_prompt_serialization",
+          "outputs": [
+            "combined_prompt"
+          ],
+          "step_id": "assemble_rag_prompt",
+          "uncertainty": "The paper establishes the prompt-section order, but does not establish delimiters or the complete lexical serialization."
+        },
+        {
+          "bypasses": [],
+          "component": "Deepseek-V3 generation",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [],
+              "operation_id": null,
+              "outputs": [],
+              "parameters": [],
+              "uncertainty": "The catalog has no language-model text-generation operation. The supplementary prompt documents the generation task, synthesis requirements, single-essay structure, professional biomedical tone, reliability boundary, and the response constraint between 550 and 600 English words."
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Afterwards, we select the Deepseek-V3 [49], an cutting-edge LLM for text augmentation. Specifically, to generate augmented text, we inject both the standardized original text (from Step (1)) and the retrieved knowledge snippets into our designed prompt template, followed by feeding the combined prompt sequence into the LLM.",
+              "section_id": "sec_0025"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Your goal is to perform a Comprehensive Textual Expansion of the provided cell metadata.",
+              "section_id": "sec_0057"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "1. Context-Anchored Synthesis: Use the 'Retrieved Reference Information' as the factual backbone of your expansion. Weave these snippets into a coherent narrative that localizes the cell identity within the specified tissue and pathological context.",
+              "section_id": "sec_0059"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "- Structure: Generate a single, continuous academic essay (strictly NO bullet points).",
+              "section_id": "sec_0060"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "- Tone: Use high-density, professional biomedical terminology (e.g., 'fast-spiking phenotype,' 'amyloidogenic pathway,' 'oxidative stress') to ensure the text is rich in semantic features for model training.",
+              "section_id": "sec_0060"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "- Reliability Boundary: While enriching the text with general biological principles, do NOT fabricate specific quantitative data or unique experimental events.",
+              "section_id": "sec_0060"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "- Length: The response must be strictly between 550 and 600 English words .",
+              "section_id": "sec_0060"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "combined_prompt",
+              "port_role": "combined_prompt_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "llm_text_augmentation",
+          "outputs": [
+            "augmented_text"
+          ],
+          "step_id": "generate_augmented_text",
+          "uncertainty": "The LLM's internal tokenization and generation computation are not established by the paper text; supplementary prompt requirements and output constraints are documented above."
+        }
+      ],
+      "task_configuration": "RAG-enhanced biomedical cell-description generation for OKR-CELL pretraining-data curation",
+      "trajectory_id": "deepseek_v3_rag_augmentation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The input embedding module transforms single-cell RNA-seq data-structured as a cell-gene matrix X ∈ R N × G , where N denotes the total number of cells, G is the total count of genes, and X i,j represents the raw read count of gene j in cell i ) into a consistent latent representation through three interconnected modules, followed by feature fusion:",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+          "section_id": "sec_0033"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OKR-CELL cell-only route: scGPT-derived cell encoder",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell index",
+            "gene index"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The input embedding module transforms single-cell RNA-seq data-structured as a cell-gene matrix X ∈ R N × G , where N denotes the total number of cells, G is the total count of genes, and X i,j represents the raw read count of gene j in cell i ) into a consistent latent representation through three interconnected modules, followed by feature fusion:",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Raw single-cell RNA-seq read-count matrix.",
+          "node_id": "expression_matrix",
+          "representation_type": "single_cell_gene_expression_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a basic information unit (analogous to a word in NLG) and assigned a unique integer ID id ( g j ). Special tokens (e.g., &lt; cls &gt; for cell representation aggregation, &lt; pad &gt; for input length padding) are included to support cross-study gene set integration.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to expression positions before documented selection.",
+          "node_id": "gene_identifiers",
+          "representation_type": "gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": "Exact source ordering is unavailable from the supplied formula."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "log_transformed_expression",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Log1p-transformed expression values before HVG selection and the separately documented non-zero input filtering.",
+          "node_id": "log_expression",
+          "representation_type": "log1p_expression_values",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": "Exact preprocessing scope is not fully specified."
+        },
+        {
+          "axis_semantics": [
+            "selected HVG positions"
+          ],
+          "contextual_role": "selected_HVG_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Expression values and aligned gene identifiers after documented HVG selection.",
+          "node_id": "hvg_expression",
+          "representation_type": "HVG_expression_values",
+          "symbolic_shape": [
+            "n_HVG_positions"
+          ],
+          "uncertainty": "The exact HVG criterion and retained ordering are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected non-zero gene positions"
+          ],
+          "contextual_role": "selected_nonzero_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Expression values and aligned positions retained by the separately documented non-zero input-filtering statement.",
+          "node_id": "selected_expression",
+          "representation_type": "selected_nonzero_expression_values",
+          "symbolic_shape": [
+            "n_selected_genes"
+          ],
+          "uncertainty": "The relative placement of this filter with respect to zero-retaining binning is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "selected non-zero gene positions"
+          ],
+          "contextual_role": "selected_nonzero_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the selected non-zero expression values.",
+          "node_id": "selected_gene_identifiers",
+          "representation_type": "selected_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_selected_genes"
+          ],
+          "uncertainty": "The relative placement of this filter with respect to zero-retaining binning is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "sampled selected-gene positions"
+          ],
+          "contextual_role": "length_limited_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Randomly sampled non-zero expression values when the non-zero count exceeds the stated maximum.",
+          "node_id": "sampled_expression",
+          "representation_type": "length_limited_expression_values",
+          "symbolic_shape": [
+            "n_sampled_genes"
+          ],
+          "uncertainty": "The exact random-sampling implementation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "sampled selected-gene positions"
+          ],
+          "contextual_role": "length_limited_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the randomly sampled non-zero expression values.",
+          "node_id": "sampled_gene_identifiers",
+          "representation_type": "length_limited_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_sampled_genes"
+          ],
+          "uncertainty": "The exact random-sampling implementation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "conditional model-input gene positions"
+          ],
+          "contextual_role": "conditional_input_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers routed from either the unsampled non-zero branch or the conditional random-sampling branch.",
+          "node_id": "model_gene_identifiers",
+          "representation_type": "conditional_model_input_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The exact branch-routing representation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "conditional model-input gene positions"
+          ],
+          "contextual_role": "conditional_input_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Expression values routed from either the unsampled non-zero branch or the conditional random-sampling branch.",
+          "node_id": "model_expression",
+          "representation_type": "conditional_model_input_expression_values",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The exact branch-routing representation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected HVG positions"
+          ],
+          "contextual_role": "gene_identifiers_for_binning_route",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the selected-HVG expression sequence used by the zero-retaining binning branch.",
+          "node_id": "hvg_gene_identifiers",
+          "representation_type": "selected_HVG_gene_identifiers",
+          "symbolic_shape": [
+            "n_HVG_positions"
+          ],
+          "uncertainty": "The source does not fully specify whether the final receipt uses this branch or the separately described non-zero-filtered branch."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "binned_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Non-zero expression values of each cell are partitioned into O equal-interval bins, while zero values are retained as 0.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Expression values represented as interval identifiers with zero retained as zero.",
+          "node_id": "binned_expression",
+          "representation_type": "binned_expression_values",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The paper separately states that only non-zero genes are fed to the model; the relative order between that filter and this zero-retaining representation is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "gene_token_ids_before_special_token_placement",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a fundamental informational element (analogous to a token in natural language processing) and assigned a unique integer identifier id ( g j ). To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Integer gene-token identifiers for the conditional model-input gene sequence before the documented leading <cls> placement and padding transformations.",
+          "node_id": "gene_tokens",
+          "representation_type": "gene_token_ids",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The source does not fully specify the exact token sequence formula."
+        },
+        {
+          "axis_semantics": [
+            "sequence positions"
+          ],
+          "contextual_role": "cls_prefixed_gene_token_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We adopt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "information_content": "Gene-token sequence with the documented <cls> token at its beginning.",
+          "node_id": "cls_prefixed_gene_tokens",
+          "representation_type": "cls_prefixed_gene_token_ids",
+          "symbolic_shape": [
+            "n_sequence_positions"
+          ],
+          "uncertainty": "The exact relationship between the gene-token count and the resulting sequence length is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "uniform input sequence positions"
+          ],
+          "contextual_role": "padded_gene_token_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "<cls>-prefixed gene-token sequence padded to the documented uniform symbolic target length.",
+          "node_id": "padded_gene_tokens",
+          "representation_type": "padded_gene_token_ids",
+          "symbolic_shape": [
+            "n_input_sequence_positions"
+          ],
+          "uncertainty": "The exact target length, padding side, and padding-mask behavior are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "uniform input sequence positions"
+          ],
+          "contextual_role": "padded_binned_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Binned expression sequence represented on the uniform input sequence boundary.",
+          "node_id": "padded_binned_expression",
+          "representation_type": "padded_binned_expression_values",
+          "symbolic_shape": [
+            "n_input_sequence_positions"
+          ],
+          "uncertainty": "The exact expression padding value and its relation to the <cls> position are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "gene positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "gene_identity_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Embedding-layer output for gene identity tokens.",
+          "node_id": "gene_embeddings",
+          "representation_type": "gene_token_embeddings",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "Embedding-table shape and training state are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "gene positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "expression_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Embedding-layer output for binned expression values.",
+          "node_id": "expression_embeddings",
+          "representation_type": "expression_value_embeddings",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "Embedding-table shape and training state are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "input sequence positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "cell_encoder_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The final input embedding for cell i : is obtained by element-wise summation of these two components, integrating both gene identity and expression magnitude information:",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "where h ( i ) ∈ R M × D serves as the input to subsequent Transformer encoder blocks.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Fused gene-identity and expression-magnitude embedding supplied to the Transformer encoder.",
+          "node_id": "cell_input_embedding",
+          "representation_type": "fused_gene_expression_embedding",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "The paper documents both zero-retaining binning and non-zero input filtering, but does not establish which aligned branch supplies the final model receipt."
+        }
+      ],
+      "open_questions": [
+        "What exact gene ordering and sequence formula are used, including placement of <cls> and <pad>?",
+        "Are gene and expression embedding tables trainable or shared?",
+        "Is non-zero filtering applied before or after zero-retaining binning, and which aligned branch supplies the final cell-input sequence?",
+        "How are cell-level and gene-level outputs routed to the generative objectives?",
+        "What exact target length and expression-padding convention accompany the documented padded gene-token sequence?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "cell_input_embedding",
+          "port_role": "cell_encoder_input"
+        }
+      ],
+      "recipient_component": "scGPT-derived cell encoder",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Log1p expression preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "expression_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "log1p"
+                },
+                {
+                  "name": "offset",
+                  "value": "1"
+                },
+                {
+                  "name": "base",
+                  "value": "e"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "expression_matrix",
+              "port_role": "raw_expression_matrix"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log1p_expression_preprocessing",
+          "outputs": [
+            "log_expression"
+          ],
+          "step_id": "log_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "HVG selection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "log_expression",
+                    "gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "hvg_expression",
+                    "hvg_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "selected highly variable genes"
+                },
+                {
+                  "name": "method",
+                  "value": "HVG selection"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "log_expression",
+              "port_role": "expression_values"
+            },
+            {
+              "node_id": "gene_identifiers",
+              "port_role": "aligned_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "HVG_selection",
+          "outputs": [
+            "hvg_expression",
+            "hvg_gene_identifiers"
+          ],
+          "step_id": "select_HVGs",
+          "uncertainty": "The exact HVG selection criterion is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Non-zero gene input filtering",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "hvg_expression",
+                    "hvg_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "selected_expression",
+                    "selected_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain genes exhibiting non-zero expression levels"
+                },
+                {
+                  "name": "method",
+                  "value": "non-zero input filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "hvg_expression",
+              "port_role": "HVG_expression_values"
+            },
+            {
+              "node_id": "hvg_gene_identifiers",
+              "port_role": "aligned_HVG_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "nonzero_gene_selection",
+          "outputs": [
+            "selected_expression",
+            "selected_gene_identifiers"
+          ],
+          "step_id": "select_nonzero_genes",
+          "uncertainty": "The paper does not establish the relation of this filter to the separate zero-retaining binning statement."
+        },
+        {
+          "bypasses": [],
+          "component": "Length-limited random gene sampling",
+          "decomposition": [
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length",
+              "inputs": [
+                {
+                  "node_ids": [
+                    "selected_expression",
+                    "selected_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "sampled_expression",
+                    "sampled_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain 1200 randomly sampled non-zero genes"
+                },
+                {
+                  "name": "method",
+                  "value": "random sampling in each training iteration"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "selected_expression",
+              "port_role": "selected_nonzero_expression_values"
+            },
+            {
+              "node_id": "selected_gene_identifiers",
+              "port_role": "aligned_selected_nonzero_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "length_limited_random_gene_sampling",
+          "outputs": [
+            "sampled_expression",
+            "sampled_gene_identifiers"
+          ],
+          "step_id": "sample_nonzero_genes",
+          "uncertainty": "The paper does not specify the random generator or whether the sampled branch is applied before or after binning."
+        },
+        {
+          "bypasses": [
+            {
+              "condition": "the count of non-zero genes is at or below the maximum input length; retain the unsampled selected expression sequence",
+              "source_node_id": "selected_expression",
+              "target_node_id": "model_expression"
+            },
+            {
+              "condition": "the count of non-zero genes is at or below the maximum input length; retain the aligned unsampled selected gene sequence",
+              "source_node_id": "selected_gene_identifiers",
+              "target_node_id": "model_gene_identifiers"
+            },
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length; route the sampled expression sequence",
+              "source_node_id": "sampled_expression",
+              "target_node_id": "model_expression"
+            },
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length; route the aligned sampled gene sequence",
+              "source_node_id": "sampled_gene_identifiers",
+              "target_node_id": "model_gene_identifiers"
+            }
+          ],
+          "component": "Conditional input-sequence routing",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "selected_expression",
+              "port_role": "unsampled_expression_branch"
+            },
+            {
+              "node_id": "selected_gene_identifiers",
+              "port_role": "unsampled_gene_branch"
+            },
+            {
+              "node_id": "sampled_expression",
+              "port_role": "sampled_expression_branch"
+            },
+            {
+              "node_id": "sampled_gene_identifiers",
+              "port_role": "sampled_gene_branch"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "conditional_input_sequence_routing",
+          "outputs": [
+            "model_expression",
+            "model_gene_identifiers"
+          ],
+          "step_id": "route_input_sequence",
+          "uncertainty": "The paper documents the conditional sampling rule but does not specify the explicit branch-merging implementation."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene tokenization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "model_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "gene IDs"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "one selected gene per token"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "conditional model-input gene identifiers"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a fundamental informational element (analogous to a token in natural language processing) and assigned a unique integer identifier id ( g j ).",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "model_gene_identifiers",
+              "port_role": "selected_aligned_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_tokenization",
+          "outputs": [
+            "gene_tokens"
+          ],
+          "step_id": "tokenize_genes",
+          "uncertainty": "The source does not fully specify the exact gene-token sequence formula."
+        },
+        {
+          "bypasses": [],
+          "component": "Leading <cls> placement",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We adopt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_tokens",
+              "port_role": "gene_token_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepend_cls_token",
+          "outputs": [
+            "cls_prefixed_gene_tokens"
+          ],
+          "step_id": "prepend_cls_token",
+          "uncertainty": "The catalog has no dedicated special-token insertion primitive; the documented leading position is retained as an opaque sequence boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene-token sequence padding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cls_prefixed_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "pad",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "padded_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "side",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "value",
+                  "value": "<pad> token"
+                },
+                {
+                  "name": "target_length",
+                  "value": "n_uniform_input_sequence_positions"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cls_prefixed_gene_tokens",
+              "port_role": "cls_prefixed_gene_token_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_sequence_padding",
+          "outputs": [
+            "padded_gene_tokens"
+          ],
+          "step_id": "pad_gene_tokens",
+          "uncertainty": "The exact target length, padding side, and padding-mask behavior are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene expression binning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "model_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "bin",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "strategy",
+                  "value": "equal-interval bins for non-zero expression values"
+                },
+                {
+                  "name": "scope",
+                  "value": "each cell"
+                },
+                {
+                  "name": "zero_handling",
+                  "value": "zero values retained as 0"
+                },
+                {
+                  "name": "bin_edges",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Non-zero expression values of each cell are partitioned into O equal-interval bins, while zero values are retained as 0.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "model_expression",
+              "port_role": "conditional_model_input_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_expression_binning",
+          "outputs": [
+            "binned_expression"
+          ],
+          "step_id": "bin_expression",
+          "uncertainty": "The separate implementation statement says only non-zero genes are fed to the model; the graph preserves this binning branch without asserting its order relative to that filter."
+        },
+        {
+          "bypasses": [],
+          "component": "Expression-sequence padding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "pad",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "padded_binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "side",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "value",
+                  "value": "unspecified expression padding value"
+                },
+                {
+                  "name": "target_length",
+                  "value": "n_uniform_input_sequence_positions"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "binned_expression",
+              "port_role": "binned_expression_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_sequence_padding",
+          "outputs": [
+            "padded_binned_expression"
+          ],
+          "step_id": "pad_expression_values",
+          "uncertainty": "The paper documents sequence padding but does not specify the expression-side padding value or its exact alignment with the <cls> position."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene and expression embedding fusion",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "padded_gene_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "fuse_embeddings::gene_lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "gene IDs and <cls>/<pad> special-token IDs"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "gene embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "padded_binned_expression"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "fuse_embeddings::expression_lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "binned expression interval identifiers and expression padding identifier"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "expression embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_embeddings",
+                    "expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "add",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cell_input_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "alignment",
+                  "value": "element-wise aligned input sequence positions"
+                },
+                {
+                  "name": "scaling",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The final input embedding for cell i : is obtained by element-wise summation of these two components, integrating both gene identity and expression magnitude information:",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "where h ( i ) ∈ R M × D serves as the input to subsequent Transformer encoder blocks.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "padded_gene_tokens",
+              "port_role": "gene_token_ids"
+            },
+            {
+              "node_id": "padded_binned_expression",
+              "port_role": "binned_expression_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "gene positions",
+                "feature coordinates D"
+              ],
+              "contextual_role": "gene_embedding_table",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+                  "section_id": "sec_0022"
+                }
+              ],
+              "information_content": "Embedding matrix for gene token identifiers.",
+              "node_id": "fuse_embeddings::gene_lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "gene_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape and parameter state are unspecified."
+            },
+            {
+              "axis_semantics": [
+                "expression-bin positions",
+                "feature coordinates D"
+              ],
+              "contextual_role": "expression_embedding_table",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+                  "section_id": "sec_0022"
+                }
+              ],
+              "information_content": "Embedding matrix for binned expression identifiers.",
+              "node_id": "fuse_embeddings::expression_lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "expression_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape and parameter state are unspecified."
+            }
+          ],
+          "operation_type": "independent_embedding_layers_then_elementwise_sum",
+          "outputs": [
+            "cell_input_embedding"
+          ],
+          "step_id": "fuse_embeddings",
+          "uncertainty": "Both embedding outputs and their element-wise sum use the documented shared feature axis D; final branch alignment remains subject to the unresolved filtering/binning order and expression-side padding convention."
+        }
+      ],
+      "task_configuration": "Cell-only intra-modal generative pretraining route; scRNA-seq input embedding",
+      "trajectory_id": "okr_cell_cell_only_route"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OKR-CELL is composed of three trainable components: a cell encoder, a text encoder and a cross-modal projector connecting cellular and textual modalities.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "On the first stage, we aim to establish basic alignment between cellular data and textual representations. Thus we freeze the parameters of textual encoder and optimize the parameters of the cell encoder and the cell-to-text projector.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "On the other hand, we align cell and textual representations in a shared embedding space to convey complementary information across modalities.",
+          "section_id": "sec_0002"
+        }
+      ],
+      "lifecycle_phase": "pretraining",
+      "model_role": "primary_model",
+      "model_variant": "OKR-CELL paired cell-text route: scGPT-derived cell encoder plus Clinical-LongFormer and cell-to-text projector",
+      "nodes": [
+        {
+          "axis_semantics": [
+            "cell index",
+            "gene index"
+          ],
+          "contextual_role": "external_biological_sample",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The input embedding module transforms single-cell RNA-seq data-structured as a cell-gene matrix X ∈ R N × G , where N denotes the total number of cells, G is the total count of genes, and X i,j represents the raw read count of gene j in cell i ) into a consistent latent representation through three interconnected modules, followed by feature fusion:",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Raw single-cell RNA-seq read-count matrix for the paired cell-text example.",
+          "node_id": "expression_matrix",
+          "representation_type": "single_cell_gene_expression_matrix",
+          "symbolic_shape": [
+            "n_cells",
+            "n_genes"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a basic information unit (analogous to a word in NLG) and assigned a unique integer ID id ( g j ). Special tokens (e.g., &lt; cls &gt; for cell representation aggregation, &lt; pad &gt; for input length padding) are included to support cross-study gene set integration.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to expression positions before documented selection.",
+          "node_id": "gene_identifiers",
+          "representation_type": "gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": "Exact sequence order and formula are unavailable."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "log_transformed_expression",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Log1p-transformed expression values before selection and binning.",
+          "node_id": "log_expression",
+          "representation_type": "log1p_expression_values",
+          "symbolic_shape": [
+            "n_gene_positions"
+          ],
+          "uncertainty": "Exact preprocessing scope is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected HVG positions"
+          ],
+          "contextual_role": "selected_HVG_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Expression values and aligned gene identifiers after documented HVG selection.",
+          "node_id": "hvg_expression",
+          "representation_type": "HVG_expression_values",
+          "symbolic_shape": [
+            "n_HVG_positions"
+          ],
+          "uncertainty": "The exact HVG criterion and retained ordering are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected non-zero gene positions"
+          ],
+          "contextual_role": "selected_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Selected non-zero expression values, with the separately documented random sampling rule when the maximum is exceeded.",
+          "node_id": "selected_expression",
+          "representation_type": "selected_nonzero_expression_values",
+          "symbolic_shape": [
+            "n_selected_genes"
+          ],
+          "uncertainty": "The relative placement of non-zero filtering and zero-retaining binning is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "selected non-zero gene positions"
+          ],
+          "contextual_role": "selected_nonzero_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the selected non-zero expression values.",
+          "node_id": "selected_gene_identifiers",
+          "representation_type": "selected_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_selected_genes"
+          ],
+          "uncertainty": "The relative placement of non-zero filtering and zero-retaining binning is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "sampled selected-gene positions"
+          ],
+          "contextual_role": "length_limited_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Randomly sampled non-zero expression values when the maximum is exceeded.",
+          "node_id": "sampled_expression",
+          "representation_type": "length_limited_expression_values",
+          "symbolic_shape": [
+            "n_sampled_genes"
+          ],
+          "uncertainty": "The exact random-sampling implementation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "sampled selected-gene positions"
+          ],
+          "contextual_role": "length_limited_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the randomly sampled non-zero expression values.",
+          "node_id": "sampled_gene_identifiers",
+          "representation_type": "length_limited_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_sampled_genes"
+          ],
+          "uncertainty": "The exact random-sampling implementation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "conditional model-input gene positions"
+          ],
+          "contextual_role": "conditional_input_gene_identifiers",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Gene identifiers routed from either the unsampled non-zero branch or the conditional random-sampling branch.",
+          "node_id": "model_gene_identifiers",
+          "representation_type": "conditional_model_input_gene_identifier_sequence",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The exact branch-routing representation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "conditional model-input gene positions"
+          ],
+          "contextual_role": "conditional_input_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Expression values routed from either the unsampled non-zero branch or the conditional random-sampling branch.",
+          "node_id": "model_expression",
+          "representation_type": "conditional_model_input_expression_values",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The exact branch-routing representation is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "selected HVG positions"
+          ],
+          "contextual_role": "gene_identifiers_for_binning_route",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Gene identifiers aligned to the selected-HVG expression sequence used by the zero-retaining binning branch.",
+          "node_id": "hvg_gene_identifiers",
+          "representation_type": "selected_HVG_gene_identifiers",
+          "symbolic_shape": [
+            "n_HVG_positions"
+          ],
+          "uncertainty": "The source does not fully specify whether the final receipt uses this branch or the separately described non-zero-filtered branch."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "binned_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Non-zero expression values of each cell are partitioned into O equal-interval bins, while zero values are retained as 0.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Binned expression values supplied to the expression embedding layer.",
+          "node_id": "binned_expression",
+          "representation_type": "binned_expression_values",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The paper separately states that only non-zero genes are fed to the model; the relative order between that filter and zero-retaining binning is unresolved."
+        },
+        {
+          "axis_semantics": [
+            "gene positions"
+          ],
+          "contextual_role": "gene_token_ids_before_special_token_placement",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a fundamental informational element (analogous to a token in natural language processing) and assigned a unique integer identifier id ( g j ). To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Integer gene-token identifiers for the conditional model-input gene sequence before the documented leading <cls> placement and padding transformations.",
+          "node_id": "gene_tokens",
+          "representation_type": "gene_token_ids",
+          "symbolic_shape": [
+            "n_model_input_genes"
+          ],
+          "uncertainty": "The source does not fully specify whether non-zero filtering and random sampling alter the final token sequence."
+        },
+        {
+          "axis_semantics": [
+            "sequence positions"
+          ],
+          "contextual_role": "cls_prefixed_gene_token_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We adopt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "information_content": "Gene-token sequence with the documented <cls> token at its beginning.",
+          "node_id": "cls_prefixed_gene_tokens",
+          "representation_type": "cls_prefixed_gene_token_ids",
+          "symbolic_shape": [
+            "n_sequence_positions"
+          ],
+          "uncertainty": "The exact relationship between the gene-token count and the resulting sequence length is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "uniform input sequence positions"
+          ],
+          "contextual_role": "padded_gene_token_ids",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "<cls>-prefixed gene-token sequence padded to the documented uniform symbolic target length.",
+          "node_id": "padded_gene_tokens",
+          "representation_type": "padded_gene_token_ids",
+          "symbolic_shape": [
+            "n_input_sequence_positions"
+          ],
+          "uncertainty": "The exact target length, padding side, and padding-mask behavior are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "uniform input sequence positions"
+          ],
+          "contextual_role": "padded_binned_expression_values",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Binned expression sequence represented on the uniform input sequence boundary.",
+          "node_id": "padded_binned_expression",
+          "representation_type": "padded_binned_expression_values",
+          "symbolic_shape": [
+            "n_input_sequence_positions"
+          ],
+          "uncertainty": "The exact expression padding value and its relation to the <cls> position are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "gene positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "gene_identity_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Embedding-layer output for gene identity tokens.",
+          "node_id": "gene_embeddings",
+          "representation_type": "gene_token_embeddings",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "Embedding-table shape and training state are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "gene positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "expression_embeddings",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Embedding-layer output for binned expression values.",
+          "node_id": "expression_embeddings",
+          "representation_type": "expression_value_embeddings",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "Embedding-table shape and training state are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "input sequence positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "fused_cell_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The final input embedding for cell i : is obtained by element-wise summation of these two components, integrating both gene identity and expression magnitude information:",
+              "section_id": "sec_0022"
+            }
+          ],
+          "information_content": "Fused gene and expression embedding entering the cell encoder.",
+          "node_id": "cell_input_embedding",
+          "representation_type": "fused_gene_expression_embedding",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "The final aligned receipt is subject to the unresolved relation between zero-retaining binning, non-zero filtering, and padding."
+        },
+        {
+          "axis_semantics": [
+            "cell-feature coordinates"
+          ],
+          "contextual_role": "cell_encoder_output",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processing through n Transformer blocks, the embedding corresponding to the &lt; cls &gt; token in the final output h ( i ) n is extracted as the cell representation h ( i ) cls ∈ R D , which aggregates global information of the cell's transcriptomic profile.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "information_content": "Cell-level representation extracted from the final <cls> token.",
+          "node_id": "cell_representation",
+          "representation_type": "cls_cell_embedding",
+          "symbolic_shape": [
+            "D"
+          ],
+          "uncertainty": null
+        },
+        {
+          "axis_semantics": null,
+          "contextual_role": "paired_text_input",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The textual descriptions of each cell are generated with cellular metadata and the OBO Foundry [45].",
+              "section_id": "sec_0024"
+            }
+          ],
+          "information_content": "Textual description paired with the cell for cross-modal alignment.",
+          "node_id": "paired_text",
+          "representation_type": "cell_text_description",
+          "symbolic_shape": null,
+          "uncertainty": "Exact choice between original and LLM-enriched text, serialization, tokenization, and sequence layout are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "text-feature coordinates"
+          ],
+          "contextual_role": "textual_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The employed text encoder is the off-the-shelf Clinical-Longformer [28], which convert an input texts into 768-dim features. For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Clinical-LongFormer representation of the paired text.",
+          "node_id": "text_representation",
+          "representation_type": "clinical_longformer_features",
+          "symbolic_shape": [
+            "d_text"
+          ],
+          "uncertainty": "The paper establishes a 768-dimensional feature output but does not specify pooling or sequence layout."
+        },
+        {
+          "axis_semantics": [
+            "projected-feature coordinates"
+          ],
+          "contextual_role": "projected_cell_representation",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "information_content": "Cell representation mapped into the textual embedding space for CRA alignment.",
+          "node_id": "projected_cell_representation",
+          "representation_type": "cell_to_text_projected_embedding",
+          "symbolic_shape": [
+            "d_projected"
+          ],
+          "uncertainty": "Projection realization and activation are unspecified."
+        },
+        {
+          "axis_semantics": [
+            "Transformer sequence positions",
+            "feature coordinates D"
+          ],
+          "contextual_role": "final_cell_encoder_sequence",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The cellular encoder retains scGPT's self-attention Transformer backbone to capture complex gene-gene interaction patterns embedded in the input embedding h ( i ) .",
+              "section_id": "sec_0023"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The binary attention mask ( M × M , matching the input token length M ) restricts attention computation to 'known' tokens when predicting 'unknown' ones.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "information_content": "Final Transformer sequence before extraction of the <cls> representation.",
+          "node_id": "encoded_cell_sequence",
+          "representation_type": "transformer_cell_sequence",
+          "symbolic_shape": [
+            "n_input_sequence_positions",
+            "D"
+          ],
+          "uncertainty": "The exact block-level residual and normalization schedule is unspecified."
+        },
+        {
+          "axis_semantics": [
+            "<cls> selector"
+          ],
+          "contextual_role": "position_selector",
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "pt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "information_content": "Selector identifying the leading <cls> token position.",
+          "node_id": "cls_selector",
+          "representation_type": "cls_position_selector",
+          "symbolic_shape": null,
+          "uncertainty": "The implementation of the selector is unspecified."
+        }
+      ],
+      "open_questions": [
+        "What exact tokenizer and pooling produce the paired Clinical-LongFormer representation?",
+        "What exact cross-modal similarity and CRA input interfaces receive the projected cell and text representations?",
+        "How are noisy or shuffled cell-text pairs represented during training?",
+        "Is non-zero filtering applied before or after zero-retaining binning, and which aligned gene/value branch supplies the final cell-input sequence?",
+        "What exact target length and expression-padding convention accompany the documented padded gene-token sequence?"
+      ],
+      "receipt_inputs": [
+        {
+          "node_id": "projected_cell_representation",
+          "port_role": "cell_embedding_for_cross_modal_alignment"
+        },
+        {
+          "node_id": "text_representation",
+          "port_role": "text_embedding_for_cross_modal_alignment"
+        }
+      ],
+      "recipient_component": "cell-to-text projector and cross-modal robust alignment objective",
+      "steps": [
+        {
+          "bypasses": [],
+          "component": "Log1p expression preprocessing",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "expression_matrix"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "log_transform",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "log_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "log1p"
+                },
+                {
+                  "name": "offset",
+                  "value": "1"
+                },
+                {
+                  "name": "base",
+                  "value": "e"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "expression_matrix",
+              "port_role": "raw_expression_matrix"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "log1p_expression_preprocessing",
+          "outputs": [
+            "log_expression"
+          ],
+          "step_id": "log_expression",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "HVG selection",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "log_expression",
+                    "gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "hvg_expression",
+                    "hvg_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "selected highly variable genes"
+                },
+                {
+                  "name": "method",
+                  "value": "HVG selection"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Preprocessing: Log1p transformation and HVG selection are performed first;",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "where M (predefined input length) is set to the number of selected highly variable genes (HVGs)",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "log_expression",
+              "port_role": "expression_values"
+            },
+            {
+              "node_id": "gene_identifiers",
+              "port_role": "aligned_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "HVG_selection",
+          "outputs": [
+            "hvg_expression",
+            "hvg_gene_identifiers"
+          ],
+          "step_id": "select_HVGs",
+          "uncertainty": "The exact HVG selection criterion is unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Non-zero gene input filtering",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "hvg_expression",
+                    "hvg_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "selected_expression",
+                    "selected_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain genes exhibiting non-zero expression levels"
+                },
+                {
+                  "name": "method",
+                  "value": "non-zero input filtering"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "hvg_expression",
+              "port_role": "HVG_expression_values"
+            },
+            {
+              "node_id": "hvg_gene_identifiers",
+              "port_role": "aligned_HVG_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "nonzero_gene_selection",
+          "outputs": [
+            "selected_expression",
+            "selected_gene_identifiers"
+          ],
+          "step_id": "select_nonzero_genes",
+          "uncertainty": "The combination with zero-retaining binning is represented separately because the paper does not establish their relative placement."
+        },
+        {
+          "bypasses": [],
+          "component": "Length-limited random gene sampling",
+          "decomposition": [
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length",
+              "inputs": [
+                {
+                  "node_ids": [
+                    "selected_expression",
+                    "selected_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "sampled_expression",
+                    "sampled_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain 1200 randomly sampled non-zero genes"
+                },
+                {
+                  "name": "method",
+                  "value": "random sampling in each training iteration"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "selected_expression",
+              "port_role": "selected_nonzero_expression_values"
+            },
+            {
+              "node_id": "selected_gene_identifiers",
+              "port_role": "aligned_selected_nonzero_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "length_limited_random_gene_sampling",
+          "outputs": [
+            "sampled_expression",
+            "sampled_gene_identifiers"
+          ],
+          "step_id": "sample_nonzero_genes",
+          "uncertainty": "The paper does not specify the random generator or whether sampling is applied before or after binning."
+        },
+        {
+          "bypasses": [
+            {
+              "condition": "the count of non-zero genes is at or below the maximum input length; retain the unsampled selected expression sequence",
+              "source_node_id": "selected_expression",
+              "target_node_id": "model_expression"
+            },
+            {
+              "condition": "the count of non-zero genes is at or below the maximum input length; retain the aligned unsampled selected gene sequence",
+              "source_node_id": "selected_gene_identifiers",
+              "target_node_id": "model_gene_identifiers"
+            },
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length; route the sampled expression sequence",
+              "source_node_id": "sampled_expression",
+              "target_node_id": "model_expression"
+            },
+            {
+              "condition": "the count of non-zero genes exceeds the maximum input length; route the aligned sampled gene sequence",
+              "source_node_id": "sampled_gene_identifiers",
+              "target_node_id": "model_gene_identifiers"
+            }
+          ],
+          "component": "Conditional input-sequence routing",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For scRNA-seq data pre-processing, we follow scGPT [14] to only feed genes exhibiting non-zero expression levels into the model. A maximum input length of 1200 was established; for cells where the count of non-zero genes exceeded this threshold, 1200 genes were randomly sampled in each training iteration.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "selected_expression",
+              "port_role": "unsampled_expression_branch"
+            },
+            {
+              "node_id": "selected_gene_identifiers",
+              "port_role": "unsampled_gene_branch"
+            },
+            {
+              "node_id": "sampled_expression",
+              "port_role": "sampled_expression_branch"
+            },
+            {
+              "node_id": "sampled_gene_identifiers",
+              "port_role": "sampled_gene_branch"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "conditional_input_sequence_routing",
+          "outputs": [
+            "model_expression",
+            "model_gene_identifiers"
+          ],
+          "step_id": "route_input_sequence",
+          "uncertainty": "The paper documents the conditional sampling rule but does not specify the explicit branch-merging implementation."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene tokenization",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "model_gene_identifiers"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "tokenize",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "vocabulary",
+                  "value": "gene IDs"
+                },
+                {
+                  "name": "segmentation",
+                  "value": "one selected gene per token"
+                },
+                {
+                  "name": "source_alphabet",
+                  "value": "conditional model-input gene identifiers"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Each gene is treated as a fundamental informational element (analogous to a token in natural language processing) and assigned a unique integer identifier id ( g j ).",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "model_gene_identifiers",
+              "port_role": "selected_aligned_gene_identifiers"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_tokenization",
+          "outputs": [
+            "gene_tokens"
+          ],
+          "step_id": "tokenize_genes",
+          "uncertainty": "The source does not fully specify whether non-zero filtering and random sampling alter the final token sequence."
+        },
+        {
+          "bypasses": [],
+          "component": "Leading <cls> placement",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "We adopt a special &lt; cls &gt; token at the beginning of genes tokens, which enables the model to learn task-adaptive pooling within Transformer blocks.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "gene_tokens",
+              "port_role": "gene_token_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "prepend_cls_token",
+          "outputs": [
+            "cls_prefixed_gene_tokens"
+          ],
+          "step_id": "prepend_cls_token",
+          "uncertainty": "The catalog has no dedicated special-token insertion primitive; the documented leading position is retained as an opaque sequence boundary."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene-token sequence padding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cls_prefixed_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "pad",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "padded_gene_tokens"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "side",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "value",
+                  "value": "<pad> token"
+                },
+                {
+                  "name": "target_length",
+                  "value": "n_uniform_input_sequence_positions"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cls_prefixed_gene_tokens",
+              "port_role": "cls_prefixed_gene_token_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_sequence_padding",
+          "outputs": [
+            "padded_gene_tokens"
+          ],
+          "step_id": "pad_gene_tokens",
+          "uncertainty": "The exact target length, padding side, and padding-mask behavior are unspecified."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene expression binning",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "model_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "bin",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "strategy",
+                  "value": "equal-interval bins for non-zero expression values"
+                },
+                {
+                  "name": "scope",
+                  "value": "each cell"
+                },
+                {
+                  "name": "zero_handling",
+                  "value": "zero values retained as 0"
+                },
+                {
+                  "name": "bin_edges",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Non-zero expression values of each cell are partitioned into O equal-interval bins, while zero values are retained as 0.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "model_expression",
+              "port_role": "conditional_model_input_expression_values"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "gene_expression_binning",
+          "outputs": [
+            "binned_expression"
+          ],
+          "step_id": "bin_expression",
+          "uncertainty": "The separate implementation statement says only non-zero genes are fed to the model; the graph preserves this binning branch without asserting its order relative to that filter."
+        },
+        {
+          "bypasses": [],
+          "component": "Expression-sequence padding",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "pad",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "padded_binned_expression"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "side",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "value",
+                  "value": "unspecified expression padding value"
+                },
+                {
+                  "name": "target_length",
+                  "value": "n_uniform_input_sequence_positions"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "To support cross-study integration of gene sets, two special tokens are introduced: &lt; cls &gt; for aggregating cell-level representations and &lt; pad &gt; for padding sequences to a uniform length.",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "binned_expression",
+              "port_role": "binned_expression_sequence"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "expression_sequence_padding",
+          "outputs": [
+            "padded_binned_expression"
+          ],
+          "step_id": "pad_expression_values",
+          "uncertainty": "The paper documents sequence padding but does not specify the expression-side padding value or its exact alignment with the <cls> position."
+        },
+        {
+          "bypasses": [],
+          "component": "Gene and expression embedding fusion",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "padded_gene_tokens"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "fuse_embeddings::gene_lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "gene_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "gene IDs and <cls>/<pad> special-token IDs"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "gene embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "padded_binned_expression"
+                  ],
+                  "port": "keys"
+                },
+                {
+                  "node_ids": [
+                    "fuse_embeddings::expression_lookup_table"
+                  ],
+                  "port": "table"
+                }
+              ],
+              "operation_id": "lookup",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "key_space",
+                  "value": "binned expression interval identifiers and expression padding identifier"
+                },
+                {
+                  "name": "resource_kind",
+                  "value": "expression embedding matrix"
+                },
+                {
+                  "name": "trainability",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            },
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "gene_embeddings",
+                    "expression_embeddings"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "add",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cell_input_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "alignment",
+                  "value": "element-wise aligned input sequence positions"
+                },
+                {
+                  "name": "scaling",
+                  "value": "unspecified"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+              "section_id": "sec_0022"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The final input embedding for cell i : is obtained by element-wise summation of these two components, integrating both gene identity and expression magnitude information:",
+              "section_id": "sec_0022"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "padded_gene_tokens",
+              "port_role": "gene_token_ids"
+            },
+            {
+              "node_id": "padded_binned_expression",
+              "port_role": "binned_expression_ids"
+            }
+          ],
+          "intermediate_nodes": [
+            {
+              "axis_semantics": [
+                "gene positions",
+                "feature coordinates D"
+              ],
+              "contextual_role": "gene_embedding_table",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+                  "section_id": "sec_0022"
+                }
+              ],
+              "information_content": "Embedding matrix for gene token identifiers.",
+              "node_id": "fuse_embeddings::gene_lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "gene_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape and parameter state are unspecified."
+            },
+            {
+              "axis_semantics": [
+                "expression-bin positions",
+                "feature coordinates D"
+              ],
+              "contextual_role": "expression_embedding_table",
+              "evidence": [
+                {
+                  "kind": "paper_text",
+                  "quote": "Gene tokens and binned expression values are independently projected to D -dimensional vectors via embedding layers ( emb g , emb x ) respectively.",
+                  "section_id": "sec_0022"
+                }
+              ],
+              "information_content": "Embedding matrix for binned expression identifiers.",
+              "node_id": "fuse_embeddings::expression_lookup_table",
+              "origin": "implicit_parameter",
+              "representation_type": "expression_embedding_matrix",
+              "symbolic_shape": null,
+              "uncertainty": "Exact table shape and parameter state are unspecified."
+            }
+          ],
+          "operation_type": "independent_embedding_layers_then_elementwise_sum",
+          "outputs": [
+            "cell_input_embedding"
+          ],
+          "step_id": "fuse_embeddings",
+          "uncertainty": "Gene embeddings, expression embeddings, and their element-wise sum use the documented shared feature axis D; final branch alignment remains subject to the unresolved filtering/binning order and expression-side padding convention."
+        },
+        {
+          "bypasses": [],
+          "component": "scGPT-derived Transformer cell encoder",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cell_input_embedding"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "self_attention",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "encoded_cell_sequence"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "mask_semantics",
+                  "value": "masked attention restricts prediction of unknown-gene values to known tokens; <cls> participates in cell aggregation"
+                },
+                {
+                  "name": "repeat_schedule",
+                  "value": "stack of n Transformer blocks"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The cellular encoder retains scGPT's self-attention Transformer backbone to capture complex gene-gene interaction patterns embedded in the input embedding h ( i ) .",
+              "section_id": "sec_0023"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "The binary attention mask ( M × M , matching the input token length M ) restricts attention computation to 'known' tokens when predicting 'unknown' ones.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cell_input_embedding",
+              "port_role": "fused_cell_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "self_attention_transformer_encoding",
+          "outputs": [
+            "encoded_cell_sequence"
+          ],
+          "step_id": "encode_cell",
+          "uncertainty": "The source establishes self-attention, masked attention, repeated Transformer blocks, and the final sequence output."
+        },
+        {
+          "bypasses": [],
+          "component": "<cls> position extraction",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "encoded_cell_sequence"
+                  ],
+                  "port": "values"
+                },
+                {
+                  "node_ids": [
+                    "cls_selector"
+                  ],
+                  "port": "selectors"
+                }
+              ],
+              "operation_id": "select",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "cell_representation"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "criterion",
+                  "value": "retain the embedding corresponding to the <cls> token"
+                },
+                {
+                  "name": "method",
+                  "value": "position selection"
+                },
+                {
+                  "name": "forced_inclusions",
+                  "value": "<cls> position"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "processing through n Transformer blocks, the embedding corresponding to the &lt; cls &gt; token in the final output h ( i ) n is extracted as the cell representation h ( i ) cls ∈ R D , which aggregates global information of the cell's transcriptomic profile.",
+              "section_id": "sec_0023"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "encoded_cell_sequence",
+              "port_role": "final_transformer_sequence"
+            },
+            {
+              "node_id": "cls_selector",
+              "port_role": "cls_position_selector"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "cls_position_extraction",
+          "outputs": [
+            "cell_representation"
+          ],
+          "step_id": "extract_cls_representation",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Clinical-LongFormer text encoder",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The employed text encoder is the off-the-shelf Clinical-Longformer [28], which convert an input texts into 768-dim features. For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "On the first stage, we aim to establish basic alignment between cellular data and textual representations. Thus we freeze the parameters of textual encoder",
+              "section_id": "sec_0006"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "In the second stage, we only unfroze the last self-attention layer of ClinicalLongformer among the text encoder parameters.",
+              "section_id": "sec_0033"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "paired_text",
+              "port_role": "textual_input"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "clinical_longformer_text_encoding",
+          "outputs": [
+            "text_representation"
+          ],
+          "step_id": "encode_paired_text",
+          "uncertainty": "The text encoder is frozen during pretraining stage 1; during stage 2, only the last Clinical-LongFormer self-attention layer is unfrozen. The paper does not specify tokenizer, pooling, or exact feature layout."
+        },
+        {
+          "bypasses": [],
+          "component": "Cell-to-text projector",
+          "decomposition": [
+            {
+              "condition": null,
+              "inputs": [
+                {
+                  "node_ids": [
+                    "cell_representation"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "operation_id": "project",
+              "outputs": [
+                {
+                  "node_ids": [
+                    "projected_cell_representation"
+                  ],
+                  "port": "values"
+                }
+              ],
+              "parameters": [
+                {
+                  "name": "method",
+                  "value": "cell-to-text learned projection"
+                },
+                {
+                  "name": "activation",
+                  "value": "unspecified"
+                },
+                {
+                  "name": "parameter_state",
+                  "value": "trainable during OKR-CELL pretraining stages 1 and 2"
+                }
+              ],
+              "uncertainty": null
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "For cross-modal alignment, we utilize a cell-to-text projector to map the 128-dimensional cell features to the 768-dimensional textual embedding space.",
+              "section_id": "sec_0033"
+            },
+            {
+              "kind": "paper_text",
+              "quote": "Thus we freeze the parameters of textual encoder and optimize the parameters of the cell encoder and the cell-to-text projector.",
+              "section_id": "sec_0006"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "cell_representation",
+              "port_role": "cell_features"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "cell_to_text_projection",
+          "outputs": [
+            "projected_cell_representation"
+          ],
+          "step_id": "project_cell_to_text",
+          "uncertainty": null
+        },
+        {
+          "bypasses": [],
+          "component": "Cross-modal robust alignment receipt",
+          "decomposition": [],
+          "evidence": [
+            {
+              "kind": "paper_text",
+              "quote": "The pretraining objective of our model includes two parts: 1) One part is Intra-Modal Generative Pre-training (IMGP) objective on single-cell transcriptomics domain, including Gene Expression Prediction (GEP), Gene Expression Prediction for Cell Modelling (GEPC) and Cell Type Classification (CLS) (see Section 4.3.1). 2) The other part is Cell-Text Cross-modal Robust Alignment (CRA) objective (see Section 4.3.2), which leverages the high-level knowledge contained in natural language as guidance to assist cell representation learning.",
+              "section_id": "sec_0006"
+            }
+          ],
+          "inputs": [
+            {
+              "node_id": "projected_cell_representation",
+              "port_role": "cell_representation"
+            },
+            {
+              "node_id": "text_representation",
+              "port_role": "text_representation"
+            }
+          ],
+          "intermediate_nodes": [],
+          "operation_type": "cross_modal_robust_alignment",
+          "outputs": [],
+          "step_id": "align_cell_text",
+          "uncertainty": "The paper describes CRA components but does not provide a catalog-supported input transformation for the final cross-modal loss receipt."
+        }
+      ],
+      "task_configuration": "Cross-modal cell-text pretraining with scRNA-seq cell encoder, Clinical-LongFormer text encoder, cell-to-text projection, and CRA alignment",
+      "trajectory_id": "okr_cell_paired_cross_modal_route"
+    }
+  ]
+}

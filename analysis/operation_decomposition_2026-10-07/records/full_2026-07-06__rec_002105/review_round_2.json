@@ -1,0 +1,182 @@
+{
+  "coverage_summary": "The major Mistral, GPT-4, Mixtral, inference, and evaluation trajectories are represented, with opaque boundaries used appropriately for undocumented internals. Several documented selection steps, a training-state update, and one training-data cardinality are missing or misbound.",
+  "findings": [
+    {
+      "detail": "The adapter-only stage is connected to `simple_chat_conversations`, which represents the 10,000 simple-chat branch, and the recorded count is 1,082,413. The paper specifies an extended simple-chat dataset covering the full training dataset and reports 1,082,213 question-answer pairs.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In a first training step, we kept the LLM frozen and trained the adapter layers with supervision on an extended version of the simple chat conversations that included our entire training dataset (1,082,213 question-answer pairs) for one epoch.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Simple chats were generated for 10,000 transcriptomes",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add an `extended_simple_training_conversations` node and bind it to the first training stage; preserve the paper's stated count of 1,082,213 pairs.",
+      "severity": "blocking",
+      "step_id": "train_adapter_stage1_with_frozen_mistral",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The simple-chat serialization consumes the full `generic_questions` candidate node. The paper states that one question was randomly selected from ten candidates for each transcriptome, so a selection step and a selected-question node are missing.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "using a generic question (randomly selected from a list of 10 manually prepared candidates",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Insert the documented random question-selection step before serialization and connect the selected question, rather than the candidate list, to the conversation constructor.",
+      "severity": "blocking",
+      "step_id": "generate_simple_training_chats",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The detailed-chat prompt also consumes the unselected candidate list. The paper says detailed chats used the same questions as the simple chats, which means the random per-transcriptome question selection must be represented here as well.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Detailed chats were generated for 10,000 transcriptomes using an LLM (GPT-4 via the OpenAI API) with zero-shot prompting and the same questions as in the simple chats.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "randomly selected from a list of 10 manually prepared candidates",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Reuse the selected-question branch from simple-chat construction as the question input to the detailed-chat prompt serialization.",
+      "severity": "blocking",
+      "step_id": "serialize_gpt4_detailed_chat_prompt",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The documented density-weighted subsampling that determines which transcriptomes enter the 106,610 generated-conversation set is absent. The graph proceeds directly from contextual inputs to the four chat branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we took a weighted subsample, inversely proportional to the local point density calculated with densMAP",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "such that transcriptome-text pairs in lowly covered regions were preferentially picked",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the weighted-subselection boundary or operation, including its densMAP-based inverse-density policy, and connect its selected transcriptome-text pairs to the four conversation-generation branches.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The second training stage outputs `matched_answers` but does not represent the updated joint Mistral-plus-adapter parameter state. The paper explicitly describes unfreezing and fine-tuning both components.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we optimized the LLM and the transcriptome-token adapter to generate the corresponding answers",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we unfroze the Mistral LLM and fine-tuned both the LLM and the adapter layers",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Add a final jointly fine-tuned Mistral/adapter state as the training-stage output; retain `matched_answers` as generated training predictions rather than the sole output.",
+      "severity": "blocking",
+      "step_id": "fine_tune_mistral_on_generated_conversations",
+      "trajectory_id": "mistral_finetuning_conversations"
+    },
+    {
+      "detail": "The evaluation trajectory begins with question and answer nodes but omits construction of the independent evaluation set: random selection from the 106,610 conversations, trimming to the first question-answer pair, and manual removal of irrelevant passages.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We randomly selected 200 of the 106,610 training conversations",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The conversations were trimmed to the first question-answer pair, and passages that did not refer to biological cell states were manually removed.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the evaluation-dataset selection, trimming, and filtering steps before producing `evaluation_question` and `ground_truth_answer`, while preserving the exclusion from training and fine-tuning.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "mistral_conversation_evaluation"
+    },
+    {
+      "detail": "The graph represents the mismatched embeddings as a preformed batch but omits the documented random-sampling branch that generates 30 candidates for each evaluation conversation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "with 30 randomly sampled transcriptome embeddings",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the random candidate-sampling step and its source pool before the mismatched-embedding input to the perplexity evaluation.",
+      "severity": "blocking",
+      "step_id": "evaluate_mistral_matched_transcriptome",
+      "trajectory_id": "mistral_conversation_evaluation"
+    },
+    {
+      "detail": "The cell-type evaluation trajectory starts with an external embedding node and does not represent the documented sampling of 20 pseudo-bulk transcriptomes for each of the 20 cell types.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each of the 20 cell types, we sampled 20 pseudo-bulk transcriptomes, resulting in a total of 400 individual transcriptomes.",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the cell-type-stratified sampling step or an opaque documented selection boundary producing the 400 evaluation transcriptomes.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "mistral_cell_type_evaluation"
+    },
+    {
+      "detail": "The Mixtral metadata-generation boundaries preserve the sampling settings only in uncertainty text. The documented temperature, top-p, and top-k values are absent from the actual invocation parameters.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "sampling temperature of 0.2, nucleus sampling (top_p) of 0.9, and top probability sampling (top_k) of 50.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach temperature 0.2, top_p 0.9, and top_k 50 to the Mixtral metadata-generation invocation.",
+      "severity": "minor",
+      "step_id": "generate_mixtral_geo_annotation",
+      "trajectory_id": "mixtral_geo_metadata_inference"
+    },
+    {
+      "detail": "The Mixtral metadata-generation boundary for CELLxGENE Census likewise keeps the documented sampling settings only in uncertainty text rather than on the invocation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "sampling temperature of 0.2, nucleus sampling (top_p) of 0.9, and top probability sampling (top_k) of 50.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach temperature 0.2, top_p 0.9, and top_k 50 to the Mixtral metadata-generation invocation.",
+      "severity": "minor",
+      "step_id": "generate_mixtral_census_annotation",
+      "trajectory_id": "mixtral_census_metadata_inference"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_002105",
+  "verdict": "revise"
+}

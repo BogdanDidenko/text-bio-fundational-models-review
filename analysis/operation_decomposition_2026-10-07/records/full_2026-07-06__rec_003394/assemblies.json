@@ -1,0 +1,794 @@
+[
+  {
+    "bypasses": [],
+    "calls": [
+      {
+        "call_id": "construct_pretraining_prompt::1",
+        "component": "OmniNA pretraining prompt construction",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the prompt is composed of three modules: (i) an instruction, (ii) a nucleotide sequence, and (iii) an annotation.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "instruction_pretrain",
+            "sequence_pretrain",
+            "annotation_pretrain"
+          ]
+        },
+        "operation_id": "serialize",
+        "outputs": {
+          "values": [
+            "pretraining_prompt"
+          ]
+        },
+        "parameters": {
+          "lexical_mapping": "unspecified",
+          "order": "instruction → nucleotide sequence → annotation",
+          "source_port_roles": [
+            "instruction",
+            "nucleotide_sequence",
+            "text_annotation"
+          ],
+          "template": "pretraining prompt with instruction, nucleotide sequence, and annotation"
+        },
+        "source_step_id": "construct_pretraining_prompt",
+        "status": "documented_operation",
+        "uncertainty": "Exact textual template is unspecified."
+      },
+      {
+        "call_id": "tokenize_pretraining_prompt::1",
+        "component": "OmniNA SentencePiece/BPE tokenizer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized using the byte pair encoding algorithm [ 12 ].",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk was further tokenized using the trained tokenizer.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretraining_prompt"
+          ]
+        },
+        "operation_id": "tokenize",
+        "outputs": {
+          "values": [
+            "pretrain_tokens"
+          ]
+        },
+        "parameters": {
+          "segmentation": "byte pair encoding subword tokenization on sentence-based chunks; special boundary tokens included",
+          "source_alphabet": "nucleotide sequence and text",
+          "source_port_roles": [
+            "prompt_text"
+          ],
+          "vocabulary": "SentencePiece dictionary with 32 001 tokens"
+        },
+        "source_step_id": "tokenize_pretraining_prompt",
+        "status": "documented_operation",
+        "uncertainty": "Exact segmentation and token boundaries are unspecified."
+      },
+      {
+        "call_id": "embed_pretraining_tokens::1",
+        "component": "OmniNA token embedding layer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "keys": [
+            "pretrain_tokens"
+          ],
+          "table": [
+            "embed_pretrain::lookup_table"
+          ]
+        },
+        "operation_id": "lookup",
+        "outputs": {
+          "values": [
+            "pretrain_token_embeddings"
+          ]
+        },
+        "parameters": {
+          "key_space": "trained 32 001-token vocabulary indices",
+          "resource_kind": "token embedding matrix",
+          "source_port_roles": [
+            "token_ids"
+          ],
+          "trainability": "unspecified; part of the pretrained model"
+        },
+        "source_step_id": "embed_pretraining_tokens",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "add_rotary_positions::1",
+        "component": "OmniNA rotary positional encoding",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_token_embeddings",
+            "pretrain_rotary_positions"
+          ]
+        },
+        "operation_id": "add",
+        "outputs": {
+          "values": [
+            "pretrain_positioned_embeddings"
+          ]
+        },
+        "parameters": {
+          "alignment": "token-position aligned",
+          "scaling": "unspecified",
+          "source_port_roles": [
+            "token_embeddings",
+            "rotary_positional_information"
+          ]
+        },
+        "source_step_id": "add_rotary_positions",
+        "status": "documented_operation",
+        "uncertainty": "The catalog addition interface records the documented addition; the paper does not expose the internal rotary implementation."
+      },
+      {
+        "call_id": "normalize_pretraining_input::1",
+        "component": "OmniNA input normalization",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before feeding into transformer layers, we normalize the input with root mean square layer normalization [ 16 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_positioned_embeddings"
+          ]
+        },
+        "operation_id": "normalize",
+        "outputs": {
+          "values": [
+            "pretrain_normalized_input"
+          ]
+        },
+        "parameters": {
+          "axes": "model feature axis",
+          "method": "root mean square layer normalization",
+          "scope": "before transformer layers",
+          "source_port_roles": [
+            "position-enriched_embeddings"
+          ]
+        },
+        "source_step_id": "normalize_pretraining_input",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "transform_pretraining_tokens::1",
+        "component": "OmniNA transformer layers",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We replace the ReLU non-linearity of the traditional transformer architecture by the SwiGLU activation function [ 17 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_normalized_input"
+          ]
+        },
+        "operation_id": "self_attention",
+        "outputs": {
+          "values": [
+            "transformer_layers::pretrain_attention_states"
+          ]
+        },
+        "parameters": {
+          "mask_semantics": "bidirectional attention as stated",
+          "repeat_schedule": "multiple transformer layers",
+          "source_port_roles": [
+            "transformer_input"
+          ]
+        },
+        "source_step_id": "transform_pretraining_tokens",
+        "status": "documented_operation",
+        "uncertainty": "Residual and masking details are unspecified."
+      },
+      {
+        "call_id": "transform_pretraining_tokens::2",
+        "component": "OmniNA transformer layers",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We replace the ReLU non-linearity of the traditional transformer architecture by the SwiGLU activation function [ 17 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "transformer_layers::pretrain_attention_states"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "pretrain_transformer_states"
+          ]
+        },
+        "parameters": {
+          "activation": "SwiGLU",
+          "method": "feedforward layer",
+          "parameter_state": "trainable model parameters",
+          "source_port_roles": [
+            "transformer_input"
+          ]
+        },
+        "source_step_id": "transform_pretraining_tokens",
+        "status": "documented_operation",
+        "uncertainty": null
+      },
+      {
+        "call_id": "produce_next_token_scores::1",
+        "component": "OmniNA autoregressive linear output layer",
+        "condition": null,
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output of the last transformer layer is fed into a linear layer for autoregressive learning [ 5 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": {
+          "values": [
+            "pretrain_transformer_states"
+          ]
+        },
+        "operation_id": "project",
+        "outputs": {
+          "values": [
+            "pretrain_next_token_distribution"
+          ]
+        },
+        "parameters": {
+          "activation": "unspecified",
+          "method": "linear layer for autoregressive learning",
+          "parameter_state": "trainable model parameters",
+          "source_port_roles": [
+            "last_transformer_layer_output"
+          ]
+        },
+        "source_step_id": "produce_next_token_scores",
+        "status": "documented_operation",
+        "uncertainty": "The paper does not specify whether the output is logits or probabilities."
+      }
+    ],
+    "contract_version": "operation-assembly-v1",
+    "evidence": [
+      {
+        "kind": "paper_text",
+        "quote": "We designed prompts to organize the sequence data with textual annotations as feature-ordered input for model pre-training.",
+        "section_id": "sec_0006"
+      },
+      {
+        "kind": "paper_text",
+        "quote": "The pretraining objective was nexttoken prediction, where the model learned to predict the subsequent nucleotide or annotation token given the preceding context.",
+        "section_id": "sec_0007"
+      }
+    ],
+    "library_release": "corpus-candidate",
+    "library_sha256": "af5d54a7968235cd17c1a303e5b55e0bf8289fd2369b6e77ca104e0d2a2cf517",
+    "lifecycle_phase": "pretraining",
+    "model_role": "primary_model",
+    "model_variant": "OmniNA LLaMA decoder; model scale unspecified within the reported 66M–1.7B family",
+    "nodes": [
+      {
+        "axis_semantics": null,
+        "contextual_role": "pretraining_instruction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the prompt is composed of three modules: (i) an instruction, (ii) a nucleotide sequence, and (iii) an annotation.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Instruction module for pretraining prompt construction.",
+        "node_id": "instruction_pretrain",
+        "origin": "source_annotation",
+        "representation_type": "text_instruction",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "nucleotide positions"
+        ],
+        "contextual_role": "external_biological_sample",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data encompass genomic DNA and RNA sequences derived from a wide range of species, enabling a diverse foundation for self-supervised learning tasks.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Nucleotide sequence from the NCBI Nucleotide Database.",
+        "node_id": "sequence_pretrain",
+        "origin": "source_annotation",
+        "representation_type": "nucleotide_sequence",
+        "symbolic_shape": [
+          "n_nucleotide_positions"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "paired_semantic_annotation",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The NT database is composed of nucleotide sequences in FASTA format, accompanied by text annotations including organism names, taxonomic classifications, gene and gene product names, and functional descriptions.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Textual annotation paired with the nucleotide sequence.",
+        "node_id": "annotation_pretrain",
+        "origin": "source_annotation",
+        "representation_type": "text_annotation",
+        "symbolic_shape": null,
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "ordered prompt fields"
+        ],
+        "contextual_role": "model_input_serialization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the prompt is composed of three modules: (i) an instruction, (ii) a nucleotide sequence, and (iii) an annotation.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "information_content": "Feature-ordered prompt containing instruction, nucleotide sequence, and annotation.",
+        "node_id": "pretraining_prompt",
+        "origin": "source_annotation",
+        "representation_type": "serialized_sequence_annotation_prompt",
+        "symbolic_shape": [
+          "n_prompt_fields"
+        ],
+        "uncertainty": "Exact lexical template and field delimiters are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "ordered token positions"
+        ],
+        "contextual_role": "tokenizer_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized using the byte pair encoding algorithm [ 12 ].",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk was further tokenized using the trained tokenizer.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "SentencePiece/BPE token IDs for sequence-and-annotation chunks, including documented boundary special tokens.",
+        "node_id": "pretrain_tokens",
+        "origin": "source_annotation",
+        "representation_type": "subword_token_ids",
+        "symbolic_shape": [
+          "n_input_tokens"
+        ],
+        "uncertainty": "Exact token vocabulary contents and handling of nucleotide/text boundaries are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "token embedding coordinates"
+        ],
+        "contextual_role": "token_embedding_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Embedded input-token representations.",
+        "node_id": "pretrain_token_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "token_embeddings",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "positional feature coordinates"
+        ],
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Rotary positional encoding contribution.",
+        "node_id": "pretrain_rotary_positions",
+        "origin": "source_annotation",
+        "representation_type": "rotary_positional_encoding",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": "Exact rotary implementation and parameterization are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "model feature coordinates"
+        ],
+        "contextual_role": "position-enriched_model_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Token embeddings after addition of rotary positional information.",
+        "node_id": "pretrain_positioned_embeddings",
+        "origin": "source_annotation",
+        "representation_type": "position-enriched_token_embeddings",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "model feature coordinates"
+        ],
+        "contextual_role": "transformer_input",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before feeding into transformer layers, we normalize the input with root mean square layer normalization [ 16 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "RMS-normalized transformer input.",
+        "node_id": "pretrain_normalized_input",
+        "origin": "source_annotation",
+        "representation_type": "rms_normalized_token_embeddings",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": null
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "model feature coordinates"
+        ],
+        "contextual_role": "decoder_hidden_state",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Hidden representation after the documented transformer layer schedule.",
+        "node_id": "pretrain_transformer_states",
+        "origin": "source_annotation",
+        "representation_type": "transformer_hidden_states",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": "Residual connections, exact layer ordering beyond the stated self-attention/feedforward components, and masking implementation are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "next-token vocabulary coordinates"
+        ],
+        "contextual_role": "autoregressive_output_distribution",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output of the last transformer layer is fed into a linear layer for autoregressive learning [ 5 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Linear output used for subsequent-token prediction.",
+        "node_id": "pretrain_next_token_distribution",
+        "origin": "source_annotation",
+        "representation_type": "next_token_prediction_scores",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "n_vocabulary"
+        ],
+        "uncertainty": "The paper does not specify whether the output is represented as logits or normalized probabilities."
+      },
+      {
+        "axis_semantics": null,
+        "contextual_role": "model_parameter",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Token embedding matrix.",
+        "node_id": "embed_pretrain::lookup_table",
+        "origin": "implicit_parameter",
+        "representation_type": "token_embedding_table",
+        "symbolic_shape": null,
+        "uncertainty": "Exact table shape and parameter state are unspecified."
+      },
+      {
+        "axis_semantics": [
+          "token positions",
+          "model feature coordinates"
+        ],
+        "contextual_role": "attention_output",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "information_content": "Output of the documented multihead self-attention component.",
+        "node_id": "transformer_layers::pretrain_attention_states",
+        "origin": "documented_intermediate",
+        "representation_type": "self_attention_states",
+        "symbolic_shape": [
+          "n_input_tokens",
+          "d_model"
+        ],
+        "uncertainty": "Exact layerwise residual structure is unspecified."
+      }
+    ],
+    "open_questions": [
+      "The exact prompt template and delimiters are not provided.",
+      "The paper states a maximum input length of 601 tokens but does not document padding behavior or handling of chunks exceeding that length.",
+      "Attention masking and the exact autoregressive receipt are unspecified."
+    ],
+    "receipt_inputs": [
+      {
+        "node_id": "pretrain_normalized_input",
+        "port_role": "transformer_decoder_input"
+      }
+    ],
+    "recipient_component": "OmniNA LLaMA autoregressive decoder",
+    "record_id": "full_2026-07-06__rec_003394",
+    "source_steps": [
+      {
+        "component": "OmniNA pretraining prompt construction",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "the prompt is composed of three modules: (i) an instruction, (ii) a nucleotide sequence, and (iii) an annotation.",
+            "section_id": "sec_0006"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "instruction_pretrain",
+            "port_role": "instruction"
+          },
+          {
+            "node_id": "sequence_pretrain",
+            "port_role": "nucleotide_sequence"
+          },
+          {
+            "node_id": "annotation_pretrain",
+            "port_role": "text_annotation"
+          }
+        ],
+        "operation_type": "feature_ordered_prompt_construction",
+        "outputs": [
+          "pretraining_prompt"
+        ],
+        "step_id": "construct_pretraining_prompt",
+        "uncertainty": "Exact textual template is unspecified."
+      },
+      {
+        "component": "OmniNA SentencePiece/BPE tokenizer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The data were tokenized using the byte pair encoding algorithm [ 12 ].",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "Each chunk was further tokenized using the trained tokenizer.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretraining_prompt",
+            "port_role": "prompt_text"
+          }
+        ],
+        "operation_type": "subword_tokenization",
+        "outputs": [
+          "pretrain_tokens"
+        ],
+        "step_id": "tokenize_pretraining_prompt",
+        "uncertainty": "Exact segmentation and token boundaries are unspecified."
+      },
+      {
+        "component": "OmniNA token embedding layer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The token embedding layer embedded the input tokens into embedding vectors.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_tokens",
+            "port_role": "token_ids"
+          }
+        ],
+        "operation_type": "token_embedding_lookup",
+        "outputs": [
+          "pretrain_token_embeddings"
+        ],
+        "step_id": "embed_pretraining_tokens",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA rotary positional encoding",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Rotary positional encodings [ 15 ] were added to the token embeddings.",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_token_embeddings",
+            "port_role": "token_embeddings"
+          },
+          {
+            "node_id": "pretrain_rotary_positions",
+            "port_role": "rotary_positional_information"
+          }
+        ],
+        "operation_type": "positional_encoding_addition",
+        "outputs": [
+          "pretrain_positioned_embeddings"
+        ],
+        "step_id": "add_rotary_positions",
+        "uncertainty": "The catalog addition interface records the documented addition; the paper does not expose the internal rotary implementation."
+      },
+      {
+        "component": "OmniNA input normalization",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "Before feeding into transformer layers, we normalize the input with root mean square layer normalization [ 16 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_positioned_embeddings",
+            "port_role": "position-enriched_embeddings"
+          }
+        ],
+        "operation_type": "rms_input_normalization",
+        "outputs": [
+          "pretrain_normalized_input"
+        ],
+        "step_id": "normalize_pretraining_input",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA transformer layers",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The transformer consists of multiple layers, each containing a multihead selfattention layer and a feedforward layer.",
+            "section_id": "sec_0007"
+          },
+          {
+            "kind": "paper_text",
+            "quote": "We replace the ReLU non-linearity of the traditional transformer architecture by the SwiGLU activation function [ 17 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_normalized_input",
+            "port_role": "transformer_input"
+          }
+        ],
+        "operation_type": "transformer_self_attention_then_feedforward",
+        "outputs": [
+          "pretrain_transformer_states"
+        ],
+        "step_id": "transform_pretraining_tokens",
+        "uncertainty": null
+      },
+      {
+        "component": "OmniNA autoregressive linear output layer",
+        "evidence": [
+          {
+            "kind": "paper_text",
+            "quote": "The output of the last transformer layer is fed into a linear layer for autoregressive learning [ 5 ].",
+            "section_id": "sec_0007"
+          }
+        ],
+        "inputs": [
+          {
+            "node_id": "pretrain_transformer_states",
+            "port_role": "last_transformer_layer_output"
+          }
+        ],
+        "operation_type": "autoregressive_linear_output",
+        "outputs": [
+          "pretrain_next_token_distribution"
+        ],
+        "step_id": "produce_next_token_scores",
+        "uncertainty": null
+      }
+    ],
+    "task_configuration": "Self-supervised next-token prediction on nucleotide sequences and paired textual annotations",
+    "trajectory_id": "omnina_pretraining_sequence_annotation"
+  }
+]

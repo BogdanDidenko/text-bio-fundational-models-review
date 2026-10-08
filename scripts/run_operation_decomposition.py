@@ -27,15 +27,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.operation_decomposition import (  # noqa: E402
-    ATLAS, CATALOG, PILOT_RECORDS, atlas_seed, build_packet, coverage_warnings, encoded,
+    ATLAS, CATALOG, PILOT_RECORDS, atlas_seed, build_packet, canonicalize_quotes, coverage_warnings, encoded,
     evidence_entries, extraction_schema, review_schema, sha, validate_document,
 )
 
 OUT = ROOT / "analysis/operation_decomposition_2026-10-07"
 GUIDE = ROOT / "protocol/REPRESENTATION_LIBRARY_GUIDE.md"
 EXAMPLES = ROOT / "analysis/operation_decomposition_2026-10-07/worked_examples.json"
-DEFAULT_MODEL = "gpt-5.4-mini"  # repo standard for codex text roles (LIVING_REVIEW_RUNBOOK.md)
+# gpt-5.4-mini / gpt-5.4 (earlier repo standard) are no longer served to ChatGPT-account Codex
+# (HTTP 400, checked 2026-10-08); author chose gpt-5.6-luna for both roles.
+DEFAULT_MODEL = "gpt-5.6-luna"
 RELEASE = "corpus-candidate"
+
+
+CHILDREN = set()
+
+
+def _terminate_children(signum, _frame):
+    """Stop every running codex process group, then exit (codex runs in its own session)."""
+    for proc in list(CHILDREN):
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    os._exit(128 + signum)
 
 
 def now():
@@ -68,6 +83,7 @@ def run_codex(prompt, schema, folder, model, timeout, effort):
         process = subprocess.Popen(command, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, cwd=workspace, start_new_session=True,
                                    env={**os.environ, "NO_COLOR": "1"})
+        CHILDREN.add(process)
         try:
             stdout, stderr = process.communicate(input=prompt, timeout=timeout)
             status = "ok" if process.returncode == 0 and response.is_file() else "failed"
@@ -80,6 +96,8 @@ def run_codex(prompt, schema, folder, model, timeout, effort):
                 os.killpg(process.pid, signal.SIGKILL)
                 stdout, stderr = process.communicate()
             status, returncode = "timeout", None
+        finally:
+            CHILDREN.discard(process)
     (folder / "stdout.jsonl").write_text(stdout or "", encoding="utf-8")
     (folder / "stderr.log").write_text(stderr or "", encoding="utf-8")
     meta = {"status": status, "returncode": returncode, "model": model, "reasoning_effort": effort,
@@ -198,6 +216,7 @@ def process_record(record_id, args, catalog, library_sha256, guide, examples, at
     seed = atlas_seed(record_id, atlas)
     attempts = sorted((base / "attempts").glob("*")) if (base / "attempts").exists() else []
     counter = [len(attempts)]
+    canonicalized = [0]
     log = []
 
     def attempt(stage, prompt, schema):
@@ -210,7 +229,8 @@ def process_record(record_id, args, catalog, library_sha256, guide, examples, at
 
     def finish(status, **extra):
         value = {"record_id": record_id, "status": status, "finished_at": now(), "attempts": log,
-                 "packet_sha256": manifest["packet_sha256"], "source_sha256": manifest["source_sha256"], **extra}
+                 "packet_sha256": manifest["packet_sha256"], "source_sha256": manifest["source_sha256"],
+                 "whitespace_canonicalized_quotes": canonicalized[0], **extra}
         write_json(status_path, value)
         return value
 
@@ -221,6 +241,7 @@ def process_record(record_id, args, catalog, library_sha256, guide, examples, at
         for _ in range(args.repairs + 1):
             if doc is None:
                 return None, ["agent returned no parseable document"], [], []
+            canonicalized[0] += canonicalize_quotes(doc, sections)
             errors, warnings, assemblies = validate_document(doc, record_id, sections, catalog, library_sha256, RELEASE)
             if not errors:
                 return doc, [], warnings + coverage_warnings(doc, seed), assemblies
@@ -274,16 +295,18 @@ def main():
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--review-model", default=DEFAULT_MODEL)
-    parser.add_argument("--reasoning-effort", default=None, help="Optional, e.g. high; omitted = codex default")
+    parser.add_argument("--reasoning-effort", default="high", help="codex model_reasoning_effort; empty string = codex default")
     parser.add_argument("--max-workers", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=2700)
-    parser.add_argument("--repairs", type=int, default=2)
-    parser.add_argument("--review-rounds", type=int, default=1, help="Revision rounds after the first review")
+    parser.add_argument("--repairs", type=int, default=4)
+    parser.add_argument("--review-rounds", type=int, default=2, help="Revision rounds after the first review")
     parser.add_argument("--force", action="store_true", help="Discard previous attempts for selected records")
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Write packets and prompts; call no agent")
     args = parser.parse_args()
 
+    signal.signal(signal.SIGTERM, _terminate_children)
+    signal.signal(signal.SIGINT, _terminate_children)
     if not args.dry_run and shutil.which("codex") is None:
         raise SystemExit("`codex` CLI not found on PATH")
     catalog = json.loads(CATALOG.read_text())

@@ -1,0 +1,232 @@
+{
+  "coverage_summary": "Reviewed all 9 trajectories. Several opaque boundaries are appropriately retained, but structural bindings, conditional routes, and documented parameters require revision.",
+  "findings": [
+    {
+      "detail": "The trajectory receipt binds pretraining_visual_tokens to the EVA-CLIP encoder, although visual tokens are produced by that encoder. The encoder should receive pretraining_square_image.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we use the ViTg/14 vision transformer from EVA-CLIP [69] as the image encoder.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The extracted visual embeddings form the foundation for subsequent cross-modal representation learning.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Bind pretraining_square_image to the image encoder input; treat pretraining_visual_tokens as its output.",
+      "severity": "blocking",
+      "step_id": "encode_pretraining_image",
+      "trajectory_id": "pretraining_image_encoder"
+    },
+    {
+      "detail": "The segmentation/cropping step accepts the broad pretraining_image node without a full-field condition, so supplied single-cell instances can also appear to pass through segmentation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For full-field microscopy images lacking provided cell boundary annotations, singlecell instances are obtained using an automated segmentation pipeline.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Among them, LIVECell and cpg0000 consist of full-field microscopy images, whereas the remaining datasets provide single-cell images.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Condition the segmentation route on full-field images lacking boundaries and retain the direct supplied-single-cell route as a bypass.",
+      "severity": "blocking",
+      "step_id": "prepare_pretraining_cell_crop",
+      "trajectory_id": "pretraining_image_encoder"
+    },
+    {
+      "detail": "The operation type asserts a frozen visual encoder while the paper also states that the full architecture, including the image encoder, is optimized end-to-end.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Freezing the image encoder allows scMIR to leverage pretrained visual priors, reduce computational cost, and limit the number of trainable parameters",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During pretraining, the full scMIR architecture, consisting of the image encoder, Q-Former, and the proposed image reconstruction module, is optimized end-to-end.",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The image encoder follows the standard BLIP-2 configuration and remains unchanged throughout this work.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "wrong_phase_or_role",
+      "required_change": "Use a neutral visual-transformer boundary and record the trainability contradiction as unresolved rather than naming the operation frozen.",
+      "severity": "blocking",
+      "step_id": "encode_pretraining_image",
+      "trajectory_id": "pretraining_image_encoder"
+    },
+    {
+      "detail": "The masking step omits the documented fact that the masking ratio is fixed, even though its numeric value is unavailable.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A subset of these visual tokens is then randomly masked with a fixed masking ratio, while the remaining tokens are retained as contextual inputs.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record masking_ratio as fixed with an unspecified value, while retaining the documented random subset selection.",
+      "severity": "blocking",
+      "step_id": "mask_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The projected-memory invocation specifies a linear projection, but the paper only states that masked visual embeddings are projected into Q-Former hidden space.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the masked visual embeddings are projected into the Q-Former hidden space and used as memory inputs to a lightweight Transformer decoder composed of two decoder layers.",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Remove the unsupported linear-method claim or mark the projection realization unspecified.",
+      "severity": "blocking",
+      "step_id": "project_visual_memory",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The decoder call binds both unmasked_visual_memory and projected_visual_memory as simultaneous inputs, although the paper gives them as conflicting memory descriptions.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the masked tokens are reconstructed using cross-attention to the unmasked memory from the image encoder.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the masked visual embeddings are projected into the Q-Former hidden space and used as memory inputs to a lightweight Transformer decoder",
+          "section_id": "sec_0064"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the two memory descriptions as mutually exclusive alternatives or retain one unresolved decoder boundary without simultaneous memory-port bindings.",
+      "severity": "blocking",
+      "step_id": "decode_masked_visual_tokens",
+      "trajectory_id": "pretraining_reconstruction"
+    },
+    {
+      "detail": "The DIBaS and CM4AI bypasses target classification_single_cell_images even though the paper states that these full-field datasets did not undergo single-cell segmentation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Fullfield images were processed using the same preprocessing pipeline as in pretraining to maintain consistency, except for DIBaS, which contains bacterial images, and CM4AI, which includes only a limited number of cells; neither dataset underwent single-cell segmentation.",
+          "section_id": "sec_0050"
+        }
+      ],
+      "issue_type": "wrong_operation",
+      "required_change": "Use a prepared full-field exception node or otherwise preserve the unsegmented input form for DIBaS and CM4AI; do not label these outputs single-cell images.",
+      "severity": "blocking",
+      "step_id": "prepare_classification_single_cell_images",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The cell-to-image aggregation changes a cell-axis input into an image-axis output without any image-to-cell grouping context or identity route.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Single-cell representations are extracted using the pretrained models and then aggregated by average pooling to obtain image-level features.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add an image-to-cell correspondence context with unspecified fields, or preserve the aggregation as an opaque boundary whose grouping is explicit.",
+      "severity": "blocking",
+      "step_id": "aggregate_classification_image_feature",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The multichannel classification branch has no explicit conditional branch and its channel-image representation drops the sample/cell axis before producing the shared classification_image_feature output.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For multi-channel microscopy images, features are extracted independently from each channel using the same procedure.",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The resulting channel-specific feature vectors are then concatenated to form the final image representation",
+          "section_id": "sec_0024"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Mark the channel-wise route as conditional on multichannel input, preserve the sample/image axis, and keep it separate from the ordinary single-image aggregation path.",
+      "severity": "blocking",
+      "step_id": "split_classification_channels",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "The classifier invocation omits the documented hidden-layer width of 128.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For all general pretrained methods, a unified classifier architecture is adopted, consisting of a 128-dimensional hidden layer followed by a classification layer.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record hidden_width=128 in the classifier invocation or its preserved source parameters.",
+      "severity": "minor",
+      "step_id": "classify_image_feature",
+      "trajectory_id": "evaluation_cell_classification"
+    },
+    {
+      "detail": "Channel-wise feature averaging is applied to clustering_image_representations, whose declared shape has no channel axis or channel-grouping context.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For multi-channel datasets with varying feature dimensionality, channel-wise features are first averaged to ensure a consistent feature length across datasets.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "wrong_port_binding",
+      "required_change": "Represent the input with an explicit channel axis or add documented channel correspondence/grouping context before the averaging boundary.",
+      "severity": "blocking",
+      "step_id": "average_clustering_channels",
+      "trajectory_id": "evaluation_cell_clustering"
+    },
+    {
+      "detail": "The clustering trajectory ends at KMeans assignments and omits the documented NMI, purity-score, and ARI evaluation branches.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Clustering performance is quantitatively evaluated using NMI, purity score (PS), and ARI.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add opaque metric-evaluation branches for NMI, PS, and ARI, or explicitly mark those evaluations outside this trajectory's scope.",
+      "severity": "minor",
+      "step_id": "cluster_image_representations",
+      "trajectory_id": "evaluation_cell_clustering"
+    },
+    {
+      "detail": "The perturbation image-to-image-level aggregation has no image/site grouping context despite changing from single-cell features to image-level features.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Image-level features are obtained by average aggregation of single-cell features.",
+          "section_id": "sec_0027"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add an image-to-cell correspondence context, preserving its unspecified identifier fields and grouping rule.",
+      "severity": "blocking",
+      "step_id": "aggregate_image_features",
+      "trajectory_id": "evaluation_perturbation_inference"
+    }
+  ],
+  "record_id": "update_2026-08-09__rec_000106",
+  "verdict": "revise"
+}

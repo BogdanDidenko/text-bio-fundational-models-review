@@ -1,0 +1,162 @@
+{
+  "coverage_summary": "The shared renderer, patchification, visual-front-end boundary, projection, page fusion, masking, and six task paths were checked. Core operation choices are generally supported, but documented pretraining sampling branches and several invocation parameters are missing or underspecified.",
+  "findings": [
+    {
+      "detail": "The T2 graph omits the documented default pretraining tail-truncation branch. The paper states that T2/T3/T5 use tail truncation, white out truncated bounding-box regions, drop empty pages, and re-index remaining pages. The graph therefore represents an incomplete pretraining input path. The same omission recurs in T3 and T5.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We enable tail truncation by default for T2/T3/T5, since these tasks are ROI-centric and depend on region-level supervision",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the truncated items, we additionally white out their corresponding bounding-box regions on the rendered pages, and then drop empty pages and re-index remaining pages to preserve image-annotation consistency.",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add an optional training-time tail-truncation branch with ROI white-out, empty-page removal, and page re-indexing; represent its availability separately from the ordinary T2 input path.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "opticaldna_pretraining_t2"
+    },
+    {
+      "detail": "The T3 graph omits the documented pretraining construction of ROI inputs from sampled line spans. It presents ROI boxes as generic external inputs without the documented sampling transformation, and also omits the T2/T3/T5 truncation branch.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For line-/block-based supervision, we randomize region construction using a line-span sampler. We first sample a span length n base ∼ Uniform { n min base , . . . , n max base } , and then sample the number of spans n samp ∼ Uniform { n min samp , . . . , n max samp } .",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We enable tail truncation by default for T2/T3/T5",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented line-span sampling step and the conditional tail-truncation/white-out branch before assembling the T3 prompt and images.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "opticaldna_pretraining_t3"
+    },
+    {
+      "detail": "The T5 graph omits both documented pretraining branches: tail truncation of ROI items and query-length sampling followed by match enumeration. The query node is present, but the documented construction of the query-driven training instance is absent.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For subsequence localization (T5), we sample a query length ℓ ∼ Uniform { ℓ min , . . . , ℓ max } . We then enumerate matches across lines to form localization targets.",
+          "section_id": "sec_0049"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We enable tail truncation by default for T2/T3/T5",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add query-length sampling and match-enumeration as documented T5 data construction, plus the conditional tail-truncation/white-out branch when applicable.",
+      "severity": "blocking",
+      "step_id": null,
+      "trajectory_id": "opticaldna_pretraining_t5"
+    },
+    {
+      "detail": "The multimodal-message boundary is treated as wholly unspecified even though the paper documents the two-turn structure, reserved roles, the single image placeholder, the ordered images field, and the NUM IMAGES meta line. This omission recurs across T1-T6.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we construct the user message as m ( u ) = ( <|User|> , q, pages( D )) and the assistant message as m ( a ) = ( <|Assistant|> , y, ∅ )",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The user message contains a single reserved <image> placeholder, whose images field carries an ordered list of P page images",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we append a meta line \\nNUM IMAGES= P . immediately after <image> in the prompt.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_model_or_context",
+      "required_change": "Retain these documented message fields and ordering on the opaque conversation boundary; leave only the unreported lexical/tokenization details uncertain.",
+      "severity": "minor",
+      "step_id": "assemble_user_message",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The patchification invocation records a generic fixed grid even though the documented patch size is 16×16. The exact operation is recoverable and should be carried on the invocation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We partition each page into non-overlapping 16 × 16 patches",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Set the partition rule to the documented non-overlapping 16×16 grid, or preserve that exact value in the invocation metadata. This recurs across all six trajectories.",
+      "severity": "minor",
+      "step_id": "patchify_pages",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The self-attention invocation places the head count inside the catalog field repeat_schedule. The paper documents one layer and 20 heads, but head count is not a repeat schedule parameter.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Keep repeat_schedule for the one-layer schedule and record the documented 20-head setting as separate component metadata or an explicitly supported parameter. This recurs across all six trajectories.",
+      "severity": "minor",
+      "step_id": "fuse_pages_attention",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The fused-token output does not preserve the documented fixed token count L=100. The symbolic axis is acceptable, but the known configuration is missing from the reduction/fusion invocation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where L is the number of fused document tokens (we use L = 100 ).",
+          "section_id": "sec_0012"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record L=100 on the page-fusion boundary while retaining the symbolic shape. This recurs across all six trajectories.",
+      "severity": "minor",
+      "step_id": "reduce_pages",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    },
+    {
+      "detail": "The graph does not preserve documented parameter-state information for the visual front end and projector. The front end is frozen, while projector updating differs by setting; the generic value stage-dependent is insufficiently specific.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We freeze the DeepSeek-OCR visual front-end (SAM-Conv-CLIP-L).",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the projector Π θ is tuned either with LoRA or full-parameter updating depending on the setting",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 1 adapts generation and document aggregation ... Stage 2 shifts the emphasis to visual-text alignment by tuning the projector Π θ",
+          "section_id": "sec_0049"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Record the frozen front-end state and the documented projector update state for each pretraining setting/stage. This recurs across all six trajectories.",
+      "severity": "minor",
+      "step_id": "encode_visual_frontend",
+      "trajectory_id": "opticaldna_pretraining_t1"
+    }
+  ],
+  "record_id": "full_2026-07-06__rec_001830",
+  "verdict": "revise"
+}

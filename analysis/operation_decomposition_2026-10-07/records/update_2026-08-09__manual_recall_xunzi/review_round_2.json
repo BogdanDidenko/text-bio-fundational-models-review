@@ -1,0 +1,222 @@
+{
+  "coverage_summary": "All supplied XunZi-R, XunZi-M and hybrid trajectories were reviewed. The reconstruction generally preserves opaque model boundaries, but several preprocessing orders, tokenization interfaces and documented training branches are unsupported or incomplete.",
+  "findings": [
+    {
+      "detail": "The structured-corpus serialization call asserts a serialization transformation and an intermediate text object, but the cited text only identifies incorporated structured corpora and their fields. It does not state that these fields were serialized in the asserted operation.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Also, we incorporated 2,054,130 structured biological corpora to enhance the domain-specific understanding of XunZi-R.",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A total of 14,132 disease terms were collected, each containing standardized identifiers, synonyms, hierarchical classifications and curated descriptions of disease characteristics and underlying mechanisms.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Replace the serialize_structured_corpus call with an opaque corpus-preparation boundary, or retain serialization only with evidence that the paper explicitly performed it.",
+      "severity": "blocking",
+      "step_id": "serialize_structured_corpus",
+      "trajectory_id": "xunzir_pretraining_structured_corpus"
+    },
+    {
+      "detail": "The evaluation trajectory creates token-ID inputs and an explicit tokenizer, although the cited paper text documents receipt of a standardized natural-language prompt and binary prediction extraction, not external tokenization or a token-ID handoff.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Models were evaluated on their ability to determine whether a gene is functionally involved in a given disease.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In this task, models received a standardized prompt to ensure consistency and enable extraction of binary predictions (Yes/No) for accuracy assessment:",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the documented classification_prompt_tokens/tokenize_classification_prompt path, or mark tokenization and model receipt as an unresolved internal boundary rather than an established external operation.",
+      "severity": "blocking",
+      "step_id": "tokenize_classification_prompt",
+      "trajectory_id": "xunzir_evaluation_classification"
+    },
+    {
+      "detail": "The mechanistic-evaluation trajectory likewise asserts tokenized prompt IDs, while the cited evidence establishes only a prompt template and structured generated output. Tokenization, special-token handling and the token-ID receipt are not stated.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The prompt template was as follows:",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This structured prompting strategy was applied uniformly across all other evaluated models to standardize output format, minimize response variability and ensure extraction of key biological components for quantitative assessment.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "issue_type": "unsupported_by_quote",
+      "required_change": "Remove the explicit tokenizer/token-ID step or retain it only as an unresolved model-internal boundary supported by separate tokenization evidence.",
+      "severity": "blocking",
+      "step_id": "tokenize_mechanistic_prompt",
+      "trajectory_id": "xunzir_evaluation_mechanistic_interpretation"
+    },
+    {
+      "detail": "The pan-cancer chain fixes an ordering and an intermediate combined modality tensor: modality-specific normalization, modality assembly, study-wise standardization and sample averaging. The paper states the feature types and that values were standardized and averaged, but does not establish the asserted integration operation or its exact order.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each molecule identified in omics analyses, we calculated the following features: normalized transcriptomic expression denoted by fragments per kilobase of transcript per million mapped reads (FPKM) or transcripts per million (TPM) values for RNA sequencing (RNA-seq), normalized proteomic intensity (mass spectrometry-based protein quantification), mean phosphosite intensities (in cases where multiple p-sites were mapped to the same protein).",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Expression values were standardized within each study and averaged across samples under the same condition.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "invented_algebra_or_order",
+      "required_change": "Preserve the documented feature calculation, standardization and averaging without asserting an undocumented modality-assembly node or sequence; use an opaque boundary where the integration order is unknown.",
+      "severity": "blocking",
+      "step_id": "assemble_pan_cancer_modality_features",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The pan-cancer training-label node records positive annotations but omits the documented negative-label assumption. The paper explicitly states that uncharacterized gene-disease pairs are treated as negatives, while the graph currently leaves negative construction merely unspecified.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To construct training labels, we collected all gene-cancer relevance annotations from DisGeNET and the CTD for positive labels.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The vast majority of gene-disease pairs remain unexplored due to current knowledge boundaries, creating an implicit bias where uncharacterized associations are treated as negatives.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented negative-label branch or annotate the supervised-label input as including the paper's implicit uncharacterized-as-negative construction, with its uncertainty preserved.",
+      "severity": "blocking",
+      "step_id": "propagate_pan_cancer_graph",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The opaque GCN boundary is justified, but it does not preserve several documented model parameters: adjacency self-loops, degree normalization, trainable graph weights, ReLU activation, two layers and binary-cross-entropy training over labelled nodes.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "where A = A + I is the adjacency matrix with added self-loops, D is the degree matrix of A, H is the hidden representation at layer l, with H = X. W is the trainable weight matrix of layer l, σ is the nonlinear activation function, ReLU",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We stacked two GCN layers to allow for two-hop message aggregation.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The graph model was trained as a binary classifier, predicting whether each gene plays a functional role in cancer.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Keep graph message passing opaque, but attach the documented self-loop, degree-normalization, trainability, ReLU, layer-count and supervised-objective context to the boundary.",
+      "severity": "minor",
+      "step_id": "propagate_pan_cancer_graph",
+      "trajectory_id": "xunzim_pretraining_pan_cancer"
+    },
+    {
+      "detail": "The neurodegenerative averaging step treats its input as generic external multi-omics measurements and leaves normalization unresolved, although the paper states that the case/control expression values entering the averaging equation are normalized.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each brain region r, we calculated the averaged expression under case and control conditions:",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where e case ij and e control ik represent the normalized expression of gene i in case and control samples within region r, respectively.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Annotate the averaging inputs as normalized expression values, while leaving the exact normalization method and ordering unspecified unless separately documented.",
+      "severity": "minor",
+      "step_id": "average_brain_region_expression",
+      "trajectory_id": "xunzim_pretraining_neurodegenerative"
+    },
+    {
+      "detail": "The CoT fine-tuning chain omits the documented negative-instance branch. The paper specifies 219,807 negative samples and says they contain explicit no-functional-involvement statements, whereas the graph only represents a generic Yes/No label and mechanistic reasoning trace.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To enable robust discrimination between functional and non-functional associations, we also included 219,807 negative samples for gene-disease pairs lacking supporting evidence or functional relevance.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These negative instances were annotated with explicit statements indicating the absence of functional involvement",
+          "section_id": "sec_0013"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Represent the positive and negative training branches, or annotate the label and reasoning-trace nodes as including the explicit negative no-evidence responses.",
+      "severity": "blocking",
+      "step_id": "format_cot_pair",
+      "trajectory_id": "xunzir_fine_tuning_cot"
+    },
+    {
+      "detail": "The hybrid trajectory begins with a raw confidence score but omits the documented XunZi-R query, prompt-based reasoning call and response from which that score is obtained.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we leveraged XunZi-R to perform structured mechanistic reasoning for each gene-disease query using CoT prompting.",
+          "section_id": "sec_0019"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "'Is gene SHBG involved in Endometrial Neoplasm in a functional way? In addition, please provide your confidence level for this answer on a scale from 0 to 10.'",
+          "section_id": "sec_0019"
+        }
+      ],
+      "issue_type": "missing_step_or_branch",
+      "required_change": "Add the documented query/prompt and an opaque XunZi-R reasoning-response boundary before confidence extraction, or explicitly declare that upstream reasoning is outside this trajectory.",
+      "severity": "blocking",
+      "step_id": "normalize_reasoning_confidence",
+      "trajectory_id": "xunzi_hybrid_fine_tuning"
+    },
+    {
+      "detail": "The publication continual-pretraining call omits the paper-reported sequence-length parameter, which is relevant to the language-model input context. The current uncertainty leaves sequence boundaries unspecified without retaining the documented value.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Add the documented 1,024-token training-context parameter to the CLM boundary; do not infer padding, masks or document segmentation beyond the paper.",
+      "severity": "minor",
+      "step_id": "mistral_clm_publications",
+      "trajectory_id": "xunzir_pretraining_publications"
+    },
+    {
+      "detail": "The structured-corpus continual-pretraining call also omits the paper-reported 1,024-token training context and associated training-context information.",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Training was conducted with a sequence length of 1,024 tokens, using AdamW optimizer with a linear learning rate scheduler of 1 × 10 -5 and a cosine learning rate schedule with 10% warmup for 2 epochs of training the model.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "issue_type": "missing_or_wrong_parameter",
+      "required_change": "Attach the documented 1,024-token context to the structured-corpus CLM boundary while keeping padding, masks and document boundaries unresolved.",
+      "severity": "minor",
+      "step_id": "mistral_clm_structured_corpus",
+      "trajectory_id": "xunzir_pretraining_structured_corpus"
+    }
+  ],
+  "record_id": "update_2026-08-09__manual_recall_xunzi",
+  "verdict": "revise"
+}
