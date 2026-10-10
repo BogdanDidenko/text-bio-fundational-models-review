@@ -218,6 +218,11 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   section pair.
 - Google Scholar was rate-limited in one round; one eligible record was found only after a recall
   correction.
+- In the baseline full-text screening (2026-07-10), the abstract shown with the selected sections was
+  cut to about 1,500 characters for 73 of 221 records (selected sections were complete), and five
+  reports whose only reconstructed section covered at least 90% of the paper were not screened at full
+  text. The author judged the risk of missed inclusions low and kept the included set
+  (`analysis/length_truncation_audit_2026-10-09.md`).
 - The withdrawn OKR-Cell preprint is still counted in the 55 records (author decision pending).
 - Search closed on 2026-08-09; no refresh was done for this manuscript.
 - Protocol objective 3 (datasets, downstream tasks, evaluation metrics) and the extraction fields for
