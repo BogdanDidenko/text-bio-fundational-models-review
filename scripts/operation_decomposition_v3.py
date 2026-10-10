@@ -29,7 +29,7 @@ def extraction_schema_v3(catalog, skeleton):
                  "parameters": {"type": "array", "items": _obj({"name": {"type": "string", "enum": params},
                                                                  "value": {"type": "string"}})}})
     step_ids = [s for cfg in skeleton for r in cfg["routes"] for s in r["expected_step_ids"]]
-    decision = _obj({"step_id": {"type": "string", "enum": step_ids},
+    decision = _obj({"step_id": {"type": "string", "enum": step_ids}, "chain_element": {"type": "string"},
                      "category": {"type": "string", "enum": CATEGORIES},
                      "calls": {"type": "array", "items": call},
                      "evidence": {"type": "array", "items": ev},
@@ -46,7 +46,11 @@ RULES_V3 = """Output contract v3 (enforced mechanically; violations are returned
 You return ONE decision per expected step of the atlas skeleton below, for every route of every
 configuration, each step_id exactly once. You do not write nodes, ports or edges: they are compiled
 from the skeleton (step k consumes step k-1's result; the last step yields the model-visible form).
-A decision = category + calls + evidence + rationale (+ uncertainty).
+A decision = step_id + chain_element (copied exactly from the skeleton for that step_id; it is checked)
++ category + calls + evidence + rationale (+ uncertainty). Write the decisions route by route, in chain
+order, so that each decision is made for the element shown next to its step_id.
+Identical chain elements in the same paper get identical decisions unless the paper states a different
+computation for them.
 
 Read each step as: route source_object_verbatim -> chain elements in order -> model_visible_form_verbatim.
 Find what the PAPER TEXT says about that chain element (the atlas evidence_quote and section_heading
@@ -72,7 +76,9 @@ R1 source_provenance (calls empty): the element names an ORIGIN or study set-up 
    or annotation by people, benchmark construction, an evaluation task, split or scenario -- and states
    no rule applied to the data. A statement of the task the model performs ("estimate the proportions
    of cell types", "predict expression of the target modality", "structured prediction of DEG
-   outcomes", "clustering" as a downstream task) is also R1, and so is training on a corpus ("train on
+   outcomes", "clustering" as a downstream task) is also R1, and so is assigning items to training /
+   validation / test splits or folds, also when the assignment rule is stated ("h <= 7 go to train",
+   "randomly partitioned as an independent test set", "five-fold cross-validation"), and so is training on a corpus ("train on
    combined perturbation corpora"), merging datasets or corpora ("merged into OmniGene-SFT-v1",
    "merged into the SFT corpus"), labelling examples with classes ("labelled as Homologous /
    Non-Homologous"), balancing classes of a benchmark ("balanced labels") and a "0-shot setup". If the same element also states a filter or criterion ("downloaded from
@@ -85,22 +91,21 @@ R2 external_generator (calls empty): the content is written by another generativ
    external LLM writes the conversations) is also R2. A prompt, question or template given to the
    model under study itself ("prompt CellHermes to generate an explanation", where CellHermes is the
    model under study) is serialize (R6).
-R3 named learned module -- first search the WHOLE paper text (methods, appendix, supplementary
-   sections, figure and table captions) for the module name and its architecture; a layer list stated
-   anywhere counts. Then take the first matching line:
+R3 named learned module -- take the first matching line:
    - the module that performs THIS element decides (in "the LLM-processed prompt projected into the
      latent space by a query connector" it is the connector -> project)
    - the receiving model or any pretrained LLM / decoder / backbone / foundation model (also "X decoder
      with LoRA on self-attention modules", also when its attention architecture is described, also
      "aligned to a Qwen LLM backbone": alignment to a model or embedding space is never align)
      ................................................................. learned_module (calls empty)
-   - the paper states the module's internal operations (e.g. "two linear layers with batch
-     normalisation", "two-layer MLP followed by L2 normalisation") -> library_operation with one call
-     per stated operation, in order (linear/MLP layer = project, batch/layer/L2 normalisation =
-     normalize; activations are the project activation parameter, not separate calls). This line is
-     for added modules (adapter, projector, connector, encoder, tokenizer network). When the paper
-     states the number of layers ("two-layer MLP"), use exactly that number of project calls; never
-     derive a layer count from a list of dimensions.
+   - the CHAIN ELEMENT TEXT ITSELF names the module's layers or layer count ("2-layer MLP projection",
+     "linear layer followed by LayerNorm") -> one call per layer / operation named in the element, in
+     order, with the count taken from the element text (linear/MLP layer = project, batch/layer/L2
+     normalisation = normalize; activations are the project activation parameter). A different count
+     elsewhere in the paper is ignored for the call count and noted in uncertainty.
+   - otherwise the module is ONE call (or one boundary) decided by its name with the lines below, even
+     when the paper describes its internals elsewhere; record the stated architecture in the call's
+     method parameter (e.g. method = "two-layer MLP with batch normalisation and leaky ReLU").
    - an element that names such a module together with conditioning wording ("adapter-mediated
      conditioning") is decided here by the module (adapter -> project), not by R4
    - Q-Former or Perceiver resampler: if the paper describes its layers as self-attention among the
@@ -115,6 +120,8 @@ R3 named learned module -- first search the WHOLE paper text (methods, appendix,
    - embedding layer or embedding table; embedding of token / gene / value ids ........... lookup
    - taking a particular position or layer from a model's output (last token, [CLS], final layer,
      mean of the last layer is add) ........................................................ select
+   - convolution layers (1D/2D convolution, GCN / graph convolution, message passing) named as the
+     element ...................................................... no_catalog_operation (R7)
    - any other named learned network, framework or method (encoder, "encoded via the modality-specific
      encoders", RVQ encoder, decoder, backbone,
      transformer, GNN, ViT, LLM, foundation model, denoiser, "...framework"), and embeddings that a
@@ -137,18 +144,25 @@ R4 fusion or conditioning wording ("combined with", "paired with", "conditioned 
    derived token embeddings") is fusion wording. Only building example pairs from data ("paired each
    question with the matched transcriptome embedding and randomly sampled mismatched ones") is R6
    sample/align.
-R6 every other stated computation -> library_operation, one call per stated operation in the stated
-   order (when several are stated in one sentence, use the order in which they are applied to the data),
+R6 every other stated computation -> library_operation, one call per operation NAMED IN THE ELEMENT
+   TEXT, in the stated order (do not add operations that the paper describes for the same data
+   elsewhere: "tokenization" is one tokenize call even if the paper explains that tokenization
+   normalises and ranks; the earlier chain elements carry those operations) (when several are stated in one sentence, use the order in which they are applied to the data),
    using this mapping:
    text from data by a template, prompt format, instruction template ("designed N template types"),
      cell sentence, field rendering, a fixed question asked to the model, data "presented / written /
      formatted as" a list or text, delimiter or special tokens marking structure inside one text/token
      stream; few-shot exemplars written into the prompt ("text-only 1-shot exemplar", "2-shot
-     exemplar"); a dummy text placeholder put in the prompt instead of an image; "prompt matches the
+     exemplar"); a dummy text placeholder put in the prompt instead of an image; providing, presenting,
+     attaching, asking or instructing something IN THE PROMPT of the model under study ("provide gene
+     expression profile and metadata", "ask for free-form cell type generation", "attach a predefined
+     candidate label set", "present the candidate label set"); "prompt matches the
      SFT training prompt" .................................................................. serialize
    keep a subset by a stated criterion: filter, QC, top-k, "top N (most) highly expressed / top N gene
      sets", truncate or trim a list or conversation to its first / top N items ........... select
-     (one select call; rank is NOT added for top-N selection); text cleaning that removes characters,
+     (one select call; rank is NOT added for top-N selection, also when the element says "ranked":
+     "the top-200 ranked genes" is select; "conversion to ranked Cell Sentences of topK = 200" is
+     select, serialize); an element with rank / order wording and no N is rank; text cleaning that removes characters,
      symbols or records ("removed special characters using unidecode") is also select
    rank / sort by value or by stated keys where the order is kept in the output (rank-ordered gene
      list, "tokens ordered by flow, space, and then time") .................................. rank
@@ -164,7 +178,9 @@ R6 every other stated computation -> library_operation, one call per stated oper
      ("stack channels 1, 2, 3 with channels 4, 5, 6") ....................................... concatenate
    sum, weighted sum, mean or weighted average of vectors; aggregation or pooling of profiles
      ("aggregate ... into pseudo-bulk samples"), also when sum vs mean is not stated ........ add
-   explicit random draw of examples, negatives, noise or masks ........................... sample
+   explicit random draw of examples, negatives, noise or masks; random shuffling or permutation;
+     random choice of a template ("question template selection" when the paper says it is random;
+     otherwise select) ......................................................................... sample
    pair or match DATA items with each other, register coordinates ......................... align
    mask or overwrite values / nodes / tokens at positions; replace a placeholder token in the model
      input by an embedding ("replaces <omics> in the LLM input") ............................. update
@@ -174,12 +190,15 @@ R6 every other stated computation -> library_operation, one call per stated oper
    reshape, flatten, broadcast (values unchanged, only arranged differently) ............. reshape
    impute / fill missing ................................................................. impute
    clamp / clip .......................................................................... clamp
-   augmentation (random perturbation used for training) ................................. augment
+   augmentation (random perturbation used for training, including named noise methods such as
+     NEFTune noise added to embeddings) ...................................................... augment
    stated self-attention ................................................................. self_attention
 R7 a computation applied to the data is stated but no operation above represents it (e.g. computing
    clusters as an input to the model, physics-based energy terms, symmetry tessellation, resizing or
    resampling an image to a resolution ("resize to 224 x 224 x 3" is not reshape). Computing a
-   score, distance (incl. optimal transport), loss, perplexity, probability or gradient is always R7,
+   score, distance (incl. optimal transport), loss, perplexity, probability or gradient is always R7, and
+   so is a training objective ("contrastive learning alignment", "contrastive alignment with paired
+   text embeddings" -- never align),
    also when the scores are then compared or ranked for evaluation -> no_catalog_operation (calls empty) and add an
    operation_proposals entry for the step.
 
@@ -227,7 +246,11 @@ def check_decisions(dec_doc, record_id, skeleton, catalog):
     if dup:
         errors.append(f"steps decided more than once {dup}")
     blocks = {b["operation_id"]: b for b in catalog["blocks"]}
+    element = {s: e for cfg in skeleton for r in cfg["routes"] for s, e in zip(r["expected_step_ids"], r["transformation_chain_verbatim"])}
     for d in dec_doc.get("decisions", []):
+        if d["step_id"] in element and d.get("chain_element") != element[d["step_id"]]:
+            errors.append(f"{d['step_id']}: chain_element must be exactly {element[d['step_id']]!r} (the element of THIS step); "
+                          "check that the decision was written for this step and not for a neighbouring one")
         lib = d["category"] == "library_operation"
         if lib and not d["calls"]:
             errors.append(f"{d['step_id']}: category library_operation needs at least one call")
