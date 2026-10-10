@@ -242,7 +242,7 @@ def _all_evidence(doc):
 def closest_span_hint(text, quote):
     """Return the closest exact source span so a repair can copy it verbatim."""
     import difflib
-    probe = quote[:200]
+    probe = quote
     match = difflib.SequenceMatcher(None, text, probe, autojunk=False).find_longest_match(0, len(text), 0, len(probe))
     if match.size < 20:
         return " (no close span found in this section; cite the section that states it)"
@@ -303,7 +303,7 @@ def validate_document(doc, record_id, sections, catalog, library_sha256, release
         if section is None:
             errors.append(f"{tid} / {where}: unknown section {e['section_id']}")
         elif not e["quote"].strip() or e["quote"] not in section["text"]:
-            errors.append(f"{tid} / {where}: quote is not a literal substring of {e['section_id']}: {e['quote'][:120]!r}"
+            errors.append(f"{tid} / {where}: quote is not a literal substring of {e['section_id']}: {e['quote']!r}"
                           + closest_span_hint(section["text"], e["quote"]))
     seen_tids = set()
     for t in doc.get("trajectories", []):

@@ -21,7 +21,7 @@ WINDOW_2026 = ("june_update_2026-06-10__", "july_update_2026-07-06__", "update_2
 
 
 def norm(text):
-    return re.sub(r"\W+", "", (text or "").lower())[:70]
+    return re.sub(r"\W+", "", (text or "").lower())
 
 
 def publication_years(records):

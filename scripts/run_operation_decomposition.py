@@ -110,7 +110,7 @@ def run_codex(prompt, schema, folder, model, timeout, effort):
         except json.JSONDecodeError as exc:
             meta.update(status="unparseable_response", error=str(exc))
     else:
-        meta["error"] = (stderr or "")[-4000:]
+        meta["error"] = stderr or ""
     write_json(folder / "meta.json", meta)
     return parsed, meta
 

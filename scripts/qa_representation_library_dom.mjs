@@ -102,10 +102,10 @@ for (const [id, meta] of agent) {
 }
 const totalFindings = agent.reduce((n, [, v]) => n + (v.open_findings || []).length, 0);
 check(`candidate panel on all ${agent.length} agent papers`, panels === agent.length, panels);
-check("findings shown per path = data", mismatches.length === 0, mismatches.slice(0, 3).join("; "));
+check("findings shown per path = data", mismatches.length === 0, mismatches.join("; "));
 check("findings shown match total", findingsShown === totalFindings, `${findingsShown}/${totalFindings}`);
 check("diagram rendered for agent paper contexts", diagrams > 0, `${diagrams} contexts with a diagram`);
-check("no script errors", errors.length === 0, errors.slice(0, 3).join(" | "));
+check("no script errors", errors.length === 0, errors.join(" | "));
 fs.writeFileSync(process.env.QA_REPORT || "qa_dom_report.json", JSON.stringify({ base: BASE, results, errors }, null, 2));
 for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.detail ? "  [" + r.detail + "]" : ""}`);
 console.log(`${results.filter((r) => r.ok).length}/${results.length} passed`);

@@ -77,7 +77,7 @@ def main():
         "open_blocking_total": sum(open_types.values()),
         "papers_without_open_blocking": sum(1 for v in open_by_paper.values() if v == 0),
         "operation_proposals": len(proposals),
-        "top_boundary_labels": boundary_labels.most_common(25),
+        "boundary_labels": boundary_labels.most_common(),
     }
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "operation_synthesis.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -98,8 +98,8 @@ def main():
     lines += ["", "## Operation proposals", "", "| Record | Proposed computation | Compared operations | Why no existing operation |", "|---|---|---|---|"]
     lines += [f"| `{p['record_id']}` | {p['source_operation']} | {', '.join(p['compared_operation_ids'])} | "
               f"{p['why_no_existing_operation'].replace('|', '/')} |" for p in proposals]
-    lines += ["", "## Most frequent unexpanded boundary labels", "", "| Label | Steps |", "|---|---:|"]
-    lines += [f"| `{k}` | {v} |" for k, v in boundary_labels.most_common(40)]
+    lines += ["", "## All unexpanded boundary labels", "", "| Label | Steps |", "|---|---:|"]
+    lines += [f"| `{k}` | {v} |" for k, v in boundary_labels.most_common()]
     (RUN / "STEWARD_QUEUE.md").write_text("\n".join(lines) + "\n")
     print(json.dumps({k: summary[k] for k in ("papers", "trajectories", "library_calls", "unexpanded_steps",
                                                "operations_reused_by_2plus_papers", "unexpanded_share_per_paper",
