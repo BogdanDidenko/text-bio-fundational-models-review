@@ -29,6 +29,7 @@ from scripts.operation_decomposition import (  # noqa: E402
 STAB = ROOT / "analysis/operation_decomposition_2026-10-07/stabilization"
 SOURCES = [("dev_set.json", "v3_i8"), ("heldout4_set.json", "v3_h4"), ("rest30_set.json", "v31_rest30")]
 RUNS = ["run_1", "run_2", "run_3"]
+PARAMS = ROOT / "analysis/operation_decomposition_v31_2026-10-12/parameter_pass/consensus"
 
 
 def label_text(d):
@@ -44,6 +45,15 @@ def build_record(record, iteration, out, catalog, library_sha256, rules_sha):
     paths = [STAB / iteration / run / "records" / record / "final_decisions.json" for run in RUNS]
     docs = [json.loads(p.read_text()) for p in paths]
     dec, ties, support = consensus(docs)
+    overlay = PARAMS / f"{record}.json"
+    param_slots = json.loads(overlay.read_text())["slots"] if overlay.exists() else {}
+    for d in dec["decisions"]:
+        for j, c in enumerate(d["calls"], 1):
+            names = {b["operation_id"]: b["parameters"] for b in catalog["blocks"]}[c["operation_id"]]
+            if param_slots:
+                c["parameters"] = [{"name": n, "value": (param_slots[f"{d['step_id']}#c{j}#{n}"]["value"]
+                                                         if param_slots[f"{d['step_id']}#c{j}#{n}"]["status"] == "stated"
+                                                         else "unspecified")} for n in names]
     skeleton = v3.atlas_skeleton(record)
     by_run = [{d["step_id"]: d for d in doc["decisions"]} for doc in docs]
     traj_of = {s: cfg["configuration_id"] for cfg in skeleton for r in cfg["routes"] for s in r["expected_step_ids"]}
@@ -75,6 +85,7 @@ def build_record(record, iteration, out, catalog, library_sha256, rules_sha):
     write(base / "packet_manifest.json", manifest)
     for sid, s in sections.items():
         write(base / "sections" / f"{sid}.md", s["text"])
+    write(base / "parameter_consensus.json", param_slots)
     write(base / "consensus_decisions.json", {**dec, "ties": ties, "support": support, "source_runs": [str(p.relative_to(ROOT)) for p in paths]})
     write(base / "final_document.json", full)
     write(base / "assemblies.json", assemblies)

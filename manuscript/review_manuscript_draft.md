@@ -33,7 +33,9 @@ Text acted mostly as an instruction or query (70 models) and carried the biologi
 two papers, led by text serialisation (36 papers), tokenisation (24), selection (24) and learned
 projection (23). On ten unseen papers, the step-level decomposition was reproduced in 95.6% of
 steps by an independent repeat of the three-run consensus.
-[PENDING: reporting-gap result on unstated parameters, to be re-derived; see §3.5.]
+Key input choices were often unstated anywhere in the paper: the projection activation (80% of 76
+projection calls), the concatenation order (66% of 53), the serialisation order (40% of 249) and the
+token vocabulary (28% of 68).
 
 **Conclusions.** [To write after the decomposition results.]
 
@@ -121,8 +123,15 @@ the result is checked mechanically for verbatim evidence, catalog ports and decl
 The full paper text is supplied without truncation. Each paper was decomposed in three independent
 runs (up to four mechanical repairs each), and the published decision per step is the majority
 label. Steps without a majority remain unresolved boundaries and are listed for the library
-steward, as are steps decided 2 of 3 (library release 1.2.0). No reviewer-agent pass was run on
-release 1.2.0. The protocol was developed iteratively on ten length-stratified papers and evaluated
+steward, as are steps decided 2 of 3. A separate parameter pass then read the whole paper again, with
+the operations fixed. For every declared parameter of every library call (2,383 slots; definitions in
+`protocol/OPERATION_PARAMETER_GLOSSARY.md`) it decided whether the paper states the value for that data
+path, with verbatim evidence checked mechanically. Values that only follow from convention, released
+code or cited papers do not count. This pass also used three runs per paper and the majority status;
+its rules were tuned on the ten development papers (two iterations) and then frozen. Before the first
+run we fixed its gate: on ten held-out papers, consensus status agreement between runs 1-3 and 4-6 of
+at least 0.90 (`analysis/operation_decomposition_v31_2026-10-12/parameter_pass/GATE.md`). The result
+is library release 1.2.1. No reviewer-agent pass was run on it. The protocol was developed iteratively on ten length-stratified papers and evaluated
 on held-out papers with the rules frozen. Stability was measured as agreement between the consensus
 of runs 1-3 and of runs 4-6 against a predeclared gate
 (`analysis/operation_decomposition_2026-10-07/stabilization/GATE.md`, `STABILIZATION_REPORT.md`).
@@ -197,19 +206,21 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
 - **Unexpanded steps.** In the median paper, 48% of the documented steps cannot be decomposed from the text
   (whole encoders, fusion rules whose algebra is not given, training-data mixtures). These steps carry
   469 distinct labels, which the steward still has to group.
-- **Unreported choices** [PENDING: the figures below come from release 1.1.0 (single extractor with
-  reviewer rounds). Release 1.2.0 records a parameter only when it is stated for that chain element,
-  and its parameter values were not tested for stability. The paper-level reporting analysis must be
-  re-derived before these numbers are used.] (agent papers only; the pilot adapter wrote fixed placeholders such as
-  trainability "unspecified" for every pilot lookup, so pilot calls are not comparable). Among parameters
-  with at least 50 calls, papers left unstated the projection activation in 77% of 119 calls, the
-  serialisation order in 34% of 143, the token vocabulary in 29% of 161, the concatenation order in 29%
-  of 59 and whether lookup tables are trained in 22% of 64. The lookup key space, lookup resource
-  kind, projection method and serialisation template were always stated. `select: forced_inclusions`
-  (92% unstated) is left out because it usually does not apply.
+- **Unreported choices** (agent papers, release 1.2.1 parameter pass; the pilot adapter wrote fixed
+  placeholders, so pilot calls are not comparable). Of the 2,383 parameter slots, 1,559 (65%) are
+  stated in the paper and 824 (35%) are not; 88% of slot decisions were unanimous across the three
+  runs. Among parameters with at least 50 calls, papers left unstated the projection activation in 80%
+  of 76 calls, the concatenation order in 66% of 53 and its axis in 43%, the serialisation order in 40%
+  of 249 and the lexical rendering of values in 39%, the token vocabulary and segmentation in 28% of 68,
+  the selection method (for example k in a top-k) in 20% of 102 and the projection method in 22% of 76.
+  The selection criterion (13%) and the serialisation template (11%) were mostly stated, and the token
+  source alphabet always. `select: forced_inclusions` (100% unstated) is left out because it usually
+  does not apply. On the held-out papers, consensus status agreement was 0.992 (377 slots; gate met).
+  Reported values are worded differently between runs (exact agreement after normalisation 0.37), so
+  the analysis uses only the stated / unstated status, and values are shown with their quotes.
 - **Review status.** 49 of 50 agent papers have a majority decision for every step. One paper
   (rec_003206) has 6 unresolved steps, and 81 steps decided by two of three runs are queued for
-  steward confirmation. No reviewer agent checked release 1.2.0, and steps are limited to the charted
+  steward confirmation. No reviewer agent checked releases 1.2.0/1.2.1, and steps are limited to the charted
   transformation chains, so missing steps or branches are not detected by this protocol. Operation
   counts are therefore lower bounds. 73 agent proposals for computations outside the catalog are
   queued for the library steward.
@@ -222,7 +233,7 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
    discards magnitudes; projections need connector training). Ranking, selection and serialisation recur
    across 12–31 papers (Figure 3a).
 3. Reporting gap: projection activations, vocabularies, serialisation and concatenation order, and
-   whether tables are trained are often missing (Figure 3b) [PENDING re-derivation], and the median
+   concatenation axes are often missing (Figure 3b), and the median
    paper's input path is 48% opaque. Propose a minimal reporting
    checklist.
 4. Field timing: the corpus starts in 2023 and 2026 is on track to exceed 2025, which supports a
@@ -240,6 +251,10 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   concatenation) and whether a named "tokenized" representation counts as a tokenisation step. The
   rules were tuned on development and earlier held-out papers, so in-sample stability is higher than
   out-of-sample stability. Steps are bounded by the charted routes, so errors in charting carry over.
+- Parameter status was decided by agents, not authors. Held-out consensus agreement was high (0.992),
+  but single-run agreement on the 30 papers outside the development and held-out sets was lower
+  (0.912 vs 0.956 held-out), and one run needed a clean restart after a quote failed validation.
+  "Unstated" means not found in the paper text; values in code or cited works are not credited.
 - LLM-assisted screening and charting; stability is reported separately. Role-separated prompts are
   not independent reviewers.
 - Open-access and English filters; 15 reports could not be retrieved and 14 had no valid targeted
