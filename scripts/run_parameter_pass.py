@@ -46,6 +46,21 @@ What counts as stated:
   that uses the same step, unless the paper says otherwise.
 - parameter_state / trainability: stated only when the paper says the component is trained, frozen,
   fine-tuned or kept fixed in the lifecycle phase given for the slot (or in all phases).
+- The value must answer the glossary question with information beyond the operation's own name or the
+  chain element wording. "row-wise normalization" does not state the normalize method (it states its
+  axes: per row); "a DNA-specific tokenizer" or "the tokenizer" does not state a vocabulary. A paper-
+  introduced tokenizer states its vocabulary only if the paper describes its units or size; the
+  tokenizer of a specifically named pretrained model (e.g. "the Llama-2 tokenizer", "tokenized by
+  BioBERT") states vocabulary and segmentation as that model's.
+- serialize order is stated only by a shown template or example, or an explicit sequence ("first ...
+  then ..."); a list of what the prompt contains ("provide X and Y") does not state an order.
+- serialize lexical_mapping is stated when the paper says how items or values appear as words (gene
+  symbols / gene names, numbers with given precision, category words such as "high"/"low");
+  "natural-language descriptions" or "text" alone does not state it.
+- rank order is stated when the ranking key and direction are given; "top" or "highest" wording states
+  descending order by that key.
+- Per-sample scaling ("each cell normalised to a total of 10,000") states normalize scope = each
+  sample (cell) and axes = across features of that sample.
 What does NOT count: values that only follow from convention or from the usual defaults of a library,
 from released code, from a cited paper, or from a different model or baseline described in the paper.
 A parameter that does not apply to this use (e.g. no forced inclusions described) is unspecified.
