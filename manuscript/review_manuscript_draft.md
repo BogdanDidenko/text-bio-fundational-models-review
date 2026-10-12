@@ -20,7 +20,7 @@ section screening used frozen, role-separated LLM pipelines with adjudication an
 resolution layer. Each model's inputs were charted as grounded routes, one source object carried to
 the carrier the model consumes, and classified with a frozen five-family taxonomy. Input
 paths were decomposed into calls to a library of 22 reusable data operations: four papers by the
-authors and the rest by an extractor agent audited by an independent reviewer agent.
+authors and the rest by the majority decision of three independent agent runs per step.
 
 **Results.** Of 8,170 records identified, 4,862 were screened, 233 full-text reports were assessed,
 and 55 records (54 studies) were included, describing 109 models and 585 grounded input routes. No
@@ -29,11 +29,11 @@ Text-native token streams reached 84 of 109 models, dense continuous carriers 39
 biological symbol streams 17, visual raster carriers 11 and geometric/diffusion-state carriers 5.
 The most frequent fusion was a shared token sequence (65 models), followed by concatenation (35).
 Text acted mostly as an instruction or query (70 models) and carried the biological content itself in
-43. Across 54 decomposed papers (411 input paths), 20 of 22 operations recurred in at least
-two papers, led by tokenisation (37 papers), learned projection (33) and selection (31).
-In the 50 agent-decomposed papers, key input choices were often unstated: the projection
-activation (77% of 119 projection calls), the serialisation order (34%) and the token vocabulary
-(29%).
+43. Across 54 decomposed papers (475 input paths), 19 of 22 operations recurred in at least
+two papers, led by text serialisation (36 papers), tokenisation (24), selection (24) and learned
+projection (23). On ten unseen papers, the step-level decomposition was reproduced in 95.6% of
+steps by an independent repeat of the three-run consensus.
+[PENDING: reporting-gap result on unstated parameters, to be re-derived; see §3.5.]
 
 **Conclusions.** [To write after the decomposition results.]
 
@@ -105,17 +105,28 @@ corpus: route Jaccard 0.945–0.969; carrier-family exact agreement 0.929; Kripp
 Each documented input path is reconstructed as a directed graph of calls to a library of 22 reusable
 operations (normalisation, log transform, binning, tokenisation, table lookup, projection,
 concatenation, attention and others) with named ports and instance parameters
-(`protocol/REPRESENTATION_LIBRARY_GUIDE.md`, library release 1.0.2). Steps whose internal
+(`protocol/REPRESENTATION_LIBRARY_GUIDE.md`, operation catalog of release 1.0.2). Steps whose internal
 computation the paper does not state remain unexpanded boundaries. A four-paper pilot (ChatNT,
 InstructCell, X-Cell, MUPAD; 47 trajectories, 509 operation calls) was curated by the authors. The
-remaining papers are decomposed by an extractor agent and audited by an independent reviewer agent
-(Codex CLI, `gpt-5.6-luna`; the earlier `gpt-5.4-mini` is no longer available through Codex),
-with mechanical checks for verbatim evidence, catalog ports, declared parameters and lossless source
-restoration (`analysis/operation_decomposition_2026-10-07/README.md`). Quotes that differed from the
-source only in whitespace were replaced by the exact source span. Each paper had up to four repairs
-and two revision rounds. Graphs with open reviewer findings are published as reviewed candidates,
-with their findings shown (library release 1.1.0). The withdrawn OKR-Cell preprint was decomposed
-but is not published.
+remaining 50 papers were decomposed by agents (Codex CLI, `gpt-5.6-luna`, reasoning effort high; the
+earlier `gpt-5.4-mini` is no longer available through Codex) under protocol v3.1
+(`scripts/operation_decomposition_v3.py`). The structure is fixed by the charted routes: one
+trajectory per charted configuration and one step per element of each route's verbatim
+transformation chain. For each step the agent returns only a decision, a closed category plus the
+library operation(s) named in the element text, with stated parameter values, verbatim evidence and
+the echoed chain element. A predefined rule set decides the category (e.g. unexpanded learned
+module, data provenance, external text generator, unspecified fusion). Routes without a recorded
+chain get a mechanical decision. Nodes, ports and data flow are compiled from these decisions, and
+the result is checked mechanically for verbatim evidence, catalog ports and declared parameters.
+The full paper text is supplied without truncation. Each paper was decomposed in three independent
+runs (up to four mechanical repairs each), and the published decision per step is the majority
+label. Steps without a majority remain unresolved boundaries and are listed for the library
+steward, as are steps decided 2 of 3 (library release 1.2.0). No reviewer-agent pass was run on
+release 1.2.0. The protocol was developed iteratively on ten length-stratified papers and evaluated
+on held-out papers with the rules frozen. Stability was measured as agreement between the consensus
+of runs 1-3 and of runs 4-6 against a predeclared gate
+(`analysis/operation_decomposition_2026-10-07/stabilization/GATE.md`, `STABILIZATION_REPORT.md`).
+The withdrawn OKR-Cell preprint is not included.
 
 ### 2.8 Synthesis
 
@@ -171,27 +182,37 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
 ### 3.5 Operation-level input paths (Figure 3)
 
 - **Coverage.** 54 papers were decomposed (4 author-curated pilot papers, 50 agent papers;
-  the withdrawn OKR-Cell preprint is excluded) into 411 input paths with 1,411 library-operation calls
-  and 959 steps kept as unexpanded boundaries.
-- **Reuse.** 20 of the 22 operations occur in two or more papers (pilot alone: 8). The most widespread are
-  tokenisation (37 papers), learned projection (33), selection or filtering (31), text serialisation (27),
-  concatenation (24), normalisation (21) and table lookup (17). Imputation and clamping appear
-  only in X-Cell.
-- **Unexpanded steps.** In the median paper, 44% of the documented steps cannot be decomposed from the text
+  the withdrawn OKR-Cell preprint is excluded) into 475 input paths with 1,334 library-operation calls
+  and 837 steps kept as unexpanded boundaries.
+- **Consensus.** Of the 1,468 agent-decomposed steps, 1,381 (94.1%) were decided identically in all
+  three runs, 81 (5.5%) by two of three, and 6 (0.4%, all in one paper) had no majority.
+- **Stability.** With the rules frozen, on ten papers not used to develop the protocol, the consensus
+  of runs 1-3 and of runs 4-6 agreed on 95.6% of steps and on the complete operation sequence of 85.4%
+  of routes; 8 of 10 papers were reproduced exactly. The predeclared route-level gate (90%) was not
+  met. On the development papers, earlier rule versions reached complete agreement.
+- **Reuse.** 19 of the 22 operations occur in two or more papers. The most widespread are text
+  serialisation (36 papers), tokenisation (24), selection or filtering (24), learned projection (23),
+  concatenation (20) and partition or split (18). Imputation, clamping and reshaping appear in one
+  paper each.
+- **Unexpanded steps.** In the median paper, 48% of the documented steps cannot be decomposed from the text
   (whole encoders, fusion rules whose algebra is not given, training-data mixtures). These steps carry
-  632 distinct labels, which the steward still has to group.
-- **Unreported choices** (agent papers only; the pilot adapter wrote fixed placeholders such as
+  469 distinct labels, which the steward still has to group.
+- **Unreported choices** [PENDING: the figures below come from release 1.1.0 (single extractor with
+  reviewer rounds). Release 1.2.0 records a parameter only when it is stated for that chain element,
+  and its parameter values were not tested for stability. The paper-level reporting analysis must be
+  re-derived before these numbers are used.] (agent papers only; the pilot adapter wrote fixed placeholders such as
   trainability "unspecified" for every pilot lookup, so pilot calls are not comparable). Among parameters
   with at least 50 calls, papers left unstated the projection activation in 77% of 119 calls, the
   serialisation order in 34% of 143, the token vocabulary in 29% of 161, the concatenation order in 29%
   of 59 and whether lookup tables are trained in 22% of 64. The lookup key space, lookup resource
   kind, projection method and serialisation template were always stated. `select: forced_inclusions`
   (92% unstated) is left out because it usually does not apply.
-- **Review status.** 2 agent papers closed all blocking findings. The rest carry 380 open blocking findings,
-  most of them incompleteness (177 missing steps or branches, 39 missing models or contexts), then
-  port bindings (51), parameters (31), quote support (26) and asserted algebra or order
-  (22). Operation counts are therefore lower bounds. 163 agent proposals for computations
-  outside the catalog are queued for the library steward.
+- **Review status.** 49 of 50 agent papers have a majority decision for every step. One paper
+  (rec_003206) has 6 unresolved steps, and 81 steps decided by two of three runs are queued for
+  steward confirmation. No reviewer agent checked release 1.2.0, and steps are limited to the charted
+  transformation chains, so missing steps or branches are not detected by this protocol. Operation
+  counts are therefore lower bounds. 73 agent proposals for computations outside the catalog are
+  queued for the library steward.
 
 ## 4. Discussion (outline)
 
@@ -201,7 +222,8 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
    discards magnitudes; projections need connector training). Ranking, selection and serialisation recur
    across 12–31 papers (Figure 3a).
 3. Reporting gap: projection activations, vocabularies, serialisation and concatenation order, and
-   whether tables are trained are often missing (Figure 3b), and the median paper's input path is 44% opaque. Propose a minimal reporting
+   whether tables are trained are often missing (Figure 3b) [PENDING re-derivation], and the median
+   paper's input path is 48% opaque. Propose a minimal reporting
    checklist.
 4. Field timing: the corpus starts in 2023 and 2026 is on track to exceed 2025, which supports a
    living review.
@@ -210,8 +232,14 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
 ## 5. Limitations
 
 - LLM-assisted screening, charting and decomposition; the decomposition used `gpt-5.6-luna` because the
-  earlier `gpt-5.4-mini` is no longer served through Codex. Agent graphs are reviewed candidates with
-  open findings, not author-verified reconstructions.
+  earlier `gpt-5.4-mini` is no longer served through Codex. Agent graphs are three-run consensus
+  decisions, not author-verified reconstructions, and were not checked by a reviewer agent.
+- Decomposition stability is incomplete. On unseen papers, the step-level consensus was reproduced in
+  95.6% of steps but complete route sequences only in 85.4%, below the predeclared 90% gate.
+  Residual disagreement concerns how prompts are merged with metadata (serialisation vs
+  concatenation) and whether a named "tokenized" representation counts as a tokenisation step. The
+  rules were tuned on development and earlier held-out papers, so in-sample stability is higher than
+  out-of-sample stability. Steps are bounded by the charted routes, so errors in charting carry over.
 - LLM-assisted screening and charting; stability is reported separately. Role-separated prompts are
   not independent reviewers.
 - Open-access and English filters; 15 reports could not be retrieved and 14 had no valid targeted

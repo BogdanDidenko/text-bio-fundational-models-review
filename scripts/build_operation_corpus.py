@@ -69,11 +69,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", type=Path, default=RUN)
     parser.add_argument("--include-open-findings", action="store_true")
+    parser.add_argument("--corpus-out", type=Path, default=CORPUS)
     parser.add_argument("--include-withdrawn", action="store_true",
                         help="Also publish the withdrawn OKR-Cell record (author decision pending)")
     args = parser.parse_args()
     corpus = collect(args.run, args.include_open_findings, args.include_withdrawn)
-    CORPUS.write_bytes(encoded(corpus))
+    args.corpus_out.write_bytes(encoded(corpus))
     print(json.dumps({"records": len(corpus["records"]), "assemblies": len(corpus["assemblies"]),
                       "evidence": len(corpus["evidence"]), "skipped": len(corpus["skipped"])}, indent=2))
 

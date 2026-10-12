@@ -46,7 +46,7 @@ const change = (el, value) => { el.value = value; el.dispatchEvent(new window.Ev
 check("page loads catalog", await until(() => $$(".list-entry").length > 0), `${((Date.now() - started) / 1000).toFixed(1)} s incl. data download`);
 const catalog = await (await fetch(new URL("data/catalog.json", BASE))).json();
 check("no 'Library unavailable' error", !$("#detail .error"), $("#detail .error")?.textContent || "");
-check("header shows release 1.1.0", $("#release").textContent.includes("1.1.0"), $("#release").textContent);
+check(`header shows release ${catalog.release}`, $("#release").textContent.includes(catalog.release), $("#release").textContent);
 check("totals text", $("#totals").textContent.includes("22 operations"), $("#totals").textContent);
 check("operation list complete (22)", $$(".list-entry").length === catalog.blocks.length, $$(".list-entry").length);
 check("default view is Table lookup", $("#detail h2").textContent.includes("lookup"), $("#detail h2").textContent);

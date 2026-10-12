@@ -15,7 +15,7 @@ from scripts.docling_graph_templates.representation_library import (
 
 BASE = ROOT / "analysis/representation_block_library_2026-10-04"
 PUBLIC = ROOT / "docs/input-representation-atlas/component-library/data"
-CORPUS_PATH = ROOT / "analysis/operation_decomposition_2026-10-07/corpus_assemblies.json"
+CORPUS_PATH = ROOT / "analysis/operation_decomposition_v31_2026-10-12/corpus_assemblies.json"
 PACKETS = ROOT / "analysis/nickerson_taxonomy_2026-09-20/object_unit_reassessment_2026-09-22/section_id_corpus_55_2026-10-04/records"
 
 
