@@ -15,6 +15,14 @@ AGENT = json.loads((ROOT / "analysis/operation_decomposition_2026-10-07/stabiliz
 
 
 def main():
+    import argparse
+    global REL, OUT
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--release-dir", type=Path, default=REL)
+    ap.add_argument("--out", type=Path, default=OUT)
+    a = ap.parse_args()
+    REL, OUT = (a.release_dir if a.release_dir.is_absolute() else ROOT / a.release_dir), (a.out if a.out.is_absolute() else ROOT / a.out)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     atlas = json.loads((ROOT / "docs/input-representation-atlas/data/atlas.json").read_text())
     years = {}
     rows = []

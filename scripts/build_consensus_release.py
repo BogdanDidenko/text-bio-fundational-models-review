@@ -109,7 +109,14 @@ def build_record(record, iteration, out, catalog, library_sha256, rules_sha):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--sources", default=None, help='JSON list of [set_file, iteration] pairs')
+    p.add_argument("--params-dir", type=Path, default=None)
     a = p.parse_args()
+    global SOURCES, PARAMS
+    if a.sources:
+        SOURCES = [tuple(x) for x in json.loads(a.sources)]
+    if a.params_dir:
+        PARAMS = a.params_dir if a.params_dir.is_absolute() else ROOT / a.params_dir
     out = a.out if a.out.is_absolute() else ROOT / a.out
     catalog = json.loads(CATALOG.read_text())
     library_sha256 = sha(encoded(catalog))

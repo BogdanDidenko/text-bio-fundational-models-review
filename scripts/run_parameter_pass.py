@@ -281,7 +281,12 @@ def main():
     p.add_argument("--repairs", type=int, default=4)
     p.add_argument("--timeout", type=int, default=2700)
     p.add_argument("--max-workers", type=int, default=12)
+    p.add_argument("--release-dir", type=Path, default=None)
     a = p.parse_args()
+    global REL, BASE
+    if a.release_dir:
+        REL = a.release_dir if a.release_dir.is_absolute() else ROOT / a.release_dir
+        BASE = REL / "parameter_pass"
     run(a) if a.command == "run" else measure(a)
 
 

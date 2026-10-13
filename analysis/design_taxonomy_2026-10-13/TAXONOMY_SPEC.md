@@ -1,22 +1,33 @@
-# Design-pattern taxonomy of text–biology input chains (v1, 2026-10-13)
+# Design-pattern taxonomy of text–biology input chains (v2, 2026-10-14)
 
-Data: release 1.2.1. Unit: one charted input route (source object -> model-visible form) of the 50
+Data: release 1.3.0 (route archetypes depend only on charted labels and are unchanged from 1.2.1). Unit: one charted input route (source object -> model-visible form) of the 50
 agent-decomposed papers (532 routes, 101 models); the 4 pilot papers are coded at model level only
 where route-indexed data exist (not yet). Each route carries its consensus operation chain, its
 parameter status and the atlas labels (carrier family/subtype, fusion topology, text role).
 
-## Why axes and not chain archetypes
+## Two levels: design axes and motifs (revised 2026-10-14, release 1.3.0)
 
-Exact operation chains are highly diverse: 252 distinct sequences in 532 routes. Edit-distance
-clustering finds no structure (silhouette <= 0.10 for 4-25 clusters), and even the most frequent
-operation trigrams occur in only 3 papers (`motif_table.csv`). Collapsing operations into functional
-stages (curate, value-transform, symbolise, encode, fuse) leaves 87 stage strings. So variation does not
-come from a few recurrent recipes. It comes from a small number of independent design decisions made
-along a shared canonical pipeline:
+Correction. v1 of this spec argued that exact operation chains do not recur (252 distinct sequences in
+532 routes, edit-distance silhouette at most 0.10). That statistic was largely an artefact of how the
+route chains were built:
+- one step per charted wording phrase, so granularity differs by paper (median 1-7 steps per route);
+- provenance and identity steps were counted as operations (21% of steps);
+- routes stop at the model-visible form.
+After removing these artefacts, and with the 1.3.0 boundary fixes, recurring sub-chains appear. They
+are collected in the motif library (`analysis/motif_library_2026-10-14/MOTIF_LIBRARY.md`).
 
-source -> curate -> transform values -> form the carrier -> interface to the language model
+The systematisation therefore has two complementary levels:
+- Motifs: frequent role-aware operation sub-chains (15 motifs, 44 of 54 papers contain at least one;
+  the most widespread, encoder then projector, occurs in 18 papers). They describe how input pipelines
+  are built.
+- Design axes and archetypes (below): where the carrier meets the language model and what happens to
+  the values. They describe what kind of input a model receives.
 
-The taxonomy codes each of these decisions as an axis with a closed value set, using mechanical rules.
+The two levels agree. Of models whose motifs are all verbalisation motifs, 16 of 19 have the verbalised
+token-stream archetype as primary. Of models whose motifs are all encoder motifs, 23 of 28 have an
+encoder-based archetype (soft tokens, conditioning, attention bridge, latent alignment) as primary
+(`analysis/motif_library_2026-10-14/motif_category_vs_archetype.csv`). No sub-chain is shared by all
+architectures.
 
 ## Axes (route level)
 

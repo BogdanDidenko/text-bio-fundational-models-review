@@ -1,0 +1,1202 @@
+{
+  "decisions": [
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "non-overlapping patches"
+            },
+            {
+              "name": "axis",
+              "value": "spatial/image axis"
+            },
+            {
+              "name": "partition_rule",
+              "value": "256 × 256 pixels patches at 20 × -equivalent"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "decompose W into non-overlapping patches",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first decompose W into non-overlapping patches { p 1 , p 2 , . . . , p N h }",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: dividing the WSI into retained non-overlapping patches is partition.",
+      "step_id": "route_06651029e746__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "extract patch features with UNI",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each patch is then processed using a pretrained feature extractor Θ . In this study, we adopt UNI [6], a foundation model for computational pathology, as the extractor.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R3: UNI is the named pretrained feature-extraction module.",
+      "step_id": "route_06651029e746__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "2-layer TransMIL slide encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a 2-layer TransMIL [14] as the slide encoder to project WSI features into a d -dimensional space.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: TransMIL is a named learned slide encoder.",
+      "step_id": "route_06651029e746__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "features within each region"
+            },
+            {
+              "name": "scaling",
+              "value": "mean"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "region-wise aggregation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature ˜ H (2) .",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: region-wise mean aggregation is represented by add.",
+      "step_id": "route_06651029e746__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "concatenate",
+          "parameters": [
+            {
+              "name": "axis",
+              "value": "1-D feature/token sequence axis"
+            },
+            {
+              "name": "order",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "concatenate with the [CLS] token",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape ˜ H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: concatenating the retained region feature sequence with the [CLS] token is concatenate.",
+      "step_id": "route_06651029e746__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "frozen fusion layers",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "for unimodal tasks involving only WSIs, we freeze the fusion layers",
+          "section_id": "sec_0016"
+        }
+      ],
+      "rationale": "R3: frozen fusion layers are a named learned module boundary.",
+      "step_id": "route_06651029e746__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "task-specific heads",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we append task-specific heads to ALTER for fine-tuning on downstream tasks.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "rationale": "R3: task-specific heads are named receiving learned modules.",
+      "step_id": "route_06651029e746__s07",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "tokenize",
+          "parameters": [
+            {
+              "name": "vocabulary",
+              "value": "unspecified"
+            },
+            {
+              "name": "segmentation",
+              "value": "unspecified"
+            },
+            {
+              "name": "source_alphabet",
+              "value": "diagnostic-report text"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "tokenize R into a sequence T",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "tokenize R into a sequence T ∈ R N t",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: converting the report into tokens is tokenize.",
+      "step_id": "route_79351a652029__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "use BioBERT as text encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We choose BioBERT [58] as text encoder in this study",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: BioBERT is the named pretrained text-encoder module.",
+      "step_id": "route_79351a652029__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "fusion_unspecified",
+      "chain_element": "modality-shared fusion",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we design a two-stage fusion strategy within each universal sequence Transformer in Fig. 1 (a): (1) modalityshared fusion; (2) modality-specific decoupling.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R4: fusion is stated without an operation-specific algebra in this element.",
+      "step_id": "route_79351a652029__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "modality-specific decoupling",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the next stage, we introduce modality-specific experts",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: modality-specific decoupling is implemented by named modality-specific expert modules.",
+      "step_id": "route_79351a652029__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "universal sequence Transformer",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "within each universal sequence Transformer",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: the universal sequence Transformer is a named learned network.",
+      "step_id": "route_79351a652029__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "non-overlapping patches"
+            },
+            {
+              "name": "axis",
+              "value": "spatial/image axis"
+            },
+            {
+              "name": "partition_rule",
+              "value": "256 × 256 pixels patches at 20 × -equivalent"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "decompose W into non-overlapping patches",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first decompose W into non-overlapping patches { p 1 , p 2 , . . . , p N h }",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: dividing the WSI into retained non-overlapping patches is partition.",
+      "step_id": "route_814eb4ef1898__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "extract patch features with UNI",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each patch is then processed using a pretrained feature extractor Θ . In this study, we adopt UNI [6], a foundation model for computational pathology, as the extractor.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R3: UNI is the named pretrained feature-extraction module.",
+      "step_id": "route_814eb4ef1898__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "2-layer TransMIL slide encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a 2-layer TransMIL [14] as the slide encoder to project WSI features into a d -dimensional space.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: TransMIL is a named learned slide encoder.",
+      "step_id": "route_814eb4ef1898__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "features within each region"
+            },
+            {
+              "name": "scaling",
+              "value": "mean"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "region-wise aggregation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature ˜ H (2) .",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: region-wise mean aggregation is represented by add.",
+      "step_id": "route_814eb4ef1898__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "concatenate",
+          "parameters": [
+            {
+              "name": "axis",
+              "value": "1-D feature/token sequence axis"
+            },
+            {
+              "name": "order",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "concatenate with the [CLS] token",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape ˜ H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: concatenating the retained region feature sequence with the [CLS] token is concatenate.",
+      "step_id": "route_814eb4ef1898__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "fusion_unspecified",
+      "chain_element": "modality-shared fusion",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we design a two-stage fusion strategy within each universal sequence Transformer in Fig. 1 (a): (1) modalityshared fusion; (2) modality-specific decoupling.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R4: fusion is stated without an operation-specific algebra in this element.",
+      "step_id": "route_814eb4ef1898__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "modality-specific decoupling",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the next stage, we introduce modality-specific experts",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: modality-specific decoupling is implemented by named modality-specific expert modules.",
+      "step_id": "route_814eb4ef1898__s07",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "universal sequence Transformer",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "within each universal sequence Transformer",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: the universal sequence Transformer is a named learned network.",
+      "step_id": "route_814eb4ef1898__s08",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "bin",
+          "parameters": [
+            {
+              "name": "strategy",
+              "value": "term-frequency-analysis method"
+            },
+            {
+              "name": "scope",
+              "value": "unspecified"
+            },
+            {
+              "name": "zero_handling",
+              "value": "unspecified"
+            },
+            {
+              "name": "bin_edges",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "utilize term-frequency-analysis to discretize gene expression values",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We utilize the term-frequency-analysis method to discretize gene expression values before inputting them into the gene encoder",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: discretizing expression values with term-frequency analysis is bin.",
+      "step_id": "route_a525acddbe12__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "pretrain a Performer as the gene encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we pretrain a Performer as the gene encoder",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: Performer is the named learned gene-encoder module.",
+      "step_id": "route_a525acddbe12__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "matching with existing biological pathway databases"
+            },
+            {
+              "name": "axis",
+              "value": "genes"
+            },
+            {
+              "name": "partition_rule",
+              "value": "grouping genes into pathways using biological pathway databases"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "group genes into pathways using biological pathway databases",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "By matching with existing biological pathway databases, we group genes into pathways",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: grouping genes into retained pathway groups is partition.",
+      "step_id": "route_a525acddbe12__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "genes/features within each pathway"
+            },
+            {
+              "name": "scaling",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "pool each pathway to obtain aggregated gene features",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Finally, each pathway is pooled to obtain the aggregated gene features",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: pathway pooling is represented by add.",
+      "step_id": "route_a525acddbe12__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "fusion_unspecified",
+      "chain_element": "modality-shared fusion",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we design a two-stage fusion strategy within each universal sequence Transformer in Fig. 1 (a): (1) modalityshared fusion; (2) modality-specific decoupling.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R4: fusion is stated without an operation-specific algebra in this element.",
+      "step_id": "route_a525acddbe12__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "modality-specific decoupling",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In the next stage, we introduce modality-specific experts",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: modality-specific decoupling is implemented by named modality-specific expert modules.",
+      "step_id": "route_a525acddbe12__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "universal sequence Transformer",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "within each universal sequence Transformer",
+          "section_id": "sec_0008"
+        }
+      ],
+      "rationale": "R3: the universal sequence Transformer is a named learned network.",
+      "step_id": "route_a525acddbe12__s07",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "non-overlapping patches"
+            },
+            {
+              "name": "axis",
+              "value": "spatial/image axis"
+            },
+            {
+              "name": "partition_rule",
+              "value": "256 × 256 pixels patches at 20 × -equivalent"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "decompose W into non-overlapping patches",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first decompose W into non-overlapping patches { p 1 , p 2 , . . . , p N h }",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: dividing the WSI into retained non-overlapping patches is partition.",
+      "step_id": "route_37eae69f2672__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "extract patch features with UNI",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each patch is then processed using a pretrained feature extractor Θ . In this study, we adopt UNI [6], a foundation model for computational pathology, as the extractor.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R3: UNI is the named pretrained feature-extraction module.",
+      "step_id": "route_37eae69f2672__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "2-layer TransMIL slide encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a 2-layer TransMIL [14] as the slide encoder to project WSI features into a d -dimensional space.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: TransMIL is a named learned slide encoder.",
+      "step_id": "route_37eae69f2672__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "features within each region"
+            },
+            {
+              "name": "scaling",
+              "value": "mean"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "region-wise aggregation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature ˜ H (2) .",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: region-wise mean aggregation is represented by add.",
+      "step_id": "route_37eae69f2672__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "concatenate",
+          "parameters": [
+            {
+              "name": "axis",
+              "value": "1-D feature/token sequence axis"
+            },
+            {
+              "name": "order",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "concatenate with the [CLS] token",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape ˜ H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: concatenating the retained region feature sequence with the [CLS] token is concatenate.",
+      "step_id": "route_37eae69f2672__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "frozen fusion layers",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "for unimodal tasks involving only WSIs, we freeze the fusion layers",
+          "section_id": "sec_0016"
+        }
+      ],
+      "rationale": "R3: frozen fusion layers are a named learned module boundary.",
+      "step_id": "route_37eae69f2672__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "task-specific heads",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we append task-specific heads to ALTER for fine-tuning on downstream tasks.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "rationale": "R3: task-specific heads are named receiving learned modules.",
+      "step_id": "route_37eae69f2672__s07",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "non-overlapping patches"
+            },
+            {
+              "name": "axis",
+              "value": "spatial/image axis"
+            },
+            {
+              "name": "partition_rule",
+              "value": "256 × 256 pixels patches at 20 × -equivalent"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "decompose W into non-overlapping patches",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first decompose W into non-overlapping patches { p 1 , p 2 , . . . , p N h }",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: dividing the WSI into retained non-overlapping patches is partition.",
+      "step_id": "route_3255c1091034__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "extract patch features with UNI",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each patch is then processed using a pretrained feature extractor Θ . In this study, we adopt UNI [6], a foundation model for computational pathology, as the extractor.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R3: UNI is the named pretrained feature-extraction module.",
+      "step_id": "route_3255c1091034__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "2-layer TransMIL slide encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a 2-layer TransMIL [14] as the slide encoder to project WSI features into a d -dimensional space.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: TransMIL is a named learned slide encoder.",
+      "step_id": "route_3255c1091034__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "features within each region"
+            },
+            {
+              "name": "scaling",
+              "value": "mean"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "region-wise aggregation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature ˜ H (2) .",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: region-wise mean aggregation is represented by add.",
+      "step_id": "route_3255c1091034__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "concatenate",
+          "parameters": [
+            {
+              "name": "axis",
+              "value": "1-D feature/token sequence axis"
+            },
+            {
+              "name": "order",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "concatenate with the [CLS] token",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape ˜ H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: concatenating the retained region feature sequence with the [CLS] token is concatenate.",
+      "step_id": "route_3255c1091034__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "frozen fusion layers",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "for unimodal tasks involving only WSIs, we freeze the fusion layers",
+          "section_id": "sec_0016"
+        }
+      ],
+      "rationale": "R3: frozen fusion layers are a named learned module boundary.",
+      "step_id": "route_3255c1091034__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "task-specific heads",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we append task-specific heads to ALTER for fine-tuning on downstream tasks.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "rationale": "R3: task-specific heads are named receiving learned modules.",
+      "step_id": "route_3255c1091034__s07",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "non-overlapping patches"
+            },
+            {
+              "name": "axis",
+              "value": "spatial/image axis"
+            },
+            {
+              "name": "partition_rule",
+              "value": "256 × 256 pixels patches at 20 × -equivalent"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "decompose W into non-overlapping patches",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first decompose W into non-overlapping patches { p 1 , p 2 , . . . , p N h }",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R6: dividing the WSI into retained non-overlapping patches is partition.",
+      "step_id": "route_2997abc848de__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "extract patch features with UNI",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each patch is then processed using a pretrained feature extractor Θ . In this study, we adopt UNI [6], a foundation model for computational pathology, as the extractor.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "rationale": "R3: UNI is the named pretrained feature-extraction module.",
+      "step_id": "route_2997abc848de__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "2-layer TransMIL slide encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We adopt a 2-layer TransMIL [14] as the slide encoder to project WSI features into a d -dimensional space.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: TransMIL is a named learned slide encoder.",
+      "step_id": "route_2997abc848de__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "features within each region"
+            },
+            {
+              "name": "scaling",
+              "value": "mean"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "region-wise aggregation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we replace the features of each region with the mean of that region to obtain aggregated feature ˜ H (2) .",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: region-wise mean aggregation is represented by add.",
+      "step_id": "route_2997abc848de__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "concatenate",
+          "parameters": [
+            {
+              "name": "axis",
+              "value": "1-D feature/token sequence axis"
+            },
+            {
+              "name": "order",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "concatenate with the [CLS] token",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we reshape ˜ H (2) to a 1-D feature and concatenate it with the [CLS] token",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: concatenating the retained region feature sequence with the [CLS] token is concatenate.",
+      "step_id": "route_2997abc848de__s05",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "task-specific heads appended to ALTER",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we append task-specific heads to ALTER for fine-tuning on downstream tasks.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "rationale": "R3: task-specific heads appended to ALTER are named receiving learned modules.",
+      "step_id": "route_2997abc848de__s06",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "bin",
+          "parameters": [
+            {
+              "name": "strategy",
+              "value": "term-frequency-analysis method"
+            },
+            {
+              "name": "scope",
+              "value": "unspecified"
+            },
+            {
+              "name": "zero_handling",
+              "value": "unspecified"
+            },
+            {
+              "name": "bin_edges",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "discretize gene expression values",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We utilize the term-frequency-analysis method to discretize gene expression values before inputting them into the gene encoder",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: discretizing expression values with the stated term-frequency-analysis method is bin.",
+      "step_id": "route_f1f43f8f60ae__s01",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "pretrain a Performer as the gene encoder",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we pretrain a Performer as the gene encoder",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R3: Performer is the named learned gene-encoder module.",
+      "step_id": "route_f1f43f8f60ae__s02",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "partition",
+          "parameters": [
+            {
+              "name": "method",
+              "value": "matching with existing biological pathway databases"
+            },
+            {
+              "name": "axis",
+              "value": "genes"
+            },
+            {
+              "name": "partition_rule",
+              "value": "grouping genes into pathways using biological pathway databases"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "group genes into pathways using biological pathway databases",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "By matching with existing biological pathway databases, we group genes into pathways",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: grouping genes into retained pathway groups is partition.",
+      "step_id": "route_f1f43f8f60ae__s03",
+      "uncertainty": null
+    },
+    {
+      "calls": [
+        {
+          "operation_id": "add",
+          "parameters": [
+            {
+              "name": "alignment",
+              "value": "genes/features within each pathway"
+            },
+            {
+              "name": "scaling",
+              "value": "unspecified"
+            }
+          ]
+        }
+      ],
+      "category": "library_operation",
+      "chain_element": "pool each pathway to obtain aggregated gene features",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Finally, each pathway is pooled to obtain the aggregated gene features",
+          "section_id": "sec_0007"
+        }
+      ],
+      "rationale": "R6: pathway pooling is represented by add.",
+      "step_id": "route_f1f43f8f60ae__s04",
+      "uncertainty": null
+    },
+    {
+      "calls": [],
+      "category": "learned_module",
+      "chain_element": "task-specific heads appended to ALTER",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we append task-specific heads to ALTER for fine-tuning on downstream tasks.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "rationale": "R3: task-specific heads appended to ALTER are named receiving learned modules.",
+      "step_id": "route_f1f43f8f60ae__s05",
+      "uncertainty": null
+    }
+  ],
+  "operation_proposals": [],
+  "record_id": "full_2026-07-06__rec_001218",
+  "source_runs": [
+    "analysis/operation_decomposition_2026-10-07/stabilization/v32_all/run_1/records/full_2026-07-06__rec_001218/final_decisions.json",
+    "analysis/operation_decomposition_2026-10-07/stabilization/v32_all/run_2/records/full_2026-07-06__rec_001218/final_decisions.json",
+    "analysis/operation_decomposition_2026-10-07/stabilization/v32_all/run_3/records/full_2026-07-06__rec_001218/final_decisions.json"
+  ],
+  "support": {
+    "route_06651029e746__s01": 3,
+    "route_06651029e746__s02": 3,
+    "route_06651029e746__s03": 3,
+    "route_06651029e746__s04": 3,
+    "route_06651029e746__s05": 3,
+    "route_06651029e746__s06": 3,
+    "route_06651029e746__s07": 3,
+    "route_2997abc848de__s01": 3,
+    "route_2997abc848de__s02": 3,
+    "route_2997abc848de__s03": 3,
+    "route_2997abc848de__s04": 3,
+    "route_2997abc848de__s05": 3,
+    "route_2997abc848de__s06": 3,
+    "route_3255c1091034__s01": 3,
+    "route_3255c1091034__s02": 3,
+    "route_3255c1091034__s03": 3,
+    "route_3255c1091034__s04": 3,
+    "route_3255c1091034__s05": 3,
+    "route_3255c1091034__s06": 3,
+    "route_3255c1091034__s07": 3,
+    "route_37eae69f2672__s01": 3,
+    "route_37eae69f2672__s02": 3,
+    "route_37eae69f2672__s03": 3,
+    "route_37eae69f2672__s04": 3,
+    "route_37eae69f2672__s05": 3,
+    "route_37eae69f2672__s06": 3,
+    "route_37eae69f2672__s07": 3,
+    "route_79351a652029__s01": 3,
+    "route_79351a652029__s02": 3,
+    "route_79351a652029__s03": 3,
+    "route_79351a652029__s04": 3,
+    "route_79351a652029__s05": 3,
+    "route_814eb4ef1898__s01": 3,
+    "route_814eb4ef1898__s02": 3,
+    "route_814eb4ef1898__s03": 3,
+    "route_814eb4ef1898__s04": 3,
+    "route_814eb4ef1898__s05": 3,
+    "route_814eb4ef1898__s06": 3,
+    "route_814eb4ef1898__s07": 3,
+    "route_814eb4ef1898__s08": 3,
+    "route_a525acddbe12__s01": 3,
+    "route_a525acddbe12__s02": 3,
+    "route_a525acddbe12__s03": 3,
+    "route_a525acddbe12__s04": 3,
+    "route_a525acddbe12__s05": 3,
+    "route_a525acddbe12__s06": 3,
+    "route_a525acddbe12__s07": 3,
+    "route_f1f43f8f60ae__s01": 3,
+    "route_f1f43f8f60ae__s02": 3,
+    "route_f1f43f8f60ae__s03": 3,
+    "route_f1f43f8f60ae__s04": 3,
+    "route_f1f43f8f60ae__s05": 3
+  },
+  "ties": []
+}

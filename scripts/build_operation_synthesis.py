@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "docs/input-representation-atlas/component-library/data"
-RUN = ROOT / "analysis/operation_decomposition_v31_2026-10-12"
+RUN = ROOT / "analysis/operation_decomposition_v32_2026-10-14"
 OUT = ROOT / "analysis/review_synthesis_2026-10-07"
 
 

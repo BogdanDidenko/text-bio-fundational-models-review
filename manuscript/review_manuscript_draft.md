@@ -30,16 +30,17 @@ biological symbol streams 17, visual raster carriers 11 and geometric/diffusion-
 The most frequent fusion was a shared token sequence (65 models), followed by concatenation (35).
 Text acted mostly as an instruction or query (70 models) and carried the biological content itself in
 43. Across 54 decomposed papers (475 input paths), 19 of 22 operations recurred in at least
-two papers, led by text serialisation (36 papers), tokenisation (24), selection (24) and learned
-projection (23). On ten unseen papers, the step-level decomposition was reproduced in 95.6% of
-steps by an independent repeat of the three-run consensus.
-Input chains did not form recurring recipes but decomposed into five design decisions. Six
-carrier x interface archetypes cover most biological inputs, and their transparency differs: the
-median route leaves no computational step unexpanded in verbalised and biological-alphabet inputs,
-against 0.40-0.67 in encoder-based ones.
+two papers, led by text serialisation (38 papers), selection (26), tokenisation (25) and learned
+projection (23). An independent repeat of the three-run consensus reproduced 99.6% of steps on ten
+held-out papers.
+Fifteen recurring operation sub-chains (motifs) occur in 44 of 54 papers. No motif is shared by all
+architectures; the most widespread, a learned encoder followed by a projector, occurs in 18 papers.
+Motifs split into verbalisation and encoder families that match six carrier x interface archetypes.
+Transparency differs by archetype: the median route leaves no computational step unexpanded in
+verbalised and biological-alphabet inputs, against 0.33-0.67 in encoder-based ones.
 Key input choices were often unstated anywhere in the paper: the projection activation (80% of 76
-projection calls), the concatenation order (66% of 53), the serialisation order (40% of 249) and the
-token vocabulary (28% of 68).
+projection calls), the concatenation order (71% of 48), the serialisation order (42% of 268) and the
+token vocabulary (26% of 73).
 
 **Conclusions.** [To write after the decomposition results.]
 
@@ -111,12 +112,14 @@ corpus: route Jaccard 0.945–0.969; carrier-family exact agreement 0.929; Kripp
 Each documented input path is reconstructed as a directed graph of calls to a library of 22 reusable
 operations (normalisation, log transform, binning, tokenisation, table lookup, projection,
 concatenation, attention and others) with named ports and instance parameters
-(`protocol/REPRESENTATION_LIBRARY_GUIDE.md`, operation catalog of release 1.0.2). Steps whose internal
+(`protocol/REPRESENTATION_LIBRARY_GUIDE.md`; catalog definitions of release 1.3.0). Steps whose internal
 computation the paper does not state remain unexpanded boundaries. A four-paper pilot (ChatNT,
 InstructCell, X-Cell, MUPAD; 47 trajectories, 509 operation calls) was curated by the authors. The
 remaining 50 papers were decomposed by agents (Codex CLI, `gpt-5.6-luna`, reasoning effort high; the
-earlier `gpt-5.4-mini` is no longer available through Codex) under protocol v3.1
-(`scripts/operation_decomposition_v3.py`). The structure is fixed by the charted routes: one
+earlier `gpt-5.4-mini` is no longer available through Codex) under protocol v3.2
+(`scripts/operation_decomposition_v3.py`; v3.2 sharpens the boundaries between align, concatenate
+and serialize, and partition and select, after run-to-run disagreements under v3.1;
+`analysis/representation_block_library_2026-10-04/DECISION_MEMO_1.3.0.md`). The structure is fixed by the charted routes: one
 trajectory per charted configuration and one step per element of each route's verbatim
 transformation chain. For each step the agent returns only a decision, a closed category plus the
 library operation(s) named in the element text, with stated parameter values, verbatim evidence and
@@ -128,14 +131,16 @@ The full paper text is supplied without truncation. Each paper was decomposed in
 runs (up to four mechanical repairs each), and the published decision per step is the majority
 label. Steps without a majority remain unresolved boundaries and are listed for the library
 steward, as are steps decided 2 of 3. A separate parameter pass then read the whole paper again, with
-the operations fixed. For every declared parameter of every library call (2,383 slots; definitions in
+the operations fixed. For every declared parameter of every library call (2,433 slots in 1.3.0; definitions in
 `protocol/OPERATION_PARAMETER_GLOSSARY.md`) it decided whether the paper states the value for that data
 path, with verbatim evidence checked mechanically. Values that only follow from convention, released
 code or cited papers do not count. This pass also used three runs per paper and the majority status;
 its rules were tuned on the ten development papers (two iterations) and then frozen. Before the first
 run we fixed its gate: on ten held-out papers, consensus status agreement between runs 1-3 and 4-6 of
 at least 0.90 (`analysis/operation_decomposition_v31_2026-10-12/parameter_pass/GATE.md`). The result
-is library release 1.2.1. No reviewer-agent pass was run on it. The protocol was developed iteratively on ten length-stratified papers and evaluated
+was library release 1.2.1. Under v3.2, 39 of 1,468 steps changed operation; the parameter pass was
+repeated for the 16 affected papers (three runs), and slots of unchanged calls were carried over.
+The result is library release 1.3.0. No reviewer-agent pass was run on it. The protocol was developed iteratively on ten length-stratified papers and evaluated
 on held-out papers with the rules frozen. Stability was measured as agreement between the consensus
 of runs 1-3 and of runs 4-6 against a predeclared gate
 (`analysis/operation_decomposition_2026-10-07/stabilization/GATE.md`, `STABILIZATION_REPORT.md`).
@@ -147,19 +152,33 @@ Descriptive counts of models per family, subtype, fusion topology, text role and
 model is counted once per value it carries), records per publication year, operation reuse measured as distinct papers per operation, and the
 share of operation calls whose declared parameters the paper leaves unstated.
 
-### 2.9 Design-pattern taxonomy
+### 2.9 Motifs and design-pattern taxonomy
 
-Exact operation chains did not form recurring recipes (252 distinct sequences in 532 routes;
-edit-distance clustering silhouette at most 0.10), so we did not cluster chains. Instead we coded each
-route on five design axes along one canonical pipeline: source, curation, value transformation,
-carrier formation, interface. A1 is carrier formation, A2 the interface to the language model, A3
-the transformation of measured values (order only, discretised, learned compression, verbatim; plus
-subset and normalisation modifiers), A4 the text role and A5 transparency. Coding rules are
-deterministic over the release 1.2.1 chains and the charted atlas labels; no new model calls were
-made (`analysis/design_taxonomy_2026-10-13/TAXONOMY_SPEC.md`, `scripts/build_design_taxonomy.py`).
-We tested axis coverage and independence (normalised mutual information), and robustness by recoding
-the 20 papers with repeated decomposition runs from each individual run. Archetypes are defined as
-carrier x interface combinations; a model can carry several.
+Model-level paths. For each model configuration, the decomposed routes (agent papers) or the
+author-curated graphs (pilot papers, all root-to-model paths) were turned into paths of role-aware
+operation tokens. Provenance and identity steps were dropped and repeated identical operations
+collapsed. Each operation's role follows from its inputs: biological only, text only, or joining
+biological and text inputs. Unexpanded learned modules were kept as typed tokens
+(`scripts/build_model_graphs.py`).
+
+Motifs. Closed frequent sub-chains (contiguous and gapped) were mined at the operation and family
+levels, with support counted in papers (at least 4 papers; no length limit;
+`scripts/mine_subchains.py`). Supported, interpretable sub-chains were named as motifs with templates,
+members, parameter reporting and evidence-quoted examples
+(`analysis/motif_library_2026-10-14/MOTIF_LIBRARY.md`, `scripts/build_motif_library.py`). Stability:
+mining was repeated on each single decomposition run.
+
+Design axes. Each route was also coded on five axes along one canonical pipeline (source, curation,
+value transformation, carrier formation, interface): A1 carrier formation, A2 interface to the
+language model, A3 transformation of measured values (order only, discretised, learned compression,
+verbatim; with subset and normalisation modifiers), A4 text role and A5 transparency. Coding rules are
+deterministic over the chains and the charted atlas labels
+(`analysis/design_taxonomy_2026-10-13/TAXONOMY_SPEC.md`). We tested coverage, independence
+(normalised mutual information) and robustness to decomposition runs. Archetypes are carrier x
+interface combinations; a model can carry several. An earlier version of this analysis compared exact
+route chains and reported no recurring recipes. That result was an artefact of chain construction
+(uneven wording granularity, non-computational steps counted as operations, fragmentary routes) and
+is withdrawn.
 
 ## 3. Results
 
@@ -209,47 +228,65 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
 ### 3.5 Operation-level input paths (Figure 3)
 
 - **Coverage.** 54 papers were decomposed (4 author-curated pilot papers, 50 agent papers;
-  the withdrawn OKR-Cell preprint is excluded) into 475 input paths with 1,334 library-operation calls
-  and 837 steps kept as unexpanded boundaries.
-- **Consensus.** Of the 1,468 agent-decomposed steps, 1,381 (94.1%) were decided identically in all
-  three runs, 81 (5.5%) by two of three, and 6 (0.4%, all in one paper) had no majority.
-- **Stability.** With the rules frozen, on ten papers not used to develop the protocol, the consensus
-  of runs 1-3 and of runs 4-6 agreed on 95.6% of steps and on the complete operation sequence of 85.4%
-  of routes; 8 of 10 papers were reproduced exactly. The predeclared route-level gate (90%) was not
-  met. On the development papers, earlier rule versions reached complete agreement.
+  the withdrawn OKR-Cell preprint is excluded) into 475 input paths with 1,348 library-operation calls
+  and 819 steps kept as unexpanded boundaries.
+- **Consensus.** Of the 1,468 agent-decomposed steps, 1,394 (95.0%) were decided identically in all
+  three runs, 74 (5.0%) by two of three, and none lacked a majority.
+- **Stability.** Under v3.1 with frozen rules, on ten papers not used for development, the consensus of
+  runs 1-3 and of runs 4-6 agreed on 95.6% of steps and on 85.4% of complete route sequences, below
+  the predeclared 90% route gate. After the v3.2 boundary fixes, the same ten papers agree on 99.6% of
+  steps and 98.8% of routes (gate met). These papers informed the fixes, so this second figure is
+  in-sample; no unseen papers remain.
 - **Reuse.** 19 of the 22 operations occur in two or more papers. The most widespread are text
-  serialisation (36 papers), tokenisation (24), selection or filtering (24), learned projection (23),
-  concatenation (20) and partition or split (18). Imputation, clamping and reshaping appear in one
+  serialisation (38 papers), selection or filtering (26), tokenisation (25), learned projection (23),
+  concatenation (18) and partition or split (18). Imputation, clamping and reshaping appear in one
   paper each.
 - **Unexpanded steps.** In the median paper, 48% of the documented steps cannot be decomposed from the text
   (whole encoders, fusion rules whose algebra is not given, training-data mixtures). These steps carry
-  469 distinct labels, which the steward still has to group.
-- **Unreported choices** (agent papers, release 1.2.1 parameter pass; the pilot adapter wrote fixed
-  placeholders, so pilot calls are not comparable). Of the 2,383 parameter slots, 1,559 (65%) are
-  stated in the paper and 824 (35%) are not; 88% of slot decisions were unanimous across the three
-  runs. Among parameters with at least 50 calls, papers left unstated the projection activation in 80%
-  of 76 calls, the concatenation order in 66% of 53 and its axis in 43%, the serialisation order in 40%
-  of 249 and the lexical rendering of values in 39%, the token vocabulary and segmentation in 28% of 68,
-  the selection method (for example k in a top-k) in 20% of 102 and the projection method in 22% of 76.
-  The selection criterion (13%) and the serialisation template (11%) were mostly stated, and the token
+  457 distinct labels, which the steward still has to group.
+- **Unreported choices** (agent papers, parameter pass of releases 1.2.1/1.3.0; the pilot adapter wrote
+  fixed placeholders, so pilot calls are not comparable). Of the 2,433 parameter slots, 1,589 (65%)
+  are stated in the paper and 844 (35%) are not; 88% of slot decisions were unanimous across the three
+  runs. Among parameters with at least 45 calls, papers left unstated:
+  - the projection activation in 80% of 76 calls;
+  - the concatenation order in 71% of 48 and its axis in 48%;
+  - the serialisation order in 42% of 268 and the lexical rendering of values in 40%;
+  - the token vocabulary and segmentation in 26% of 73;
+  - the projection method in 22% of 76;
+  - the selection method (for example k in a top-k) in 19% of 105.
+  The selection criterion (12%) and the serialisation template (12%) were mostly stated, and the token
   source alphabet always. `select: forced_inclusions` (100% unstated) is left out because it usually
   does not apply. On the held-out papers, consensus status agreement was 0.992 (377 slots; gate met).
   Reported values are worded differently between runs (exact agreement after normalisation 0.37), so
   the analysis uses only the stated / unstated status, and values are shown with their quotes.
-- **Review status.** 49 of 50 agent papers have a majority decision for every step. One paper
-  (rec_003206) has 6 unresolved steps, and 81 steps decided by two of three runs are queued for
-  steward confirmation. No reviewer agent checked releases 1.2.0/1.2.1, and steps are limited to the charted
+- **Review status.** All 50 agent papers have a majority decision for every step. 74 steps decided by
+  two of three runs are queued for steward confirmation. No reviewer agent checked releases 1.2.0-1.3.0, and steps are limited to the charted
   transformation chains, so missing steps or branches are not detected by this protocol. Operation
-  counts are therefore lower bounds. 73 agent proposals for computations outside the catalog are
+  counts are therefore lower bounds. 75 agent proposals for computations outside the catalog are
   queued for the library steward.
 
 ### 3.6 Design patterns of text-biology inputs (Figure 4)
 
-- **No recurring recipes, few decisions.** The 532 agent-decomposed routes contain 252 distinct
-  operation sequences, and no operation trigram occurs in more than three papers. The variation is
-  captured by five design decisions along one pipeline (A1-A5). Their pairwise normalised mutual
-  information is 0.04-0.34, coverage is at least 96%, and recoding from individual decomposition runs
-  agrees on 99.7% (A3) and 95.5% (A5) of route pairs.
+- **Recurring sub-chains (Figure 5).** Fifteen motifs, each supported by 4-18 papers, occur in 44 of
+  54 papers. Re-mining from single decomposition runs reproduces the operation-level motif set with
+  Jaccard 0.81 (family level 0.92). No motif is shared by all architectures. The most widespread are:
+  - a learned encoder followed by a projector (18 papers);
+  - stacked learned modules (12);
+  - subset, then verbalise (10);
+  - a computation outside the catalog before an encoder (10);
+  - verbalised text read by a model (9).
+  Two families stand out. Verbalisation motifs (subset, rank or sample, then serialise) occur almost
+  only in verbalised token-stream inputs; encoder motifs (encoder, projector, stacked modules,
+  encode-then-join) occur in soft-token, attention-bridge, conditioning and alignment inputs. Of
+  models whose motifs are all verbalisation motifs, 16 of 19 have the verbalised archetype as primary;
+  of models whose motifs are all encoder motifs, 23 of 28 have an encoder-based archetype.
+  Reporting gaps follow the motifs:
+  - projector activation is unstated in 82% of encoder-projector motifs;
+  - concatenation order in 95% of encode-then-join motifs;
+  - rank tie handling in all ranked gene sentences.
+- **Design axes.** The five axes have pairwise normalised mutual information 0.04-0.34, coverage of
+  at least 96%, and recoding from individual decomposition runs agrees on 99.7% (A3) and 95.5% (A5)
+  of route pairs (v3.1 runs).
 - **Archetypes.** Biological routes (367; 79 models) fall into six main carrier x interface
   archetypes, with thirteen axis cells used by at least three papers covering 79% of these routes:
   encoded soft tokens (24 papers, 29 models), verbalised text in the token stream (18 papers,
@@ -260,11 +297,11 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
 - **What each archetype keeps.** Verbalised routes mostly copy data as text (91 of 115); 21 keep
   only the rank order of genes (magnitudes dropped). Biological-alphabet routes keep sequences
   verbatim (31 of 35). Soft-token, attention-bridge and conditioning routes compress data with learned
-  encoders (63 of 84, 22 of 29 and 35 of 49).
+  encoders (61 of 84, 21 of 29 and 37 of 49).
 - **Transparency follows the archetype.** The median route leaves no computational step unexpanded
   in verbalised and biological-alphabet archetypes, but 0.33 in attention bridges, 0.40 in soft
   tokens, 0.50 in latent alignment and 0.67 in generator conditioning. Unstated parameter slots range
-  from 26% (biological alphabet) to 45% (generator conditioning).
+  from 26% (biological alphabet) to 43% (generator conditioning).
 - **Over time.** Soft tokens are the most or jointly most frequent archetype in every year. The share of
   papers using verbalisation was 38% in 2024 and 50% in 2026, and biological alphabets went from 0%
   to 28%. Yearly counts are small (4, 8, 20 and 18 papers).
@@ -319,6 +356,9 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   (`analysis/length_truncation_audit_2026-10-09.md`).
 - The withdrawn OKR-Cell preprint is still counted in the 55 records (author decision pending).
 - Search closed on 2026-08-09; no refresh was done for this manuscript.
+- Motifs are mined from route chains bounded by the charted transformation chains and from four
+  author-curated pilot graphs, so steps that the charting did not record cannot form motifs. Support
+  thresholds (at least 4 papers) and motif naming involved author judgement.
 - The design-pattern axes are derived from the charted routes and their decomposition. Interface and
   carrier labels inherit charting errors, and A3 falls back on the charted carrier subtype for 90
   biological routes whose chain has no decided operation. The axes were defined by the authors after
@@ -337,6 +377,10 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   used per archetype; (c) share of each year's papers using each archetype; (d) unexpanded share of
   computational steps per route and unstated parameter slots per archetype
   (`analysis/design_taxonomy_2026-10-13/figure4_design_patterns.png`).
+- Figure 5. Motif library: (a) templates of the fifteen recurring sub-chains; (b) paper support with
+  single-run range; (c) papers per archetype of member routes
+  (`analysis/motif_library_2026-10-14/figure5_motif_library.png`).
+- Table S5. Motif library (`analysis/motif_library_2026-10-14/MOTIF_LIBRARY.md`, `motifs.json`).
 - Table S4. Route-level design-pattern codebook (`analysis/design_taxonomy_2026-10-13/taxonomy_codebook.csv`).
 - Table S3. Library steward queue: open reviewer findings, operation proposals, unexpanded boundary labels
   (`analysis/operation_decomposition_2026-10-07/STEWARD_QUEUE.md`).

@@ -13,7 +13,7 @@ import re
 from scripts.operation_decomposition import EVIDENCE_KINDS, PHASES, _obj, _string_or_null
 from scripts.operation_decomposition_v2 import atlas_skeleton as _atlas_skeleton_v2, route_signatures, validate_v2  # noqa: F401
 
-PROTOCOL = "operation-decomposition-v3"
+PROTOCOL = "operation-decomposition-v3.2"
 
 BOUNDARY_CATEGORIES = ["source_provenance", "external_generator", "learned_module", "fusion_unspecified",
                        "no_catalog_operation", "identity"]
@@ -134,7 +134,9 @@ R4 fusion or conditioning wording ("combined with", "paired with", "conditioned 
    - the paper states concatenation / appending / prepending / interleaving into one sequence -> concatenate
    - the paper states addition or summation ............................................ add
    - the paper states cross-attention ................................................. cross_attention
-   - the data are written into a prompt or text ("incorporated X into the prompt", "provide X and Y
+   - the data are written into a prompt or text ("incorporated X into the prompt", "merge the prompt
+     with the specified cell type / metadata", "combine the prompt with the cell sentence",
+     "attach metadata", "provide X and Y
      in the prompt") ............................................................... serialize
    - guidance wording (bias, guide, drive or steer generation or samples; constraints and penalties)
      ................................................................ fusion_unspecified (calls empty)
@@ -170,18 +172,25 @@ R6 every other stated computation -> library_operation, one call per operation N
    log / log1p ....................................................................... log_transform
    discretise VALUES into intervals or coarser levels: each value or label is mapped to a level
      ("23 Carnegie stages grouped into four developmental bins", ages into age groups) ..... bin
-   split a sequence, genome, image or set into windows, bins, patches, chunks, tiles, or into groups
+   divide a sequence, genome, image or set into parts that are ALL kept (keeping one part and
+     discarding the rest -- ROI extraction, cropping, centring a window on a region, extracting
+     fields -- is select): windows, bins, patches, chunks, tiles, or groups
      by metadata or labels: a collection of ITEMS is divided ("segmentation into 200bp bins",
      "grouped the cells by metadata", neighbourhoods by a radius, sectors around a centre cell)
      ................................................................................... partition
-   join two or more separately produced sequences end to end; stack channels or feature matrices
+   join two or more separately produced sequences end to end (only when every part already exists as
+     its own token or embedding sequence; writing data into a prompt is serialize); stack channels or
+     feature matrices
      ("stack channels 1, 2, 3 with channels 4, 5, 6") ....................................... concatenate
    sum, weighted sum, mean or weighted average of vectors; aggregation or pooling of profiles
      ("aggregate ... into pseudo-bulk samples"), also when sum vs mean is not stated ........ add
    explicit random draw of examples, negatives, noise or masks; random shuffling or permutation;
      random choice of a template ("question template selection" when the paper says it is random;
      otherwise select) ......................................................................... sample
-   pair or match DATA items with each other, register coordinates ......................... align
+   pair or match DATA items with each other (pair samples, map identifiers, register coordinates)
+     ...................................................................................... align
+     (never align: "align to natural language" or mapping into an embedding space -> project;
+     centring or cropping around a region -> select; attaching metadata to text -> serialize)
    mask or overwrite values / nodes / tokens at positions; replace a placeholder token in the model
      input by an embedding ("replaces <omics> in the LLM input") ............................. update
    pad a sequence to a fixed length, or truncate it to a fixed length in tokens, characters or base
