@@ -14,7 +14,11 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
 | 6. Title/Abstract screening | Done / living | Frozen role-separated Codex pipeline with retained per-role logs |
 | 7. Full-text section screening | Done / living | Docling + Docling Graph selected-section pipeline |
-| 8. Input-route taxonomy and atlas | Done / living | 55 records, 109 models, 586 grounded routes through 2026-08-09 |
+| 8. Input-route taxonomy and atlas | Done / living | 55 records, 109 models, 585 grounded routes through 2026-08-09 |
+| 9. Operation-level decomposition | Done (release 1.3.0) | 54 papers, 3-run consensus, protocol v3.2; site: component library |
+| 10. Motif library and design-pattern taxonomy | Draft | 15 recurring sub-chains; axes and archetypes |
+
+**Which outputs are current:** see [`CURRENT_STATE.md`](CURRENT_STATE.md). Older run folders are kept for provenance and are marked superseded.
 
 For the next update, start with the canonical operational runbook:
 [`protocol/LIVING_REVIEW_RUNBOOK.md`](protocol/LIVING_REVIEW_RUNBOOK.md).

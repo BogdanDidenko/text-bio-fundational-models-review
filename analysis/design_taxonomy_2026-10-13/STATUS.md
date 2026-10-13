@@ -1,0 +1,1 @@
+> **Status: CURRENT** (spec v2, codebook on 1.3.0), except `chain_profile_*` and `motif_table.csv` (withdrawn exact-chain analysis) and Figure 4 / `pattern_crosstabs.csv` / `axis_tests.json` (computed on 1.2.1, pending redraw). See [`CURRENT_STATE.md`](../../CURRENT_STATE.md).
