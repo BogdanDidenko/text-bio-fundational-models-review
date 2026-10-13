@@ -33,6 +33,10 @@ Text acted mostly as an instruction or query (70 models) and carried the biologi
 two papers, led by text serialisation (36 papers), tokenisation (24), selection (24) and learned
 projection (23). On ten unseen papers, the step-level decomposition was reproduced in 95.6% of
 steps by an independent repeat of the three-run consensus.
+Input chains did not form recurring recipes but decomposed into five design decisions. Six
+carrier x interface archetypes cover most biological inputs, and their transparency differs: the
+median route leaves no computational step unexpanded in verbalised and biological-alphabet inputs,
+against 0.40-0.67 in encoder-based ones.
 Key input choices were often unstated anywhere in the paper: the projection activation (80% of 76
 projection calls), the concatenation order (66% of 53), the serialisation order (40% of 249) and the
 token vocabulary (28% of 68).
@@ -143,6 +147,20 @@ Descriptive counts of models per family, subtype, fusion topology, text role and
 model is counted once per value it carries), records per publication year, operation reuse measured as distinct papers per operation, and the
 share of operation calls whose declared parameters the paper leaves unstated.
 
+### 2.9 Design-pattern taxonomy
+
+Exact operation chains did not form recurring recipes (252 distinct sequences in 532 routes;
+edit-distance clustering silhouette at most 0.10), so we did not cluster chains. Instead we coded each
+route on five design axes along one canonical pipeline: source, curation, value transformation,
+carrier formation, interface. A1 is carrier formation, A2 the interface to the language model, A3
+the transformation of measured values (order only, discretised, learned compression, verbatim; plus
+subset and normalisation modifiers), A4 the text role and A5 transparency. Coding rules are
+deterministic over the release 1.2.1 chains and the charted atlas labels; no new model calls were
+made (`analysis/design_taxonomy_2026-10-13/TAXONOMY_SPEC.md`, `scripts/build_design_taxonomy.py`).
+We tested axis coverage and independence (normalised mutual information), and robustness by recoding
+the 20 papers with repeated decomposition runs from each individual run. Archetypes are defined as
+carrier x interface combinations; a model can carry several.
+
 ## 3. Results
 
 ### 3.1 Study selection (Figure 1)
@@ -225,6 +243,32 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   counts are therefore lower bounds. 73 agent proposals for computations outside the catalog are
   queued for the library steward.
 
+### 3.6 Design patterns of text-biology inputs (Figure 4)
+
+- **No recurring recipes, few decisions.** The 532 agent-decomposed routes contain 252 distinct
+  operation sequences, and no operation trigram occurs in more than three papers. The variation is
+  captured by five design decisions along one pipeline (A1-A5). Their pairwise normalised mutual
+  information is 0.04-0.34, coverage is at least 96%, and recoding from individual decomposition runs
+  agrees on 99.7% (A3) and 95.5% (A5) of route pairs.
+- **Archetypes.** Biological routes (367; 79 models) fall into six main carrier x interface
+  archetypes, with thirteen axis cells used by at least three papers covering 79% of these routes:
+  encoded soft tokens (24 papers, 29 models), verbalised text in the token stream (18 papers,
+  29 models), generator conditioning (17 papers, 20 models), biological alphabets in the token stream
+  (8 papers, 11 models), attention bridges such as Q-Former or resamplers (7 papers) and shared latent
+  alignment (7 papers). Retrieval or tool context is rare (3 papers). 30 of 79 models combine more
+  than one archetype.
+- **What each archetype keeps.** Verbalised routes mostly copy data as text (91 of 115); 21 keep
+  only the rank order of genes (magnitudes dropped). Biological-alphabet routes keep sequences
+  verbatim (31 of 35). Soft-token, attention-bridge and conditioning routes compress data with learned
+  encoders (63 of 84, 22 of 29 and 35 of 49).
+- **Transparency follows the archetype.** The median route leaves no computational step unexpanded
+  in verbalised and biological-alphabet archetypes, but 0.33 in attention bridges, 0.40 in soft
+  tokens, 0.50 in latent alignment and 0.67 in generator conditioning. Unstated parameter slots range
+  from 26% (biological alphabet) to 45% (generator conditioning).
+- **Over time.** Soft tokens are the most or jointly most frequent archetype in every year. The share of
+  papers using verbalisation was 38% in 2024 and 50% in 2026, and biological alphabets went from 0%
+  to 28%. Yearly counts are small (4, 8, 20 and 18 papers).
+
 ## 4. Discussion (outline)
 
 1. Main finding: most of the field moves biology into the language channel rather than giving the
@@ -238,7 +282,14 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
    checklist.
 4. Field timing: the corpus starts in 2023 and 2026 is on track to exceed 2025, which supports a
    living review.
-5. Relation to existing reviews [CITE].
+5. A design-pattern map for builders: choosing an archetype fixes what information survives
+   (verbalisation keeps values only as text and often only their order; soft tokens keep magnitudes
+   but hide them in an encoder) and how much must be trained (connectors, vocabularies, generators).
+   The least transparent archetypes are also the ones whose reporting is weakest (Figure 4d), so a
+   reporting checklist should be archetype-specific: e.g. template, order and lexical rendering for
+   verbalisation; encoder, projection, trainability and token budget for soft tokens and attention
+   bridges.
+6. Relation to existing reviews [CITE].
 
 ## 5. Limitations
 
@@ -268,6 +319,10 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   (`analysis/length_truncation_audit_2026-10-09.md`).
 - The withdrawn OKR-Cell preprint is still counted in the 55 records (author decision pending).
 - Search closed on 2026-08-09; no refresh was done for this manuscript.
+- The design-pattern axes are derived from the charted routes and their decomposition. Interface and
+  carrier labels inherit charting errors, and A3 falls back on the charted carrier subtype for 90
+  biological routes whose chain has no decided operation. The axes were defined by the authors after
+  inspecting the data and were not validated on an independent corpus.
 - Protocol objective 3 (datasets, downstream tasks, evaluation metrics) and the extraction fields for
   pretraining objective and code/data availability are not yet charted.
 
@@ -278,6 +333,11 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   text role (`analysis/review_synthesis_2026-10-07/corpus_landscape.png`).
 - Figure 3. Operation reuse across papers and unreported operation parameters
   (`analysis/review_synthesis_2026-10-07/operation_reuse.png`).
+- Figure 4. Design patterns: (a) papers per carrier-formation x interface cell; (b) pipeline stages
+  used per archetype; (c) share of each year's papers using each archetype; (d) unexpanded share of
+  computational steps per route and unstated parameter slots per archetype
+  (`analysis/design_taxonomy_2026-10-13/figure4_design_patterns.png`).
+- Table S4. Route-level design-pattern codebook (`analysis/design_taxonomy_2026-10-13/taxonomy_codebook.csv`).
 - Table S3. Library steward queue: open reviewer findings, operation proposals, unexpanded boundary labels
   (`analysis/operation_decomposition_2026-10-07/STEWARD_QUEUE.md`).
 - Table S1. Per-model charting table (`analysis/review_synthesis_2026-10-07/charting_table_models.csv`).
