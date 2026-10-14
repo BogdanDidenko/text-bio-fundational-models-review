@@ -9,7 +9,7 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 0. Review of reviews | Done | `data/existing_reviews_compilation.md` |
 | 1. Protocol | Done | `protocol/PRISMA_protocol.md`, `protocol/eligibility_criteria.md` |
 | 2. Search queries (v3.1) | Done | `protocol/queries/`, `scripts/search_config.json` |
-| 3. Search execution | Done | 7 databases, 4 rounds |
+| 3. Search execution | Done | 5 rounds through 2026-08-09 (7 sources; OpenAlex added in round 5), 8,170 records; `analysis/prisma_search_audit_2026-10-14/` |
 | 4. Deduplication | Done | `scripts/deduplicate.py` |
 | 5. Abstract enrichment | Done | `scripts/enrich_abstracts.py` |
 | 6. Title/Abstract screening | Done / living | Frozen role-separated Codex pipeline with retained per-role logs |
@@ -18,7 +18,7 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 9. Operation-level decomposition | Done (release 1.3.0) | 54 papers, 3-run consensus, protocol v3.2; site: component library |
 | 10. Motif library and design-pattern taxonomy | Draft | 15 recurring sub-chains; axes and archetypes |
 
-**Which outputs are current:** see [`CURRENT_STATE.md`](CURRENT_STATE.md). Older run folders are kept for provenance and are marked superseded.
+**Which outputs are current:** see [`CURRENT_STATE.md`](CURRENT_STATE.md). Older run folders that other files still refer to are kept for provenance and are marked superseded; 21 unreferenced ones were removed on 2026-10-14 and remain available from the tag `archive/pre-cleanup-2026-10-14` (see [`ARCHIVE.md`](ARCHIVE.md)).
 
 For the next update, start with the canonical operational runbook:
 [`protocol/LIVING_REVIEW_RUNBOOK.md`](protocol/LIVING_REVIEW_RUNBOOK.md).

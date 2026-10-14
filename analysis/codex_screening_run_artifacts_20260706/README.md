@@ -2,9 +2,10 @@
 
 This directory contains a curated, Git-safe artifact bundle for the July 2026
 Codex `gpt-5.4-mini` screening runs. It follows the same repository pattern as
-`analysis/screening_run_artifacts_after_prompt_update_20260511`: compact run
-directories, operative prompt/config copies, and a SHA-256 manifest instead of
-an unstructured dump of the whole local `data/` tree.
+`analysis/screening_run_artifacts_after_prompt_update_20260511` (removed from the
+tree on 2026-10-14; available from the tag `archive/pre-cleanup-2026-10-14`, see
+`ARCHIVE.md`): compact run directories, operative prompt/config copies, and a
+SHA-256 manifest instead of an unstructured dump of the whole local `data/` tree.
 
 ## Contents
 

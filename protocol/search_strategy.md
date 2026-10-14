@@ -1,5 +1,11 @@
 # Search Strategy
 
+> **Superseded.** This file describes the protocol v2 scope (multi-modal single-cell foundation models)
+> and its concept blocks. It was not used for the searches that feed the review. The v3.1 concept blocks
+> are in `protocol/queries/`, and every query string as executed in the five rounds is in
+> `analysis/prisma_search_audit_2026-10-14/search_strategies_as_executed.md` (per-database runs:
+> `search_runs_by_database.csv`). Kept for the protocol history.
+
 ## Review Question
 What foundation-model-style approaches exist for multi-modal single-cell data, and what modalities, objectives, and evaluation tasks do they cover?
 
