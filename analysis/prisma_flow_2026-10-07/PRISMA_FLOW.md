@@ -37,7 +37,9 @@ was performed for the manuscript (author decision, 2026-10-07).
 
 ## Notes
 
-- Databases: PubMed, Scopus, Semantic Scholar, arXiv, bioRxiv/medRxiv, Springer Nature and Google Scholar in all rounds; OpenAlex was added in the August top-up. Google Scholar returned 0 records in the July round (rate-limited).
+- Databases: PubMed, Scopus, Semantic Scholar, arXiv, bioRxiv/medRxiv (Europe PMC), Springer Nature and Google Scholar in all rounds; OpenAlex was added in the August top-up. Records identified per database: PubMed 797; Scopus 1,120; OpenAlex 100; Semantic Scholar 2,909; arXiv 242; Europe PMC preprints 743; Springer Nature 379; Google Scholar 1,880 (`analysis/prisma_search_audit_2026-10-14/search_runs_by_database.csv`).
+- Google Scholar was rate-limited after 5 of 7 queries in the April and June rounds and returned 0 records in the July round.
+- The baseline (window to 2026-02-28) was executed on 2026-02-15 and the first top-up started at 2026-03-01, so date-bounded sources were not queried for records dated 2026-02-16 to 2026-02-28 (see `analysis/prisma_search_audit_2026-10-14/PRISMA_S_AUDIT.md`).
 - Duplicates include within-round, cross-round (cumulative master) and Crossref-audited hidden duplicates.
 - XunZi (10.1038/s41551-026-01769-6) was recovered after the pre-screen lexical validator was amended to recognise 'AI biologist'; it then passed the frozen abstract and full-text section screening.
 - The withdrawn OKR-Cell preprint (full_2026-07-06__rec_001277) is counted among the 55 records pending an author decision.
@@ -45,6 +47,7 @@ was performed for the manuscript (author decision, 2026-10-07).
 
 ## Balance checks
 
+- [x] sum over databases = identified
 - [x] identified - duplicates - no abstract = screened
 - [x] screened - excluded - postscreen duplicates = sought
 - [x] sought - not retrieved - no section pair = assessed

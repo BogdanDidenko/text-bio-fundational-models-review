@@ -20,8 +20,8 @@ The choice decides what information survives, yet each paper makes it alone and 
 biology. For each design we ask what it keeps of the data, how it is justified, supervised and tested,
 and what the comparative evidence shows.
 
-**Methods.** We ran a PRISMA-ScR scoping review with a PRISMA-S search of eight sources, in five rounds
-covering 2018-01-01 to 2026-08-09.
+**Methods.** We ran a PRISMA-ScR scoping review with a PRISMA-S search in five rounds (seven sources, with
+OpenAlex added in the fifth) and search windows from 2018-01-01 to 2026-08-09.
 - Screening and charting: frozen, role-separated LLM pipelines with adjudication. Each model's inputs
   were charted as grounded routes.
 - Decomposition: input paths were broken into calls to a library of 22 reusable data operations, by the
@@ -118,9 +118,53 @@ non-scholarly (EC6), reviews (EC7), duplicates (EC8). Full criteria: `protocol/e
 ### 2.3 Information sources and search
 
 Three concept blocks (biological data AND text/language AND foundation-model/generativity) were
-adapted per database (`protocol/queries/`). There was a baseline search (2018-01-01 to 2026-02-28) and
-four date-bounded top-ups (to 2026-04-14, 2026-06-10, 2026-07-06 and 2026-08-09). Google Scholar was
-rate-limited in the July round and returned no records.
+adapted per database (`protocol/queries/`). Supplementary Table S0 lists, for each round and database,
+the interface, execution date, date and other limits as executed, and the records returned and
+retained. Supplementary Text S1 gives every query string as executed.
+
+- **Sources.** Rounds 1–4 searched seven sources:
+  - PubMed (NCBI E-utilities);
+  - Scopus (Scopus Search API);
+  - Semantic Scholar (bulk search API);
+  - arXiv (arXiv API; categories cs.LG, cs.AI, cs.CL, q-bio.GN, q-bio.QM and stat.ML);
+  - bioRxiv and medRxiv preprints through Europe PMC (REST API, SRC:PPR);
+  - Springer Nature (Meta and Open Access APIs);
+  - Google Scholar (`scholarly` Python library).
+
+  Round 5 added OpenAlex and queried Google Scholar with one combined query through a provider export
+  (SerpAPI).
+- **Rounds.** The baseline (window 2018-01-01 to 2026-02-28) was executed on 2026-02-15 under protocol
+  v3.1. Before screening, it replaced a v3.0 execution of 2026-02-06. Four top-ups covered 2026-03-01
+  to 04-14, 04-15 to 06-10, 06-11 to 07-06 and 07-07 to 08-09. Each was executed on the last day of its
+  window, except the August round (executed 2026-08-10). The five rounds retained 5,534, 867, 933, 197
+  and 639 records (8,170).
+- **Dates as executed.**
+  - Exact dates in the query: PubMed, arXiv, Europe PMC, Springer Nature and OpenAlex.
+  - Year in the query, then removal by exact date: Scopus and Semantic Scholar. Records removed
+    (Scopus/Semantic Scholar): 18/1 in the baseline, then 165/226, 292/462, 389/766 and 485/914 in the
+    top-ups. In round 5, 39 Semantic Scholar records without a publication date were kept.
+  - Year only: Google Scholar.
+
+  The baseline ran on 2026-02-15, so no date-bounded query covered records dated 2026-02-16 to
+  2026-02-28 (§5).
+- **Other limits.**
+  - PubMed: English[Language] and "free full text"[sb].
+  - Scopus: LANGUAGE(English) and OPENACCESS(1).
+  - OpenAlex: language en and is_oa.
+  - Semantic Scholar, arXiv, Europe PMC and Google Scholar: no language or access limit.
+
+  Where no limit was applied at search, English and open access were enforced at screening and
+  full-text retrieval. No published search filters were used.
+- **Springer Nature.** The free API searches full text and cannot be restricted to title and abstract.
+  Retrieved records were therefore kept only if a term from each concept block appeared in the title or
+  abstract. Raw to validated, by round: 17,130 to 272, 1,185 to 33, 1,129 to 27, 510 to 20 and 691 to
+  27. The flow counts the validated records.
+- **Google Scholar completeness.** The April and June rounds were rate-limited after 5 of 7 queries, and
+  the July round returned no records. The baseline completion log was overwritten by a later
+  Springer Nature-only rerun; the retained baseline records are preserved.
+- **Other methods.** No study registries, citation searching or contact with authors were used. One
+  eligible record (XunZi) was recovered after a correction of the pre-screen lexical validator (§3.1).
+  The search strategy was not peer reviewed (for example with PRESS).
 
 ### 2.4 Deduplication and abstract enrichment
 
@@ -681,10 +725,21 @@ dependence controls, rather than further between-system leaderboards.
   "Unstated" means not found in the paper text; values in code or cited works are not credited.
 - LLM-assisted screening and charting; stability is reported separately. Role-separated prompts are
   not independent reviewers.
-- Open-access and English filters; 15 reports could not be retrieved and 14 had no valid targeted
-  section pair.
-- Google Scholar was rate-limited in one round; one eligible record was found only after a recall
-  correction.
+- Open access and English were required. At search they were applied only in PubMed (with "free full
+  text" as a proxy for open access), Scopus and OpenAlex, and elsewhere at screening. 15 reports could
+  not be retrieved and 14 had no valid targeted section pair.
+- Google Scholar was incomplete in three rounds (5 of 7 queries in April and June, no records in July).
+  One eligible record was found only after a recall correction.
+- The executed search windows have a 13-day gap.
+  - The baseline was run on 2026-02-15 with a window to 2026-02-28, and the first top-up started at
+    2026-03-01. The date-bounded sources were therefore never queried for records dated 2026-02-16 to
+    2026-02-28.
+  - Two routes reached part of this window: Google Scholar's year-level queries in later rounds, and
+    dates that differ between databases.
+  - On 2026-10-14 we re-ran the baseline queries of PubMed, arXiv, Europe PMC and Semantic Scholar for
+    the window. They returned 51 unique records. 17 had already been retrieved and 34 had not; none of
+    the 34 met the eligibility criteria in an indicative single-pass LLM title/abstract triage.
+  - Scopus and Springer Nature were not re-run (`analysis/prisma_search_audit_2026-10-14/`).
 - In the baseline full-text screening (2026-07-10), the abstract shown with the selected sections was
   cut to about 1,500 characters for 73 of 221 records (selected sections were complete), and five
   reports whose only reconstructed section covered at least 90% of the paper were not screened at full
@@ -776,7 +831,13 @@ dependence controls, rather than further between-system leaderboards.
   shape shows the design and colour the proposed culture; open markers are the three units the proposer
   did not win (two mixed, one loss). Contrasts between cultures are exploratory.
 - Box 1. A neutral comparison protocol and a reporting card for input representations (§4.3–4.4).
-- Supplementary Figure S1. Full PRISMA 2020 flow.
+- Supplementary Figure S1. Full PRISMA 2020 flow, with records identified per database
+  (`analysis/prisma_flow_2026-10-07/prisma_flow.png`).
+- Table S0. Search runs by round and database: interface, execution date, limits as executed, records
+  returned and retained (`analysis/prisma_search_audit_2026-10-14/search_runs_by_database.csv`).
+- Text S1. Search strategies as executed (`analysis/prisma_search_audit_2026-10-14/search_strategies_as_executed.md`),
+  with the PRISMA-S audit and the coverage check of 2026-02-16 to 2026-02-28 (`PRISMA_S_AUDIT.md`,
+  `gap_probe_2026-02-16_28.json`, `gap_probe_indicative_triage.json`).
 - Table S1. Per-model charting table (`analysis/review_synthesis_2026-10-07/charting_table_models.csv`).
 - Table S2. Full-text exclusions with reasons (`analysis/prisma_flow_2026-10-07/PRISMA_FLOW.md`).
 - Table S3. Library steward queue (`analysis/operation_decomposition_2026-10-07/STEWARD_QUEUE.md`).

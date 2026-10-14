@@ -15,7 +15,21 @@ BASE_FACTS = ROOT / "analysis/living_review_baseline_prisma_facts_2026-08-09.jso
 UPDATE = ROOT / "data/living_catalog_updates/update_2026-08-09"
 BASE_FT = ROOT / "data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10"
 ATLAS = ROOT / "docs/input-representation-atlas/data/atlas.json"
+SEARCH_RUNS = ROOT / "analysis/prisma_search_audit_2026-10-14/search_runs_by_database.csv"
 OUT = ROOT / "analysis/prisma_flow_2026-10-07"
+DB_LABELS = {"pubmed": "PubMed", "scopus": "Scopus", "openalex": "OpenAlex", "semantic_scholar": "Semantic Scholar",
+             "arxiv": "arXiv", "biorxiv_medrxiv": "Europe PMC preprints", "springernature": "Springer Nature",
+             "google_scholar": "Google Scholar"}
+
+
+def identified_by_database():
+    """Records retained per database, summed over the five rounds (from the PRISMA-S audit table)."""
+    counts, rounds = Counter(), {}
+    for r in csv.DictReader(open(SEARCH_RUNS)):
+        if r["searched"] == "yes":
+            counts[r["database"]] += int(r["retained"])
+            rounds.setdefault(r["database"], []).append(r["round"].split()[0])
+    return {DB_LABELS[k]: {"n": counts[k], "rounds": rounds[k]} for k in DB_LABELS if k in counts}
 
 REASON_LABELS = {
     "EC2_no_text_component": "No natural-language text component",
@@ -64,6 +78,7 @@ def facts():
         "search_window": {"from": "2018-01-01", "to": upd["date_to"]},
         "rounds": [r["label"] for r in load(BASE_FACTS)["search_rounds"]] + ["August top-up (2026-07-07 to 2026-08-09)"],
         "identified_databases": base["records_identified"] + upd["raw_hits"],
+        "identified_by_database": identified_by_database(),
         "identified_other_methods": len(xunzi_acc),
         "duplicates_removed": base["duplicates_removed"] + upd_dups,
         "removed_no_usable_abstract": base["records_without_usable_abstracts"] + upd["records_without_usable_abstract"],
@@ -86,6 +101,8 @@ def facts():
     }
     # Internal consistency: each stage must balance exactly.
     checks = {
+        "sum over databases = identified":
+            sum(v["n"] for v in f["identified_by_database"].values()) == f["identified_databases"],
         "identified - duplicates - no abstract = screened":
             f["identified_databases"] - f["duplicates_removed"] - f["removed_no_usable_abstract"] == f["screened"],
         "screened - excluded - postscreen duplicates = sought":
@@ -125,11 +142,18 @@ def draw(f, path):
         ax.text(3.25, y + h / 2, label, rotation=90, ha="center", va="center", fontsize=7.5, fontweight="bold", color=ink)
 
     L, R, W, WR = 9, 57, 42, 42
-    box(L, 92, W, 14, f"Records identified from 8 databases\n(5 search rounds, {f['search_window']['from']} to {f['search_window']['to']})\nn = {f['identified_databases']:,}")
+    db = f["identified_by_database"]
+    once = [k for k, v in db.items() if len(v["rounds"]) == 1]
+    per_db = [f"{k}{'*' if k in once else ''} {v['n']:,}" for k, v in db.items()]
+    lines = [" · ".join(per_db[i:i + 2]) for i in range(0, len(per_db), 2)]
+    note = f"*round {db[once[0]]['rounds'][0]} only" if len(once) == 1 else ""
+    box(L, 87, W, 20, f"Records identified from databases n = {f['identified_databases']:,}\n"
+                      f"(5 rounds; windows {f['search_window']['from']} to {f['search_window']['to']})\n"
+                      + "\n".join(lines) + (f"\n{note}" if note else ""))
     box(R, 92, WR, 14, f"Records removed before screening:\nduplicates n = {f['duplicates_removed']:,}\nno usable abstract n = {f['removed_no_usable_abstract']:,}")
     arrow(L + W, 99, R, 99)
     box(L, 72, W, 10, f"Records screened (title/abstract)\nn = {f['screened']:,}")
-    arrow(L + W / 2, 92, L + W / 2, 82)
+    arrow(L + W / 2, 87, L + W / 2, 82)
     box(R, 72, WR, 10, f"Records excluded n = {f['screen_excluded']:,}\npost-screen duplicate n = {f['postscreen_duplicates']}")
     arrow(L + W, 77, R, 77)
     box(L, 55, W, 10, f"Reports sought for retrieval\nn = {f['sought']}")
@@ -175,9 +199,15 @@ def markdown(f):
     out += ["", "## Full-text exclusion reasons", "", "| Reason | Code | n |", "|---|---|---:|"]
     out += [f"| {REASON_LABELS.get(k, k)} | `{k}` | {v} |" for k, v in f["exclusion_reasons"].items()]
     out += ["", "## Notes", "",
-            "- Databases: PubMed, Scopus, Semantic Scholar, arXiv, bioRxiv/medRxiv, Springer Nature and Google Scholar"
-            " in all rounds; OpenAlex was added in the August top-up. Google Scholar returned 0 records in the July"
-            " round (rate-limited).",
+            "- Databases: PubMed, Scopus, Semantic Scholar, arXiv, bioRxiv/medRxiv (Europe PMC), Springer Nature and"
+            " Google Scholar in all rounds; OpenAlex was added in the August top-up. Records identified per database: "
+            + "; ".join(f"{k} {v['n']:,}" for k, v in f["identified_by_database"].items())
+            + " (`analysis/prisma_search_audit_2026-10-14/search_runs_by_database.csv`).",
+            "- Google Scholar was rate-limited after 5 of 7 queries in the April and June rounds and returned 0 records"
+            " in the July round.",
+            "- The baseline (window to 2026-02-28) was executed on 2026-02-15 and the first top-up started at"
+            " 2026-03-01, so date-bounded sources were not queried for records dated 2026-02-16 to 2026-02-28"
+            " (see `analysis/prisma_search_audit_2026-10-14/PRISMA_S_AUDIT.md`).",
             "- Duplicates include within-round, cross-round (cumulative master) and Crossref-audited hidden duplicates.",
             "- XunZi (10.1038/s41551-026-01769-6) was recovered after the pre-screen lexical validator was amended to"
             " recognise 'AI biologist'; it then passed the frozen abstract and full-text section screening.",
