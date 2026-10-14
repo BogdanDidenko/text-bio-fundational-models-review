@@ -1,0 +1,404 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each sample, the default input vector concatenates four feature groups: a one-dimensional input-scale indicator, the normalized expression vector, a 512-dimensional Funomics T0 embedding [Powalski et al., 2026], and a 768-dimensional embedding from Geneformer-V2104M [Chen et al., 2026], yielding a 20,541-dimensional omics vector.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "name": "Funomics T0",
+      "state": "unspecified"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each sample, the default input vector concatenates four feature groups: a one-dimensional input-scale indicator, the normalized expression vector, a 512-dimensional Funomics T0 embedding [Powalski et al., 2026], and a 768-dimensional embedding from Geneformer-V2104M [Chen et al., 2026], yielding a 20,541-dimensional omics vector.",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "table",
+          "quote": "Pretrained single-cell encoder; embeddings used as input features.",
+          "section_id": "sec_0056"
+        }
+      ],
+      "name": "Geneformer-V2-104M",
+      "state": "unspecified"
+    }
+  ],
+  "biology_dependence_tests": [],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To connect the omics vector to this backbone, OmicsLM adds a trainable affine projection",
+          "section_id": "sec_0008"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The projection uses a bias term, is initialized with Xavier-uniform weights scaled by gain 0.01 and zero bias, and is trained jointly with the language model during supervised instruction tuning.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "state": "trained",
+      "type": "linear"
+    }
+  ],
+  "coverage_notes": "The paper does not explicitly state whether the Funomics T0 or Geneformer encoders are frozen or fine-tuned. The LLM-based GEO curation pipeline is not identified by model name or version, and its prompts, decoding parameters, and verification procedure are not reported. No explicit ablation removing all biological input is reported; the text-based controls still receive gene lists.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For closed-set classification tasks, we either evaluate the generated answer directly or use length-normalized constrained likelihood scoring over the valid label set, from which we report accuracy and macro AUROC;",
+          "section_id": "sec_0012"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Profile-level and zero-shot classification"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "GEO-OmicsQA binary tasks report yes/no accuracy",
+          "section_id": "sec_0012"
+        }
+      ],
+      "format": "likelihood_or_perplexity_scoring",
+      "task": "Closed-set candidate-label classification"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "GEO-OmicsQA binary tasks report yes/no accuracy",
+          "section_id": "sec_0012"
+        }
+      ],
+      "format": "multiple_choice_or_yes_no",
+      "task": "GEO-OmicsQA binary question answering"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Open-ended generation tasks, including GEO-OmicsQA simple and contextual tasks, are scored with DeepEval GEval [Liu et al., 2023b] using the Gemini judge model gemini-3.1-flash-lite-preview [Google DeepMind, 2026a].",
+          "section_id": "sec_0043"
+        }
+      ],
+      "format": "open_text_llm_judge",
+      "task": "GEO-OmicsQA free-text generation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Model predictions are evaluated using Recall@50, measuring how many of the top-50 predicted genes appear among the true top-50 most highly expressed genes after perturbation.",
+          "section_id": "sec_0044"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Perturbation prediction"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OmicsLM uses the Qwen3-8B backbone with the Qwen3-VL no-thinking template [Bai et al., 2025] and is fully fine-tuned (language backbone, token embeddings, gene-token embeddings, and omics projector) for two epochs",
+          "section_id": "sec_0012"
+        }
+      ],
+      "name": "Qwen3",
+      "size": "8B",
+      "state": "full_finetune",
+      "vocabulary_extended": "yes"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Free-text (2,000 samples). Open-ended questions that ask for concise biological explanations from supplied omics profiles.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "cell type, tissue, phase, lineage, role",
+          "section_id": "sec_0028"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "clinical label, numeric age",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "table",
+          "quote": "knocked-out gene, ranked gene list",
+          "section_id": "sec_0028"
+        }
+      ],
+      "output": "other"
+    }
+  ],
+  "proposed_models": [
+    "OmicsLM"
+  ],
+  "record_id": "june_update_2026-06-10__rec_000246",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "soft_token_embedding",
+          "label": "Full embedding stack"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "Cell2Sentence-like"
+        }
+      ],
+      "better_arm": "Full embedding stack",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The embedding-source block isolates the central architectural bet of OmicsLM: the text-only Cell2Sentence-like variant, analogous to the representation used by Cell2Sentence [Levine et al., 2024] and Cell-o1 [Fang et al., 2025], ranks last in its block, well below configurations that retain any continuous embedding source.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "table",
+          "quote": "| Full embedding stack         | .740           | .833 ± .006      | .976 ± .013      | .730 ± .014 | .901 ± .004 | .950 ± .003      | .919 ± .007 | .986 ± .004 | .573 ± .009     | .738 ± .001   | .590 ± .005   |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| Cell2Sentence-like           | .090           | .742             | .866             | .710        | .854        | .894             | .867        | .956        | .576            | .702          | .552          |",
+          "section_id": "sec_0046"
+        }
+      ],
+      "metric": "average relative rank across 10 evaluation tasks",
+      "modality": "transcriptomics",
+      "numbers_stated": ".740 for Full embedding stack; .090 for Cell2Sentence-like",
+      "result_summary": "The continuous embedding representation ranked substantially above the text-only Cell2Sentence-like control.",
+      "task": "OmicsLM multi-task benchmark suite"
+    },
+    {
+      "arms": [
+        {
+          "category": "soft_token_embedding",
+          "label": "Full embedding stack"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "No expression embedding"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "No Funomics embedding"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "No Geneformer embedding"
+        }
+      ],
+      "better_arm": "Full embedding stack",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| Full embedding stack         | .740           | .833 ± .006      | .976 ± .013      | .730 ± .014 | .901 ± .004 | .950 ± .003      | .919 ± .007 | .986 ± .004 | .573 ± .009     | .738 ± .001   | .590 ± .005   |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| No expression embedding      | .530           | .799             | .963             | .677        | .876        | .938             | .892        | .980        | .619            | .738          | .595          |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| No Funomics embedding        | .320           | .792             | .961             | .752        | .910        | .929             | .864        | .956        | .573            | .722          | .568          |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| No Geneformer embedding      | .690           | .823             | .976             | .737        | .878        | .935             | .929        | .986        | .605            | .736          | .591          |",
+          "section_id": "sec_0046"
+        }
+      ],
+      "metric": "average relative rank across 10 evaluation tasks",
+      "modality": "transcriptomics",
+      "numbers_stated": ".740, .530, .320, and .690 respectively",
+      "result_summary": "The full embedding stack had the highest reported average relative rank among these embedding-source variants.",
+      "task": "OmicsLM multi-task benchmark suite"
+    },
+    {
+      "arms": [
+        {
+          "category": "soft_token_embedding",
+          "label": "Full embedding stack"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "No count indicator"
+        }
+      ],
+      "better_arm": "Full embedding stack",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| Full embedding stack         | .740           | .833 ± .006      | .976 ± .013      | .730 ± .014 | .901 ± .004 | .950 ± .003      | .919 ± .007 | .986 ± .004 | .573 ± .009     | .738 ± .001   | .590 ± .005   |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| No count indicator           | .630           | .825             | .978             | .723        | .893        | .941             | .916        | .984        | .601            | .736          | .586          |",
+          "section_id": "sec_0046"
+        }
+      ],
+      "metric": "average relative rank across 10 evaluation tasks",
+      "modality": "transcriptomics",
+      "numbers_stated": ".740 for Full embedding stack; .630 for No count indicator",
+      "result_summary": "Removing the input-scale/count indicator reduced the average relative rank.",
+      "task": "OmicsLM multi-task benchmark suite"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "Gene tokens"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "Anchored gene initialization"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "No gene tokens"
+        }
+      ],
+      "better_arm": "Gene tokens",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Gene tokens contribute a smaller but consistent improvement over the no-gene-token variant.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "table",
+          "quote": "| Gene tokens                  | .800           | .833 ± .006      | .976 ± .013      | .730 ± .014 | .901 ± .004 | .950 ± .003      | .919 ± .007 | .986 ± .004 | .573 ± .009     | .738 ± .001   | .590 ± .005   |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| Anchored gene initialization | .150           | .794             | .963             | .726        | .877        | .943             | .876        | .958        | .600            | .709          | .528          |",
+          "section_id": "sec_0046"
+        },
+        {
+          "kind": "table",
+          "quote": "| No gene tokens               | .550           | .802             | .966             | .790        | .861        | .940             | .918        | .980        | .606            | .736          | .603          |",
+          "section_id": "sec_0046"
+        }
+      ],
+      "metric": "average relative rank across 10 evaluation tasks",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": ".800 for Gene tokens; .150 for Anchored gene initialization; .550 for No gene tokens",
+      "result_summary": "The Gene tokens configuration had the highest average relative rank.",
+      "task": "OmicsLM multi-task benchmark suite"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This compact interface preserves quantitative signal, frees the context window for instructions and gene-level text, and allows multiple profiles to be interleaved in one prompt.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The compact continuous omics-token interface preserves quantitative expression information."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This compact interface preserves quantitative signal, frees the context window for instructions and gene-level text, and allows multiple profiles to be interleaved in one prompt.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "reason": "context_length_cost",
+      "stance": "for_own_choice",
+      "summary": "Projected continuous profiles use less context than long gene-name serializations and leave room for instructions and gene-level text."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Crucially, this architecture supports the interleaving of multiple expression profiles within a single context window, empowering the model to perform direct comparative analyses across samples.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "The representation supports multiple interleaved expression profiles for comparative reasoning."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Cell2Sentence (C2S) [Levine et al., 2024], C2S-Scale [Rizvi et al., 2025], and Portraying Gene Language (PGL) [Choi et al., 2026] transform expression matrices into literal 'cell sentences'-plain-text strings of gene names ordered by descending abundance.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "these representations rapidly saturate context windows on full transcriptomes that span tens of thousands of expressed genes and discard the quantitative expression magnitudes that rank-only orderings cannot convey",
+          "section_id": "sec_0006"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors criticize rank-ordered text representations for discarding expression magnitudes and consuming context."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We addressed this with an LLM-based curation pipeline that (i) generated free-text natural language descriptions for each sample, and (ii) extracted structured annotations including tissue, cell type, cell line, disease, and perturbation target. Both the generated descriptions and structured annotations were used as supervision signals during instruction tuning.",
+          "section_id": "sec_0032"
+        }
+      ],
+      "name": "LLM-based GEO curation pipeline",
+      "prompts_disclosed": "none",
+      "text_kind": "Free-text sample descriptions and structured biological annotations",
+      "used_for": "training",
+      "verification": "none_reported",
+      "version_stated": false
+    }
+  ]
+}

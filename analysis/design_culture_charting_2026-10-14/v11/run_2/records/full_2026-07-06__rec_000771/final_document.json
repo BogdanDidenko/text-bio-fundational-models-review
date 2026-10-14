@@ -1,0 +1,332 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we decided in this work to backpropagate the gradients in the encoder in addition to the projection",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During training, we keep the English decoder frozen and update only the weights of the DNA encoder and the projection model.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "Nucleotide Transformer v2 (500-million-parameter model pretrained on genomes from 850 species)",
+      "state": "finetuned"
+    }
+  ],
+  "biology_dependence_tests": [],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we first use a dense neural network to project each DNA token embedding to the English word dimension.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "update only the weights of the DNA encoder and the projection model.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "state": "trained",
+      "type": "mlp"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we use a Perceiver resampler architecture 27 that uses cross-attention between the projected DNA tokens embeddings and learnable queries",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The projection model is initialized from scratch at the beginning of the training.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "state": "trained",
+      "type": "qformer_or_resampler"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We have adapted this Perceiver resampler to include an additional cross-attention step between the learnable queries and the English question in order to extract context-dependent representations from the DNA sequence",
+          "section_id": "sec_0013"
+        }
+      ],
+      "state": "trained",
+      "type": "cross_attention_layers"
+    }
+  ],
+  "coverage_notes": "The paper reports no controlled removal, mismatch, shuffle, random-noise, or text-only performance ablation testing dependence on biological input. It describes a DNA token placeholder, but does not explicitly state whether the language-model tokenizer vocabulary was extended with a new token.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "As ChatNT solves the tasks in English, it can seamlessly handle binary and multilabel classification tasks. By extracting the term predicted by ChatNT in the answer, we can quantify its predictive performance.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "format": "candidate_label_selection",
+      "task": "Multilabel classification scored by extracting the predicted term from the generated English answer"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "As ChatNT solves the tasks in English, it can seamlessly handle binary and multilabel classification tasks. By extracting the term predicted by ChatNT in the answer, we can quantify its predictive performance.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "format": "candidate_label_selection",
+      "task": "Binary classification scored by extracting the predicted label from the generated English answer"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For performance evaluation, we extract the digits from each answer and test their correlation with the ground-truth values.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Regression answered with generated numeric text and scored by correlation with ground-truth values"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "As metrics, we computed both area under the receiver operating characteristic curve (AUROC) and MCCs for both the original perplexity-based probabilities and the calibrated ones.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "format": "likelihood_or_perplexity_scoring",
+      "task": "Binary classification scored from perplexity-derived probabilities"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we use the Nucleotide Transformer v2 (500-million-parameter model pretrained on genomes from 850 species) as the DNA encoder 15 and Vicuna-7b (instruction-fine-tuned LLaMA model with 7 billion parameters) as the English decoder 32 to build the conversational agent ChatNT.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During training, we keep the English decoder frozen",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We introduce a DNA English token placeholder &lt;DNA&gt; that is added in the input English prompt",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "Vicuna-7b (instruction-fine-tuned LLaMA)",
+      "size": "7 billion parameters",
+      "state": "frozen",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ChatNT is a multimodal agent that takes as input one or multiple DNA sequences and an English prompt and returns a distribution over English words that is used to autoregressively produce an answer in English.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Those perplexity values towards positive and negative answers are then used to derive logits and probabilities for each class for the candidate question.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "output": "embedding_or_score"
+    }
+  ],
+  "proposed_models": [
+    "ChatNT"
+  ],
+  "record_id": "full_2026-07-06__rec_000771",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Perceiver resampler"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "English-aware Perceiver projection"
+        }
+      ],
+      "better_arm": "English-aware Perceiver projection",
+      "comparison_kind": "interface_mechanism",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In ChatNT, we used the Perceiver resampler from Flamingo 27 based on gated cross-attention as the projection layer",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We observed significantly improved performance by accounting for the question when projecting the DNA embeddings into the English decoder space (average MCC of 0.77 versus 0.71; Fig. 2a and Supplementary Fig. 2c,d).",
+          "section_id": "sec_0005"
+        }
+      ],
+      "metric": "average MCC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "0.77 versus 0.71",
+      "result_summary": "Conditioning the projection on the English question improved average MCC relative to the question-independent Perceiver resampler.",
+      "task": "All 18 Nucleotide Transformer benchmark tasks"
+    },
+    {
+      "arms": [
+        {
+          "category": "other",
+          "label": "K = 1 or 4 resampled DNA embedding vectors"
+        },
+        {
+          "category": "other",
+          "label": "K = 64 resampled DNA embedding vectors"
+        }
+      ],
+      "better_arm": "K = 64 resampled DNA embedding vectors",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We experimented with several values of K in practice and observed that low values such as 1 or 4 are not enough for the DNA encoder to impact the behaviour of the frozen English decoder. We found K = 64 to provide a good trade-off between the input length of the English decoder and the performance in practice.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "metric": "performance",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "K = 1 or 4 versus K = 64",
+      "result_summary": "K values of 1 or 4 were insufficient to affect the frozen decoder; K = 64 provided a reported trade-off between decoder input length and performance.",
+      "task": "ChatNT inference across biological sequence tasks"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "English language has been shown to play a wider role: a universal interface for representing various tasks and instructions and helping to guide the training of end-to-end multitask models",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Formulating tasks in English is also an easy way to provide additional metadata information to the model, such as the species, the chromosome or the cell type",
+          "section_id": "sec_0002"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "The authors use English as a universal task-and-instruction interface and to provide metadata such as species, chromosome, and cell type."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This single objective allows one to learn seamlessly across tasks without introducing conflicting gradients or scale issues coming from different objectives and loss functions",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "it allows us to extend the model with additional tasks in the future without requiring changes in the model architecture or training it from scratch.",
+          "section_id": "sec_0004"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "The unified text-to-text objective supports multitask learning and adding tasks without architectural changes or retraining from scratch."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the current implementation of the Perceiver resampler generates the same fixed set of embeddings for the encoder tokens independently of the question asked",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We hypothesized that this feature can create an information bottleneck in genomics when scaling the model for multiple downstream tasks",
+          "section_id": "sec_0005"
+        }
+      ],
+      "reason": "other",
+      "stance": "against_alternative",
+      "summary": "The authors identify a question-independent projection as an information bottleneck because it must retain information for every downstream task."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This conditioning allows the projection module to extract from the DNA embeddings the right amount of information to solve the task at hand",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "average MCC of 0.77 versus 0.71",
+          "section_id": "sec_0005"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "Question-conditioned projection extracts task-relevant information and improves the reported average MCC."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ChatNT is designed to be conversational to enable users to easily interact with it and to use it without requiring a programming background",
+          "section_id": "sec_0004"
+        }
+      ],
+      "reason": "other",
+      "stance": "for_own_choice",
+      "summary": "The English conversational interface is intended to make the system accessible to users without programming backgrounds."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ChatNT processes species and cell type information implicitly through natural language prompts rather than as structured inputs.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "limitation_of_own_choice",
+      "summary": "Species and cell type information is represented implicitly in natural-language prompts rather than as structured inputs."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The current version uses the Nucleotide Transformer v2 model as a DNA encoder, which has been trained on sequences up to 12 kb long.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "reason": "context_length_cost",
+      "stance": "limitation_of_own_choice",
+      "summary": "The sequence length ChatNT can process is limited by the context length of its DNA encoder."
+    }
+  ],
+  "synthetic_text_generators": []
+}

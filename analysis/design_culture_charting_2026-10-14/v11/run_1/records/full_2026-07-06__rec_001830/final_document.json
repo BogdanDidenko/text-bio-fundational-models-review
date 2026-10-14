@@ -1,0 +1,639 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Following DeepSeekOCR (Wei et al., 2025), E θ adopts the SAM-Conv-CLIP-L visual front-end",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We freeze the DeepSeek-OCR visual front-end (SAM-Conv-CLIP-L).",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "SAM-Conv-CLIP-L visual front-end",
+      "state": "frozen"
+    }
+  ],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To assess robustness, we randomly truncate each DNA document by removing up to 90% of its tail and transcribe the remaining single-page input into nucleotide sequences.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Across all prefix ratios and both corpora, OpticalDNA substantially outperforms DeepSeek-OCR, achieving near-perfect EM under short prefixes (e.g., 97.3/98.5 at 10%) and remaining strong at full-length transcription",
+          "section_id": "sec_0020"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "mixed",
+      "result_summary": "Tail truncation produced mixed effects across metrics: exact-match performance was highest for short retained prefixes, while character similarity declined as less input was retained.",
+      "test_type": "remove_biological_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Across both OpticalDNA variants, performance degrades consistently as the span increases: Text-EM and Both-Acc drop rapidly from span = 1 to longer spans, while Text-CER increases, indicating more frequent base-level prediction errors and stronger error accumulation for longer completions.",
+          "section_id": "sec_0070"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Increasing the masked nucleotide span caused clear degradation in exact recovery and joint completion accuracy.",
+      "test_type": "perturb_content_of_input"
+    }
+  ],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "E θ adopts the SAM-Conv-CLIP-L visual front-end, and additionally includes a learned projector Π θ and a multi-page fusion module F θ for documentlevel aggregation.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the projector Π θ is tuned either with LoRA or full-parameter updating depending on the setting",
+          "section_id": "sec_0013"
+        }
+      ],
+      "state": "trained",
+      "type": "other"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We instantiate F θ as a multi-head self-attention module with one attention layer and 20 heads",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the multi-page fusion module F θ is trained with full-parameter updating",
+          "section_id": "sec_0013"
+        }
+      ],
+      "state": "trained",
+      "type": "other"
+    }
+  ],
+  "coverage_notes": "The paper does not state whether the language-model vocabulary was extended, does not specify the internal architecture of the learned projector, and does not explicitly state the pretraining origin of SAM-Conv-CLIP-L beyond identifying it as the frozen visual front-end. No synthetic text generator is reported.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Since the target length is known, we compare predictions against different prefixes of the ground-truth (GT) sequence and report Exact Match (EM) and character similarity (CS) (Table 5).",
+          "section_id": "sec_0020"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Free-form DNA transcription scored with Exact Match and character similarity."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "including LCM (line count match), Text-EM (exact match of predicted masked strings), Det-Acc@IoU and Det-IoU(avg) (localization correctness), Both-Acc (joint success requiring both correct text and correct box), Strict (page-level strict success requiring all instances to be jointly correct), and ℓ ∞ Err. (coordinate error).",
+          "section_id": "sec_0070"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Structured sequence-plus-region outputs and masked completion scored with automatic text, IoU, joint-success, and coordinate-error metrics."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The output must be a single token selected from the predefined label set:",
+          "section_id": "sec_0047"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We report classification accuracy ( Acc. ).",
+          "section_id": "sec_0071"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Chromosome-level classification using a predefined label set and accuracy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "Table 3. Generalization performance on RiceSubBench from in-domain to far-OOD evaluation (Accuracy / AUROC).",
+          "section_id": "sec_0018"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "RiceSubBench splice-site classification evaluated with accuracy and AUROC."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OpticalDNA achieves the lowest RMSE on both traits",
+          "section_id": "sec_0019"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Rice whole-genome phenotype prediction evaluated with RMSE."
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We employ an autoregressive document decoder G ψ based on DeepSeek-3B (Mixture-of-Experts, 570M activated parameters) from DeepSeek-OCR for prompt-conditioned genomic reasoning.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The document decoder G ψ is fine-tuned with LoRA",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "DeepSeek-3B document decoder from DeepSeek-OCR",
+      "size": "3B; 570M activated parameters",
+      "state": "lora_or_adapter",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "T1 performs free-form DNA transcription",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "T4 outputs K masked-completion pairs (˜ s k , b k )",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "biological_sequence"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "T2 outputs a list of grounded pairs ( s i , b i )",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "T5 outputs a query q ∈ Σ ∗ with a list of matched boxes",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "structure"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "T6 outputs a class label in Y .",
+          "section_id": "sec_0011"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The assistant outputs exactly one label indicating the predicted chromosome identity.",
+          "section_id": "sec_0047"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "After pretraining, we reuse the pretrained encoder as a general-purpose representation extractor and attach a lightweight MLP head g ϕ for downstream prediction",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For efficiency, we extract per-page visual features, mean-pool across pages, and flatten token features to form a fixeddimensional embedding.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "output": "embedding_or_score"
+    }
+  ],
+  "proposed_models": [
+    "OpticalDNA"
+  ],
+  "record_id": "full_2026-07-06__rec_001830",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "1D Sequence"
+        },
+        {
+          "category": "image_rendering",
+          "label": "2D Image Document (336 × 336)"
+        }
+      ],
+      "better_arm": "2D Image Document (336 × 336)",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Both representations are tokenized and reduced to the same number of tokens, i.e., 10,000 tokens, and then processed by the same Transformer backbone under the same training and evaluation pipeline.",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The 2D image-document representation achieves 0.626 AUROC, compared with 0.558 AUROC for the 1D sequence representation. This corresponds to a 6.8% absolute improvement, or a 12.20% relative improvement.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "metric": "Average AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "10,000 tokens; 1D 0.558 AUROC; 2D 0.626 AUROC; 6.8% absolute and 12.20% relative improvement",
+      "result_summary": "Under a matched token budget and shared Transformer backbone, the 2D image-document representation performed better.",
+      "task": "eQTL prediction under matched token budget and shared Transformer backbone"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "1D CNN baselines (CNN1D-small/base/large/xl)"
+        },
+        {
+          "category": "image_rendering",
+          "label": "2D CNN backbones (MobileNetV3-S, TinyNet-D/E, ResNet-10t)"
+        }
+      ],
+      "better_arm": "2D CNN backbones (MobileNetV3-S, TinyNet-D/E, ResNet-10t)",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Table S2 shows that 2D CNN backbones consistently achieve a better accuracy-efficiency trade-off than 1D CNN baselines on eQTL prediction.",
+          "section_id": "sec_0031"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "On accuracy, lightweight 2D models such as TinyNet-E achieve the best average AUROC (0.786), exceeding all 1D CNN variants in our comparison (CNN1D-small/base/large/xl).",
+          "section_id": "sec_0031"
+        }
+      ],
+      "metric": "Average AUROC, epoch time, and throughput",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "TinyNet-E 0.786 AUROC and 66.9 s per epoch; 1D variants 386.6-636.8 s per epoch",
+      "result_summary": "The 2D CNN representations achieved higher AUROC and faster training than the compared 1D CNN representations.",
+      "task": "eQTL prediction with 1D versus 2D CNN representations"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "RNN, LinearAttn, SparseAttn"
+        },
+        {
+          "category": "image_rendering",
+          "label": "2D baselines including TinyNet-E and OpticalDNA"
+        }
+      ],
+      "better_arm": "2D baselines including TinyNet-E and OpticalDNA",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "However, all of them remain substantially below the 2D baselines, including TinyNet-E and OpticalDNA.",
+          "section_id": "sec_0032"
+        }
+      ],
+      "metric": "Average AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "RNN 0.6575; LinearAttn 0.6279; SparseAttn 0.6163 AUROC; TinyNet-E 0.786 AUROC",
+      "result_summary": "Stronger 1D sequence architectures remained below the 2D baselines.",
+      "task": "eQTL prediction with stronger 1D sequence models versus 2D models"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "DeepSeek-OCR"
+        },
+        {
+          "category": "image_rendering",
+          "label": "OpticalDNA"
+        }
+      ],
+      "better_arm": "OpticalDNA",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "OpticalDNA consistently improves performance across all nine GTEx tissues and achieves a +5.37% relative gain on the overall average AUROC, demonstrating that our DNA-specific document formulation and pretraining yield more transferable representations for long-range functional genomics prediction.",
+          "section_id": "sec_0064"
+        },
+        {
+          "kind": "table",
+          "quote": "| DeepSeek-OCR      | 0.815 | 0.922 | 0.750     | 0.814   | 0.810   | 0.819 | 0.873 | 0.841 | 0.763 | 0.823     |",
+          "section_id": "sec_0064"
+        },
+        {
+          "kind": "table",
+          "quote": "| OpticalDNA        | 0.819 | 0.927 | 0.876     | 0.931   | 0.832   | 0.877 | 0.900 | 0.852 | 0.788 | 0.867     |",
+          "section_id": "sec_0064"
+        }
+      ],
+      "metric": "Average AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "DeepSeek-OCR 0.823 average AUROC; OpticalDNA 0.867; +5.37% relative gain",
+      "result_summary": "The OpticalDNA DNA-specific visual formulation outperformed its DeepSeek-OCR backbone under the same evaluation protocol.",
+      "task": "DNALONGBENCH eQTL prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "100 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "50 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "20 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "10 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "5 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "4 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "2 retained visual tokens"
+        },
+        {
+          "category": "image_rendering",
+          "label": "1 retained visual token"
+        }
+      ],
+      "better_arm": "100 retained visual tokens",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Reducing the token budget from 100 to 50 or 20 retained tokens yields only mild performance changes, with average AUROC remaining 0.842-0.846 compared with 0.852 under the original 100-token setting.",
+          "section_id": "sec_0073"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Performance degrades more noticeably under severe bottlenecks of 10 tokens or fewer, and drops to 0.776 when the entire sequence is compressed into a single token.",
+          "section_id": "sec_0073"
+        }
+      ],
+      "metric": "Average AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "100 tokens 0.852; 50 or 20 tokens 0.842-0.846; 1 token 0.776",
+      "result_summary": "The original 100-token representation was best overall; moderate compression caused mild changes and severe compression caused clearer degradation.",
+      "task": "Token bottleneck analysis on nine eQTL tasks"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "512 resolution / 64 visual tokens per page"
+        },
+        {
+          "category": "image_rendering",
+          "label": "640 resolution / 100 visual tokens per page"
+        },
+        {
+          "category": "image_rendering",
+          "label": "1024 resolution / 256 visual tokens per page"
+        },
+        {
+          "category": "image_rendering",
+          "label": "1280 resolution / 400 visual tokens per page"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Table 7 shows that as the resolution increases from 512 to 1280, the number of visual tokens per page rises from 64 to 400 and the compression ratio increases from 19.0 to 21.2, while the average AUROC remains nearly unchanged (0.849-0.852).",
+          "section_id": "sec_0023"
+        }
+      ],
+      "metric": "Average AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "AUROC 0.849, 0.852, 0.851, and 0.849 for resolutions 512, 640, 1024, and 1280",
+      "result_summary": "Increasing resolution and visual-token count changed compression but left average AUROC nearly unchanged; no winner was reported.",
+      "task": "Visual compression across rendering resolutions"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "Continuous rendering"
+        },
+        {
+          "category": "image_rendering",
+          "label": "Fixed-window and fixed-block layouts"
+        }
+      ],
+      "better_arm": "Continuous rendering",
+      "comparison_kind": "ordering_or_values",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The results show that rigid partitioning is less favorable than continuous rendering, but does not make the representation unusable.",
+          "section_id": "sec_0079"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Fixed-window and fixed-block layouts achieve 0.758-0.777 AUROC, compared with 0.813 for the default continuous layout and up to 0.858 for the wide dense continuous layout.",
+          "section_id": "sec_0079"
+        }
+      ],
+      "metric": "AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "Fixed-window/fixed-block 0.758-0.777; default continuous 0.813; wide dense continuous 0.858",
+      "result_summary": "Continuous layouts preserving local sequence continuity outperformed rigid window and block arrangements.",
+      "task": "Effect of fragment partitioning and arrangement on Adipose Subcutaneous eQTL"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "Starting-position shifts"
+        },
+        {
+          "category": "image_rendering",
+          "label": "Resolution changes"
+        },
+        {
+          "category": "image_rendering",
+          "label": "General layout perturbations"
+        },
+        {
+          "category": "image_rendering",
+          "label": "Extreme dense-continuous versus fixed-window formatting"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Starting-position shifts yield cosine similarities between 0.904 and 0.985, with an average of 0.937. Resolution changes also preserve strong consistency, with similarities ranging from 0.776 to 0.984 and an average of 0.899. General layout perturbations achieve an average similarity of 0.879.",
+          "section_id": "sec_0078"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The main degradation occurs only under extreme layout changes, such as comparing dense continuous rendering with fixed-window rendering, where the similarity can drop to 0.564.",
+          "section_id": "sec_0078"
+        }
+      ],
+      "metric": "Pairwise cosine similarity of extracted representations",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "Starting-position average 0.937; resolution average 0.899; general layout average 0.879; extreme layout similarity as low as 0.564",
+      "result_summary": "Representations were highly consistent under common formatting changes, with larger differences under extreme layout changes.",
+      "task": "Representation consistency under formatting perturbations"
+    },
+    {
+      "arms": [
+        {
+          "category": "image_rendering",
+          "label": "640 × 640 original"
+        },
+        {
+          "category": "image_rendering",
+          "label": "320 × 320 downsampled"
+        },
+        {
+          "category": "image_rendering",
+          "label": "256 × 256 downsampled"
+        },
+        {
+          "category": "image_rendering",
+          "label": "128 × 128 downsampled"
+        },
+        {
+          "category": "image_rendering",
+          "label": "64 × 64 downsampled"
+        }
+      ],
+      "better_arm": "320 × 320 downsampled",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "performance remains strong at moderate resolutions, with 256 × 256 yielding 0.812 AUROC, nearly matching the original 640 × 640 result of 0.813, and 320 × 320 achieving 0.828 AUROC.",
+          "section_id": "sec_0077"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Clear degradation appears mainly under extreme downsampling, where AUROC drops to 0.799 at 128 × 128 and 0.768 at 64 × 64 .",
+          "section_id": "sec_0077"
+        }
+      ],
+      "metric": "AUROC",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "640 × 640 0.813; 320 × 320 0.828; 256 × 256 0.812; 128 × 128 0.799; 64 × 64 0.768",
+      "result_summary": "Moderate downsampling preserved performance and 320 × 320 was highest in this ablation; extreme downsampling degraded AUROC.",
+      "task": "Low-resolution downsampling on Adipose Subcutaneous eQTL"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "genomic function is sparse and discontinuous, embedded in long stretches of lowinformation background",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "sequential reading is structurally wasteful: most computation is spent scanning background rather than modeling sparse functional regions",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "against_alternative",
+      "summary": "The authors argue that exhaustive 1D sequential processing wastes computation on low-information genomic background and poorly matches sparse, discontinuous signals."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Concretely, base-level content is mapped into compact, reconstructible vision tokens (Fig. 1d), substantially reducing the effective token count compared with base or k -mer tokenization while preserving fine-grained information.",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "By converting a long sequence into a coordinate-indexed document, OpticalDNA enables region-level access patterns similar to document understanding and OCR",
+          "section_id": "sec_0035"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "The visual document representation provides compact reconstructible tokens and region-level access patterns for long sequences."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Importantly, this rendering is intentionally simple and does not introduce explicit biological priors. It does not encode genomic landmarks, strand-aware structure, chromatin contacts, regulatory annotations, or biologically grounded spatial layouts.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "limitation_of_own_choice",
+      "summary": "The authors state that the visual layout is a computational interface and does not encode biologically grounded spatial priors."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Rather, the rendering defines a lossless, bijective mapping between the original nucleotide sequence and its visual document representation.",
+          "section_id": "sec_0035"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each nucleotide remains recoverable through its corresponding position in the rendered document, and the original sequence order is preserved through the deterministic rasterization process.",
+          "section_id": "sec_0035"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The authors motivate the representation as lossless and order-preserving, retaining recoverable nucleotide-level information."
+    }
+  ],
+  "synthetic_text_generators": []
+}

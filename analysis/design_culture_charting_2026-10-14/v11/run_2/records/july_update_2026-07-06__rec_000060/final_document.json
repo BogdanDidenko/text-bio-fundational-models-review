@@ -1,0 +1,507 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The graph is encoded by a 2-layer R-GCN (type-aware message passing) with a RotatE triple-scoring decoder",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The encoder outputs a frozen entity table E ∈ R |V|× 256 .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "2-layer R-GCN with RotatE KG encoder",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "gene rows are warm-started from frozen ESM-2 650M",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "ESM-2 650M protein embeddings",
+      "state": "frozen"
+    }
+  ],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The '32B LoRA (no KG)' baseline (same backbone, same LoRA config, no virtual tokens) further confirms this: it achieves 0.268 cell-type fuzzy accuracy and 0.487 Tahoe accuracy, both substantially below the 0.385 / 0.606 of our full SFT model.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Removing the KG channel while retaining the Cell Sentence substantially reduces cell-type fuzzy accuracy and Tahoe accuracy.",
+      "test_type": "remove_biological_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The random-KG control trails the trained encoder by 6-15 points across tasks, isolating KG content not the extra parameters of the KGProjector.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Replacing trained KG representations with fixed random vectors causes a 6-15 point drop across tasks.",
+      "test_type": "random_or_noise_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "both the 'Random KG' control (fixed random vectors, same dimension) and the 'Random learnable tokens' control (200 jointly-trained embedding vectors, no KG content) perform similarly and far below the full model",
+          "section_id": "sec_0026"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Replacing KG content with jointly trained but content-free prefix vectors performs far below the full model.",
+      "test_type": "random_or_noise_input"
+    }
+  ],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A learnable KGProjector (256 → 5120 → 5120, SiLU) is the only trainable bridge between the frozen KG space and the 5120-dim LM hidden space",
+          "section_id": "sec_0004"
+        }
+      ],
+      "state": "trained",
+      "type": "mlp"
+    }
+  ],
+  "coverage_notes": "The paper states that the KG entity table is frozen during LM training and labels the R-GCN plus RotatE encoder as pre-trained, but does not explicitly state whether the main KG encoder was trained from scratch. Vocabulary extension for virtual tokens and [KG_SEP] is not explicitly specified. The example perturbation prompt describes five output classes, while the main D1-D2 task definition uses three classes.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model reads the top-200 ranked genes of a cell and generates its cell type as free text",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Metrics: exact-match accuracy, fuzzy accuracy (word-overlap ≥ 0.5 or substring match), and BERTScore F1.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Cell-type prediction: free-text generation scored by exact-match accuracy, fuzzy accuracy, and BERTScore F1."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Given a cell's gene expression profile, predict which tissue it came from (70 possible tissues, e.g., brain, blood, lung). Metric: exact accuracy.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Tissue prediction: closed-set label classification scored by exact accuracy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Given a cell's gene profile and tissue context (but without the disease label in the prompt), predict the disease state from 254 conditions-healthy cells are labelled 'normal.' Metrics: exact and fuzzy accuracy.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Disease prediction: closed-set label classification scored by exact and fuzzy accuracy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "D1 (pre-treatment): given the cell's baseline gene profile plus the drug's KG embedding, predict expression direction for each gene. D2 (post-perturbation): same task, but using the post-treatment gene profile.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Drug-response uses 3-class accuracy and macro-F1.",
+          "section_id": "sec_0032"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Drug-response prediction: per-gene expression-direction classification scored by 3-class accuracy and macro-F1."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model generates the masked gene identities from the surrounding ranked-gene context.",
+          "section_id": "sec_0022"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Performance is measured by positional accuracy, set precision/recall/F1, and perplexity.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Masked gene prediction: generated gene identities scored by positional accuracy and set precision/recall/F1."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Performance is measured by positional accuracy, set precision/recall/F1, and perplexity.",
+          "section_id": "sec_0022"
+        }
+      ],
+      "format": "likelihood_or_perplexity_scoring",
+      "task": "Masked gene prediction: perplexity scoring."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "'Ours (SFT)' uses the Stage-II checkpoint with constrained NLL-scoring (selecting the highest log-likelihood label from the training vocabulary).",
+          "section_id": "sec_0020"
+        }
+      ],
+      "format": "likelihood_or_perplexity_scoring",
+      "task": "Constrained cell-type evaluation: candidate-label selection by model log likelihood."
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Qwen2.5-32B-Instruct [Yang et al., 2024] checkpoint handles cell-type annotation and drug-response tasks through a unified text-in / text-out interface.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The upper layers (17-64) of the Qwen2.5-32B backbone are updated alongside the KGProjector with QLoRA",
+          "section_id": "sec_0012"
+        }
+      ],
+      "name": "Qwen2.5-32B-Instruct",
+      "size": "32B",
+      "state": "lora_or_adapter",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model reads the top-200 ranked genes of a cell and generates its cell type as free text",
+          "section_id": "sec_0015"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "predict which tissue it came from",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "predict the disease state from 254 conditions",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "predict expression direction for each gene",
+          "section_id": "sec_0018"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model generates the masked gene identities from the surrounding ranked-gene context",
+          "section_id": "sec_0022"
+        }
+      ],
+      "output": "biological_sequence"
+    }
+  ],
+  "proposed_models": [
+    "CellTosg2Sequence"
+  ],
+  "record_id": "july_update_2026-07-06__rec_000060",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "Ours (SFT w/ KG)"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "32B LoRA (no KG)"
+        }
+      ],
+      "better_arm": "Ours (SFT w/ KG)",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| 32B LoRA (no KG)      | 0.201 ± 0.011         | 0.831 ± 0.010 | 0.731 ± 0.012 | 0.523 / 0.608    |",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "table",
+          "quote": "| Ours (SFT w/ KG)      | 0.236 ± 0.012         | 0.892 ± 0.009 | 0.776 ± 0.012 | 0.606 / 0.703    |",
+          "section_id": "sec_0020"
+        }
+      ],
+      "metric": "cell-type exact accuracy and Tahoe accuracy/F1",
+      "modality": "multiple",
+      "numbers_stated": "Cell-type exact: 0.236 vs 0.201; Tahoe accuracy/F1: 0.606/0.703 vs 0.523/0.608",
+      "result_summary": "The KG-augmented representation performs better than the Cell Sentence-only representation.",
+      "task": "Cell-type annotation and drug-response prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "Ours (SFT w/ KG)"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "32B LoRA (no KG)"
+        }
+      ],
+      "better_arm": "Ours (SFT w/ KG)",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| 32B LoRA (no KG)      | 0.201 ± 0.011         | 0.831 ± 0.010 | 0.731 ± 0.012 | 0.523 / 0.608    |",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "table",
+          "quote": "| Ours (SFT w/ KG)      | 0.236 ± 0.012         | 0.892 ± 0.009 | 0.776 ± 0.012 | 0.606 / 0.703    |",
+          "section_id": "sec_0020"
+        }
+      ],
+      "metric": "tissue and disease exact accuracy",
+      "modality": "multiple",
+      "numbers_stated": "Tissue accuracy: 0.892 vs 0.831; disease accuracy: 0.776 vs 0.731",
+      "result_summary": "The KG-augmented representation performs better on tissue and disease prediction.",
+      "task": "Tissue and disease prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "soft_token_embedding",
+          "label": "Full KG: R-GCN + RotatE virtual tokens"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "ESM-2 only (frozen, no R-GCN training)"
+        }
+      ],
+      "better_arm": "Full KG: R-GCN + RotatE virtual tokens",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "'ESM-2 only (frozen)' uses frozen ESM-2 650M gene embeddings as prefix virtual tokens without R-GCN + RotatE KG training.",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "its 0.312 fuzzy accuracy (vs. 0.268 for no prefix) shows that protein-language-model initialisation alone provides a meaningful biological prior, but the remaining + 0.073 gap to the full model (0.385) demonstrates that R-GCN + RotatE KG training contributes beyond ESM-2 initialisation.",
+          "section_id": "sec_0026"
+        }
+      ],
+      "metric": "cell-type fuzzy accuracy",
+      "modality": "protein",
+      "numbers_stated": "Full model: 0.385; ESM-2 only: 0.312",
+      "result_summary": "The trained KG encoder outperforms frozen ESM-2 prefix embeddings.",
+      "task": "Cell-type annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "soft_token_embedding",
+          "label": "Full KG: R-GCN + RotatE virtual tokens"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "ESM-2 only (frozen, no R-GCN training)"
+        }
+      ],
+      "better_arm": "Full KG: R-GCN + RotatE virtual tokens",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| Full model (SFT)                                  |             0.385 | 0.385             |             0.606               |",
+          "section_id": "sec_0026"
+        },
+        {
+          "kind": "table",
+          "quote": "| ESM-2 only (frozen, no R-GCN training)            |             0.312 | ( - 0.073)        | 0.524 ( - 0.082)    |",
+          "section_id": "sec_0026"
+        }
+      ],
+      "metric": "Tahoe 3-class accuracy",
+      "modality": "protein",
+      "numbers_stated": "Full model: 0.606; ESM-2 only: 0.524",
+      "result_summary": "The full KG feature source outperforms frozen ESM-2-only embeddings on drug-response prediction.",
+      "task": "Drug-response prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "Ours (GRPO)"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "C2S-Scale-Gemma-2-27B"
+        }
+      ],
+      "better_arm": "C2S-Scale-Gemma-2-27B",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "CellPLM [Wen et al., 2024] and Cell2Sentence [Levine et al., 2024] introduce text-format cell representations yet still omit structured biological priors.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The substantially larger gap in exact and fuzzy accuracy between our model (24.07% / 68.15%) and C2S-Scale-27B (85.56% / 92.59%)",
+          "section_id": "sec_0025"
+        }
+      ],
+      "metric": "exact accuracy, fuzzy accuracy, and BERTScore F1",
+      "modality": "transcriptomics",
+      "numbers_stated": "Exact: 24.07% vs 85.56%; fuzzy: 68.15% vs 92.59%; BERTScore: 85.00% vs 96.13%",
+      "result_summary": "The published Cell2Sentence text-based system scores higher on the immune benchmark, although the systems also differ in backbone, training data, and training procedure.",
+      "task": "Immune cell-type annotation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A lightweight heterogeneous graph encoder maps a curated 62,507-node biomedical KG (genes, proteins, GO terms, drugs, pathways; 11 relation types) into compact virtual tokens prepended to each cell sentence.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "Virtual KG tokens provide structured biological context with compact sequence overhead."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The LM never reads the graph as text; instead, for each gene g ( i ) in a cell sentence we read its row e g ( i ) ∈ R 256 from E and lift it into the 5120dim LM hidden space with a small KGProjector MLP",
+          "section_id": "sec_0010"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "The graph is connected to the language model through projected virtual tokens while retaining a text interface."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "without consuming the context budget that a textual triple dump would.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "reason": "context_length_cost",
+      "stance": "against_alternative",
+      "summary": "Prefix virtual tokens avoid the context-budget cost of representing graph triples as text."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each cell is encoded as a Cell Sentence [Levine et al., 2024]: a ranked list of HGNC gene symbols that any LM tokeniser can read directly.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "no_architecture_change",
+      "stance": "for_own_choice",
+      "summary": "Ranked gene symbols can be read directly by a language-model tokenizer."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Rank correlates almost linearly with log-expression ( R 2 ≈ 0 . 90 ), so a lightweight inversion MLP can recover expression magnitudes from a predicted rank list when needed.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The authors motivate ranked gene symbols through their strong relationship with log-expression and recoverability of expression magnitudes."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The two-layer design (rather than a single linear 256 → 5120 projection) is motivated by the need to interpolate from the compact, geometrically structured KG manifold into the much higher-dimensional LM hidden space",
+          "section_id": "sec_0010"
+        }
+      ],
+      "reason": "other",
+      "stance": "for_own_choice",
+      "summary": "The two-layer projector is intended to interpolate from the compact structured KG manifold into the higher-dimensional language-model space."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "First, the KG is a static snapshot; novel gene-disease associations require re-running Stage 0, and future work will explore dynamic KG retrieval.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "reason": "other",
+      "stance": "limitation_of_own_choice",
+      "summary": "The static KG requires rerunning KG training to incorporate novel gene-disease associations."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "clinical samples (tumor biopsies, organoids, spatial transcriptomics) with lower gene-detection depth fall below our 500-gene QC threshold and require further adaptation before clinical deployment.",
+          "section_id": "sec_0028"
+        }
+      ],
+      "reason": "other",
+      "stance": "limitation_of_own_choice",
+      "summary": "The input and quality-control requirements may exclude lower-depth clinical samples."
+    }
+  ],
+  "synthetic_text_generators": []
+}

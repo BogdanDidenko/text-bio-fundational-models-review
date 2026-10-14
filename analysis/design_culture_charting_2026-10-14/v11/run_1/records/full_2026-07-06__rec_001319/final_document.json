@@ -1,0 +1,406 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A Q-Former [22] that extracts and encodes features from single-cell gene expression data",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where ϕ represents the learnable parameters of the cell encoder.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "name": "Q-Former",
+      "state": "unspecified"
+    }
+  ],
+  "biology_dependence_tests": [],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "The model processes both text and single-cell data via three primary components: a Q-Former to capture single-cell gene expression knowledge, a pre-trained LM as the backbone, and a cell reconstruction module for generating single-cell gene expression profiles.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "These features, along with the processed textual data, are fed into the pre-trained LM's transformer blocks.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where ϕ represents the learnable parameters of the cell encoder.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "state": "trained",
+      "type": "qformer_or_resampler"
+    }
+  ],
+  "coverage_notes": "The paper reports no direct experiment removing, corrupting, shuffling, or replacing the biological input. It states end-to-end training and learnable Q-Former parameters, but does not explicitly specify per-module initialization or freezing details.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "InstructCell -chat generates free-form responses",
+          "section_id": "sec_0024"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For the CTA and DSP tasks, we use standard evaluation metrics, including weighted F1, macro F1, and accuracy.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Cell type annotation and drug sensitivity prediction: free-form responses are extracted as labels and scored with weighted F1, macro F1, and accuracy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "On the left side (classification tasks), the shape of each scatter point indicates whether options are provided or not",
+          "section_id": "sec_0008"
+        }
+      ],
+      "format": "candidate_label_selection",
+      "task": "Cell type annotation and drug sensitivity prediction with provided candidate options."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For the CPCG task, we evaluate the model's performance using Maximum Mean Discrepancy (MMD), sKNN, and pKNN.",
+          "section_id": "sec_0024"
+        }
+      ],
+      "format": "generated_biology_computational_metrics",
+      "task": "Conditional pseudo-cell generation evaluated with MMD, sKNN, and pKNN."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Response quality is assessed based on fluency, grammar, and inclusion of predictive results, with Claude 3.5 Sonnet [4] serving as an unbiased evaluator.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "format": "open_text_llm_judge",
+      "task": "Natural-language response quality evaluated by Claude 3.5 Sonnet for fluency, grammar, and inclusion of predictive results."
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "InstructCell employs the T5-base [70] model as the backbone.",
+          "section_id": "sec_0025"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "InstructCell can be trained end-to-end and the corresponding optimization objective is defined as:",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Note that three special tokens, &lt; CELL &gt; , &lt; /CELL &gt; , and &lt; SIGNAL &gt; , are added to the vocabulary.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "name": "T5-base",
+      "size": "base",
+      "state": "full_finetune",
+      "vocabulary_extended": "yes"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "InstructCell generates the textual response that conveys its prediction regarding the cell type",
+          "section_id": "sec_0007"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "DSP involves providing the model with drug information and single-cell gene expression data, allowing it to predict whether a cell is resistant or sensitive to a given drug.",
+          "section_id": "sec_0008"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "A single-cell gene expression profile is generated by sampling a latent vector from an isotropic Gaussian distribution conditioned on h &lt;CPCG&gt; .",
+          "section_id": "sec_0005"
+        }
+      ],
+      "output": "expression_or_cell_profile"
+    }
+  ],
+  "proposed_models": [
+    "InstructCell"
+  ],
+  "record_id": "full_2026-07-06__rec_001319",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Q-Former"
+        },
+        {
+          "category": "other",
+          "label": "standard MLP"
+        }
+      ],
+      "better_arm": "Q-Former",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To determine the necessity of the Q-Former, we replace it with a standard Multi-Layer Perceptron (MLP) and compare the results.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "using a conventional MLP to encode single-cell data consistently yields lower performance across multiple metrics.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "metric": "Accuracy, macro F1, and weighted F1 for CTA and DSP",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "The Q-Former outperforms the standard MLP across multiple classification metrics.",
+      "task": "Cell type annotation and drug sensitivity prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "1 query"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "2 queries"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "4 queries"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "8 queries"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "16 queries"
+        }
+      ],
+      "better_arm": "8 queries",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we explore how varying the number of queries (1, 2, 4, 8, and 16) affects performance.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Fig. 7(c) shows that using 8 queries yields the best results",
+          "section_id": "sec_0012"
+        }
+      ],
+      "metric": "Classification performance for CTA and DSP",
+      "modality": "transcriptomics",
+      "numbers_stated": "1, 2, 4, 8, and 16 queries; 8 queries yielded the best results.",
+      "result_summary": "Eight query embeddings produce the best reported results; increasing the count beyond eight reduces performance.",
+      "task": "Cell type annotation and drug sensitivity prediction"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "InstructCell"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "Cell2Sentence"
+        }
+      ],
+      "better_arm": "InstructCell",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The MMD metric, which measures the overall similarity between generated and real cells, shows that both versions of InstructCell achieve significantly lower MMD values compared to baseline models.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the gene expression profiles generated by Cell2Sentence [16] are reconstructed in expression space through normalization and log1p-transformation, losing their original discrete characteristics.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In contrast, InstructCell preserves the discrete nature of gene expression profiles by treating them as a distinct modality, maintaining precise numerical information and capturing low-expression genes.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "metric": "MMD, ΔsKNN, and pKNN",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "InstructCell is reported to outperform baseline methods on MMD and to preserve discrete numerical expression information that Cell2Sentence loses through text-derived reconstruction.",
+      "task": "Conditional pseudo-cell generation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "focusing exclusively on top-expressed genes overlooks important information from lower-expressed ones",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors criticize ranked gene-name representations for omitting lower-expressed genes."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "incorporating all genes inflates context length and computational demands.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "context_length_cost",
+      "stance": "against_alternative",
+      "summary": "Including all genes as text is described as costly in context length and computation."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "converting quantitative gene expression data into text risks losing essential numerical precision.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors argue that textual conversion can lose numerical precision."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In contrast, InstructCell preserves the discrete nature of gene expression profiles by treating them as a distinct modality, maintaining precise numerical information and capturing low-expression genes.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The distinct biological modality preserves discrete counts, numerical information, and low-expression genes."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This approach makes InstructCell more scalable and flexible, offering distinct advantages in handling complex datasets and adapting to diverse experimental scenarios.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "The authors associate their biological-data representation with scalability and flexibility."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This finding suggests that the Q-Former's specialized architecture is essential for capturing and processing the complex patterns inherent in single-cell gene expression, highlighting its critical role in our system.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "reason": "other",
+      "stance": "for_own_choice",
+      "summary": "The Q-Former is justified as suited to complex single-cell expression patterns."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "However, an excessively large number of queries may introduce redundancy, making it harder for the model to distinguish relevant signals from noise and ultimately degrading performance.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "reason": "other",
+      "stance": "limitation_of_own_choice",
+      "summary": "The authors identify redundancy and noise from excessive query counts as a limitation of the query-based representation."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": true,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we use GPT-4o [20] to generate various personality traits and each task's motivations.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Experts then evaluate each motivation to ensure its validity.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Fig. 8(c) demonstrates an example of the prompts used to synthesize instruction templates for CPCG .",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each generated template is filtered out if it exceeds 70 words or omits any essential placeholder.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We use GPT-4o to generate corresponding response templates for the instruction templates that pass the filter.",
+          "section_id": "sec_0018"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The hyperparameter of decoding algorithm, top p , is set to 0.95.",
+          "section_id": "sec_0025"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Lastly, each task's instruction-response templates are split into training, validation, and test sets in an 8:1:1 ratio.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "name": "GPT-4o",
+      "prompts_disclosed": "partial_or_examples",
+      "text_kind": "personality traits, motivations, instruction templates, response templates, and rewritten templates",
+      "used_for": "both",
+      "verification": "both",
+      "version_stated": true
+    }
+  ]
+}

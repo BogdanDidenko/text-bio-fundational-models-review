@@ -1,0 +1,461 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "GenePT embeddings encode semantic representations of gene function by applying large language model text embeddings to NCBI gene summaries and related annotations.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We used the GenePT embedding release 1 generated using the text-embedding-3-large model, specifically GenePT gene protein embedding model 3 text.pickle .",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "- GenePT [19]: z GenePT ∈ R 3072 , multi-modal gene representation from LLM",
+          "section_id": "sec_0096"
+        }
+      ],
+      "name": "GenePT",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "ESM-2 (protein language model). We incorporated protein sequence embeddings from the ESM-2 protein language model [38] for protein-coding genes, which captures structural and biochemical properties of proteins directly from amino acid sequences.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "- ESM-2 [38]: z ESM ∈ R 5120 , protein language model representation",
+          "section_id": "sec_0096"
+        }
+      ],
+      "name": "ESM-2",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "STRING (interaction network). Protein interaction priors were obtained from embeddings derived from the STRING protein-protein interaction (PPI) network [41].",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "- STRING [40, 41]: z STRING ∈ R 512 , protein-protein interaction network embedding",
+          "section_id": "sec_0096"
+        }
+      ],
+      "name": "STRING network embeddings",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "DepMap (gene dependency). Functional genomics priors were derived from the DepMap CRISPR gene dependency dataset [42], which systematically measures the fitness impact of gene knockouts across hundreds of human cancer cell lines.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "- DepMap [42]: z DepMap ∈ R 1150 , genetic dependency profiles across cancer cell lines",
+          "section_id": "sec_0096"
+        }
+      ],
+      "name": "DepMap",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "JUMP Cell Painting (morphological phenotype). We incorporated morphological embeddings derived from the JUMP Cell Painting dataset [43], which summarizes image-derived cellular morphology features measured in large-scale CRISPR perturbation experiments.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "- JUMP-Cell Painting [43]: z CP ∈ R 259 , PCA of morphological phenotype features from U2OS cells",
+          "section_id": "sec_0096"
+        }
+      ],
+      "name": "JUMP Cell Painting",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We incorporated gene embeddings from the scGPT human model [8] through encoder weight initialization in X-Cell, which encode transcriptomic relationships learned from large single-cell expression atlases.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Because the nn.Embedding layer weights are updated during model training, this prior remains soft and adaptive rather than fixed like the other knowledge sources.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "scGPT gene embeddings",
+      "state": "finetuned"
+    }
+  ],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We then quantified task-specific contributions using a knowledge source randomization analysis, in which pre-trained embeddings from each of the five prior knowledge sources were independently randomized to report the resulting percentage drop in performance.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "DepMap and STRING led to the largest performance degradations, particularly in specificity and DEG prediction accuracy",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This procedure preserves the global distribution (mean, variance, and data type) of the embedding values while completely destroying the gene-specific semantic mapping and the structural relationships within the latent space.",
+          "section_id": "sec_0021"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Randomizing prior-knowledge embeddings produced performance degradations; DepMap and STRING produced the largest reported drops.",
+      "test_type": "mismatched_or_shuffled_input"
+    }
+  ],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "At designated layers (every third layer plus the final layer; 4 of 12 total in X-Cell; 11 of 34 total in X-Cell-Ultra), cross-attention blocks [74] condition the representation on external biological knowledge",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The main architecture consists of stacked self-attention blocks that encode control cell sets, with interleaved crossattention to prior knowledge embeddings.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "state": "trained",
+      "type": "cross_attention_layers"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Because the prior knowledge embeddings have different dimensionalities, each embedding is projected to dimension d through a two-layer MLP with LeakyReLU activation and LayerNorm (Section A.1.2).",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The prior knowledge autoencoders are optimized with a reconstruction loss (Section 4.1.3).",
+          "section_id": "sec_0014"
+        }
+      ],
+      "state": "trained",
+      "type": "mlp"
+    }
+  ],
+  "coverage_notes": "The paper reports no within-backbone controlled comparison of text-written biological inputs versus biological embeddings. X-Cell is initialized from scGPT and updated during training, whereas X-Cell-Ultra is trained from scratch without scGPT pre-trained weights. The paper does not describe a synthetic text generator used for training or evaluation.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Performance is evaluated using cell-eval metrics including Pearson ∆, Overlap@N, DE Direction Match, DE Spearman LFC, Centroid Accuracy, and MAE (Section 4.1.8).",
+          "section_id": "sec_0006"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Perturbation response prediction scored with automatic continuous metrics."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We used additional metrics from the cell-eval package such as auROC and Pearson ∆ [27].",
+          "section_id": "sec_0020"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Differentially expressed gene identification and perturbation-effect magnitude scored with auROC and Pearson ∆."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Significance was determined by comparing the distribution of Inactivation Indices for these candidate genes against all other perturbations using a one-sided Mann-Whitney U test.",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Compared to a linear baseline, XCell predicted a significantly more pronounced and accurate shift toward the resting state for members of the CD3 complex (Mann-Whitney U, p -value &lt; 0.01; Figure 4C).",
+          "section_id": "sec_0007"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Zero-shot T-cell inactivation evaluated with continuous Inactivation Index scores and statistical group comparison."
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Initialized from scGPT encoder weights, X-Cell was continually pre-trained on the X-Atlas/Pisces perturbation corpus",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "X-Cell initializes gene embeddings from a pre-trained scGPT model [8].",
+          "section_id": "sec_0086"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "where V is the gene vocabulary containing |V| ≈ 19 , 400 protein-coding genes plus special tokens ( &lt;cls&gt; , &lt;mask&gt; ) and perturbation gene aliases.",
+          "section_id": "sec_0047"
+        }
+      ],
+      "name": "scGPT human model",
+      "size": null,
+      "state": "full_finetune",
+      "vocabulary_extended": "yes"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We used the GenePT embedding release 1 generated using the text-embedding-3-large model, specifically GenePT gene protein embedding model 3 text.pickle .",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "text-embedding-3-large",
+      "size": null,
+      "state": "frozen",
+      "vocabulary_extended": "no"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "X-Cell is a set-level diffusion transformer that predicts perturbed gene expression profiles from control cell populations.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "output": "expression_or_cell_profile"
+    }
+  ],
+  "proposed_models": [
+    "X-Cell",
+    "X-Cell-Ultra"
+  ],
+  "record_id": "full_2026-07-06__rec_003517",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "X-Cell: expression values plus six biological-prior embeddings delivered through cross-attention"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "Cell2Sentence-Scale-Gemma-2-2B: natural-language cell sentences"
+        }
+      ],
+      "better_arm": "X-Cell: expression values plus six biological-prior embeddings delivered through cross-attention",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "These embeddings are derived from ESM-2 protein language model [38], STRING interaction networks [41], GenePT gene representations [19], DepMap genetic dependency profiles [42], JUMP-Cell Painting morphological features [43], and the gene identity embedding itself (i.e., initialized from scGPT and updated during training in X-Cell).",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Cell2Sentence converts single-cell gene expression profiles into natural language 'cell sentences', where gene symbols are ordered by descending expression level and processed by autoregressive language models to predict perturbation responses [22].",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "table",
+          "quote": "| Metric               |   C2S-2B |  STATE |   scGPT |   X-Cell |",
+          "section_id": "sec_0110"
+        },
+        {
+          "kind": "table",
+          "quote": "| Pearson ∆ ↑          |  -0.0327 |  0.1042 |  0.0160 |   0.5104 |",
+          "section_id": "sec_0110"
+        },
+        {
+          "kind": "table",
+          "quote": "| Pearson ∆ ↑          |  -0.0061 |  0.1014 |  0.0491 |   0.4756 |",
+          "section_id": "sec_0110"
+        },
+        {
+          "kind": "table",
+          "quote": "| Pearson ∆ ↑          |   0.0538 |  0.4563 |  0.1884 |   0.5137 |",
+          "section_id": "sec_0110"
+        },
+        {
+          "kind": "table",
+          "quote": "| Pearson ∆ ↑          |   0.3625 |  0.5360 |  0.4459 |   0.5858 |",
+          "section_id": "sec_0110"
+        }
+      ],
+      "metric": "Pearson ∆ and other cell-eval metrics",
+      "modality": "transcriptomics",
+      "numbers_stated": "Pearson ∆ for X-Cell versus C2S-2B: iPSC-200 0.5104 vs -0.0327; HepG2-200 0.4756 vs -0.0061; Replogle-Nadig 0.5137 vs 0.0538; Parse-1M 0.5858 vs 0.3625.",
+      "result_summary": "X-Cell had higher Pearson ∆ than the text-based C2S-2B baseline across all four reported benchmarks.",
+      "task": "Perturbation response prediction across iPSC-200, HepG2-200, Replogle-Nadig, and Parse-1M."
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "X-Cell: expression values plus external prior embeddings through cross-attention"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "STATE: SE-derived embedding representations"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "scGPT: gene-token/set-based input"
+        }
+      ],
+      "better_arm": "X-Cell: expression values plus external prior embeddings through cross-attention",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We benchmarked the performance of X-Cell against several state-of-the-art perturbation prediction models (Cell2Sentence (C2S) [22], STATE [27], and scGPT [8])",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For model training, we used the SE model to generate embedding representations and the ST model to predict perturbation effects from embeddings extracted from SE.",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The model was adapted to use the MMD loss and set-based input construction",
+          "section_id": "sec_0016"
+        },
+        {
+          "kind": "table",
+          "quote": "| Centroid Accuracy ↑  |   0.5045 |  0.5062 |  0.5352 |   0.5525 |",
+          "section_id": "sec_0110"
+        },
+        {
+          "kind": "table",
+          "quote": "| Centroid Accuracy ↑  |   0.5023 |  0.5767 |  0.6786 |   0.7876 |",
+          "section_id": "sec_0110"
+        }
+      ],
+      "metric": "Pearson ∆, DE metrics, MAE, and Centroid Accuracy",
+      "modality": "transcriptomics",
+      "numbers_stated": "For iPSC-200, Centroid Accuracy was STATE 0.5062, scGPT 0.5352, X-Cell 0.5525; for Replogle-Nadig, STATE 0.5767, scGPT 0.6786, X-Cell 0.7876.",
+      "result_summary": "X-Cell achieved higher reported Centroid Accuracy than STATE and scGPT on the cited iPSC-200 and Replogle-Nadig benchmarks.",
+      "task": "Perturbation response prediction on the reported cell-eval benchmarks."
+    },
+    {
+      "arms": [
+        {
+          "category": "other",
+          "label": "25% of predicted expression values revealed during iterative refinement"
+        },
+        {
+          "category": "other",
+          "label": "50% of predicted expression values revealed during iterative refinement"
+        },
+        {
+          "category": "other",
+          "label": "75% of predicted expression values revealed during iterative refinement"
+        },
+        {
+          "category": "other",
+          "label": "100% of predicted expression values revealed during iterative refinement"
+        }
+      ],
+      "better_arm": "100% of predicted expression values revealed during iterative refinement",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Diffusion LM pre-training enables iterative refinement of predictions at inference time by remasking a proportion of predicted gene expression values and reconditioning on the control transcriptome at each generation step.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "In our implementation, gene positions are assigned random ranks r ∼ Uniform[0 , 1) G ′ . At step t , the model predicts the full profile from the current (partially updated) input; genes with r g ≤ α t (for α t ∈ { 0 . 25 , 0 . 5 , 0 . 75 , 1 . 0 } ) that were not already revealed are accepted (clamped to ≥ 0) and scattered back into the input for the next step.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "metric": "Pearson ∆ and MAE across diffusion steps",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "Pearson correlation increased and MAE decreased across successive diffusion steps as more predicted expression values were revealed.",
+      "task": "Iterative perturbation response prediction on iPSC-200."
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To incorporate prior biological knowledge, we integrated embeddings capturing complementary representations of gene function across multiple biological levels, including language, structural, and functional information about the perturbed gene.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "The authors use multiple biological embeddings to represent gene function across language, structural, and functional levels."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Through cross-attention (Section 4.1.3), these priors dynamically condition perturbation predictions on a unified representation of gene function across biological modalities:",
+          "section_id": "sec_0013"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "Cross-attention combines the biological priors into a unified multimodal representation for perturbation prediction."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Unlike autoregressive single-cell foundation models [8, 22], X-Cell operates on sets of cells and is trained explicitly on interventional data via distribution-matching objectives.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors distinguish X-Cell from autoregressive models by using set-level inputs and distribution-matching objectives for interventional data."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The energy distance captures distributional properties (variance, multi-modality) beyond what MSE provides.",
+          "section_id": "sec_0059"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The distribution-level objective is motivated by preserving variance and multimodality beyond pointwise MSE."
+    }
+  ],
+  "synthetic_text_generators": []
+}

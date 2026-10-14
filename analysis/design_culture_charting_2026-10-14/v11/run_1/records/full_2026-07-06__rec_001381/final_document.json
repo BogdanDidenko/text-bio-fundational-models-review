@@ -1,0 +1,373 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we employ scGPT [9], a state-of-the-art single-cell language model pre-trained on large-scale scRNA-seq data.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During this stage, parameters of both the cell encoder and Q-Former are updated.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "scGPT",
+      "state": "finetuned"
+    }
+  ],
+  "biology_dependence_tests": [],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The cell-to-text projector is implemented with a Query Transformer (Q-Former) [33] with 32 learnable queries, which maps high-dimensional cell embeddings from the scLLM into the token embedding space of the Text LLM.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "During this stage, parameters of both the cell encoder and Q-Former are updated.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "state": "trained",
+      "type": "qformer_or_resampler"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The text-to-cell projector is realized using a stack of cross-attention layers [5] that project LLaMA-2 output embeddings into the hidden space of scGPT.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "update the parameters of the text LLM, scLLM, and the text-to-cell projector",
+          "section_id": "sec_0010"
+        }
+      ],
+      "state": "trained",
+      "type": "cross_attention_layers"
+    }
+  ],
+  "coverage_notes": "The paper does not explicitly state whether the LLaMA-2 vocabulary is extended. The text-to-cell pathway is described as a stack of cross-attention layers in Section 3.3.1, while Section 3.3.2 also describes an MLP producing an intermediate embedding. No explicit removal, shuffling, random-input, or no-biological-input dependence test is reported.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Accuracy and macro F1 score (F1) are used as evaluation metrics.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Top-N accuracies (Acc @N) are used as the metric.",
+          "section_id": "sec_0018"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Cell type annotation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use standard biological conservation (NMI cell , ARI cell , and ASW cell ) and batch correction (ASW batch and Graph Conn ) metrics",
+          "section_id": "sec_0015"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Cell clustering from learned cell representations"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use Maximum Mean Discrepancy (MMD) and Earth Mover's Distance (EMD) to measure semantic similarity based on text embeddings [61], alongside BLEU [62], ROUGE [63], and METEOR [64] to measure rule-based text similarity.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Cell description generation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The classification accuracies under different k values are reported to reflect the quality of the generated cells.",
+          "section_id": "sec_0034"
+        }
+      ],
+      "format": "generated_biology_computational_metrics",
+      "task": "Text-conditioned pseudo-cell generation"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For the text LLM, we utilize LLaMA-2 7B [47]",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Unless otherwise indicated, we apply LoRA [51] adapters for parameter-efficient fine-tuning of text LLM",
+          "section_id": "sec_0012"
+        }
+      ],
+      "name": "LLaMA-2",
+      "size": "7B",
+      "state": "lora_or_adapter",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "select the class that minimizes the combined loss λ L InfoNCE +(1 -λ ) L CE as prediction.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we obtain their representations as c ( i ) = scGPT ( x ( i ) ) , which are then utilized for clustering.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "embedding_or_score"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During inference, we autoregressively generate descriptions conditioned on the cell embedding c until the end-of-sentence token.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The scLLM then predicts a pseudo-cell expression vector x ′ = scGPT ( c ′ ) ∈ R M .",
+          "section_id": "sec_0010"
+        }
+      ],
+      "output": "expression_or_cell_profile"
+    }
+  ],
+  "proposed_models": [
+    "scMMGPT"
+  ],
+  "record_id": "full_2026-07-06__rec_001381",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "other",
+          "label": "original expression values"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "cell sentence"
+        }
+      ],
+      "better_arm": "original expression values",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, we train two separate MLPs with identical hyperparameters for cell type annotation on the PBMC-10K [56] dataset.",
+          "section_id": "sec_0037"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the cell sentence representation leads to a significant increase in error rate",
+          "section_id": "sec_0037"
+        },
+        {
+          "kind": "vlm_description",
+          "quote": "Blue bars are higher in both groups, around 99% for All Cells and 96% for Test Cells, while orange bars are lower, around 93–94%.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "metric": "cell type annotation accuracy and error rate",
+      "modality": "transcriptomics",
+      "numbers_stated": "Approximate figure values: expression values ~99% vs cell sentence ~93–94% for All Cells, and ~96% vs ~93–94% for Test Cells; error-rate annotations are 0.76% for expression values and 6.42% for cell sentence.",
+      "result_summary": "Original expression values perform better than cell sentences.",
+      "task": "Cell type annotation on PBMC-10K"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Q-former projector"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "MLP projector"
+        }
+      ],
+      "better_arm": "Q-former projector",
+      "comparison_kind": "interface_mechanism",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We try an MLP variant of scMMGPT where the Q-former projector is replaced with simple MLP layers while keeping other components unchanged.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the original Q-former design outperforms the MLP variant across all metrics",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "table",
+          "quote": "| use MLP instead of Qformer          | 66.60                               | 64.51                               | 96.73                               | 74.41                               | 86.23                               | 83.38                               | 94.72                               | 91.92                               |",
+          "section_id": "sec_0017"
+        }
+      ],
+      "metric": "cell type annotation accuracy and F1",
+      "modality": "transcriptomics",
+      "numbers_stated": "Q-former scMMGPT: Myeloid 68.96/67.57, hPancreas 98.22/81.06, Multiple Sclerosis 87.38/84.49, PBMC-3K 94.83/93.51; MLP variant: 66.60/64.51, 96.73/74.41, 86.23/83.38, 94.72/91.92 (accuracy/F1).",
+      "result_summary": "The Q-former projector outperforms the MLP replacement across reported datasets and metrics.",
+      "task": "Cell type annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "verbalised_text",
+          "label": "cell metadata and free-text descriptions"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "cell metadata only"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "free-text only"
+        }
+      ],
+      "better_arm": "cell metadata and free-text descriptions",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We evaluate three variations: (1) using both cell metadata and free-text descriptions as the text source, (2) using metadata only, and (3) using free-text only.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "combining metadata and free-text leads to the highest accuracy and F1-score.",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "table",
+          "quote": "| only cell metadata                  | 67.97                               | 67.54                               | 97.79                               | 80.76                               | 87.51                               | 82.15                               | 94.18                               | 91.39                               |",
+          "section_id": "sec_0017"
+        },
+        {
+          "kind": "table",
+          "quote": "| only free text                      | 67.94                               | 66.69                               | 96.56                               | 74.41                               | 83.03                               | 78.23                               | 94.83                               | 93.34                               |",
+          "section_id": "sec_0017"
+        }
+      ],
+      "metric": "cell type annotation accuracy and F1",
+      "modality": "multiple",
+      "numbers_stated": "Metadata-only accuracy/F1: 67.97/67.54, 97.79/80.76, 87.51/82.15, 94.18/91.39; free-text-only: 67.94/66.69, 96.56/74.41, 83.03/78.23, 94.83/93.34 across Myeloid, hPancreas, Multiple Sclerosis, and PBMC-3K. The combined condition is the scMMGPT row: 68.96/67.57, 98.22/81.06, 87.38/84.49, 94.83/93.51.",
+      "result_summary": "Combining metadata and free text performs best overall.",
+      "task": "Cell type annotation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "scMMGPT preserves critical quantitative gene expression information in the tokenization processes.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Its architecture is tailored to jointly model gene symbols and their quantitative expression levels, which avoids the loss of information that occurs with ranked gene lists.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The model uses quantitative gene expression values to preserve information that ranked gene lists lose."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Other methods represent cells using only the top 30-100 expressed genes [17, 18], or discard critical quantitative expression information and low-abundance genes [8, 19, 12]. They result in substantial information loss and reduced annotation accuracy",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the cell sentence representation leads to a significant increase in error rate",
+          "section_id": "sec_0037"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors argue that cell sentences and reduced/ranked gene representations lose quantitative and low-abundance gene information and reduce annotation accuracy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This highlights that structured and unstructured textual information provides complementary benefits.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "Using metadata together with free text is motivated by their complementary benefits."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "highlighting its effectiveness in modeling fine-grained relationships between modalities.",
+          "section_id": "sec_0017"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "The Q-former is favored because it models fine-grained cross-modal relationships."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "scMMGPT's exclusive focus on transcriptomic data, without incorporating other single-cell sequencing modalities such as scATACseq or CITE-seq",
+          "section_id": "sec_0021"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Since scMMGPT operates solely on scRNA-seq data, it cannot leverage spatial relationships",
+          "section_id": "sec_0021"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "limitation_of_own_choice",
+      "summary": "The transcriptomics-only representation excludes chromatin, protein, and spatial information."
+    }
+  ],
+  "synthetic_text_generators": []
+}

@@ -1,0 +1,253 @@
+{
+  "biological_encoders": [],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model no longer has access to other cells in the batch during inference.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Cell-level reasoning models (e.g., Cell-o1 ) achieve higher cell-level accuracy (50.2%), but still suffer a dramatic drop in batch-level accuracy (1.1%) compared to their original joint reasoning setup.",
+          "section_id": "sec_0040"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Removing the other cells and batch-level context from Cell-o1 caused cell-level accuracy to fall to 50.2% and batch-level accuracy to 1.1%, compared with its joint batch-level setup.",
+      "test_type": "remove_biological_input"
+    }
+  ],
+  "connectors": [],
+  "coverage_notes": "The paper does not describe a separate biological encoder or connector; biological inputs are presented as ranked gene lists and templated natural-language metadata. Vocabulary extension is not reported. The exact parameter count of the Qwen2.5-7B-Instruct backbone is not specified beyond the 7B designation.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The final answer should be a single string listing the assigned cell types in order, separated by ' | '.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The batch-level reward is computed as:",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We report results using the following metrics: (1) Cell-level Accuracy: The average proportion of correctly predicted labels per batch. (2) Batch-level Accuracy: The proportion of batches where all predicted labels exactly match the ground truth. (3) Format Validity: The proportion of outputs that follow the required response format. (4) Answer Uniqueness: The average proportion of unique cell type predictions per batch.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Constrained batch-level candidate-label selection scored by cell-level accuracy, batch-level exact accuracy, format validity, and answer uniqueness."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Include your detailed reasoning within &lt;think&gt; and &lt;/think&gt; tags, and provide your final answer within &lt;answer&gt; and &lt;/answer&gt; tags.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Experts then provided an overall judgment by comparing the reasoning quality across models, resulting in a win/tie/loss outcome for each pairwise comparison",
+          "section_id": "sec_0020"
+        }
+      ],
+      "format": "open_text_human_judge",
+      "task": "Structured reasoning traces evaluated by blinded human experts using pairwise win/tie/loss judgments."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To mitigate this, we adopt the MedCPT [73] score to quantify semantic similarity between the generated label and ground truth.",
+          "section_id": "sec_0041"
+        },
+        {
+          "kind": "table",
+          "quote": "| Cell-o1                | 696.9                | 0.3367               | 0.0000               | 0.9224               | 0.7229               |",
+          "section_id": "sec_0041"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Open-ended cell-type label generation scored with MedCPT semantic similarity and thresholded cell-level accuracy."
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The model backbone is Qwen2.5-7B-Instruct [69, 70], using left-side padding and truncation, and a maximum sequence length of 8,192 tokens.",
+          "section_id": "sec_0039"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We employ the SFTTrainer from the TRL library [67], applying LoRA [68] adaptation with rank r = 256 to all linear layers.",
+          "section_id": "sec_0039"
+        }
+      ],
+      "name": "Qwen2.5-7B-Instruct",
+      "size": "7B",
+      "state": "lora_or_adapter",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The objective is to learn a mapping f : C → Y that assigns each cell to a unique label in Y by jointly considering gene expression profiles and contextual metadata, while generating interpretable reasoning traces to justify the label assignments.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Include your detailed reasoning within &lt;think&gt; and &lt;/think&gt; tags, and provide your final answer within &lt;answer&gt; and &lt;/answer&gt; tags.",
+          "section_id": "sec_0007"
+        }
+      ],
+      "output": "natural_language"
+    }
+  ],
+  "proposed_models": [
+    "Cell-o1"
+  ],
+  "record_id": "full_2026-07-06__rec_001617",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "other",
+          "label": "Batch-level Reasoning Setup"
+        },
+        {
+          "category": "other",
+          "label": "Cell-level Reasoning Setup"
+        }
+      ],
+      "better_arm": "Batch-level Reasoning Setup",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We deliberately preserve the original candidate label set for each cell to retain the same classification difficulty, isolating the effect of batch-level context from label space complexity.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Cell-level reasoning models (e.g., Cell-o1 ) achieve higher cell-level accuracy (50.2%), but still suffer a dramatic drop in batch-level accuracy (1.1%) compared to their original joint reasoning setup.",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "table",
+          "quote": "| Cell-o1                                      | 718.5                        | 0.5016                       | 0.0112                       | 0.8427                       | 0.6612                       |",
+          "section_id": "sec_0040"
+        },
+        {
+          "kind": "table",
+          "quote": "| Cell-o1                                      | 1240.8                       | 0.6953                       | 0.3371                       | 0.9775                       | 0.9759                       |",
+          "section_id": "sec_0040"
+        }
+      ],
+      "metric": "Cell-level Accuracy; Batch-level Accuracy",
+      "modality": "transcriptomics",
+      "numbers_stated": "Cell-level setup: 0.5016 cell-level accuracy and 0.0112 batch-level accuracy. Batch-level setup: 0.6953 cell-level accuracy and 0.3371 batch-level accuracy.",
+      "result_summary": "Providing the complete batch and cross-cell context performed better than presenting each cell independently, with higher cell-level and batch-level accuracy.",
+      "task": "Cell type annotation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To emulate this expert-driven process, we introduce CellPuzzles , a novel benchmark shown in Figure 2 that formulates cell type annotation as a batch-level reasoning task.",
+          "section_id": "sec_0005"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The objective is to learn a mapping f : C → Y that assigns each cell to a unique label in Y by jointly considering gene expression profiles and contextual metadata, while generating interpretable reasoning traces to justify the label assignments.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "for_own_choice",
+      "summary": "The batch-level representation is intended to mimic expert annotation by jointly using expression profiles, shared metadata, and cross-cell constraints while producing interpretable reasoning."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "which approximate the differentially expressed genes used by experts to define and annotate single cell clusters.",
+          "section_id": "sec_0005"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "for_own_choice",
+      "summary": "The ranked top-expressed gene list is chosen as an approximation to marker genes used by experts."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The templates aim to standardize the expression of metadata fields in natural language, ensuring consistency and interpretability across different input instances.",
+          "section_id": "sec_0030"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "for_own_choice",
+      "summary": "Structured donor metadata is converted to templated natural language to improve consistency and interpretability."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In contrast, our constrained QA formulation provides the model with a predefined candidate label set, enabling structured reasoning and process-of-elimination strategies. This leads to significantly higher batch-level consistency and interpretability.",
+          "section_id": "sec_0041"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "against_alternative",
+      "summary": "The authors favor constrained candidate labels over open-ended generation because they support process of elimination, consistency, and interpretability."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We use o1 [22] to generate reasoning traces and predictions for 10,155 instances in CellPuzzles .",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A response is accepted only if it (1) adheres to the expected format and (2) yields a cell-type assignment that exactly matches the ground-truth labels.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each input is paired with the standardized prompt shown in Table 1.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "OpenAI's o1",
+      "prompts_disclosed": "full_prompts",
+      "text_kind": "reasoning traces and predictions",
+      "used_for": "training",
+      "verification": "automatic",
+      "version_stated": true
+    }
+  ]
+}

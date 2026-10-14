@@ -1,0 +1,453 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Across all three stages, the upstream RVQ encoder f enc remains frozen; only the LLM parameters are updated.",
+          "section_id": "sec_0014"
+        },
+        {
+          "kind": "table",
+          "quote": "The encoder is a two-layer MLP with hidden widths 1024 and 512 mapping G → 128",
+          "section_id": "sec_0057"
+        }
+      ],
+      "name": "RVQ encoder f_enc",
+      "state": "frozen"
+    }
+  ],
+  "biology_dependence_tests": [],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "without any additional cross-modal adapter.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "without requiring a cross-modal projector.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "state": "not_applicable",
+      "type": "none"
+    }
+  ],
+  "coverage_notes": "The RVQ encoder is trained end-to-end and subsequently frozen, but its initialization or pretraining status is not explicitly stated. The replaceable teacher LLM version and decoding parameters are not stated. Prompt templates are deferred to supplementary material. The paper reports both 10 tokens per cell (eight codes plus two delimiters) and 8 tokens per cell in the tokenizer analysis. Feature-Injection SFT uses topK gene names during training, whereas inference is described as operating without gene injection.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each prediction, it emits a task-aware semantic relation label together with a continuous semantic score in [ 0, 1 ] ; this scalar is then thresholded to form a binary accuracy.",
+          "section_id": "sec_0027"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "RVQ-Alpha emits free-form natural-language cell-type labels end-to-end, graded by an LLM judge",
+          "section_id": "sec_0028"
+        }
+      ],
+      "format": "open_text_llm_judge",
+      "task": "Cell-type, tissue-type, and disease-state label generation"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Beyond binary accuracy, we compute three additional metrics.",
+          "section_id": "sec_0027"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Second, Non-leaf accuracy : this evaluates predictions that are valid sub-types of the ground-truth label.\n\nThird, Macro-F1 and Weighted-F1 : these metrics evaluate performance across imbalanced cell-type distributions.",
+          "section_id": "sec_0027"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Cell-type label evaluation with LCAD, non-leaf accuracy, Macro-F1, and Weighted-F1"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The chosen configuration, ( 8, 32 ) , achieves the best score on 7 of the 9 metrics: it minimizes MSE (0.0738) and MMD(0.0298), maximizes per-cell Pearson correlation (0.704) and ACS (0.708), and yields the highest scores across all three clustering metrics (ARI 0.247, AMI 0.557, NMI 0.589).",
+          "section_id": "sec_0036"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "RVQ reconstruction and clustering quality"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "RVQ-Alpha uses a single base LLM across all training stages and task families: Qwen3-4B-Thinking2507 [51] (4.0,B parameters, V text = 151,941), extended with Nc · C = 8 × 32 = 256 RVQ single-cell vocabulary slots, five structural delimiter tokens, and the top-500 gene name tokens",
+          "section_id": "sec_0023"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 performs full fine-tuning of the language-model backbone while keeping the upstream RVQ encoder frozen.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "name": "Qwen3-4B-Thinking2507",
+      "size": "4.0B parameters",
+      "state": "full_finetune",
+      "vocabulary_extended": "yes"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The target output y is either (i) a text response (such as a categorical label for cell type, tissue, or disease, a ranked gene list, or a CoT reasoning trace)",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "or (ii) a sequence of RVQ discrete codes encoding a predicted post-perturbation expression profile.",
+          "section_id": "sec_0011"
+        }
+      ],
+      "output": "expression_or_cell_profile"
+    }
+  ],
+  "proposed_models": [
+    "RVQ-Alpha"
+  ],
+  "record_id": "june_update_2026-06-10__rec_000121",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "Feature-Injection SFT / Evidence-First constraint"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "RVQ tokens without Evidence-First gene evidence"
+        }
+      ],
+      "better_arm": "Feature-Injection SFT / Evidence-First constraint",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we develop Evidence-First Feature-Injection SFT , which provides the topK expressed genes alongside RVQ tokens and enforces an evidencebefore-conclusion reasoning structure.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the hallucination rate from 4.2% to 23.7% (Table 10, row 2).",
+          "section_id": "sec_0034"
+        },
+        {
+          "kind": "table",
+          "quote": "| - Evidence-First constraint | - 8.3pp           | -        | 23.7%         | -               |",
+          "section_id": "sec_0034"
+        }
+      ],
+      "metric": "single-cell accuracy and hallucination rate",
+      "modality": "transcriptomics",
+      "numbers_stated": "Removing Evidence-First: -8.3 percentage points accuracy; hallucination rate 4.2% → 23.7%.",
+      "result_summary": "Adding topK gene evidence alongside RVQ tokens was better than direct prediction without the Evidence-First gene-evidence representation.",
+      "task": "Single-cell annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "( 8, 32 )"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "( 8, 256 )"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "( 16, 64 )"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "( 16, 512 )"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "( 32, 32 )"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "( 128, 8 )"
+        }
+      ],
+      "better_arm": "( 8, 32 )",
+      "comparison_kind": "information_amount",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Table 11 compares six configurations of the RVQ tokenizer on held-out cells, parameterized by the codebook count and the codebook size",
+          "section_id": "sec_0036"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The chosen configuration, ( 8, 32 ) , achieves the best score on 7 of the 9 metrics: it minimizes MSE (0.0738) and MMD(0.0298), maximizes per-cell Pearson correlation (0.704) and ACS (0.708), and yields the highest scores across all three clustering metrics (ARI 0.247, AMI 0.557, NMI 0.589).",
+          "section_id": "sec_0036"
+        }
+      ],
+      "metric": "reconstruction and clustering metrics",
+      "modality": "transcriptomics",
+      "numbers_stated": "(8,32): MSE 0.0738, PCC_c 0.704, ACS 0.708, MMD 0.0298, ARI 0.247, AMI 0.557, NMI 0.589; best on 7 of 9 metrics.",
+      "result_summary": "The (8,32) RVQ configuration performed best on 7 of 9 reported metrics.",
+      "task": "RVQ tokenization of single-cell expression profiles"
+    },
+    {
+      "arms": [
+        {
+          "category": "verbalised_text",
+          "label": "Cell2Sentence text-serialized gene lists"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "CellTok discrete codes"
+        },
+        {
+          "category": "symbolic_tokens",
+          "label": "RVQ-Alpha RVQ codes"
+        }
+      ],
+      "better_arm": "RVQ-Alpha RVQ codes",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This size is 3.4 × smaller than the 34-token representation of CellTok [31] (32 codes + 2 delimiters) and 10-50 × smaller than the text-serialized gene lists of Cell2Sentence [19] (100-500 tokens for the top-ranked genes)",
+          "section_id": "sec_0012"
+        }
+      ],
+      "metric": "tokens per cell and population-context efficiency",
+      "modality": "transcriptomics",
+      "numbers_stated": "RVQ-Alpha: 10 tokens per cell; CellTok: 34; Cell2Sentence: 100-500.",
+      "result_summary": "RVQ-Alpha uses the fewest tokens per cell among the compared representations.",
+      "task": "Population-level reasoning with multiple cells"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "RVQ-Alpha"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "LangCell"
+        },
+        {
+          "category": "other",
+          "label": "Cell-o1"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "C2S-Gemma2-2B"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "LangCell [24]: a Geneformer + PubMedBERT dual-encoder that performs zero-shot cell-type annotation via nearest-prototype scoring over cell-type names.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "C2S-Scale-Gemma2-2B [20]: a Gemma-2-2B model fine-tuned on cell sentences that emits a label string under the same text-generation protocol.",
+          "section_id": "sec_0028"
+        },
+        {
+          "kind": "caption",
+          "quote": "RVQ-Alpha wins on A013 (49.4%), D095 (80.9%), D096 (54.4%), and D102 (47.8%); Cell-o1 wins on D094 (37.4%); C2S-Gemma2-2B wins on D099 (64.3%), D101 (34.7%), and D103 (96.0%; see §7 for a training-data overlap caveat).",
+          "section_id": "sec_0032"
+        }
+      ],
+      "metric": "cell-type accuracy",
+      "modality": "transcriptomics",
+      "numbers_stated": "RVQ-Alpha wins A013 49.4%, D095 80.9%, D096 54.4%, D102 47.8%; Cell-o1 wins D094 37.4%; C2S-Gemma2-2B wins D099 64.3%, D101 34.7%, D103 96.0%.",
+      "result_summary": "Performance was mixed across the eight datasets; the paper reports different winners for different datasets. Cell-o1's biological representation is not specified in the paper.",
+      "task": "Held-out single-cell cell-type annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "symbolic_tokens",
+          "label": "RVQ-Alpha"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "LangCell"
+        },
+        {
+          "category": "other",
+          "label": "Cell-o1"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "C2S-Gemma2-2B"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "RVQ-Alpha achieves the lowest mean LCAD on A013 (2.40) and D095 (2.22); C2S-Gemma2-2B leads on four datasets (D096, D099, D102, and notably D103 with LCAD = 0.39).",
+          "section_id": "sec_0032"
+        }
+      ],
+      "metric": "LCAD",
+      "modality": "transcriptomics",
+      "numbers_stated": "RVQ-Alpha lowest LCAD on A013 2.40 and D095 2.22; C2S-Gemma2-2B leads on D096, D099, D102, and D103 with LCAD 0.39 on D103.",
+      "result_summary": "LCAD performance was mixed across systems and datasets.",
+      "task": "Held-out single-cell cell-type annotation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "text-based methods are token-inefficient and discard quantitative precision",
+          "section_id": "sec_0002"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "ranked gene lists discard quantitative expression precision and produce token-inefficient representations",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors criticize text-based ranked gene representations for discarding quantitative expression precision."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This compression enables population-level reasoning with tens of cells in a single context window.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "The fixed compact RVQ representation is intended to support population-level reasoning within one context window."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Because these tokens reside directly in the LLM vocabulary, the model can both interpret RVQ sequences for analytical tasks and generate new RVQ sequences for cell state simulation, thereby achieving bidirectional unification",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "Vocabulary-native RVQ tokens support both interpretation and autoregressive generation of cellular representations."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "cell tokens must enter the LLM through its native token embedding table rather than through a separately learned cross-modal adapter, which would relegate gene expression to a secondary modality and add a trainable bottleneck between cell identity and the reasoning path.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "reason": "no_architecture_change",
+      "stance": "for_own_choice",
+      "summary": "The authors favor direct vocabulary integration to avoid a separate cross-modal adapter and its bottleneck."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Because gene-name tokens in E are predicted from RVQ input positions via the attention mechanism, the cross-entropy loss on these tokens provides a dense supervisory signal that pulls RVQ embeddings toward the pretrained gene-name representations, without requiring any explicit alignment module.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "reason": "leverage_llm_knowledge",
+      "stance": "for_own_choice",
+      "summary": "Evidence-first gene-name prediction is used to align RVQ embeddings with pretrained gene-name representations through the language-model loss."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Compressing ∼ 20,000 gene dimensions into 8 discrete tokens inherently discards fine-grained expression information.",
+          "section_id": "sec_0040"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "limitation_of_own_choice",
+      "summary": "The authors acknowledge information loss from compressing the expression profile into a small number of discrete tokens."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "At inference time, without gene injection, the model must rely entirely on learned RVQ semantics; this dependence can degrade performance for very rare cell types that have limited training coverage.",
+          "section_id": "sec_0043"
+        }
+      ],
+      "reason": "other",
+      "stance": "limitation_of_own_choice",
+      "summary": "Reliance on learned RVQ semantics without inference-time gene injection may hurt rare-cell performance."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "During teacher synthesis , a replaceable LLM backend receives curated gene features (such as expressionranked genes, known markers, active transcription factors, and functional gene modules) alongside c and t , enabling biologically accurate evidence-first reasoning.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "A conclusion-blind elicitation protocol prevents the teacher from short-circuiting this process.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Every generated trajectory passes through a verification stack spanning deterministic structural checks, rubric-based semantic scoring, and RVQ arithmetic validation (Table 2).",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "table",
+          "quote": "LLM-as-judge rubric | Weighted multi-dim rubric | Soft (scored)",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "replaceable LLM backend",
+      "prompts_disclosed": "partial_or_examples",
+      "text_kind": "evidence-first chain-of-thought trajectories and RVQ-text paired descriptions",
+      "used_for": "training",
+      "verification": "automatic",
+      "version_stated": false
+    }
+  ]
+}

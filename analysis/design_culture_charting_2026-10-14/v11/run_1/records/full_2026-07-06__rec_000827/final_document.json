@@ -1,0 +1,549 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "processing the transcriptomes with the Geneformer model for gene expression 17",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "fine-tuning the text model and the adapter modules, while keeping the transcriptome model frozen.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "Geneformer",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the textual annotations with the BioBERT model for biomedical text 18",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "initializing both models with pretrained weights and fine-tuning the text model and the adapter modules",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "BioBERT",
+      "state": "finetuned"
+    }
+  ],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "In our Evaluation Conversations dataset with 200 question-answer pairs, we observed a 90% preference for",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "matched over unmatched transcriptomes (Extended Data Fig. 4a), which confirms that our LLM meaningfully interpreted the transcriptome embedding for its response generation.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we computed the perplexity for each test conversation not only with the matched transcriptome embedding but also with 30 mismatched transcriptome embeddings, randomly sampled from the dataset.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Matched transcriptome embeddings were preferred over mismatched transcriptomes in 90% of evaluation conversations.",
+      "test_type": "mismatched_or_shuffled_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "most cell type labels showed a preferential association with their matched transcriptomes (Extended Data Fig. 4b).",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "by randomly swapping the cell type answer texts (176 times, to all other possible cell types).",
+          "section_id": "sec_0009"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "mixed",
+      "result_summary": "Most cell type labels preferentially matched their original transcriptome embeddings, but the paper does not report a universal drop for every label.",
+      "test_type": "mismatched_or_shuffled_input"
+    }
+  ],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The outputs of these two models are transformed into two 2,048-dimensional vectors using separate adapter modules, each consisting of two learnable linear layers connected by a rectified linear unit nonlinearity (ReLU) and followed by batch layer normalization.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "state": "trained",
+      "type": "mlp"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We initialized a two-layer adapter module that transforms the 2,048-dimensional CellWhisperer multimodal embedding for a bulk or single-cell transcriptome into eight 4,096-dimensional embeddings",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we unfroze the Mistral LLM and fine-tuned both the LLM and the adapter layers on the 106,610 generated training conversations for one epoch.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "state": "trained",
+      "type": "mlp"
+    }
+  ],
+  "coverage_notes": "The paper does not state whether the Mistral vocabulary was extended. Exact model versions, decoding settings, and verification procedures are not reported for every synthetic-text generation use.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We validated that the resulting CellWhisperer embedding model was capable of retrieving the transcriptome corresponding to a given textual annotation and vice versa (a standard metric of CLIP model performance 9 ) observing a mean area under the receiver operating characteristic curve (AUROC) value of 0.927 (Extended Data Fig. 1b).",
+          "section_id": "sec_0003"
+        }
+      ],
+      "format": "retrieval_or_ranking",
+      "task": "Cross-modal retrieval ranking scored by AUROC and recall@k"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we used CellWhisperer to assign scores for each potential cell type label to each transcriptome (Fig. 2a).",
+          "section_id": "sec_0004"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We then calculated the coherence between the correct cell type labels (as annotated in the dataset) and the computed CellWhisperer scores",
+          "section_id": "sec_0004"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Closed-set candidate-label selection for cell types, tissues, organs and diseases, scored by AUROC, accuracy and F1"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each gene set, we compared the GSVA and CellWhisperer scores across the transcriptomes in the dataset using the Pearson correlation and Kolmogorov-Smirnoff statistic",
+          "section_id": "sec_0009"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Numerical association between CellWhisperer scores and gene-set enrichment, scored by Pearson correlation and KS statistic"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For cell type clustering, we used the average bio score 24",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "For batch effect correction, we used a variant of average silhouette width as implemented in the silhouette\\_batch function 22 .",
+          "section_id": "sec_0009"
+        }
+      ],
+      "format": "numeric_regression",
+      "task": "Embedding-quality evaluation through batch-integration and cell-type-clustering scores"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we created two question-answer conversation datasets and assessed CellWhisperer's propensity for the correct answers, quantified on the basis of its predicted output token probabilities using the perplexity metric.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This metric is defined as the exponentiated average negative log-likelihood of the sequence of tokens that correspond to the correct (ground truth) answer for a given prompt",
+          "section_id": "sec_0009"
+        }
+      ],
+      "format": "likelihood_or_perplexity_scoring",
+      "task": "Open-text question-answer responses scored by model likelihood/perplexity"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "we customized and fine-tuned the Mistral 7B open-weights LLM 13 to incorporate CellWhisperer transcriptome embeddings in addition to text queries.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we unfroze the Mistral LLM and fine-tuned both the LLM and the adapter layers on the 106,610 generated training conversations for one epoch.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "Mistral 7B",
+      "size": "7B",
+      "state": "full_finetune",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The resulting fine-tuned LLM responds to free-text questions and engages in natural-language chats about cells and their biological functions",
+          "section_id": "sec_0003"
+        }
+      ],
+      "output": "natural_language"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The result is a quantitative measure (the 'CellWhisperer score') that assesses the match between the query and each transcriptome in the examined dataset.",
+          "section_id": "sec_0003"
+        }
+      ],
+      "output": "embedding_or_score"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "its zero-shot predictions performed better than a widely used marker-based method 23 and on par with three scFMs 17,24,25 that were fine-tuned for cell type prediction",
+          "section_id": "sec_0004"
+        }
+      ],
+      "output": "closed_set_label"
+    }
+  ],
+  "proposed_models": [
+    "CellWhisperer embedding model",
+    "CellWhisperer chat model"
+  ],
+  "record_id": "full_2026-07-06__rec_000827",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer with Geneformer transcriptome encoder"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer with scGPT transcriptome encoder"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer with UCE transcriptome encoder"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We also assessed our use of Geneformer 17 as the scFM in the CellWhisperer embedding model relative to two alternative scFMs (scGPT 24 and UCE 25 ) and we observed comparable performance trends (Extended Data Fig. 2a).",
+          "section_id": "sec_0004"
+        }
+      ],
+      "metric": "Zero-shot cell-characteristic prediction performance",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "Comparable performance trends were observed; no winning encoder was reported.",
+      "task": "Zero-shot prediction of cell types and other cell characteristics"
+    },
+    {
+      "arms": [
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer multimodal embeddings"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "Transcriptome-only scFM embeddings"
+        }
+      ],
+      "better_arm": null,
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We observed improved performance of the CellWhisperer multimodal embeddings compared to transcriptome-only scFMs, for both Geneformer and scGPT, whereas UCE did not profit from the multimodal CellWhisperer training (Extended Data Fig. 2e).",
+          "section_id": "sec_0004"
+        }
+      ],
+      "metric": "Batch integration score / average silhouette width",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "CellWhisperer multimodal embeddings improved performance for Geneformer and scGPT, whereas UCE did not benefit; the result was mixed across encoder sources.",
+      "task": "Distinguishing biological signal from technical noise"
+    },
+    {
+      "arms": [
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer multimodal embeddings"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "Transcriptome-only scFM embeddings"
+        }
+      ],
+      "better_arm": "CellWhisperer multimodal embeddings",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "vlm_description",
+          "quote": "Orange bars are consistently longer, indicating CellWhisperer embeddings achieve higher average biological scores across all three models.",
+          "section_id": "sec_0013"
+        }
+      ],
+      "metric": "Average bio score",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "CellWhisperer embeddings achieved higher average biological scores than the matched transcriptome-only scFM embeddings.",
+      "task": "Cell-type clustering"
+    },
+    {
+      "arms": [
+        {
+          "category": "verbalised_text",
+          "label": "Transcriptome embedding only"
+        },
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "Transcriptome embedding plus top 50 expressed genes"
+        }
+      ],
+      "better_arm": "Transcriptome embedding plus top 50 expressed genes",
+      "comparison_kind": "representation_form",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We observed a mild beneficial effect (Extended Data Fig. 4c) and implemented this hybrid approach in the CellWhisperer web tool.",
+          "section_id": "sec_0006"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This prompt also includes the top 50 expressed genes for the selected cells, as we observed better biological interpretability of responses and a slight performance improvement when providing the CellWhisperer chat model with these gene names in addition to the transcriptome embedding (Extended Data Fig. 4c).",
+          "section_id": "sec_0009"
+        }
+      ],
+      "metric": "Perplexity",
+      "modality": "transcriptomics",
+      "numbers_stated": "Mild beneficial effect; slight performance improvement, with no exact values stated in the text.",
+      "result_summary": "Adding the top 50 expressed genes to the transcriptome embedding slightly improved performance and biological interpretability.",
+      "task": "Chat response evaluation"
+    },
+    {
+      "arms": [
+        {
+          "category": "verbalised_text",
+          "label": "Mistral 7B with top 50 genes"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "Llama 3.3 70B with top 50 genes"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "CellWhisperer with transcriptome embedding"
+        },
+        {
+          "category": "hybrid_text_plus_embedding",
+          "label": "CellWhisperer with transcriptome embedding plus top 50 genes"
+        }
+      ],
+      "better_arm": "CellWhisperer with transcriptome embedding plus top 50 genes",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For both datasets we compared the perplexity quantile scores of the CellWhisperer chat model with two text-only LLMs: Mistral 7B (without fine-tuning) and the much larger Llama 3.3 with 70 billion parameters",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "We provided the transcriptome context to these text-only LLMs through the following prepended prompt, containing the list of dataset-normalized top 50 genes",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "CellWhisperer achieved best results (lowest perplexity values)",
+          "section_id": "sec_0006"
+        }
+      ],
+      "metric": "Perplexity",
+      "modality": "transcriptomics",
+      "numbers_stated": null,
+      "result_summary": "The CellWhisperer chat model achieved the best reported perplexity results; the comparison supplied top 50 genes to the text-only LLMs and tested transcriptome embeddings with or without the gene list.",
+      "task": "Biologically conditioned chat response evaluation"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Here, we demonstrate scRNA-seq data exploration with natural language, allowing the user to interrogate cells in English, with no need to adhere to any particular format or syntax.",
+          "section_id": "sec_0001"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "for_own_choice",
+      "summary": "Natural language is presented as an intuitive, human-interpretable interface that avoids requiring a specialized syntax."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The CellWhisperer embeddings successfully captured cell types, developmental stages, tissues, diseases and other cell characteristics.",
+          "section_id": "sec_0003"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we built a multimodal AI that facilitates the seamless transition from transcriptomes to text and vice versa",
+          "section_id": "sec_0003"
+        }
+      ],
+      "reason": "multimodal_generality",
+      "stance": "for_own_choice",
+      "summary": "A shared transcriptome-text embedding connects biological profiles with natural-language queries across diverse biological characteristics."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "CellWhisperer enables the annotation of millions of single cells using a computationally efficient multimodal embedding model",
+          "section_id": "sec_0008"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "against_alternative",
+      "summary": "The authors favor multimodal embeddings for scalable annotation of millions of cells, contrasting them with per-cell LLM inference."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This prompt also includes the top 50 expressed genes for the selected cells, as we observed better biological interpretability of responses and a slight performance improvement when providing the CellWhisperer chat model with these gene names in addition to the transcriptome embedding (Extended Data Fig. 4c).",
+          "section_id": "sec_0009"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "for_own_choice",
+      "summary": "The hybrid representation is retained because explicit gene names improve response interpretability and slightly improve performance."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Specifically, the transcriptomes were sorted by gene expression levels and the top 2,048 most highly expressed genes were tokenized with a dictionary of human gene symbols 17 . The textual annotations were tokenized using WordPiece 18,66 and trimmed to a maximum of 128 tokens for training efficiency (the vast majority of textual annotations were shorter and, thus, remained untrimmed).",
+          "section_id": "sec_0009"
+        }
+      ],
+      "reason": "context_length_cost",
+      "stance": "limitation_of_own_choice",
+      "summary": "The representation uses ranked top genes and trims longer text annotations for training efficiency."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": true,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each sample (from GEO) or pseudo-bulk transcriptome (from CELLxGENE Census), we generated a concise natural-language summary from the metadata using Mixtral 8x7b (Q5\\_K\\_M quantized version) 58 , using the llama.cpp Python bindings with a sampling temperature of 0.2, nucleus sampling (top\\_ p ) of 0.9 and top probability sampling (top\\_ k ) of 50.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The prompt and illustrative examples of generated textual annotations are shown in Supplementary Note 2.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Conversational chats for 81,610 transcriptomes were generated using an LLM (Mixtral 8x7b) with a few-shot prompt",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "Mixtral 8x7b",
+      "prompts_disclosed": "partial_or_examples",
+      "text_kind": "Concise transcriptome metadata summaries and conversational training data",
+      "used_for": "training",
+      "verification": "none_reported",
+      "version_stated": true
+    },
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "For each of these subsampled transcriptome-text pairs, we generated a chat-like conversation using one of two LLMs (GPT-4 or Mixtral)",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Detailed chats were generated for 10,000 transcriptomes using an LLM (GPT-4 through the OpenAI API) with zero-shot prompting",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Complex chats were generated for 5,000 transcriptomes using an LLM (GPT-4 through the OpenAI API) with a few-shot prompt",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The LLM prompts and examples of the generated conversations are shown in Supplementary Note 2.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "GPT-4",
+      "prompts_disclosed": "partial_or_examples",
+      "text_kind": "Detailed and complex transcriptome-centric question-answer conversations and evaluation annotations",
+      "used_for": "both",
+      "verification": "none_reported",
+      "version_stated": false
+    },
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We condensed their annotations using GPT-4o with the following prompt: 'Please, summarize the following sentences in just two sentences (max 500 characters)'.",
+          "section_id": "sec_0009"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "we generated five variants per query using GPT-4o with the following prompt: 'Rewrite the provided text in five different variants.",
+          "section_id": "sec_0009"
+        }
+      ],
+      "name": "GPT-4o",
+      "prompts_disclosed": "full_prompts",
+      "text_kind": "Development-stage query summaries, query variants and evaluation label mappings",
+      "used_for": "evaluation",
+      "verification": "none_reported",
+      "version_stated": true
+    }
+  ]
+}

@@ -1,0 +1,594 @@
+{
+  "biological_encoders": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This also ensures that we never update the weights of the Biological Foundation Models.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Pre-computed AlphaGenome [4] embeddings for the reference and alternate alleles of a genomic variant",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "AlphaGenome",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This also ensures that we never update the weights of the Biological Foundation Models.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "GenePT [20] embeddings for the up to 15 protein-coding genes nearest to the variant.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "GenePT-based neighborhood embeddings",
+      "state": "frozen"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This also ensures that we never update the weights of the Biological Foundation Models.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "ESM-2 [21] embeddings for the reference and alternate aminoacid sequences of the nearest protein-coding gene to the genomic variant.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "ESM-2",
+      "state": "frozen"
+    }
+  ],
+  "biology_dependence_tests": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We permute the multimodal variant embeddings to investigate how much Bio-BLIP is relying on the biological embeddings as compared to the text prompt.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The model is unable to match the true variant annotation with random embeddings.",
+          "section_id": "sec_0015"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "Replacing variant-matched embeddings with random or mismatched embeddings increases the ITC loss and prevents the model from matching the true annotation.",
+      "test_type": "mismatched_or_shuffled_input"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The text-only baseline used Qwen/Qwen3-32B without DNA embeddings or AlphaGenome outputs.",
+          "section_id": "sec_0025"
+        },
+        {
+          "kind": "table",
+          "quote": "| LLM                     | Qwen3-32B         | 97.4%*                   | 66.60%                   | 44.50%                   | 0.68%                   | 0.50%                   |",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "table",
+          "quote": "| BioBLIP                 | Qwen3-32B         | 93.87%                   | 90.06%                   | 72.09%                   | 66.88%                   | 2.24%                    |",
+          "section_id": "sec_0012"
+        }
+      ],
+      "on_proposed_model": true,
+      "result": "clear_drop",
+      "result_summary": "The no-biological-input text-only Qwen3-32B baseline is substantially worse than Bio-BLIP on variant type, consequence, nearest genes, and cell type accuracy, although chromosome accuracy is higher for the baseline because it reads the variant ID.",
+      "test_type": "text_only_or_llm_only_baseline"
+    }
+  ],
+  "connectors": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Each embedding type receives its own modality-specific Q-former .",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Stage 1 of training simultaneously trains each modality-specific Q-former model",
+          "section_id": "sec_0010"
+        }
+      ],
+      "state": "trained",
+      "type": "qformer_or_resampler"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The master Q-former model is a 6-layer InstructBLIP-style [19] Q-Former that fuses the Stage 1 modality-specific tokens with a natural-language instruction, and produces 32 refined query tokens for the LLM.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "the loss only updates the projection weights, W proj, the Master Qformer weights, and the Stage 1 Qformer weights.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "state": "trained",
+      "type": "qformer_or_resampler"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the loss only updates the projection weights, W proj, the Master Qformer weights, and the Stage 1 Qformer weights.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "state": "trained",
+      "type": "other"
+    }
+  ],
+  "coverage_notes": "The paper does not state whether the LLM vocabulary is extended, does not disclose the exact prompts or decoding parameters used for Claude-generated reasoning traces, and does not fully specify the architecture of W proj. Downstream Qwen baseline inputs are not described with complete prompt details.",
+  "evaluation_formats": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model must produce a structured JSON caption for the variant.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Each caption field corresponds to a biologically meaningful prediction:",
+          "section_id": "sec_0012"
+        }
+      ],
+      "format": "closed_set_classification",
+      "task": "Variant annotation scored by per-field accuracy on structured JSON outputs"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "can the model identify the target gene that links the variant to the disease?",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "table",
+          "quote": "| Bio-BLIP Qwen3-32B      | 71.21%       | 282/396        | 41.14%                     | 72/175                     |",
+          "section_id": "sec_0013"
+        }
+      ],
+      "format": "candidate_label_selection",
+      "task": "Target gene identification scored by exact target-gene accuracy"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The task for the models is to produce a ranked list of all genetic variants from most to least likely to be causal. Evaluation metrics consist of Top-K accuracy and mean rank with the standard deviations provided.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "format": "other",
+      "task": "Regulatory variant prioritization scored by ranked-list Top-K accuracy and mean rank"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Bio-BLIP also produces interpretable reasoning traces",
+          "section_id": "sec_0014"
+        }
+      ],
+      "format": "open_text_automatic_metrics",
+      "task": "Generated multi-step reasoning traces accompanying genomic predictions"
+    }
+  ],
+  "llm_backbones": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 of training introduces the Master Q-former model attached to a frozen LLM (Qwen3-4B or Qwen3-32B [18]) for generative variant annotation.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Notably, the LLM is not trained or fine-tuned during any point in the training regime.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "Qwen3-4B",
+      "size": "4B",
+      "state": "frozen",
+      "vocabulary_extended": "unspecified"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Stage 2 of training introduces the Master Q-former model attached to a frozen LLM (Qwen3-4B or Qwen3-32B [18]) for generative variant annotation.",
+          "section_id": "sec_0010"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Notably, the LLM is not trained or fine-tuned during any point in the training regime.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "name": "Qwen3-32B",
+      "size": "32B",
+      "state": "frozen",
+      "vocabulary_extended": "unspecified"
+    }
+  ],
+  "outputs": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "the model must produce a structured JSON caption for the variant.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "output": "other"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "can the model identify the target gene that links the variant to the disease?",
+          "section_id": "sec_0013"
+        }
+      ],
+      "output": "closed_set_label"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The task for the models is to produce a ranked list of all genetic variants from most to least likely to be causal.",
+          "section_id": "sec_0014"
+        }
+      ],
+      "output": "other"
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Our model produces rich, transparent reasoning traces.",
+          "section_id": "sec_0006"
+        }
+      ],
+      "output": "natural_language"
+    }
+  ],
+  "proposed_models": [
+    "Bio-BLIP"
+  ],
+  "record_id": "june_update_2026-06-10__rec_000194",
+  "representation_comparisons": [
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "BioBLIP"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "LLM+AlphaGenome"
+        }
+      ],
+      "better_arm": "BioBLIP",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| BioBLIP                 | Qwen3-32B         | 93.87%                   | 90.06%                   | 72.09%                   | 66.88%                   | 2.24%                    |",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "table",
+          "quote": "| LLM+AlphaGenome         | Qwen3-32B         | 100.00%*                 | 68.27%                   | 46.05%                   | 0.00%                    | 3.42%                    |",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "The AlphaGenome-augmented text baseline used the same Qwen/Qwen3-32B JSON-captioning setup, but the prompt additionally included raw AlphaGenome reference and alternate signal values.",
+          "section_id": "sec_0025"
+        }
+      ],
+      "metric": "per-field accuracy",
+      "modality": "multiple",
+      "numbers_stated": "BioBLIP Qwen3-32B: 90.06% variant type, 72.09% consequence, 66.88% nearest genes, 2.24% cell type; LLM+AlphaGenome: 68.27%, 46.05%, 0.00%, 3.42%, respectively. LLM+AlphaGenome had 100.00% chromosome accuracy versus BioBLIP's 93.87%.",
+      "result_summary": "BioBLIP is better on variant type, consequence, and nearest genes; LLM+AlphaGenome is better on chromosome and cell type.",
+      "task": "Variant annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Bio-BLIP"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "Bio-BLIP:NoMM"
+        }
+      ],
+      "better_arm": "Bio-BLIP",
+      "comparison_kind": "interface_mechanism",
+      "design": "controlled_ablation",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "To probe this, we remove the master model and prepend the tokens from each modality-specific Qformer to the LLM prompt.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "performance gains from the master model start with Epoch 2 and lead to an overall 20% increase in performance by the end of the training regime.",
+          "section_id": "sec_0015"
+        },
+        {
+          "kind": "table",
+          "quote": "| Difference    | - 17 . 83%   | - 0 . 80% | - 1 . 31%     | - 34 . 99%      | - 0 . 98%               |",
+          "section_id": "sec_0015"
+        }
+      ],
+      "metric": "mean JSON accuracy and per-field accuracy",
+      "modality": "multiple",
+      "numbers_stated": "Overall performance increase of 20% with the Master Q-former; ablation differences: chromosome -17.83 percentage points, type -0.80, consequence -1.31, nearest genes -34.99, cell type -0.98.",
+      "result_summary": "The Master Q-former representation delivered to the LLM performs better than directly prepending modality-specific Q-former tokens.",
+      "task": "Variant annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "conditioning_vector",
+          "label": "AFG"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "ESM"
+        },
+        {
+          "category": "conditioning_vector",
+          "label": "GENE"
+        },
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "BioLIP Stage 2"
+        }
+      ],
+      "better_arm": "BioLIP Stage 2",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "caption",
+          "quote": "The Qformers for each embedding type show differential per-field accuracy in variant annotation. With the Master Qformer, Bio-BLIP outperforms any specific modality's model.",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "vlm_description",
+          "quote": "BioLIP Stage 2 appears as a dashed outline reaching 100% on all four axes. Among the other datasets, GENE has high coverage for chromosome location and nearest genes, AFG is high for variant type and variant consequence but very low for nearest genes, and ESM is intermediate overall.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "metric": "per-field accuracy",
+      "modality": "multiple",
+      "numbers_stated": null,
+      "result_summary": "The Master Q-former integrating the modalities outperforms each individual modality-specific model across the displayed annotation axes.",
+      "task": "Variant annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Bio-BLIP"
+        },
+        {
+          "category": "soft_token_embedding",
+          "label": "BioReason-OT"
+        }
+      ],
+      "better_arm": "Bio-BLIP",
+      "comparison_kind": "encoder_or_feature_source",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "table",
+          "quote": "| BioBLIP                 | Qwen3-4B          | 87.59%                   | 89.49%                   | 69.07%                   | 66.19%                   | 1.84%                    |",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "table",
+          "quote": "| BioReason - OT          | Qwen3-4B          | 10.47%                   | 70.93%                   | 46.93%                   | 0.79%                    | 1.9%                     |",
+          "section_id": "sec_0012"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "BioReason encodes paired reference and alternate DNA sequences using Evo2 and conditions a language model to generate outputs from these embeddings via SFT.",
+          "section_id": "sec_0012"
+        }
+      ],
+      "metric": "per-field accuracy",
+      "modality": "dna_rna_sequence",
+      "numbers_stated": "Bio-BLIP Qwen3-4B versus BioReason-OT Qwen3-4B: chromosome 87.59% versus 10.47%, variant type 89.49% versus 70.93%, consequence 69.07% versus 46.93%, nearest genes 66.19% versus 0.79%, cell type 1.84% versus 1.90%.",
+      "result_summary": "Bio-BLIP performs better on four of five displayed fields; BioReason-OT is marginally higher on cell type.",
+      "task": "Variant annotation"
+    },
+    {
+      "arms": [
+        {
+          "category": "cross_attention_or_qformer",
+          "label": "Bio-BLIP multimodal embeddings"
+        },
+        {
+          "category": "verbalised_text",
+          "label": "Qwen3-32B baseline with variant, disease, and nearby-gene context"
+        }
+      ],
+      "better_arm": "Bio-BLIP multimodal embeddings",
+      "comparison_kind": "representation_form",
+      "design": "between_systems",
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The task definition is: Given a variant ID, a disease, and a neighborhood of nearby genes, can the model identify the target gene that links the variant to the disease?",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Multimodal models are also provided the variant and reference allele biological embeddings.",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "table",
+          "quote": "| Bio-BLIP Qwen3-32B      | 71.21%       | 282/396        | 41.14%                     | 72/175                     |",
+          "section_id": "sec_0013"
+        },
+        {
+          "kind": "table",
+          "quote": "| Qwen-32B                | 64.39%       | 268/396        | 29.71%                     | 52/175                     |",
+          "section_id": "sec_0013"
+        }
+      ],
+      "metric": "target-gene accuracy",
+      "modality": "multiple",
+      "numbers_stated": "Bio-BLIP Qwen3-32B: 71.21% overall and 41.14% on non-closest genes; Qwen-32B: 64.39% and 29.71%, respectively.",
+      "result_summary": "The multimodal Bio-BLIP system outperforms the Qwen3-32B baseline on overall and non-closest target-gene identification.",
+      "task": "Target gene identification"
+    }
+  ],
+  "representation_rationale": [
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "However, textualization discards rich geometric and functional representations of biology encoded by state-of-the-art foundation models",
+          "section_id": "sec_0007"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "for_own_choice",
+      "summary": "The authors use biological foundation-model embeddings to preserve geometric and functional information that textification loses."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "The linear projection layer provides no mechanism to actively distill task-relevant information from the biological embedding(s).",
+          "section_id": "sec_0020"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "This incentivizes such models to rely on textual prompt cues and impairs LLM reasoning.",
+          "section_id": "sec_0016"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors criticize linear projection interfaces because they do not actively extract task-relevant biological information and can encourage reliance on prompt text."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Second, the architecture introduces a new master Q-former model in Stage 2, which integrates modality-specific tokens through crossattention, producing a fixed-length multimodal prefix for the LLM.",
+          "section_id": "sec_0007"
+        },
+        {
+          "kind": "paper_text",
+          "quote": "Finally, the LLM in Bio-BLIP is never fine-tuned with SFT or RL",
+          "section_id": "sec_0007"
+        }
+      ],
+      "reason": "leverage_llm_knowledge",
+      "stance": "for_own_choice",
+      "summary": "The architecture uses a learned multimodal prefix so the frozen LLM can retain its general reasoning capability while receiving task-specific biological information."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Precomputing provides significant memory savings, time savings, and greater modularity.",
+          "section_id": "sec_0010"
+        }
+      ],
+      "reason": "scalability_or_efficiency",
+      "stance": "for_own_choice",
+      "summary": "Precomputing biological encoder outputs is presented as an efficiency and modularity benefit."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "Textification of heterologous biological datasets is inherently lossy.",
+          "section_id": "sec_0020"
+        }
+      ],
+      "reason": "quantitative_fidelity",
+      "stance": "against_alternative",
+      "summary": "The authors characterize converting heterogeneous biological entities into text as lossy."
+    },
+    {
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "This case illustrates a limitation of BioBLIP's proximity-based annotation: when a variant resides in a regulatory element embedded within one gene but functionally controls a neighbouring gene, BioBLIP's default rule of naming the variant-containing gene can produce the wrong attribution",
+          "section_id": "sec_0052"
+        }
+      ],
+      "reason": "interpretability_or_transparency",
+      "stance": "limitation_of_own_choice",
+      "summary": "The default proximity-based representation and annotation can attribute a regulatory variant to its containing gene instead of the neighboring functional target."
+    }
+  ],
+  "synthetic_text_generators": [
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We construct 5-step chain-of-thought reasoning traces linking GWAS variants from the Gold Standard Dataset to target genes and to the observed phenotype using Claude Sonnet 4.6 and ground-truth expert annotations",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "Claude Sonnet 4.6",
+      "prompts_disclosed": "none",
+      "text_kind": "5-step chain-of-thought reasoning traces",
+      "used_for": "evaluation",
+      "verification": "none_reported",
+      "version_stated": true
+    },
+    {
+      "decoding_params_stated": false,
+      "evidence": [
+        {
+          "kind": "paper_text",
+          "quote": "We used Claude Opus 4.6 to characterize the 23 non-closest gene traces where Bio-BLIP wins over Qwen3-32B",
+          "section_id": "sec_0013"
+        }
+      ],
+      "name": "Claude Opus 4.6",
+      "prompts_disclosed": "none",
+      "text_kind": "characterization of non-closest-gene reasoning traces",
+      "used_for": "evaluation",
+      "verification": "none_reported",
+      "version_stated": true
+    }
+  ]
+}
