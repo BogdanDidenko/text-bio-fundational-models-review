@@ -85,5 +85,11 @@ Each abstract and Results claim was traced to a table or the numbers file. Corre
   shown only in a figure, was missed by both runs and is not counted (found while checking exception
   U26; not a systematic audit). A recall audit belongs to the second-coder check.
 - Second human coder for the 31 units and the culture assignment.
-- Figures 1, 3, 4 and 5 to draw; Box 1 to typeset.
+- Figures 1, 3, 4 and 5 are drawn (`scripts/build_design_culture_figures.py`, outputs and per-panel
+  source data in `analysis/design_culture_charting_2026-10-14/v11/figures/`). Figure 2 still needs the
+  culture breakdown; Box 1 is to typeset.
+- Culture check for the second coder: four encoder-mediated works carry verbalisation motifs (Cell2Text,
+  Med-PaLM M, OpticalDNA, `july_update_2026-07-06__rec_000050`) and four token-native works carry encoder
+  motifs (OmniNA, C2S-Scale, CellHermes, Human Genome Book). Confirm that the coded culture follows the
+  main route by which biology reaches the generative model.
 - All [CITE] entries to add and verify.

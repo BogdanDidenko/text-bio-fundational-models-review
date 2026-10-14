@@ -161,6 +161,31 @@ def main():
         "vectors_per_object": by_culture(soft.record_id.tolist(), soft.tokens.tolist()),
     }
 
+    # per-work table (source data for the figures)
+    slots = pd.read_parquet(DI / "slots.parquet")
+    roles = json.loads((ROOT / "analysis/design_culture_charting_2026-10-14/roles.json").read_text())
+    role_of = {(r, m["model_name"]): m["role"] for r, ms in roles.items() for m in ms}
+    slots["role"] = [role_of.get((r, m)) for r, m in zip(slots.record_id, slots.model_name)]
+    sl = slots[slots.role.isin(["proposed", "component"])].copy()
+    sl["work"] = sl.record_id.map(work)
+    sl["unstated"] = sl.status == "unspecified"
+    llm = {cat: set(g.work) for cat, g in ci[(ci.field == "llm_state") & ci.both].groupby("category")}
+    wt = pd.DataFrame({"work": sorted(culture)})
+    wt["culture"] = wt.work.map(culture)
+    wt["dependence_test"] = wt.work.isin(dep_works)
+    wt["llm_written_text"] = wt.work.isin(syn_works)
+    for cat in ["frozen", "lora_or_adapter", "full_finetune", "trained_from_scratch"]:
+        wt[f"llm_{cat}"] = wt.work.isin(llm.get(cat, set()))
+    for k, v in adj["rationale_adjudicated"].items():
+        if isinstance(v, list):
+            wt[f"rationale_{k}"] = wt.work.isin(set(v))
+    wt["cross_culture_units"] = wt.work.map(cu.groupby("work").size()).fillna(0).astype(int)
+    wt["opaque_step_share"] = wt.work.map(bio.groupby("work").opaque_step_share.median())
+    wt["unstated_slot_share"] = wt.work.map(sl.groupby("work").unstated.mean())
+    wt["n_slots"] = wt.work.map(sl.groupby("work").size()).fillna(0).astype(int)
+    wt.to_csv(CH / "work_level_table.csv", index=False)
+    cu.to_csv(CH / "comparison_units_with_opponent_class.csv", index=False)
+
     numbers = {
         "works": len(culture), "culture_n": n_by,
         "dependence_tests": {"works": len(dep_works), "by_culture": per_culture(dep_works, culture)},

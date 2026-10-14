@@ -313,7 +313,7 @@ screened with the same frozen pipelines, giving 55 records from 54 studies.
   date-bounded search window.
 - Lifecycle phases charted: fine-tuning (53 models), evaluation (51), pretraining (38), inference (35).
 
-### 3.3 Operation-level input paths (Figure 3a)
+### 3.3 Operation-level input paths (Figure 3a–b)
 
 **Coverage.** We decomposed 54 papers: 4 author-curated pilot papers and 50 agent papers. The withdrawn
 OKR-Cell preprint is excluded. The decomposition yields 475 input paths, with 1,348 library-operation
@@ -348,7 +348,7 @@ parameters with at least 45 calls, papers left unstated:
 Only 52 of the 262 biological routes with library calls (20%) state every declared parameter, and only
 4 of 43 works do so for all their biological routes.
 
-### 3.4 Two design cultures and a hybrid (Figures 1 and 3b–c)
+### 3.4 Two design cultures and a hybrid (Figures 1a and 3c–d)
 
 Biological routes fall into six main carrier × interface archetypes:
 - encoded soft tokens (24 papers);
@@ -362,7 +362,11 @@ The recurring operation sub-chains split along the same line. Verbalisation moti
 sample, then serialise) occur almost only in verbalised inputs. Encoder motifs (encoder then projector,
 stacked modules, encode-then-join) occur in the encoder-based archetypes. Of models whose motifs are all
 verbalisation motifs, 16 of 19 have a verbalised primary archetype; of models whose motifs are all
-encoder motifs, 23 of 28 have an encoder-based one.
+encoder motifs, 23 of 28 have an encoder-based one. At the level of works, verbalisation motifs occur in
+10 of 17 token-native and 4 of 16 encoder-mediated works, and encoder motifs in 9 of 16
+encoder-mediated, 8 of 8 hybrid and 4 of 17 token-native works (Figure 3d). Culture follows the main
+route by which biology reaches the generative model (§2.10), so a work can also carry motifs of the
+other family, for example in auxiliary routes or components.
 
 At the level of works, this gives two cultures, a hybrid, and a separate family in which language
 conditions a biology model:
@@ -460,7 +464,7 @@ property of language-model-hosted designs, not of either culture.
 - Only encoder-mediated works keep the language model frozen (3 of 16, against 0 of 17 token-native
   works; Fisher p = 0.10). They freeze (6) or fine-tune (6) the biological encoder.
 
-### 3.8 Is the biology used? (Figure 5b)
+### 3.8 Is the biology used? (Figure 1c)
 
 Twenty-two of 51 works (43%) report any test of whether outputs depend on the biological input: removal,
 mismatch or shuffling, random input, a no-biology baseline, or content perturbation (run agreement:
@@ -713,33 +717,57 @@ dependence controls, rather than further between-system leaderboards.
 
 ## Figures and tables
 
-- Figure 1. Two ways to give a language model a measurement, and why the published evidence cannot
-  choose between them (to draw):
-  - (a) the same cell through each culture: the top-K genes written as a rank-ordered list of names, or
-    the expression vector passed through an encoder and delivered as a few vectors, annotated with the
-    corpus budgets (K median 100, 8 works; 1–256 vectors, median 32, 11 works) and the opaque-step
-    shares (0 vs 0.33);
-  - (b) the 31 cross-culture comparisons as proposer × winner, split by opponent provenance (released
-    and unadapted, 19 units; built by the proposers, 11; no model, 1), with the three exceptions
-    marked.
+- **Figure 1. Two ways to give a language model a measurement, and why the published evidence cannot
+  choose between them** (`analysis/design_culture_charting_2026-10-14/v11/figures/figure1.png`).
+  (a) The two design cultures, annotated with corpus values. Token-native works rank a cell's genes,
+  keep the top K and write their names into the language model's token stream (K stated in 8 works:
+  5 token-native, 3 hybrid). Encoder-mediated works pass the measurement through a biological encoder
+  and a projector and inject a few vectors per object (stated in 11 works across cultures; input
+  feature counts in 6). Opaque-step shares are medians over works of the share of biological route
+  steps that are learned modules left unexpanded (14 token-native and 14 encoder-mediated works with
+  decomposed biological routes). Gene names and bar heights are illustrative. Hybrids (8 works) use
+  both lanes; 9 works condition a biology generator on language, and 1 aligns modalities without a
+  generative host. (b) The 31 cross-culture comparison units in 20 works, one square per unit, by the
+  culture of the proposed representation (rows) and how the opponent was obtained (columns). Colour
+  shows the winning culture; hatching marks a mixed result. Released, unadapted opponents are prompted
+  general LLMs and released encoder models used frozen or as published; opponents built by the
+  proposers are baselines or ablations trained on the same data. Image rendering is OpticalDNA's
+  DNA-as-image arm. (c) Works reporting any test of whether outputs depend on the biological input
+  (removal, mismatch or shuffling, random input, a no-biology baseline, content perturbation), one
+  square per work.
 - Figure 2. Review flow and corpus:
   - (a) compact PRISMA 2020 flow (full flow in Supplementary Figure S1,
     `analysis/prisma_flow_2026-10-07/prisma_flow.png`);
   - (b–d) records per year with works per culture, models per input-carrier family, fusion topology and
     text role (`analysis/review_synthesis_2026-10-07/corpus_landscape.png`, to update with cultures).
-- Figure 3. Operations and motifs (merges the former operation-reuse and motif figures):
-  - (a) operation reuse across papers and unreported parameters (to redraw from release 1.3.0);
-  - (b) the motif library in its verbalisation and encoder families
-    (`analysis/motif_library_2026-10-14/figure5_motif_library.png`);
-  - (c) correspondence of archetypes, motif families and cultures.
-- Figure 4. What each culture keeps, per work (to draw): (a) genes kept K; (b) vectors per object and
-  encoder input features; (c) opaque-step share by culture; (d) unstated-parameter share by culture.
-- Figure 5. How the cultures are justified and tested (to draw):
-  - (a) stated rationales;
-  - (b) LLM-generated supervision, adaptation and dependence tests by culture;
-  - (c) the 31 comparison units by design, proposing culture and winner, with opponents marked as
-    released or trained by the proposing team and the three exceptions annotated;
-  - (d) the result counted per work.
+- **Figure 3. Input paths decompose into reusable operations and recurring motifs**
+  (`analysis/design_culture_charting_2026-10-14/v11/figures/figure3.png`). (a) Papers using each of the
+  22 library operations (release 1.3.0; 54 papers). (b) Share of calls whose parameter is not stated
+  anywhere in the paper, for parameters with at least 45 calls (number of calls in parentheses;
+  agent-decomposed papers). (c) The 15 motifs (closed frequent sub-chains supported by at least 4
+  papers), coloured by family: verbalisation (subset, rank or sample, then serialise; serialised biology
+  read by a model), biological alphabet embedding, encoder (encoder, projector, stacked or joined learned
+  modules), and shared text-handling or normalisation motifs. (d) Works in which a proposed or component
+  model carries a motif of each family, by culture.
+- **Figure 4. What each culture keeps of a measurement**
+  (`analysis/design_culture_charting_2026-10-14/v11/figures/figure4.png`). (a) Counts per cell or
+  biological object as stated in the papers: genes kept when transcriptomes are written as names
+  (proposed-model text routes; 8 works), vectors or discrete codes passed to the language model (11
+  works; RVQ-Alpha uses learned discrete codes in the token stream), and features entering the encoder
+  (6 works). Points are works coloured by culture; works with the same value share a label. For
+  comparison, Cell2Sentence reports about 350 text tokens for a prompt plus 100 genes. (b) Per-work
+  median share of biological route steps that are opaque learned modules (works with agent-decomposed
+  biological routes). (c) Per-work share of parameter slots unstated in the paper (proposed and
+  component models; token-native vs encoder-mediated, Mann–Whitney p = 0.89). Bars are medians; the
+  alignment-only work is omitted from b and c.
+- **Figure 5. How the cultures justify and test their choice**
+  (`analysis/design_culture_charting_2026-10-14/v11/figures/figure5.png`). (a) Stated rationales, adjudicated
+  from verbatim quotes: for the work's own representation (token-native works) or against text rendering
+  (encoder-mediated works). (b) LLM-written text and adaptation of the language model by culture (cells:
+  works / works in the culture; adaptation counted where both charting runs agree). (c) Opponent type in
+  the 31 cross-culture comparison units, by proposed representation. (d) Units by task family; marker
+  shape shows the design and colour the proposed culture; open markers are the three units the proposer
+  did not win (two mixed, one loss). Contrasts between cultures are exploratory.
 - Box 1. A neutral comparison protocol and a reporting card for input representations (§4.3–4.4).
 - Supplementary Figure S1. Full PRISMA 2020 flow.
 - Table S1. Per-model charting table (`analysis/review_synthesis_2026-10-07/charting_table_models.csv`).
