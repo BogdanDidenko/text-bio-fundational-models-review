@@ -189,7 +189,7 @@ Stress test of the story and claim audit: `STRESS_TEST.md`.
 ## Novelty against prior reviews
 
 - Recent surveys classify models by family and task: ACL 2025 single-cell foundation language models;
-  LLM4Cell (58 models, "text-bridge" family); LLMs meet virtual cell; Nature 2025 multimodal-foundation-
+  LLM4Cell (arXiv:2510.07793, https://arxiv.org/html/2510.07793v2; "58 foundation and agentic models" in five families including "text-bridge"); LLMs meet virtual cell; Nature 2025 multimodal-foundation-
   model perspective; 2026 Cell Systems compositional-FM review.
 - None measures what each design keeps of the measurement, how designs justify themselves, or how
   cross-design comparisons are constructed.

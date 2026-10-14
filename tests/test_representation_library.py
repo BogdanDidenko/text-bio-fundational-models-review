@@ -58,6 +58,13 @@ class OperationLibraryTests(unittest.TestCase):
         self.assertTrue(checked)
 
     def test_every_lookup_call_declares_its_key_space(self):
+        """Every lookup call names a key space.
+
+        Scope: the strict check that the key space matches the representation type of each input node runs
+        only for the 4 author-curated pilot assemblies. For the 50 agent-decomposed assemblies the node
+        representation types are not curated and agents copy the key space from the paper, so only a
+        non-empty key_space is required (release 1.3.0; see DECISION_MEMO_1.3.0.md, "Test scope").
+        """
         lookup = next(block for block in self.catalog["blocks"] if block["operation_id"] == "lookup")
         self.assertIn("key_space", lookup["parameters"])
         checked = 0

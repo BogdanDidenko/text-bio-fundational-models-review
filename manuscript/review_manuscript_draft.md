@@ -323,7 +323,12 @@ calls and 819 steps kept as unexpanded boundaries.
 runs and 74 (5.0%) by two of three; every step had a majority. Under v3.1 with frozen rules, the
 consensus of runs 1–3 and of runs 4–6 on ten unseen papers agreed on 95.6% of steps and 85.4% of
 complete routes. After the v3.2 boundary fixes, the same papers agree on 99.6% and 98.8%. That second
-figure is in-sample, because these papers informed the fixes.
+figure is in-sample, because these papers informed the fixes. Across the three v3.2 production runs on
+all 50 agent papers, 90.9% of route × run-pair comparisons had identical operation sequences (gate:
+at least 90%) and the median paper-level operation-set Jaccard was 1.0, but five papers fell below the
+predeclared minimum of 0.75 (lowest 0.0 for Chroma, where one run produced a disjoint set). The
+full-corpus gate was therefore not met; release decisions use the per-step majority of the three runs
+(`analysis/operation_decomposition_2026-10-07/stabilization/v32_all/stability.json`).
 
 **Reuse.** 19 of the 22 operations occur in two or more papers. The most widespread are:
 - text serialisation (38 papers);
@@ -663,7 +668,9 @@ dependence controls, rather than further between-system leaderboards.
   earlier `gpt-5.4-mini` is no longer served through Codex. Agent graphs are three-run consensus
   decisions, not author-verified reconstructions, and were not checked by a reviewer agent.
 - Decomposition stability is incomplete. On unseen papers, the step-level consensus was reproduced in
-  95.6% of steps but complete route sequences only in 85.4%, below the predeclared 90% gate.
+  95.6% of steps but complete route sequences only in 85.4%, below the predeclared 90% gate. Among the
+  three production runs on all 50 agent papers, five papers had a pairwise operation-set Jaccard below
+  the predeclared minimum of 0.75 (one at 0.0), so the full-corpus gate was not met either.
   Residual disagreement concerns how prompts are merged with metadata (serialisation vs
   concatenation) and whether a named "tokenized" representation counts as a tokenisation step. The
   rules were tuned on development and earlier held-out papers, so in-sample stability is higher than

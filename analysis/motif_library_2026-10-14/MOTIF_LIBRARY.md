@@ -22,7 +22,8 @@ Support is counted in papers (54 papers: 50 agent-decomposed and 4 author-curate
 - 44 of 54 papers contain at least one motif.
   Of the 10 papers without a motif, 5 build their inputs with a single serialise step, which is too short to be a motif;
   the single-step serialise is the most common chain overall. The other 5 use pipelines whose parts are rare in the corpus:
-  - InstructCell: projector, then partition, then cross-attention;
+  - InstructCell: projector and partition, then concatenation with text tokens and cross-attention
+    (concatenation occurs 6 times across its 10 paths, more than any other operation);
   - rec_000950: diffusion conditioning;
   - rec_000194: attention stacks;
   - rec_001343: projections and lookups without a shared encoder;

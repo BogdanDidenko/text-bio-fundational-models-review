@@ -43,3 +43,11 @@ Evidence: disagreements between independent v3.1 runs (dev v3_i8, heldout4 v3_h4
 Protocol: operation-decomposition-v3.2 (rules in scripts/operation_decomposition_v3.py). The corpus is
 re-decomposed under v3.2 (3 runs per paper, consensus) and split-half stability is re-measured on
 heldout4 before 1.3.0 is published.
+
+## Test scope
+
+`tests/test_representation_library.py::test_every_lookup_call_declares_its_key_space` checks that the key
+space of each lookup matches the representation type of its input nodes only for the 4 author-curated
+pilot assemblies. For the 50 agent-decomposed assemblies it checks only that a key space is stated,
+because their node representation types are not curated (agents copy the key space from the paper).
+The scope was narrowed when the agent assemblies were added; it was not disclosed at the time.

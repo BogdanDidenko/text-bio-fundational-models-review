@@ -194,7 +194,7 @@ Robustness:
 - D1–D4 are pre-screens only.
 
 Novelty against prior reviews:
-- Recent surveys exist: ACL 2025 single-cell foundation language models; LLM4Cell (58 models); LLMs
+- Recent surveys exist: ACL 2025 single-cell foundation language models; LLM4Cell (arXiv:2510.07793; abstract at https://arxiv.org/html/2510.07793v2: "first unified survey of 58 foundation and agentic models"; checked by web search 2026-10-14); LLMs
   meet virtual cell; the Nature 2025 perspective on multimodal foundation models in molecular cell
   biology; the 2026 Cell Systems compositional-FM review.
 - These classify models by family and task. None measures what reaches the model, at operation level

@@ -1,6 +1,6 @@
 # Current state of the review (canonical pointer)
 
-Last updated: 2026-10-14. Git tag: `operation-library-1.3.0`.
+Last updated: 2026-10-14 (paper-1 manuscript draft v0.4 and figures). Git tag: `operation-library-1.3.0`.
 
 This file says which outputs are current. The repository also keeps earlier runs for provenance;
 anything not listed under "Current" below is history and must not be cited as a result.
@@ -18,9 +18,15 @@ anything not listed under "Current" below is history and must not be cited as a 
 | Parameter pass (stated / unstated per parameter) | 1.2.1 slots carried over; 16 changed papers re-run (p32) | `analysis/operation_decomposition_v32_2026-10-14/parameter_pass/consensus/`; design in `analysis/operation_decomposition_v31_2026-10-12/parameter_pass/GATE.md` |
 | Component-library website | release 1.3.0 | https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/ (source `docs/input-representation-atlas/component-library/`) |
 | Operation synthesis numbers | release 1.3.0 | `analysis/review_synthesis_2026-10-07/operation_synthesis.json` |
-| Motif library (frequent sub-chains) | v1 on 1.3.0 | `analysis/motif_library_2026-10-14/` (`MOTIF_LIBRARY.md`, `motifs.json`, Figure 5) |
+| Motif library (frequent sub-chains) | v1 on 1.3.0 | `analysis/motif_library_2026-10-14/` (`MOTIF_LIBRARY.md`, `motifs.json`; manuscript Figure 3c-d) |
 | Design-pattern taxonomy (axes, archetypes) | spec v2; codebook on 1.3.0 | `analysis/design_taxonomy_2026-10-13/TAXONOMY_SPEC.md`, `taxonomy_codebook.csv` |
-| Manuscript draft | 2026-10-14 | `manuscript/review_manuscript_draft.md` |
+| Integrated analysis tables (models, routes, steps, slots) | on 1.3.0 | `analysis/discovery_2026-10-14/*.parquet` (`scripts/build_integrated_dataset.py`) |
+| Discovery dossier and findings memo (paper 1) | 2026-10-14 | `analysis/discovery_2026-10-14/` (`candidate_findings.md`, `FINDINGS_MEMO.md`, `STRESS_TEST.md`) |
+| Design-culture charting pass | protocol v1.1, 54 records x 2 runs, steward-adjudicated | `analysis/design_culture_charting_2026-10-14/v11/` (`scripts/run_design_culture_charting.py`, `consolidate_design_culture_charting.py`) |
+| Design-culture numbers and per-work table | 2026-10-14 | `v11/design_culture_numbers.json`, `v11/work_level_table.csv`, `v11/comparison_units_adjudicated.csv` (`scripts/build_design_culture_synthesis.py`) |
+| Paper-1 Figures 1, 3, 4, 5 | 2026-10-14 | `analysis/design_culture_charting_2026-10-14/v11/figures/` (`scripts/build_design_culture_figures.py`; one source-data CSV per panel) |
+| Manuscript draft (paper 1, "Translate or encode?") | v0.4, 2026-10-14 | `manuscript/review_manuscript_draft.md` |
+| Research plan for paper 2 | 2026-10-14 | `analysis/discovery_2026-10-14/RESEARCH_PLAN_PAPER2.md` |
 
 Key numbers (1.3.0): 54 papers, 475 input paths, 1,348 library calls, 819 unexpanded steps;
 1,468 agent steps: 1,394 unanimous, 74 decided 2 of 3, 0 ties; 2,433 parameter slots: 1,589 stated;
@@ -29,14 +35,18 @@ Key numbers (1.3.0): 54 papers, 475 input paths, 1,348 library calls, 819 unexpa
 Stability, reported honestly in the manuscript:
 - v3.1 on heldout4 (unseen at the time): 0.956 step agreement, 0.854 route agreement.
 - v3.2 on the same papers: 0.996 / 0.988. This is in-sample, because heldout4 informed the v3.2 fixes.
+- v3.2 production runs on all 50 agent papers (`analysis/operation_decomposition_2026-10-07/stabilization/v32_all/stability.json`):
+  route x run-pair agreement 0.909 (G2 met), paper operation-set Jaccard median 1.0 but minimum 0.0;
+  five papers are below the 0.75 minimum (Chroma 0.0, SciCore-Omics 0.6, GenNA 0.667, CaLMFlow 0.714,
+  XunZi 0.714). The full-corpus gate is not met; the release uses the per-step majority of the three runs.
 
 ## Pending (known stale items)
 
-- Figure 3 (`analysis/review_synthesis_2026-10-07/operation_reuse.png`) is still drawn from release
-  1.1.0. It must be redrawn from 1.3.0 before submission.
-- Figure 4 and `pattern_crosstabs.csv` / `axis_tests.json` (`analysis/design_taxonomy_2026-10-13/`)
-  were computed on 1.2.1. Archetype labels are unchanged, and the shares differ by 2 points or less.
-  They should still be redrawn from 1.3.0.
+- Figure 2 (corpus landscape) still needs the works-per-culture breakdown; Box 1 is to typeset.
+- `pattern_crosstabs.csv` / `axis_tests.json` (`analysis/design_taxonomy_2026-10-13/`) were computed on
+  1.2.1. Archetype labels are unchanged, and the shares differ by 2 points or less.
+- Second human coder for the 31 comparison units and the culture assignment, with a recall audit of
+  comparisons (see `analysis/discovery_2026-10-14/STRESS_TEST.md`); all `[CITE]` entries to add and verify.
 - 74 two-of-three steps and 75 operation proposals await steward review
   (`analysis/operation_decomposition_v32_2026-10-14/STEWARD_QUEUE.md`).
 
@@ -51,3 +61,7 @@ Stability, reported honestly in the manuscript:
 | `analysis/operation_decomposition_v31_2026-10-12/` (records, corpus, steward queue) | releases 1.2.0 and 1.2.1 | `analysis/operation_decomposition_v32_2026-10-14/` |
 | `analysis/design_taxonomy_2026-10-13/chain_profile_exploratory.png`, `chain_profile_summary.json`, `motif_table.csv` | exact-chain diversity analysis ("no recurring recipes"); withdrawn as an artefact of chain construction | motif library |
 | `analysis/representation_block_library_2026-10-04/releases/1.0.0` ... `1.2.1` | earlier frozen catalog releases | `releases/1.3.0` |
+| `analysis/review_synthesis_2026-10-07/operation_reuse.png` | Figure 3 drawn from release 1.1.0 | `analysis/design_culture_charting_2026-10-14/v11/figures/figure3.png` |
+| `analysis/design_taxonomy_2026-10-13/figure4_design_patterns.png` | earlier Figure 4 (design patterns, 1.2.1) | paper-1 Figures 1, 3 and 4 |
+| `analysis/motif_library_2026-10-14/figure5_motif_library.png` | earlier Figure 5 (motif library) | `v11/figures/figure3.png` panels c-d |
+| `analysis/discovery_2026-10-14/prescreen_*`, `scan_*.md` | keyword pre-screens (skipped appendices) | design-culture charting pass (`v11/`) |
