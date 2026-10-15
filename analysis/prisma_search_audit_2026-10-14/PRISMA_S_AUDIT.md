@@ -147,3 +147,7 @@ The totals reproduce the PRISMA numbers: 5,534 + 867 + 933 + 197 + 639 = 8,170.
   read from `search_runs_by_database.csv`, with a balance check that they sum to 8,170.
 - Still open: the README status line ("7 databases, 4 rounds") and `protocol/search_strategy.md` (v2
   scope); both are handled in the repository cleanup.
+- Author decision 2026-10-15 on the vocabulary gap: the biological-data block has omics terms only, so
+  protein-sequence text models were never retrieved (`protein_text_models_coverage_check.md`). The scope
+  is stated as omics data (title, §2.2, §2.3) and the gap is reported in Limitations with its size; no
+  supplementary search.

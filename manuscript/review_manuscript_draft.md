@@ -1,6 +1,7 @@
-# Translate or encode? Two design cultures for coupling language and biology in generative foundation models: a scoping review
+# Translate or encode? Two design cultures for coupling language and omics data in generative foundation models: a scoping review
 
-*Draft v0.4, 2026-10-14 (restructured around the design-culture analysis; claims stress-tested, see
+*Draft v0.5, 2026-10-15 (scope stated as omics data, §2.2 and §5; v0.4 restructured around the
+design-culture analysis; claims stress-tested, see
 `analysis/discovery_2026-10-14/STRESS_TEST.md`). Numbers come from
 `scripts/build_prisma_flow.py`, `scripts/build_review_synthesis.py`, the operation library build
 (release 1.3.0) and `scripts/build_design_culture_synthesis.py`
@@ -9,19 +10,21 @@ hand. `[CITE]` marks a citation still to be added and verified.*
 
 ## Abstract
 
-**Background.** Generative foundation models that combine natural language with biological data have
-to decide how biology reaches the model. Two designs recur:
+**Background.** Generative foundation models that combine natural language with omics data have to
+decide how biology reaches the model. Two designs recur:
 - translating biology into the language model's own tokens;
 - encoding it with a biological model and injecting the result.
 
 The choice decides what information survives, yet each paper makes it alone and evaluates it itself.
 
-**Objective.** To map generative text–biology foundation models by how they couple language and
+**Objective.** To map generative text–omics foundation models by how they couple language and
 biology. For each design we ask what it keeps of the data, how it is justified, supervised and tested,
 and what the comparative evidence shows.
 
 **Methods.** We ran a PRISMA-ScR scoping review with a PRISMA-S search in five rounds (seven sources, with
-OpenAlex added in the fifth) and search windows from 2018-01-01 to 2026-08-09.
+OpenAlex added in the fifth) and search windows from 2018-01-01 to 2026-08-09. The search vocabulary
+covered omics data; models described only in terms of protein or nucleotide sequences were not
+targeted.
 - Screening and charting: frozen, role-separated LLM pipelines with adjudication. Each model's inputs
   were charted as grounded routes.
 - Decomposition: input paths were broken into calls to a library of 22 reusable data operations, by the
@@ -91,7 +94,9 @@ the other [CITE]. We are not aware of a cross-paper, evidence-grounded account t
 - how each is supervised and tested;
 - whether the published comparisons between them can tell which serves a given task better.
 
-This review answers these questions for generative text–biology foundation models. It rests on:
+This review answers these questions for generative foundation models that couple text with omics
+data. Text models of protein sequences, protein structures or small molecules are an adjacent family
+that this review's search did not target (§2.2, §5). It rests on:
 1. a reproducible living search and screening pipeline;
 2. a route-level charting of every model's inputs;
 3. an operation-level decomposition of each input path into reusable data operations (library release 1.3.0);
@@ -115,10 +120,24 @@ no biological modality (EC1), no text component or no substantive text–biology
 encoder-only or non-generative (EC3), no foundation-model component (EC4), non-computational (EC5),
 non-scholarly (EC6), reviews (EC7), duplicates (EC8). Full criteria: `protocol/eligibility_criteria.md`.
 
+**Scope boundary.** Biological data were defined as omics data: single-cell and bulk transcriptomic,
+chromatin-accessibility, surface-protein, spatial, methylation, epigenomic, genomic and other omics
+profiles (proteomics, metabolomics). The search vocabulary followed this definition (§2.3) and has no
+molecule-level terms such as protein, amino acid, DNA or nucleotide. Models whose biological input is
+a protein or nucleotide sequence were therefore retrieved only when their records also used omics
+terms. Thirteen included records carry protein inputs (sequences, structures, interaction networks or
+knowledge bases). Ten of them combine proteins with transcriptomic, nucleotide, methylation or
+perturbation data. In three, proteins (with small molecules in BioMedGPT) are the only biological
+input: Chroma, PROCYON and BioMedGPT. These three entered through an omics term in the abstract
+(PROCYON), through Google Scholar (BioMedGPT) or through Scopus, which also searches indexed keywords
+(Chroma), and are kept as screened.
+
 ### 2.3 Information sources and search
 
 Three concept blocks (biological data AND text/language AND foundation-model/generativity) were
-adapted per database (`protocol/queries/`). Supplementary Table S0 lists, for each round and database,
+adapted per database (`protocol/queries/`). The biological-data block lists omics and single-cell
+terms (for example single-cell, RNA-seq, gene expression, chromatin accessibility, spatial
+transcriptomics, transcriptomics, genomics, proteomics, epigenomics) and no molecule-level terms. Supplementary Table S0 lists, for each round and database,
 the interface, execution date, date and other limits as executed, and the records returned and
 retained. Supplementary Text S1 gives every query string as executed.
 
@@ -616,7 +635,7 @@ counts are small (4, 8, 20 and 18 papers).
 
 ### 4.1 Principal findings
 
-Generative text–biology foundation models are built in two design cultures:
+Generative text–omics foundation models are built in two design cultures:
 - **translating** biology into the language model's own tokens;
 - **encoding** it with biological models and injecting vectors.
 
@@ -692,7 +711,7 @@ meet virtual cell; Nature 2025 perspective on multimodal foundation models in mo
 2026 Cell Systems compositional-FM review; scoping review of LLM-generated synthetic data in
 biomedicine.] The translate-or-encode distinction is familiar to primary authors, who use it to justify
 their designs (§3.6). This review measures, at the level
-of operations, what each design keeps and how its claims are tested, across modalities.
+of operations, what each design keeps and how its claims are tested, across omics modalities.
 
 ### 4.6 Implications
 
@@ -740,6 +759,19 @@ dependence controls, rather than further between-system leaderboards.
     the window. They returned 51 unique records. 17 had already been retrieved and 34 had not; none of
     the 34 met the eligibility criteria in an indicative single-pass LLM title/abstract triage.
   - Scopus and Springer Nature were not re-run (`analysis/prisma_search_audit_2026-10-14/`).
+- The search vocabulary covered omics data only (§2.2).
+  - A coverage check found that 12 protein and biomolecular text–generative models (ProteinDT, BioT5,
+    BioT5+, NatureLM, Evolla, Galactica, InstructProtein, ProtLLM, Prot2Text, ProtT3, ProLLaMA,
+    TxGemma) were never retrieved. None has a term of the biological-data block in its title or
+    abstract.
+  - In the PubMed query for 2018-01-01 to 2026-08-09, a protein block in place of the biological-data
+    block adds 1,140 records that the original block does not match (the original query returns 939),
+    and a nucleotide block adds 508. In Europe PMC preprints the additions are 1,130 and 633 (hit
+    counts on 2026-10-15).
+  - The findings therefore describe omics-framed models. Models whose only biological input is a
+    protein are represented by three works (§2.2), and nucleotide-sequence models described without
+    omics terms are under-represented. Whether the two cultures and the home advantage hold for these families is
+    untested (Supplementary Text S2).
 - In the baseline full-text screening (2026-07-10), the abstract shown with the selected sections was
   cut to about 1,500 characters for 73 of 221 records (selected sections were complete), and five
   reports whose only reconstructed section covered at least 90% of the paper were not screened at full
@@ -838,6 +870,8 @@ dependence controls, rather than further between-system leaderboards.
 - Text S1. Search strategies as executed (`analysis/prisma_search_audit_2026-10-14/search_strategies_as_executed.md`),
   with the PRISMA-S audit and the coverage check of 2026-02-16 to 2026-02-28 (`PRISMA_S_AUDIT.md`,
   `gap_probe_2026-02-16_28.json`, `gap_probe_indicative_triage.json`).
+- Text S2. Coverage check for protein and biomolecular text–generative models and the size of the
+  vocabulary gap (`analysis/prisma_search_audit_2026-10-14/protein_text_models_coverage_check.md`).
 - Table S1. Per-model charting table (`analysis/review_synthesis_2026-10-07/charting_table_models.csv`).
 - Table S2. Full-text exclusions with reasons (`analysis/prisma_flow_2026-10-07/PRISMA_FLOW.md`).
 - Table S3. Library steward queue (`analysis/operation_decomposition_2026-10-07/STEWARD_QUEUE.md`).
