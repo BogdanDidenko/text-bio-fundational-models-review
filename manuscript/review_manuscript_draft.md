@@ -874,7 +874,7 @@ dependence controls, rather than further between-system leaderboards.
   vocabulary gap (`analysis/prisma_search_audit_2026-10-14/protein_text_models_coverage_check.md`).
 - Table S1. Per-model charting table (`analysis/review_synthesis_2026-10-07/charting_table_models.csv`).
 - Table S2. Full-text exclusions with reasons (`analysis/prisma_flow_2026-10-07/PRISMA_FLOW.md`).
-- Table S3. Library steward queue (`analysis/operation_decomposition_2026-10-07/STEWARD_QUEUE.md`).
+- Table S3. Library steward queue (`analysis/operation_decomposition_v32_2026-10-14/STEWARD_QUEUE.md`).
 - Table S4. Route-level design-pattern codebook (`analysis/design_taxonomy_2026-10-13/taxonomy_codebook.csv`).
 - Table S5. Motif library (`analysis/motif_library_2026-10-14/MOTIF_LIBRARY.md`, `motifs.json`).
 - Table S6. Work-level culture assignment and charted variables

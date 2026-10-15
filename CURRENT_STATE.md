@@ -1,6 +1,6 @@
 # Current state of the review (canonical pointer)
 
-Last updated: 2026-10-14 (paper-1 manuscript draft v0.4 and figures). Git tag: `operation-library-1.3.0`.
+Last updated: 2026-10-15 (repository cleanup; paper-1 manuscript draft v0.5). Git tag: `operation-library-1.3.0`.
 
 This file says which outputs are current. The repository also keeps earlier runs for provenance;
 anything not listed under "Current" below is history and must not be cited as a result.
@@ -25,7 +25,7 @@ anything not listed under "Current" below is history and must not be cited as a 
 | Design-culture charting pass | protocol v1.1, 54 records x 2 runs, steward-adjudicated | `analysis/design_culture_charting_2026-10-14/v11/` (`scripts/run_design_culture_charting.py`, `consolidate_design_culture_charting.py`) |
 | Design-culture numbers and per-work table | 2026-10-14 | `v11/design_culture_numbers.json`, `v11/work_level_table.csv`, `v11/comparison_units_adjudicated.csv` (`scripts/build_design_culture_synthesis.py`) |
 | Paper-1 Figures 1, 3, 4, 5 | 2026-10-14 | `analysis/design_culture_charting_2026-10-14/v11/figures/` (`scripts/build_design_culture_figures.py`; one source-data CSV per panel) |
-| Manuscript draft (paper 1, "Translate or encode?") | v0.4, 2026-10-14 | `manuscript/review_manuscript_draft.md` |
+| Manuscript draft (paper 1, "Translate or encode?") | v0.5, 2026-10-15 | `manuscript/review_manuscript_draft.md` |
 | Research plan for paper 2 | 2026-10-14 | `analysis/discovery_2026-10-14/RESEARCH_PLAN_PAPER2.md` |
 
 Key numbers (1.3.0): 54 papers, 475 input paths, 1,348 library calls, 819 unexpanded steps;
@@ -52,16 +52,20 @@ Stability, reported honestly in the manuscript:
 
 ## Superseded (history, do not cite)
 
+Rows marked **removed** were deleted from the tree on 2026-10-15 and remain in the tag
+`archive/pre-cleanup-2026-10-15`. Failed, pilot and other superseded runs removed on the same day are
+listed in `ARCHIVE.md`.
+
 | Location | What it was | Superseded by |
 |---|---|---|
-| `analysis/operation_decomposition_2026-10-07/records/`, `corpus_assemblies.json`, `STEWARD_QUEUE.md`, `corpus_status.json` | release 1.1.0, protocol v1 (single extractor + reviewer, free graph structure) | 1.3.0 |
-| `analysis/operation_decomposition_2026-10-07/replicates/` | v1 run-to-run study that showed instability (op-set Jaccard 0.667) | stabilization work below |
-| `analysis/operation_decomposition_2026-10-07/stabilization/v2_i1`, `v3_i1`, `v3_h3diag` | protocol development iterations (v3_i2-v3_h3 run data lost; values in `STABILIZATION_REPORT.md`) | v3.2 |
-| `analysis/operation_decomposition_2026-10-07/stabilization/v3_i8`, `v3_h4`, `v31_rest30` | source runs of releases 1.2.0/1.2.1 (protocol v3.1) | `v32_all`, `v32_h4` |
-| `analysis/operation_decomposition_v31_2026-10-12/` (records, corpus, steward queue) | releases 1.2.0 and 1.2.1 | `analysis/operation_decomposition_v32_2026-10-14/` |
-| `analysis/design_taxonomy_2026-10-13/chain_profile_exploratory.png`, `chain_profile_summary.json`, `motif_table.csv` | exact-chain diversity analysis ("no recurring recipes"); withdrawn as an artefact of chain construction | motif library |
+| `analysis/operation_decomposition_2026-10-07/records/`, `corpus_assemblies.json`, `STEWARD_QUEUE.md`, `corpus_status.json` (**removed**) | release 1.1.0, protocol v1 (single extractor + reviewer, free graph structure) | 1.3.0 |
+| `analysis/operation_decomposition_2026-10-07/replicates/` (**removed**) | v1 run-to-run study that showed instability (op-set Jaccard 0.667) | stabilization work below |
+| `analysis/operation_decomposition_2026-10-07/stabilization/v2_i1`, `v3_i1`, `v3_h3diag` (**removed**) | protocol development iterations (v3_i2-v3_h3 run data lost; values in `STABILIZATION_REPORT.md`) | v3.2 |
+| `analysis/operation_decomposition_2026-10-07/stabilization/v3_i8`, `v3_h4`, `v31_rest30` (**removed**) | source runs of releases 1.2.0/1.2.1 (protocol v3.1) | `v32_all`, `v32_h4` |
+| `analysis/operation_decomposition_v31_2026-10-12/` (records, corpus, steward queue) | releases 1.2.0 and 1.2.1; kept in the tree because its parameter pass supplies the slots carried into 1.3.0 | `analysis/operation_decomposition_v32_2026-10-14/` |
+| `analysis/design_taxonomy_2026-10-13/chain_profile_exploratory.png`, `chain_profile_summary.json`, `motif_table.csv` (**removed**) | exact-chain diversity analysis ("no recurring recipes"); withdrawn as an artefact of chain construction | motif library |
 | `analysis/representation_block_library_2026-10-04/releases/1.0.0` ... `1.2.1` | earlier frozen catalog releases | `releases/1.3.0` |
-| `analysis/review_synthesis_2026-10-07/operation_reuse.png` | Figure 3 drawn from release 1.1.0 | `analysis/design_culture_charting_2026-10-14/v11/figures/figure3.png` |
-| `analysis/design_taxonomy_2026-10-13/figure4_design_patterns.png` | earlier Figure 4 (design patterns, 1.2.1) | paper-1 Figures 1, 3 and 4 |
-| `analysis/motif_library_2026-10-14/figure5_motif_library.png` | earlier Figure 5 (motif library) | `v11/figures/figure3.png` panels c-d |
-| `analysis/discovery_2026-10-14/prescreen_*`, `scan_*.md` | keyword pre-screens (skipped appendices) | design-culture charting pass (`v11/`) |
+| `analysis/review_synthesis_2026-10-07/operation_reuse.png` (**removed**) | Figure 3 drawn from release 1.1.0 | `analysis/design_culture_charting_2026-10-14/v11/figures/figure3.png` |
+| `analysis/design_taxonomy_2026-10-13/figure4_design_patterns.png` (**removed**) | earlier Figure 4 (design patterns, 1.2.1) | paper-1 Figures 1, 3 and 4 |
+| `analysis/motif_library_2026-10-14/figure5_motif_library.png` (**removed**) | earlier Figure 5 (motif library) | `v11/figures/figure3.png` panels c-d |
+| `analysis/discovery_2026-10-14/prescreen_*`, `scan_*.md` (**removed**) | keyword pre-screens (skipped appendices) | design-culture charting pass (`v11/`) |

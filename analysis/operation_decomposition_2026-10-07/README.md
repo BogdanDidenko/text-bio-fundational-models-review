@@ -1,5 +1,11 @@
 # Corpus-wide operation decomposition (51 remaining included papers)
 
+> **2026-10-15.** The release 1.1.0 outputs of this run (`records/`, `corpus_assemblies.json`,
+> `corpus_status.json`, `STEWARD_QUEUE.md`), the v1 replicate study (`replicates/`) and the superseded
+> stabilization iterations (`v2_i1`, `v3_i1`, `v3_h3diag`, `v3_i8`, `v3_h4`, `v31_rest30`) were removed from
+> the tree; restore them from the tag `archive/pre-cleanup-2026-10-15` (see `ARCHIVE.md`). The current
+> source runs of release 1.3.0 are `stabilization/v32_all/` and `stabilization/v32_h4/`.
+
 Extends the reviewed four-paper operation-constructor pilot (ChatNT, InstructCell, X-Cell,
 MUPAD) to every other paper in the 55-record included set. No search refresh is part of
 this step: the corpus is the current included set in `docs/input-representation-atlas/data/atlas.json`.

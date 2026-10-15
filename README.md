@@ -18,7 +18,7 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 | 9. Operation-level decomposition | Done (release 1.3.0) | 54 papers, 3-run consensus, protocol v3.2; site: component library |
 | 10. Motif library and design-pattern taxonomy | Draft | 15 recurring sub-chains; axes and archetypes |
 
-**Which outputs are current:** see [`CURRENT_STATE.md`](CURRENT_STATE.md). Older run folders that other files still refer to are kept for provenance and are marked superseded; 21 unreferenced ones were removed on 2026-10-14 and remain available from the tag `archive/pre-cleanup-2026-10-14` (see [`ARCHIVE.md`](ARCHIVE.md)).
+**Which outputs are current:** see [`CURRENT_STATE.md`](CURRENT_STATE.md). Superseded, failed, pilot and unreferenced run folders were removed from the tree on 2026-10-14 and 2026-10-15; they remain available from the tags `archive/pre-cleanup-2026-10-14` and `archive/pre-cleanup-2026-10-15` (see [`ARCHIVE.md`](ARCHIVE.md)).
 
 For the next update, start with the canonical operational runbook:
 [`protocol/LIVING_REVIEW_RUNBOOK.md`](protocol/LIVING_REVIEW_RUNBOOK.md).
