@@ -1,6 +1,7 @@
 # Translate or encode? Two design cultures for coupling language and omics data in generative foundation models: a scoping review
 
-*Draft v0.5, 2026-10-15 (scope stated as omics data, §2.2 and §5; v0.4 restructured around the
+*Draft v0.5.1, 2026-10-15 (v0.5.1: figure and table callouts in citation order, for the LaTeX version in
+`manuscript/latex/`; v0.5: scope stated as omics data, §2.2 and §5; v0.4 restructured around the
 design-culture analysis; claims stress-tested, see
 `analysis/discovery_2026-10-14/STRESS_TEST.md`). Numbers come from
 `scripts/build_prisma_flow.py`, `scripts/build_review_synthesis.py`, the operation library build
@@ -74,7 +75,8 @@ We propose a neutral comparison protocol and a reporting card for input represen
 
 Large language models are being extended to biological data: single-cell profiles, nucleotide and
 protein sequences, histology and microscopy images, molecular graphs and knowledge bases [CITE]. Every
-such system has to decide how a measurement reaches a network trained on text. Two answers recur.
+such system has to decide how a measurement reaches a network trained on text. Two answers recur
+(Figure 1a).
 
 - **Translate:** the measurement is written in the language model's own tokens. Examples are a ranked
   list of gene names, a nucleotide string, or a vocabulary extended with biological symbols. The model
@@ -437,7 +439,7 @@ route by which biology reaches the generative model (§2.10), so a work can also
 other family, for example in auxiliary routes or components.
 
 At the level of works, this gives two cultures, a hybrid, and a separate family in which language
-conditions a biology model:
+conditions a biology model (Table 1):
 
 | Culture | Definition | Works |
 |---|---|---|
@@ -501,7 +503,8 @@ discipline.
 ### 3.6 How each culture justifies its choice (Figure 5a)
 
 Stated rationales were charted with verbatim evidence and adjudicated by the steward (rationale run
-agreement: mean Jaccard 0.60). The two cultures describe the same trade-off from opposite sides.
+agreement: mean Jaccard 0.60). The two cultures describe the same trade-off from opposite sides
+(Table 2).
 
 | Rationale | Token-native (of 17) | Encoder-mediated (of 16) |
 |---|---|---|
@@ -536,7 +539,7 @@ property of language-model-hosted designs, not of either culture.
 
 Twenty-two of 51 works (43%) report any test of whether outputs depend on the biological input: removal,
 mismatch or shuffling, random input, a no-biology baseline, or content perturbation (run agreement:
-Jaccard 0.91).
+Jaccard 0.91; Table 3).
 
 | Culture | Works with a dependence test |
 |---|---|
