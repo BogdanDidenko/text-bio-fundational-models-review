@@ -881,11 +881,11 @@ The data files are comma-separated, UTF-8 encoded and use plain-language values.
 | search_​runs.csv | interface | Interface through which the source was queried |
 | search_​runs.csv | date_​limit_​as_​executed | Date restriction as executed, in the syntax of the source |
 | search_​runs.csv | other_​limits_​as_​executed | Other limits as executed (language, access, categories, validation) |
-| search_​runs.csv | hits_​reported | Number of hits reported by the source's interface, where it reports one |
-| search_​runs.csv | records_​fetched | Number of records downloaded |
-| search_​runs.csv | records_​before_​validation | Records retrieved before the title/abstract validation applied to full-text-only interfaces (Springer Nature) or before deduplication within the source |
-| search_​runs.csv | count_​in_​run_​log | Count recorded in the run log of the round |
-| search_​runs.csv | records_​retained | Records retained from the source and passed to deduplication |
+| search_​runs.csv | hits_​reported | Total number of results reported in the export metadata, where the interface reports one |
+| search_​runs.csv | records_​fetched | Number of records fetched, as recorded in the export metadata |
+| search_​runs.csv | records_​before_​validation | Records in the raw export before filtering after retrieval (for Springer Nature, the check that a term of each concept block is in the title or abstract) |
+| search_​runs.csv | count_​in_​run_​log | Count for the source in the search summary file of the round |
+| search_​runs.csv | records_​retained | Records in the export file of the run, passed to deduplication |
 | search_​runs.csv | export_​file | Repository path of the export file of the run |
 | fulltext_​exclusions.csv | reason | Main reason for exclusion at full text |
 | fulltext_​exclusions.csv | reports | Number of reports excluded for this reason |

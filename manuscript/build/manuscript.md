@@ -706,7 +706,7 @@ and the data files with a column dictionary.
 The search configurations and exports, screening and charting outputs, the operation library
 (version 1.3.0), the analysis code and the source data of every figure panel are available at
 https://github.com/BogdanDidenko/text-bio-fundational-models-review (this version: commit
-<!-- generated: build_commit -->22f24fa0<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
+<!-- generated: build_commit -->b3619e53<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
 supplementary item, and the earlier version of this manuscript, with its internal labels, is
 `manuscript/archive/review_manuscript_draft_v0.5.1.md` (commit 4c4db9f0). The component library is
 browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. A
