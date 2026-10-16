@@ -293,20 +293,20 @@ no biological modality (3), benchmark or resource without a new model (2), no fo
 evidence (1), and no substantive text–biology bridge (1) (Supplementary Table [[S:exclusions]]).
 Fifty-four records were included from the databases. One more (XunZi) was recovered after an error in
 the automated keyword check that precedes screening was corrected, and was screened with the same
-frozen procedures, giving 55 records from 54 studies (Figure 2a; full flow in Supplementary Figure [[S:flow]]).
+frozen procedures, giving 55 records from 54 studies (Figure 2, left; Supplementary Figure [[S:flow]]).
 
 ### The included works
 
 The 55 records describe 109 models (29 records describe one model; two describe eight), with 467
-task/input configurations and 585 grounded routes (Supplementary Table [[S:models]]). After excluding
+task/input configurations and 585 grounded routes (Figure 2b–d; Supplementary Table [[S:models]]). After excluding
 the withdrawn OKR-Cell preprint, 54 records remain. Three studies have two reports each (Cell2Text,
 CellWhisperer, OmniNA), so the corpus contains 51 independent works, and the culture-level analyses
 below count works, not records (Supplementary Table [[S:works]]).
 
 The records were published in 2023 (4), 2024 (8), 2025 (22) and 2026 to 9 August (21); none is from
-2018–2022, although the search started in 2018. Years for 13 records added in 2026 top-ups come from
+2018–2022, although the search started in 2018 (Figure 2a). Years for 13 records added in 2026 top-ups come from
 the date-bounded search window. The charted lifecycle phases are fine-tuning (53 models), evaluation
-(51), pretraining (38) and inference (35) (Figure 2b–d).
+(51), pretraining (38) and inference (35).
 
 Thirteen included records carry protein inputs (sequences, structures, interaction networks or
 knowledge bases). Ten of them combine proteins with transcriptomic, nucleotide, methylation or
@@ -759,9 +759,11 @@ models in drafting or editing this manuscript, as required by the journal's poli
   Image rendering is OpticalDNA's DNA-as-image arm. (c) Works reporting any test of whether outputs
   depend on the biological input (removal, mismatch or shuffling, random input, a no-biology baseline,
   content perturbation), one square per work. LLM, large language model.
-- **Figure 2. Review flow and corpus.** (a) Compact PRISMA 2020 flow (the full flow, with the records
-  identified per database, is Supplementary Figure [[S:flow]]). (b–d) Records per year with works per
-  culture, models per input-carrier family, fusion topology and text role.
+- **Figure 2. Review flow and corpus.** Left: PRISMA 2020 flow with the records identified per
+  database. Right: (a) included records per publication year, (b) models per input-carrier family, (c)
+  models per fusion topology and (d) models per text role. [TODO: replace the left panel by a compact
+  flow, keeping the full flow as Supplementary Figure [[S:flow]], and add the works per culture to
+  panel a.]
 - **Figure 3. Input paths decompose into reusable operations and recurring motifs.** (a) Papers using
   each of the 22 library operations (54 papers). (b) Share of calls whose parameter is not stated
   anywhere in the paper, for parameters with at least 45 calls (number of calls in parentheses;
