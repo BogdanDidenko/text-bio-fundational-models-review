@@ -111,6 +111,7 @@ EXTERNAL = {
     "prisma_scr": ("doi:10.7326/M18-0850", "PRISMA Extension for Scoping Reviews", "reporting guideline"),
     "prisma_s": ("doi:10.1186/s13643-020-01542-z", "PRISMA-S", "search reporting guideline"),
     "press": ("doi:10.1016/j.jclinepi.2016.01.021", "PRESS Peer Review of Electronic Search Strategies", "search peer review guideline"),
+    "prisma_trace": ("doi:10.2196/80247", "PRISMA-trAIce", "reporting guideline for AI-assisted steps"),
     "docling": ("arxiv:2408.09869", "Docling Technical Report", "full-text conversion tool"),
     "lora": ("arxiv:2106.09685", "LoRA", "adaptation method"),
     "scgpt": ("doi:10.1038/s41592-024-02201-0", "scGPT", "comparator model"),

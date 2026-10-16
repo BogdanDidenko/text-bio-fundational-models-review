@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
 """Generate the LaTeX body of paper 1 from the Markdown master.
 
-Input:  manuscript/review_manuscript_draft.md (sections 1-5 and the "Figures and tables" list)
-Output: manuscript/latex/body.tex, manuscript/latex/supplementary.tex and the figure files in
+Input:  manuscript/build/manuscript.md, the resolved Markdown master written by
+        scripts/build_manuscript.py (supplementary numbers filled in, build commit inserted)
+Output: manuscript/latex/frontmatter.tex (abstract, keywords), keypoints.tex, body.tex,
+        backmatter.tex (statements and biographical notes) and the figure files in
         manuscript/latex/figures/
 
-The front and back matter (title page, short abstract, Key Points, statements, biographies) are
-written by hand in manuscript/latex/main.tex. The long Markdown abstract is not used.
+The title page (authors, affiliations, correspondence) stays in manuscript/latex/main.tex; every
+other part of the article comes from the Markdown master.
 
 Conventions applied here:
   * each included work, guideline, tool or comparator named in the text is cited at its first
     mention (CITATIONS below; keys from manuscript/latex/references.bib), and all 55 included
     records are cited together where the inclusion count is reported (section 3.1);
   * [CITE ...] placeholders of the draft stay visible (red) for the author to resolve;
-  * the lists of sections 4.3 and 4.4 are typeset as Box 1;
-  * figure legends come from the "Figures and tables" list, without the file paths.
+  * [TODO ...] placeholders are typeset with \todo (red);
+  * the lists of the subsections "A neutral comparison protocol" and "A reporting card for input
+    representations" are typeset as Box 1;
+  * figure legends come from the "Figure legends" list.
 
-Run: python3 scripts/build_manuscript_latex.py
+Run through scripts/build_manuscript.py, which writes the resolved master first; on its own:
+    python3 scripts/build_manuscript_latex.py
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MD = ROOT / "manuscript/review_manuscript_draft.md"
+MD = ROOT / "manuscript/build/manuscript.md"
 OUT = ROOT / "manuscript/latex"
 BIB = OUT / "references.bib"
 
@@ -36,13 +41,13 @@ FIGURES = {
     4: ["analysis/design_culture_charting_2026-10-14/v11/figures/figure4.pdf"],
     5: ["analysis/design_culture_charting_2026-10-14/v11/figures/figure5.pdf"],
 }
-FIG2_CAPTION = (
-    r"\textbf{Review flow and corpus.} Left: PRISMA 2020 flow with records identified per database "
-    r"(the same full flow is Supplementary Figure S1). Right: (a) included records per publication year, "
-    r"(b) models per input-carrier family, (c) fusion topology and (d) text role. "
-    r"\draftnote{Draft: the compact flow and the works-per-culture breakdown of panel a are still to be made; "
-    r"the panels shown are the current versions.}"
+FIG2_DRAFT_NOTE = (
+    r" \draftnote{Draft: the compact flow (a) and the works-per-culture breakdown are still to be made; the "
+    r"panels shown are the full flow (left) and the current corpus panels (right).}"
 )
+FRONT = ("Abstract", "Keywords", "Key Points")
+BACK_FIRST = "Supplementary data"
+LEGENDS = "Figure legends"
 TABLE_CAPTIONS = [
     "Design cultures of the 51 independent works.",
     "Stated rationales for and against input representations, by culture (works; adjudicated from verbatim quotes).",
@@ -52,7 +57,7 @@ BOX_TITLE = "A neutral comparison protocol and a reporting card for input repres
 
 # Name as written in the manuscript -> citation keys. Cited once, at the first mention in the body.
 CITATIONS = [
-    ("PRISMA-ScR", ["prisma_scr"]), ("PRISMA-S", ["prisma_s"]), ("PRESS", ["press"]),
+    ("PRISMA-ScR", ["prisma_scr"]), ("PRISMA-S", ["prisma_s"]), ("PRISMA-trAIce", ["prisma_trace"]), ("PRESS", ["press"]),
     ("Docling", ["docling"]), ("LoRA", ["lora"]), ("LLM4Cell", ["llm4cell"]),
     ("scGPT", ["scgpt"]), ("Geneformer", ["geneformer"]), ("ESM-2", ["esm2"]), ("Nicheformer", ["nicheformer"]),
     ("Llama-2-Chat", ["llama2"]), ("GPT-4o", ["gpt4o"]), ("Tahoe-100M", ["tahoe100m"]),
@@ -72,7 +77,7 @@ CITATIONS = [
     ("OpticalDNA", ["opticaldna"]), ("OmniGene-4", ["omnigene4"]), ("TISSUENARRATOR", ["tissuenarrator"]),
     ("Geneverse", ["geneverse"]),
 ]
-INCLUSION_SENTENCE = "giving 55 records from 54 studies."
+INCLUSION_SENTENCE = "giving 55 records from 54 studies"  # all included records are cited here
 INCLUDED_KEYS_FROM = ROOT / "scripts/build_manuscript_references.py"
 
 SUP = {"⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9", "⁻": "-"}
@@ -113,9 +118,9 @@ class Citer:
 
 
 def code(text: str) -> str:
-    if re.search(r"[/._-]", text) and " " not in text:
-        return r"\nolinkurl{" + text + "}"
-    return r"\texttt{" + esc(text) + "}"
+    if re.search(r"[/._-]", text) and " " not in text and len(text) > 24:
+        return r"\nolinkurl{" + text + "}"  # paths: may break at separators
+    return r"\mbox{\texttt{" + esc(text) + "}}"  # model names and short identifiers: never broken
 
 
 def esc(text: str) -> str:
@@ -143,11 +148,15 @@ def plain_text(text: str) -> str:
 
 
 def inl(text: str) -> str:
-    # [CITE ...] placeholders of the draft are kept visible
+    # [CITE ...] and [TODO ...] placeholders of the draft are kept visible
     out, last = [], 0
-    for m in re.finditer(r"\[CITE[^\]]*\]", text):
+    for m in re.finditer(r"\[(CITE|TODO)[^\]]*\]", text):
         out.append(inl_core(text[last:m.start()]))
-        out.append(r"\citeplaceholder{" + inl_core(m.group(0)[1:-1]) + "}")
+        inner = m.group(0)[1:-1]
+        if m.group(1) == "TODO":
+            out.append(r"\todo{" + inl_core(inner[len("TODO:"):].strip() if inner.startswith("TODO:") else inner) + "}")
+        else:
+            out.append(r"\citeplaceholder{" + inl_core(inner) + "}")
         last = m.end()
     out.append(inl_core(text[last:]))
     return "".join(out)
@@ -322,7 +331,7 @@ def figure_legends(lines: list[str]) -> tuple[dict[int, str], list[str]]:
     supplementary: list[str] = []
     for item in items:
         text = " ".join(" ".join(c) for t, c in item["blocks"] if t == "text")
-        m = re.match(r"\*\*Figure (\d)\. (.+?)\*\*\s*\(`[^`]+`\)\.\s*(.*)$", text)
+        m = re.match(r"\*\*Figure (\d)\. (.+?)\.?\*\*\s*(.*)$", text)
         if m:
             legends[int(m.group(1))] = r"\textbf{" + inl_core(m.group(2)) + ".} " + inl_core(m.group(3))
         elif re.match(r"(Supplementary Figure|Table S|Text S)", text):
@@ -340,21 +349,68 @@ def render_figure(n: int, caption: str) -> str:
     return f"\\begin{{figure*}}[!t]\n\\centering\n{body}\n\\caption{{{caption}}}\\label{{fig:{n}}}\n\\end{{figure*}}"
 
 
+def section_text(lines: list[str], heads: dict[str, int], name: str) -> list[str]:
+    i = heads[name] + 1
+    out = []
+    while i < len(lines) and not lines[i].startswith("## "):
+        out.append(lines[i])
+        i += 1
+    return out
+
+
+def write_front_matter(lines: list[str], heads: dict[str, int]) -> None:
+    gen = "% Generated by scripts/build_manuscript_latex.py from the Markdown master; do not edit."
+    abstract = " ".join(l.strip() for l in section_text(lines, heads, "Abstract") if l.strip())
+    keywords = " ".join(l.strip() for l in section_text(lines, heads, "Keywords") if l.strip())
+    kw = ", ".join(k.strip() for k in keywords.split(";") if k.strip())
+    (OUT / "frontmatter.tex").write_text(f"{gen}\n\\abstract{{{inl(abstract)}}}\n\n\\keywords{{{esc(kw)}}}\n", encoding="utf-8")
+    items = parse_list([l for l in section_text(lines, heads, "Key Points")])
+    dummy = Citer.__new__(Citer)
+    dummy.done, dummy.patterns = set(), []
+    (OUT / "keypoints.tex").write_text(f"{gen}\n\\section*{{Key Points}}\n" + render_items(items, dummy) + "\n", encoding="utf-8")
+
+
+def write_back_matter(lines: list[str], citer: "Citer") -> None:
+    out = ["% Generated by scripts/build_manuscript_latex.py from the Markdown master; do not edit."]
+    bios: list[str] = []
+    name = ""
+    for btype, content in blocks_of(lines):
+        if btype == "section":
+            name = content
+            if name != "Biographical notes":
+                out.append(f"\n\\section*{{{inl_core(name)}}}")
+        elif name == "Biographical notes" and btype == "list":
+            for item in parse_list(content):
+                text = " ".join(" ".join(c) for t, c in item["blocks"] if t == "text")
+                person, _, rest = text.partition(" [")
+                rest = "[" + rest if rest else ""
+                bios.append(f"\\begin{{biography}}{{}}{{\\author{{{inl(person)}}} {inl(rest)}}}\n\\end{{biography}}")
+        elif btype == "para":
+            out.append(inl(content))
+        elif btype == "list":
+            out.append(render_items(parse_list(content), citer))
+    (OUT / "backmatter.tex").write_text("\n\n".join(out) + "\n", encoding="utf-8")
+    (OUT / "biographies.tex").write_text("\n\n".join(bios) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     md = MD.read_text(encoding="utf-8")
+    md = re.sub(r"<!--.*?-->", "", md, flags=re.S)  # markers of generated values (see build_manuscript.py)
     lines = md.split("\n")
-    start = next(i for i, l in enumerate(lines) if l.startswith("## 1. Introduction"))
-    figs_at = next(i for i, l in enumerate(lines) if l.startswith("## Figures and tables"))
-    body_lines, fig_lines = lines[start:figs_at], [l for l in lines[figs_at + 1:]]
+    heads = {l[3:].strip(): i for i, l in enumerate(lines) if l.startswith("## ")}
+    start, back_at, figs_at = heads["Introduction"], heads[BACK_FIRST], heads[LEGENDS]
+    body_lines, back_lines, fig_lines = lines[start:back_at], lines[back_at:figs_at], lines[figs_at + 1:]
+    write_front_matter(lines, heads)
     known = set(re.findall(r"^@\w+\{([^,\s]+),", BIB.read_text(encoding="utf-8"), re.M))
     included = re.findall(r'"[a-z_0-9-]+__[a-z_0-9]+": "([a-z0-9_]+)"', INCLUDED_KEYS_FROM.read_text())
     if len(set(included)) != 55:
         raise SystemExit(f"expected 55 included keys, found {len(set(included))}")
     citer = Citer(known)
     legends, supplementary = figure_legends(fig_lines)
-    legends[2] = FIG2_CAPTION
+    legends[2] = legends[2] + FIG2_DRAFT_NOTE
 
     out: list[str] = ["% Generated by scripts/build_manuscript_latex.py from manuscript/review_manuscript_draft.md; do not edit.", ""]
+    inclusion_cited = False
     pending_figs: list[int] = []
     placed: set[int] = set()
     tables = 0
@@ -370,12 +426,13 @@ def main() -> int:
         elif btype == "para":
             text = content.replace(" (arXiv:2510.07793)", "")
             if INCLUSION_SENTENCE in text:
-                text = text.replace(INCLUSION_SENTENCE, INCLUSION_SENTENCE[:-1] + "⟦CITE:" + ",".join(dict.fromkeys(included)) + "⟧.")
+                text = text.replace(INCLUSION_SENTENCE, INCLUSION_SENTENCE + "⟦CITE:" + ",".join(dict.fromkeys(included)) + "⟧", 1)
+                inclusion_cited = True
             if subsection.startswith("A neutral comparison protocol") and text.endswith("except the representation:"):
                 text = text[:-1] + " (Box 1)."
             if subsection.startswith("A reporting card") and text.startswith("Reporting completeness"):
                 text = text.rstrip(".") + " (Box 1)."
-            if subsection.startswith("A reporting card") and text.startswith("Operation library"):
+            if subsection.startswith("A reporting card") and text.startswith("The operation library"):
                 box_parts.append(inl(citer.mark(text)))
                 continue
             out.append(inl(citer.mark(text)))
@@ -414,15 +471,14 @@ def main() -> int:
     out.insert(idx, box)
     if pending_figs or set(FIGURES) - placed:
         raise SystemExit(f"figures not placed: {sorted(set(FIGURES) - placed)}")
+    if not inclusion_cited:
+        raise SystemExit(f"inclusion sentence not found in the body: {INCLUSION_SENTENCE!r}")
     not_cited = [n for n, _ in CITATIONS if n not in citer.done]
     if not_cited:
         raise SystemExit(f"names never found in the body: {not_cited}")
     (OUT / "body.tex").write_text("\n\n".join(out) + "\n", encoding="utf-8")
 
-    sup = ["% Generated by scripts/build_manuscript_latex.py; do not edit.", r"\begin{itemize}"]
-    sup += [r"\item " + inl_core(s) for s in supplementary]
-    sup.append(r"\end{itemize}")
-    (OUT / "supplementary.tex").write_text("\n".join(sup) + "\n", encoding="utf-8")
+    write_back_matter(back_lines, citer)
 
     figdir = OUT / "figures"
     figdir.mkdir(parents=True, exist_ok=True)
@@ -430,7 +486,7 @@ def main() -> int:
         for p in paths:
             shutil.copy2(ROOT / p, figdir / Path(p).name)
     print({"tables": tables, "figures": sorted(placed), "cited_names": len(citer.done),
-           "included_records_cited": len(set(included)), "supplementary_items": len(supplementary)})
+           "included_records_cited": len(set(included))})
     return 0
 
 
