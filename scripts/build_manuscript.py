@@ -395,12 +395,12 @@ def table_search_runs() -> str:
         ("interface", "Interface through which the source was queried"),
         ("date_limit_as_executed", "Date restriction as executed, in the syntax of the source"),
         ("other_limits_as_executed", "Other limits as executed (language, access, categories, validation)"),
-        ("hits_reported", "Number of hits reported by the source's interface, where it reports one"),
-        ("records_fetched", "Number of records downloaded"),
-        ("records_before_validation", "Records retrieved before the title/abstract validation applied to "
-                                      "full-text-only interfaces (Springer Nature) or before deduplication within the source"),
-        ("count_in_run_log", "Count recorded in the run log of the round"),
-        ("records_retained", "Records retained from the source and passed to deduplication"),
+        ("hits_reported", "Total number of results reported in the export metadata, where the interface reports one"),
+        ("records_fetched", "Number of records fetched, as recorded in the export metadata"),
+        ("records_before_validation", "Records in the raw export before filtering after retrieval (for Springer "
+                                      "Nature, the check that a term of each concept block is in the title or abstract)"),
+        ("count_in_run_log", "Count for the source in the search summary file of the round"),
+        ("records_retained", "Records in the export file of the run, passed to deduplication"),
         ("export_file", "Repository path of the export file of the run"),
     ], data)
     return generated("table:search_runs", [SRC["search_runs"]], md_table(
