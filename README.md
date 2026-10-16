@@ -23,6 +23,16 @@ Reproducible PRISMA-ScR literature review on generative foundation models that c
 For the next update, start with the canonical operational runbook:
 [`protocol/LIVING_REVIEW_RUNBOOK.md`](protocol/LIVING_REVIEW_RUNBOOK.md).
 
+## Archiving and citation
+
+Curated snapshots of this repository are archived on Zenodo. `scripts/build_zenodo_snapshot.py` builds
+them from a commit and leaves out third-party article text (Docling full texts, paper sections passed
+to screening, figures and crops from papers, raw LLM run logs that embed paper text) and personal
+documents. It lists every excluded or redacted file with its size, Git blob identifier and SHA-256
+hash. Citation metadata is in [`CITATION.cff`](CITATION.cff); the Zenodo metadata of the snapshot is
+in [`.zenodo.json`](.zenodo.json). Do not enable the Zenodo GitHub integration for this repository:
+it would deposit the full tree, including the third-party material.
+
 ## Minimal LatteReview Runtime
 
 If you already have an OpenAI-compatible LLM endpoint running on the GPU server

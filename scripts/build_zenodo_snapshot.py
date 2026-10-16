@@ -7,7 +7,9 @@ The snapshot leaves out third-party material that the repository holds for the r
                             document graphs and their provenance chunks);
 * paper_sections            sections of reviewed papers that were passed to full-text screening;
 * paper_figures_and_crops   figure images, crops, tiles and contact sheets taken from reviewed papers;
-* llm_run_logs              raw LLM run logs (prompts, transcripts, stderr) that embed paper text.
+* llm_run_logs              raw LLM run logs (prompts, transcripts, stderr) that embed paper text;
+* personal_documents        the author's conference-abstract submission packages (contact details;
+                            a separate deliverable, not review data).
 
 The structured outputs of the same runs (decisions, routes, evidence quotes, assemblies, catalogs)
 are kept. In kept JSON files, fields that hold full-text sections are replaced by a marker that
@@ -50,10 +52,10 @@ OWN_IMAGE = re.compile(
     r"^(analysis/[^/]+/(v\d+/)?figures/"
     r"|analysis/(prisma_flow_2026-10-07|review_synthesis_2026-10-07|design_taxonomy_2026-10-13|motif_library_2026-10-14)/[^/]+\.png$"
     r"|manuscript/"
-    r"|data/health_intelligence_conference_2026_[^/]+/(figures|build)/"
     r"|.*browser_qa[^/]*\.png$|.*/browser_qa/"
     r"|.*/social-preview\.png$)"
 )
+PERSONAL = re.compile(r"^data/health_intelligence_conference_2026_[^/]+/")
 RULES: list[tuple[str, re.Pattern[str]]] = [
     ("full_text", re.compile(r"^data/docling_(include|uncertain)[^/]*/")),
     ("full_text", re.compile(r"^data/living_catalog_updates/update_2026-08-09/(05_fulltext|06_docling_screening|11_docling_vlm)[^/]*/")),
@@ -73,6 +75,7 @@ REASON = {
     "paper_sections": "Sections of reviewed papers selected for full-text screening; third-party copyright.",
     "paper_figures_and_crops": "Figure image, crop, tile or contact sheet taken from a reviewed paper; third-party copyright.",
     "llm_run_logs": "Raw LLM run log (prompt, transcript or stderr) that embeds paper text; the structured outputs of the run are kept.",
+    "personal_documents": "Conference-abstract submission package of the author (contact details); a separate deliverable, not review data.",
 }
 # Redaction inside kept JSON/JSONL files.
 REDACT_KEYS = {"selected_full_text_sections", "full_text_context", "text_content"}
@@ -85,6 +88,8 @@ MARKER = "[omitted from the Zenodo snapshot: third-party full-text excerpt, {n} 
 
 
 def classify(path: str) -> str | None:
+    if PERSONAL.search(path):
+        return "personal_documents"
     if IMAGE.search(path):
         return None if OWN_IMAGE.search(path) else "paper_figures_and_crops"
     for name, rx in RULES:
