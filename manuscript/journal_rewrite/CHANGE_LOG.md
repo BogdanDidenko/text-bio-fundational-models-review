@@ -98,15 +98,20 @@ These changes came after the rewrite and are not presentation changes.
   counts of the flow diagram.
 - The supplementary items are renumbered by first citation, so the supplementary numbers of version 0.6
   no longer apply. Data and code availability now states that the run logs, which embed the paper texts,
-  are not part of the Zenodo snapshot.
+  are not deposited on Zenodo.
+- Zenodo: the deposit is now the review materials of this version, built by
+  `scripts/build_zenodo_materials.py`, instead of a curated snapshot of the whole repository. Two drafts
+  with reserved DOIs (protocol record and review materials) are cited in Methods and in Data and code
+  availability; the DOIs come from `manuscript/zenodo_records.json` and become active when the records
+  are published.
 - The label census and number check were rerun on this version; `COMPLIANCE.md` gives the new lengths.
 
 ## Open items (not done in this rewrite)
 
 - Literature placeholders ([CITE]) in the Introduction, the selection paragraph of Methods (companion
   methods paper) and Relation to existing reviews.
-- Zenodo deposits: identifier and date of the protocol record, and the DOI of the repository snapshot,
-  for Methods and Data and code availability.
+- Zenodo deposits: publish the two drafts after co-author review (co-author names, affiliations and
+  ORCIDs in the metadata), then add the deposit date of the protocol record to Methods.
 - Figure 2: the compact flow (panel a) and the works-per-culture breakdown are still to be drawn; the
   legend marks them as to do.
 - A second human coder for the cross-culture comparison units and the culture assignment, with a recall

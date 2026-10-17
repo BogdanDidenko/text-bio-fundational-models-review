@@ -25,13 +25,20 @@ For the next update, start with the canonical operational runbook:
 
 ## Archiving and citation
 
-Curated snapshots of this repository are archived on Zenodo. `scripts/build_zenodo_snapshot.py` builds
-them from a commit and leaves out third-party article text (Docling full texts, paper sections passed
-to screening, figures and crops from papers, raw LLM run logs that embed paper text) and personal
-documents. It lists every excluded or redacted file with its size, Git blob identifier and SHA-256
-hash. Citation metadata is in [`CITATION.cff`](CITATION.cff); the Zenodo metadata of the snapshot is
-in [`.zenodo.json`](.zenodo.json). Do not enable the Zenodo GitHub integration for this repository:
-it would deposit the full tree, including the third-party material.
+The review materials of each manuscript version are archived on Zenodo. `scripts/build_zenodo_materials.py`
+builds the deposit from a commit: the screening prompts (verbatim, from the run logs) and the output of
+every screening agent for every record, the outputs of the agents that extracted information from the
+included papers (with run configurations, schemas, rules and code), the operation library release, the
+motif library and design-pattern codebook, and the Supplementary Information with its data files.
+Third-party text is left out (converted full texts, paper sections, figures and crops from papers, the
+titles and abstracts sent to the agents, and raw LLM call logs, which are reduced to request metadata and
+responses); `MANIFEST.csv` in the deposit lists every file with its source path, SHA-256 and
+transformation. The protocol and its amendments are deposited as a separate record. The DOIs are in
+[`manuscript/zenodo_records.json`](manuscript/zenodo_records.json), citation metadata in
+[`CITATION.cff`](CITATION.cff) and the Zenodo metadata of the materials record in
+[`.zenodo.json`](.zenodo.json). `scripts/build_zenodo_snapshot.py` builds a broader curated snapshot of
+the whole tree; it is not deposited. Do not enable the Zenodo GitHub integration for this repository: it
+would deposit the full tree, including the third-party material.
 
 ## Minimal LatteReview Runtime
 

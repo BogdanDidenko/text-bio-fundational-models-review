@@ -80,7 +80,7 @@ for the search and PRISMA-trAIce for the steps assisted by artificial intelligen
 was not registered before the searches were run. Its first version under version control (version 3.0)
 was committed to the project repository on 2026-02-09, after a first search execution on 2026-02-06,
 and the protocol with all later amendments is deposited retrospectively on Zenodo
-[TODO: protocol DOI and deposit date].
+({{zenodo:protocol}}, reserved DOI; [TODO: deposit date]).
 
 The protocol was amended {{n:amendments}} times while the review was carried out, and
 {{n:further_changes}} further changes were made that the protocol did not foresee; Supplementary Table [[S:deviations]] lists each one with its date
@@ -720,11 +720,15 @@ https://github.com/BogdanDidenko/text-bio-fundational-models-review (this versio
 {{build_commit}}). `manuscript/supplementary/README.md` gives the repository path of every
 supplementary item, and the earlier version of this manuscript, with its internal labels, is
 `manuscript/archive/review_manuscript_draft_v0.5.1.md` (commit 4c4db9f0). The component library is
-browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. A
-curated snapshot of the repository and the protocol with its amendments are deposited on Zenodo
-[TODO: DOIs]. The run logs of the LLM agents embed the texts of the papers and are not part of the
-snapshot; the prompts of the screening roles are reproduced in Supplementary Note [[S:prompts]], and the
-decisions of the agents for every record are in the supplementary data files.
+browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. The
+review materials of this version are deposited on Zenodo ({{zenodo:materials}}): the screening prompts
+and the output of every screening agent for every record, the outputs of the agents that extracted
+information from the included papers, the operation library and the Supplementary Information with its
+data files. The protocol with its amendments is a separate record ({{zenodo:protocol}}). Both DOIs are
+reserved and become active when the records are published. The texts of the papers and the run logs of
+the LLM agents, which embed them, are not deposited; the deposit keeps the responses of the agents
+without the prompts, and the prompts of the screening roles are reproduced in Supplementary Note
+[[S:prompts]].
 
 ## Use of large language models
 

@@ -16,6 +16,8 @@ Placeholders:
   {{build_commit}}                 commit of the sources (flagged if the sources have uncommitted changes)
   {{n:amendments}}, {{n:further_changes}}, {{n:after_results}}
                                    counts of the deviations table (article)
+  {{zenodo:protocol}}, {{zenodo:materials}}
+                                   DOI links of the Zenodo records (manuscript/zenodo_records.json)
   {{include:search_strategies}}    search strings as executed
   {{table:<name>}}                 a table generated from the analysis outputs
   {{figure:flow}}                  the full PRISMA 2020 flow
@@ -64,7 +66,7 @@ BUILD = MS / "build"
 DATA = MS / "supplementary/data"
 INDEX = MS / "supplementary/README.md"
 LATEX = MS / "latex"
-SOURCE_FILES = [MAIN_SRC, SUPP_SRC, DEV_SRC, ROOT / "scripts/build_manuscript.py",
+SOURCE_FILES = [MAIN_SRC, SUPP_SRC, DEV_SRC, ROOT / "manuscript/zenodo_records.json", ROOT / "scripts/build_manuscript.py",
                 ROOT / "scripts/build_manuscript_latex.py", LATEX / "main.tex"]
 
 SRC = {
@@ -859,7 +861,8 @@ def static_prompts(key: str) -> dict[str, tuple[str, int]]:
     return out
 
 
-def include_screening_prompts() -> str:
+def screening_prompt_groups() -> list[dict]:
+    """One entry per distinct fixed prompt text: stage, role, version (0 if the role has one text), runs, batches."""
     import hashlib
     groups: dict[tuple[str, str, str], list[str]] = {}
     batches: dict[tuple[str, str, str], int] = {}
@@ -872,10 +875,19 @@ def include_screening_prompts() -> str:
         for role, role_name in SCREEN_ROLES:
             variants = [(t, runs) for (s, r, t), runs in groups.items() if s == stage and r == role]
             for i, (text, runs) in enumerate(variants, 1):
-                head = f"#### {STAGE[stage]}: {role_name}" + (f", version {i}" if len(variants) > 1 else "")
-                sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-                out += [head, "", f"Used in: {'; '.join(runs)}. Batches: {batches[(stage, role, text)]:,}. "
-                                  f"SHA-256 of the text: {sha}.", "", "```", text.rstrip("\n"), "```", ""]
+                out.append({"stage": stage, "role": role, "role_name": role_name,
+                            "version": i if len(variants) > 1 else 0, "runs": runs,
+                            "batches": batches[(stage, role, text)], "text": text,
+                            "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()})
+    return out
+
+
+def include_screening_prompts() -> str:
+    out = []
+    for g in screening_prompt_groups():
+        head = f"#### {STAGE[g['stage']]}: {g['role_name']}" + (f", version {g['version']}" if g["version"] else "")
+        out += [head, "", f"Used in: {'; '.join(g['runs'])}. Batches: {g['batches']:,}. "
+                          f"SHA-256 of the text: {g['sha256']}.", "", "```", g["text"].rstrip("\n"), "```", ""]
     sources = sorted({run_dir(k)[3] + ("/role_logs.tar.gz" if run_dir(k)[4] else "/role_logs") for k, *_ in SCREENING_RUNS})
     return generated("include:screening_prompts", sources, "\n".join(out).strip())
 
@@ -1295,6 +1307,11 @@ def deviation_counts() -> dict[str, str]:
             "n:after_results": str(len(after))}
 
 
+def zenodo_links() -> dict[str, str]:
+    recs = json.loads((ROOT / "manuscript/zenodo_records.json").read_text(encoding="utf-8"))
+    return {f"zenodo:{k}": f"https://doi.org/{v['doi']}" for k, v in recs.items()}
+
+
 def build_commit() -> str:
     head = git("rev-parse", "--short=8", "HEAD")
     dirty = git("status", "--porcelain", "--", *[str(p.relative_to(ROOT)) for p in SOURCE_FILES])
@@ -1456,7 +1473,7 @@ def main() -> int:
     commit = build_commit()
     BUILD.mkdir(parents=True, exist_ok=True)
     marked = {k: f"<!-- generated: {k} -->{v}<!-- end generated -->"
-              for k, v in {"build_commit": commit, **deviation_counts()}.items()}
+              for k, v in {"build_commit": commit, **deviation_counts(), **zenodo_links()}.items()}
     (BUILD / "manuscript.md").write_text(resolve(main_text, num, marked), encoding="utf-8")
     print(main_pdf().relative_to(ROOT))
 
@@ -1466,6 +1483,7 @@ def main() -> int:
     if number_items(main_text, sections, items, blocks) != num:
         raise SystemExit("supplementary numbering changed between passes")
     extra = {"build_commit": f"<!-- generated: build_commit -->{commit}<!-- end generated -->",
+             **{k: f"<!-- generated: {k} -->{v}<!-- end generated -->" for k, v in zenodo_links().items()},
              "datafiles": generated("datafiles", ["the data files of this supplement"], datafiles_block(num, items))}
     extra.update({f"rows:{Path(f['name']).stem}": f"<!-- generated: rows of {f['name']} -->{len(f['rows'])}<!-- end generated -->"
                   for f in DATAFILES})
