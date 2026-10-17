@@ -120,6 +120,28 @@ ITEM_SOURCES = {
     "synthetic": [SRC["synthetic"], "analysis/discovery_2026-10-14/verify_synthetic_text.md"],
     "codebook": [SRC["codebook"], "analysis/design_taxonomy_2026-10-13/TAXONOMY_SPEC.md"],
     "flow": [SRC["flow_figure"], "analysis/prisma_flow_2026-10-07/prisma_flow.svg", SRC["flow_facts"]],
+    "prompts": ["analysis/codex_screening_run_artifacts_20260706/prompt_templates/",
+                "protocol/screening_prompt_templates/", "scripts/run_codex_screening_pipeline.py",
+                "analysis/codex_screening_run_artifacts_20260706/full_runs/codex_gpt54mini_all4027_20260706/role_logs.tar.gz",
+                "data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/role_logs/",
+                "data/living_catalog_updates/update_2026-08-09/04_abstract_screening/role_logs/",
+                "data/living_catalog_updates/update_2026-08-09/09_fulltext_screening/role_logs/"],
+    "ta_decisions": ["analysis/codex_screening_run_artifacts_20260706/full_runs/codex_gpt54mini_all4027_20260706/",
+                     "analysis/codex_screening_run_artifacts_20260706/update_runs/",
+                     "data/living_catalog_updates/update_2026-08-09/04_abstract_screening/",
+                     "data/living_catalog_updates/update_2026-08-09/04_abstract_screening_manual_recall_xunzi_2026-08-11/"],
+    "ft_decisions": ["data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/",
+                     "data/living_catalog_updates/update_2026-08-09/09_fulltext_screening/",
+                     "data/living_catalog_updates/update_2026-08-09/10_eligibility/",
+                     "data/living_catalog_updates/update_2026-08-09/09_fulltext_screening_manual_recall_xunzi_2026-08-11/",
+                     "data/living_catalog_updates/update_2026-08-09/10_eligibility_manual_recall_xunzi_2026-08-11/"],
+    "decomposition_steps": ["analysis/discovery_2026-10-14/steps.parquet", "analysis/operation_decomposition_v32_2026-10-14/",
+                            "scripts/build_integrated_dataset.py"],
+    "parameter_slots": ["analysis/discovery_2026-10-14/slots.parquet",
+                        "analysis/operation_decomposition_v32_2026-10-14/parameter_pass/", "scripts/run_parameter_pass.py"],
+    "charting_items": ["analysis/design_culture_charting_2026-10-14/v11/consensus_items.csv",
+                       "analysis/design_culture_charting_2026-10-14/v11/run_1/",
+                       "analysis/design_culture_charting_2026-10-14/v11/run_2/", "scripts/run_design_culture_charting.py"],
 }
 
 TYPES = {"Supplementary Notes": "Note", "Supplementary Tables": "Table", "Supplementary Figures": "Figure"}
@@ -768,11 +790,414 @@ def figure_flow() -> str:
     return generated("figure:flow", [SRC["flow_figure"]], f"![]({SRC['flow_figure']}){{width=100%}}")
 
 
+# ------------------------------------------------------------------------ screening prompts and decisions
+SCREENING_RUNS = [  # key, stage, name, directory, role logs archived as role_logs.tar.gz, prefix of record ids
+    ("ta_full", "title_abstract", "full re-screen of the cumulative records",
+     "analysis/codex_screening_run_artifacts_20260706/full_runs/codex_gpt54mini_all4027_20260706", True, "full_2026-07-06__"),
+    ("ta_june", "title_abstract", "June update",
+     "analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update431_20260610", True, "june_update_2026-06-10__"),
+    ("ta_july", "title_abstract", "July update",
+     "analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update155_20260706", True, "july_update_2026-07-06__"),
+    ("ta_august", "title_abstract", "August update",
+     "data/living_catalog_updates/update_2026-08-09/04_abstract_screening", False, None),
+    ("ta_recall", "title_abstract", "supplemental recall correction",
+     "data/living_catalog_updates/update_2026-08-09/04_abstract_screening_manual_recall_xunzi_2026-08-11", False, None),
+    ("ft_rounds", "full_text", "rounds 1–4",
+     "data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10", False, ""),
+    ("ft_august", "full_text", "August update",
+     "data/living_catalog_updates/update_2026-08-09/09_fulltext_screening", False, ""),
+    ("ft_recall", "full_text", "supplemental recall correction",
+     "data/living_catalog_updates/update_2026-08-09/09_fulltext_screening_manual_recall_xunzi_2026-08-11", False, ""),
+]
+SCREEN_ROLES = [("scope_reviewer", "scope reviewer"), ("architecture_reviewer", "architecture reviewer"),
+                ("adjudicator", "adjudicator")]
+STAGE = {"title_abstract": "Title and abstract screening", "full_text": "Full-text screening"}
+PROMPT_END = "Records JSON:\n"
+FT_LEAD = "data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/manual_resolution_2026-07-10.csv"
+FT_AUG_ELIG = "data/living_catalog_updates/update_2026-08-09/10_eligibility"
+FT_RECALL_ELIG = "data/living_catalog_updates/update_2026-08-09/10_eligibility_manual_recall_xunzi_2026-08-11"
+DECISION = {"INCLUDE": "include", "EXCLUDE": "exclude", "UNCERTAIN": "uncertain"}
+UNCERTAINTY = {"none": "", "generative_status_unclear": "generative status unclear", "mixed_signals": "mixed signals",
+               "foundation_model_evidence_unclear": "foundation-model evidence unclear",
+               "paper_type_unclear": "paper type unclear", "text_bio_bridge_unclear": "text–biology bridge unclear",
+               "text_component_unclear": "text component unclear", "bio_modality_unclear": "biological modality unclear"}
+PAPER_TYPE = {"primary_model_paper": "primary model paper", "review_editorial": "review or editorial",
+              "benchmark_resource": "benchmark or resource", "application_wrapper": "application wrapper",
+              "unclear": "unclear"}
+DECIDED_BY = {"python_gate": "rule over the two first-pass reviewers", "adjudicator": "adjudicator"}
+
+
+def run_dir(key: str) -> tuple:
+    return next(r for r in SCREENING_RUNS if r[0] == key)
+
+
+def run_label(key: str) -> str:
+    _, stage, name, d, _, _ = run_dir(key)
+    created = json.loads((ROOT / d / "run_metadata.json").read_text(encoding="utf-8"))["created"][:10]
+    return f"{name} (run of {created})"
+
+
+def static_prompts(key: str) -> dict[str, tuple[str, int]]:
+    """The fixed part of every batch prompt of a run, per role, read from the run logs (up to 'Records JSON:')."""
+    import tarfile
+    _, _, _, d, archived, _ = run_dir(key)
+    texts: dict[str, list[str]] = {}
+    if archived:
+        with tarfile.open(ROOT / d / "role_logs.tar.gz") as tf:
+            for m in tf.getmembers():
+                if m.name.endswith(".prompt.txt"):
+                    texts.setdefault(m.name.split("/")[-2], []).append(tf.extractfile(m).read().decode("utf-8"))
+    else:
+        for p in sorted((ROOT / d / "role_logs").glob("*/*.prompt.txt")):
+            texts.setdefault(p.parent.name, []).append(p.read_text(encoding="utf-8"))
+    out = {}
+    for role, ts in texts.items():
+        statics = {t.split(PROMPT_END)[0] + PROMPT_END for t in ts if PROMPT_END in t}
+        if len(statics) != 1 or any(PROMPT_END not in t for t in ts):
+            raise SystemExit(f"{key}/{role}: batch prompts do not share one fixed part")
+        out[role] = (statics.pop(), len(ts))
+    return out
+
+
+def include_screening_prompts() -> str:
+    import hashlib
+    groups: dict[tuple[str, str, str], list[str]] = {}
+    batches: dict[tuple[str, str, str], int] = {}
+    for key, stage, *_ in SCREENING_RUNS:
+        for role, (text, n) in static_prompts(key).items():
+            groups.setdefault((stage, role, text), []).append(run_label(key))
+            batches[(stage, role, text)] = batches.get((stage, role, text), 0) + n
+    out = []
+    for stage in ("title_abstract", "full_text"):
+        for role, role_name in SCREEN_ROLES:
+            variants = [(t, runs) for (s, r, t), runs in groups.items() if s == stage and r == role]
+            for i, (text, runs) in enumerate(variants, 1):
+                head = f"#### {STAGE[stage]}: {role_name}" + (f", version {i}" if len(variants) > 1 else "")
+                sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+                out += [head, "", f"Used in: {'; '.join(runs)}. Batches: {batches[(stage, role, text)]:,}. "
+                                  f"SHA-256 of the text: {sha}.", "", "```", text.rstrip("\n"), "```", ""]
+    sources = sorted({run_dir(k)[3] + ("/role_logs.tar.gz" if run_dir(k)[4] else "/role_logs") for k, *_ in SCREENING_RUNS})
+    return generated("include:screening_prompts", sources, "\n".join(out).strip())
+
+
+def reason_words() -> dict[str, str]:
+    text = (ROOT / SRC["flow_md"]).read_text(encoding="utf-8").split("## Full-text exclusion reasons", 1)[1]
+    words_of = {m[2]: m[1] for m in re.finditer(r"\| (.+?) \| `([^`]+)` \| [\d,]+ \|", text)}
+    words_of["EC4_no_foundation_model_evidence"] = words_of.get("EC4_no_foundation_model_evidence", "No foundation-model evidence")
+    words_of["none"] = ""
+    return words_of
+
+
+def jsonl(path: Path) -> dict[str, dict]:
+    if not path.exists():
+        return {}
+    return {o["record_id"]: o for o in (json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip())}
+
+
+def role_columns(prefix: str, o: dict | None, reasons: dict[str, str], fields: list[str]) -> dict[str, str]:
+    o = o or {}
+    out = {}
+    for f in fields:
+        v = o.get(f, "")
+        if f == "paper_type":
+            v = PAPER_TYPE.get(v, v)
+        elif f == "primary_exclusion_code":
+            v = reasons.get(v, v)
+        elif f == "uncertainty_reason":
+            v = UNCERTAINTY.get(v, v)
+        out[f"{prefix}_{ROLE_FIELD[f]}"] = v
+    return out
+
+
+ROLE_FIELD = {"paper_type": "paper_type", "bio_modality_present": "biological_modality",
+              "text_component_present": "text_component", "text_bio_bridge_present": "text_biology_bridge",
+              "generative_model_present": "generative_model", "foundation_model_evidence": "foundation_model_evidence",
+              "primary_exclusion_code": "exclusion_reason", "uncertainty_reason": "uncertainty",
+              "decision_rationale": "rationale"}
+SCOPE_FIELDS = ["paper_type", "bio_modality_present", "text_component_present", "text_bio_bridge_present",
+                "primary_exclusion_code", "uncertainty_reason", "decision_rationale"]
+ARCH_FIELDS = ["paper_type", "generative_model_present", "foundation_model_evidence", "primary_exclusion_code",
+               "uncertainty_reason", "decision_rationale"]
+ADJ_FIELDS = ["paper_type", "bio_modality_present", "text_component_present", "text_bio_bridge_present",
+              "generative_model_present", "foundation_model_evidence", "primary_exclusion_code", "uncertainty_reason",
+              "decision_rationale"]
+ROLE_DICT = {
+    "paper_type": "kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear",
+    "biological_modality": "whether a biological data modality is present (yes, no, unclear)",
+    "text_component": "whether a natural-language text component is present (yes, no, unclear)",
+    "text_biology_bridge": "whether a substantive bridge between text and biology is present (yes, no, unclear)",
+    "generative_model": "whether the candidate model is generative (yes, no, unclear)",
+    "foundation_model_evidence": "whether there is evidence of foundation-model characteristics (yes, no, unclear)",
+    "exclusion_reason": "main exclusion reason returned by the role, if any",
+    "uncertainty": "reason for uncertainty returned by the role, if any",
+    "rationale": "brief evidence-grounded rationale returned by the role",
+}
+
+
+def screening_rows(key: str, reasons: dict[str, str]) -> list[dict]:
+    _, stage, _, d, _, prefix = run_dir(key)
+    base = ROOT / d
+    rows = list(csv.DictReader(open(base / "final_screening_results.csv", encoding="utf-8", newline="")))
+    scope, arch, adj = (jsonl(base / f"{r}.jsonl") for r, _ in SCREEN_ROLES)
+    if key == "ta_august":
+        cross = {c["legacy_record_id"]: c["stable_record_id"] for c in
+                 json.loads((base / "record_id_crosswalk.json").read_text(encoding="utf-8"))["records"]}
+    out = []
+    for r in rows:
+        rid = r["record_id"]
+        if prefix is None and key == "ta_august":
+            corpus_id = cross[rid]
+        elif prefix is None:  # the supplemental recall record keeps the identifier of its full-text run
+            corpus_id = "update_2026-08-09__manual_recall_xunzi"
+        else:
+            corpus_id = prefix + rid if prefix and not rid.startswith(prefix) else rid
+        row = {"screening_run": run_label(key), "record_id": corpus_id, "record_id_in_run": rid, "title": r["title"],
+               "doi": r["doi"], "automated_decision": DECISION[r["final_decision"]],
+               "automated_exclusion_reason": reasons.get(r["final_code"], r["final_code"]),
+               "automated_uncertainty": UNCERTAINTY.get(r["uncertainty_reason"], r["uncertainty_reason"]),
+               "decided_by": DECIDED_BY.get(r["final_source"], r["final_source"]),
+               "rationale": r["final_rationale"], "evidence": r["evidence_snippet"], "_code": r["final_code"]}
+        row.update(role_columns("scope_reviewer", scope.get(rid), reasons, SCOPE_FIELDS))
+        row.update(role_columns("architecture_reviewer", arch.get(rid), reasons, ARCH_FIELDS))
+        row.update(role_columns("adjudicator", adj.get(rid), reasons, ADJ_FIELDS))
+        out.append(row)
+    return out
+
+
+def screening_dictionary(first: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    cols = first + [
+        ("automated_decision", "Decision of the automated screening: include, exclude or uncertain"),
+        ("automated_exclusion_reason", "Exclusion reason of the automated decision, if any"),
+        ("automated_uncertainty", "Reason for an uncertain automated decision, if any"),
+        ("decided_by", "Who produced the automated decision: the fixed rule over the two first-pass reviewers, "
+                       "or the adjudicator (called when the first-pass reviewers conflicted or were uncertain)"),
+        ("rationale", "Rationale of the automated decision"),
+        ("evidence", "Evidence snippet from the record that supports the decision"),
+    ]
+    for prefix, fields in (("scope_reviewer", SCOPE_FIELDS), ("architecture_reviewer", ARCH_FIELDS),
+                           ("adjudicator", ADJ_FIELDS)):
+        role = prefix.replace("_", " ")
+        cols += [(f"{prefix}_{ROLE_FIELD[f]}", f"{role.capitalize()}: {ROLE_DICT[ROLE_FIELD[f]]}"
+                  + (" (empty if the record was not adjudicated)" if prefix == "adjudicator" else ""))
+                 for f in fields]
+    return cols
+
+
+def data_ta_decisions() -> None:
+    reasons = reason_words()
+    rows = []
+    for key, stage, *_ in SCREENING_RUNS:
+        if stage == "title_abstract":
+            rows += screening_rows(key, reasons)
+    facts = json.loads((ROOT / SRC["flow_facts"]).read_text(encoding="utf-8"))
+    n_exc = sum(r["automated_decision"] == "exclude" for r in rows)
+    if len(rows) != facts["screened"] + facts["other_screened"] or n_exc != facts["screen_excluded"]:
+        raise SystemExit(f"title and abstract decisions do not match the flow: {len(rows)} screened, {n_exc} excluded")
+    if len({r["record_id"] for r in rows}) != len(rows):
+        raise SystemExit("a record appears twice among the title and abstract decisions")
+    cols = screening_dictionary([
+        ("screening_run", "Screening run (name and date of the run)"),
+        ("record_id", "Identifier of the record in the review database"),
+        ("record_id_in_run", "Identifier of the record within the screening run"),
+        ("title", "Title of the record"),
+        ("doi", "DOI of the record"),
+    ])
+    names = [c for c, _ in cols]
+    datafile("title_abstract_screening_decisions.csv", "ta_decisions",
+             "Title and abstract screening: decisions of the screening agents for every screened record", cols,
+             [{c: r.get(c, "") for c in names} for r in rows])
+
+
+def table_ft_decisions() -> str:
+    reasons = reason_words()
+    lead = {r["record_id"]: r for r in csv.DictReader(open(ROOT / FT_LEAD, encoding="utf-8", newline=""))}
+    agent = {r["record_id"]: r for r in csv.DictReader(open(ROOT / FT_AUG_ELIG / "manual_resolution.csv",
+                                                            encoding="utf-8", newline=""))}
+
+    def elig(folder: str) -> dict[str, dict]:
+        out = {}
+        for name, decision in (("accepted_records.json", "INCLUDE"), ("excluded_records.json", "EXCLUDE")):
+            for r in records_of(json.loads((ROOT / folder / name).read_text(encoding="utf-8"))):
+                out[r["record_id"]] = {"decision": decision, "code": r.get("final_code", "none")}
+        return out
+
+    final_aug, final_recall = elig(FT_AUG_ELIG), elig(FT_RECALL_ELIG)
+    rows = []
+    for key, stage, *_ in SCREENING_RUNS:
+        if stage != "full_text":
+            continue
+        for r in screening_rows(key, reasons):
+            rid = r["record_id"]
+            res = {"resolved_by": "", "resolution_decision": "", "resolution_reason": "", "resolution_basis": "",
+                   "resolution_date": ""}
+            if key == "ft_rounds":
+                final, code = r["automated_decision"], r["_code"]
+                if rid in lead:
+                    m = lead[rid]
+                    res = {"resolved_by": "review lead", "resolution_decision": DECISION[m["manual_decision"]],
+                           "resolution_reason": reasons.get(m["manual_exclusion_code"], m["manual_exclusion_code"]),
+                           "resolution_basis": m["manual_basis"], "resolution_date": m["manual_confirmation_date"]}
+                    final, code = DECISION[m["manual_decision"]], m["manual_exclusion_code"]
+            else:
+                f = (final_aug if key == "ft_august" else final_recall)[rid]
+                final, code = DECISION[f["decision"]], f["code"]
+                if rid in agent:
+                    m = agent[rid]
+                    res = {"resolved_by": "LLM agent, not validated by a person",
+                           "resolution_decision": DECISION[m["manual_decision"]], "resolution_reason": "",
+                           "resolution_basis": m["rationale"], "resolution_date": m["resolved_at"][:10]}
+            r.update(res)
+            r["final_decision"] = final
+            r["final_exclusion_reason"] = reasons.get(code, code) if final == "exclude" else ""
+            r["study"] = study([rid], numbered=False) if rid in STUDY and final == "include" else ""
+            rows.append(r)
+    facts = json.loads((ROOT / SRC["flow_facts"]).read_text(encoding="utf-8"))
+    n_exc = sum(r["final_decision"] == "exclude" for r in rows)
+    n_inc = sum(r["final_decision"] == "include" for r in rows)
+    if len(rows) != facts["assessed"] + facts["other_assessed"]:
+        raise SystemExit(f"full-text decisions do not match the flow: {len(rows)} reports assessed")
+    if n_exc != facts["excluded_fulltext"] or n_inc != facts["included_databases"] + facts["included_other"]:
+        raise SystemExit(f"full-text decisions do not match the flow: {n_inc} included, {n_exc} excluded")
+    if any(r["final_decision"] == "uncertain" for r in rows):
+        raise SystemExit("a full-text decision is still uncertain")
+    if STUDY and {r["record_id"] for r in rows if r["final_decision"] == "include"} != set(STUDY):
+        raise SystemExit("the included reports differ from the included records of the bibliography")
+    cols = screening_dictionary([
+        ("screening_run", "Full-text screening run (name and date of the run)"),
+        ("record_id", "Identifier of the record in the review database"),
+        ("record_id_in_run", "Identifier of the record within the screening run"),
+        ("title", "Title of the report"),
+        ("doi", "DOI of the report"),
+        ("study", "First author and year of an included report, as in the article's reference list"),
+    ]) + [
+        ("resolved_by", "Who resolved an uncertain automated decision: the review lead, from the cited full "
+                        "sections (rounds 1–4), or an LLM agent reading the full document, whose decision was not "
+                        "validated by a person (August round)"),
+        ("resolution_decision", "Decision of the resolution"),
+        ("resolution_reason", "Exclusion reason given by the resolution, if any"),
+        ("resolution_basis", "Basis of the resolution, as recorded"),
+        ("resolution_date", "Date of the resolution"),
+        ("final_decision", "Final decision: include or exclude"),
+        ("final_exclusion_reason", "Final exclusion reason, as counted in the flow diagram"),
+    ]
+    names = [c for c, _ in cols]
+    datafile("fulltext_screening_decisions.csv", "ft_decisions",
+             "Full-text screening: decisions of the screening agents, resolutions and final decisions for every "
+             "assessed report", cols, [{c: r.get(c, "") for c in names} for r in rows])
+    order = sorted(rows, key=lambda r: (r["final_decision"] != "include", r["final_exclusion_reason"],
+                                        STUDY.get(r["record_id"], {}).get("number", 0), r["title"].lower()))
+    printed = []
+    for r in order:
+        title = r["title"] + (f" [{STUDY[r['record_id']]['number']}]" if r["record_id"] in STUDY and r["final_decision"] == "include" else "")
+        auto = r["automated_decision"] + (f": {r['automated_exclusion_reason'].lower()}" if r["automated_exclusion_reason"] else "")
+        resolved = f"{r['resolution_decision']} ({r['resolved_by']})" if r["resolved_by"] else "—"
+        printed.append([title, auto, resolved, r["final_decision"], r["final_exclusion_reason"] or "—"])
+    return generated("table:ft_decisions", [run_dir(k)[3] for k, s, *_ in SCREENING_RUNS if s == "full_text"]
+                     + [FT_LEAD, FT_AUG_ELIG, FT_RECALL_ELIG],
+                     md_table(["Report", "Automated decision", "Resolution of an uncertain decision", "Final decision",
+                               "Final reason for exclusion"], printed, [46, 18, 18, 8, 20]))
+
+
+def records_of(value):
+    return value["records"] if isinstance(value, dict) else value
+
+
+STEP_CATEGORY = {"library_operation": "library operation", "learned_module": "learned module left unexpanded",
+                 "source_provenance": "data provenance (no computation)", "identity": "identity (no change)",
+                 "no_catalog_operation": "computation outside the library", "fusion_unspecified": "unspecified fusion",
+                 "external_generator": "external text generator"}
+
+
+def data_decomposition_steps() -> None:
+    import pandas as pd
+    s = pd.read_parquet(ROOT / "analysis/discovery_2026-10-14/steps.parquet")
+    rows = [{"study": study([r.record_id], numbered=False), "record_id": r.record_id, "model": r.model_name,
+             "route_id": r.route_id, "step": int(r.step_index), "steps_in_route": int(r.n_steps), "step_id": r.step_id,
+             "charted_wording": r.chain_element, "category": STEP_CATEGORY.get(r.category, words(r.category)),
+             "operations": "; ".join(OPERATION.get(o.strip(), words(o.strip())) for o in str(r.operations or "").split(",") if o.strip()),
+             "runs_agreeing": f"{int(r.support)} of 3", "rule_and_rationale": r.rationale or "",
+             "uncertainty": "" if pd.isna(r.uncertainty) else str(r.uncertainty), "evidence": r.evidence or ""}
+            for r in s.itertuples()]
+    datafile("decomposition_step_decisions.csv", "decomposition_steps",
+             "Operation-level decomposition: decision for every step of the agent-decomposed routes", [
+                 ("study", "First author and year of the record, as in the article's reference list"),
+                 ("record_id", "Record in the review database"),
+                 ("model", "Model name as charted"),
+                 ("route_id", "Identifier of the charted route"),
+                 ("step", "Position of the step in the route"),
+                 ("steps_in_route", "Number of steps of the route"),
+                 ("step_id", "Identifier of the step"),
+                 ("charted_wording", "Element of the charted transformation chain that the step decomposes"),
+                 ("category", "Decision category: library operation, learned module left unexpanded, data provenance "
+                              "(no computation), identity (no change), computation outside the library, unspecified "
+                              "fusion, or external text generator"),
+                 ("operations", "Library operations named for the step"),
+                 ("runs_agreeing", "Number of the three runs that returned the published decision"),
+                 ("rule_and_rationale", "Rule of the decomposition protocol applied, with the agents' rationale"),
+                 ("uncertainty", "Uncertainty recorded for the step, if any"),
+                 ("evidence", "Verbatim quote from the paper"),
+             ], rows)
+
+
+def data_parameter_slots() -> None:
+    import pandas as pd
+    s = pd.read_parquet(ROOT / "analysis/discovery_2026-10-14/slots.parquet")
+    status = {"stated": "stated", "unspecified": "not stated"}
+    rows = [{"study": study([r.record_id], numbered=False), "record_id": r.record_id, "model": r.model_name,
+             "route_id": r.route_id, "step_id": r.step_id, "operation": OPERATION.get(r.operation_id, words(r.operation_id)),
+             "parameter": words(r.parameter), "status": status.get(r.status, words(r.status)),
+             "value": "" if r.value is None or (isinstance(r.value, float) and pd.isna(r.value)) else str(r.value),
+             "runs_agreeing": f"{int(r.support)} of 3",
+             "evidence": "" if r.evidence is None or (isinstance(r.evidence, float) and pd.isna(r.evidence)) else str(r.evidence)}
+            for r in s.itertuples()]
+    datafile("parameter_slot_decisions.csv", "parameter_slots",
+             "Parameter pass: whether the paper states each declared parameter of each operation call", [
+                 ("study", "First author and year of the record, as in the article's reference list"),
+                 ("record_id", "Record in the review database"),
+                 ("model", "Model name as charted"),
+                 ("route_id", "Identifier of the charted route"),
+                 ("step_id", "Identifier of the step"),
+                 ("operation", "Library operation of the call"),
+                 ("parameter", "Declared parameter of the operation"),
+                 ("status", "Whether the paper states the value for this data path: stated or not stated"),
+                 ("value", "Stated value, as given in the paper"),
+                 ("runs_agreeing", "Number of the three runs that returned the published status"),
+                 ("evidence", "Verbatim quote from the paper"),
+             ], rows)
+
+
+CHARTING_FIELD = {"evaluation_formats": "evaluation format", "outputs": "output", "representation_rationale":
+                  "stated rationale for or against an input representation", "biology_dependence_tests":
+                  "test of whether outputs depend on the biological input", "connectors": "connector",
+                  "llm_state": "language-model state", "encoder_state": "biological-encoder state",
+                  "has_comparison": "reports a comparison between representations",
+                  "has_synthetic_text": "uses text written by an LLM"}
+
+
+def data_charting_items() -> None:
+    rows = read_csv("analysis/design_culture_charting_2026-10-14/v11/consensus_items.csv")
+    out = [{"study": study([r["record_id"]], numbered=False), "record_id": r["record_id"],
+            "item": CHARTING_FIELD.get(r["field"], words(r["field"])), "category": words(r["category"]),
+            "found_in_run_1": yes("True" if r["run1"] == "1" else "False"),
+            "found_in_run_2": yes("True" if r["run2"] == "1" else "False")} for r in rows]
+    datafile("targeted_charting_items.csv", "charting_items",
+             "Targeted charting pass: for every record, which items each of the two runs returned", [
+                 ("study", "First author and year of the record, as in the article's reference list"),
+                 ("record_id", "Record in the review database"),
+                 ("item", "Charting item"),
+                 ("category", "Category of the item"),
+                 ("found_in_run_1", "Whether the first run returned the category for the record (yes or no)"),
+                 ("found_in_run_2", "Whether the second run returned the category for the record (yes or no)"),
+             ], out)
+
+
 GENERATORS = {"include:search_strategies": include_search_strategies, "table:search_runs": table_search_runs,
               "table:exclusions": table_exclusions, "table:works": table_works, "table:motifs": table_motifs,
               "table:comparisons": table_comparisons, "table:budgets": table_budgets,
-              "table:synthetic": table_synthetic, "table:deviations": table_deviations, "figure:flow": figure_flow}
-DATA_ONLY = [data_models, data_codebook]
+              "table:synthetic": table_synthetic, "table:deviations": table_deviations, "figure:flow": figure_flow,
+              "include:screening_prompts": include_screening_prompts, "table:ft_decisions": table_ft_decisions}
+DATA_ONLY = [data_models, data_codebook, data_ta_decisions, data_decomposition_steps, data_parameter_slots,
+             data_charting_items]
 
 
 # ------------------------------------------------------------------------------ supplement parsing
@@ -838,7 +1263,7 @@ def check_types(text: str, items: dict, where: str) -> None:
         kinds = re.findall(r"Supplementary\s+(Note|Table|Figure)s?\b", before)
         if not kinds or kinds[-1] != items[m[1]]["type"]:
             raise SystemExit(f"{where}: [[S:{m[1]}]] is a {items[m[1]]['type']} but is cited as "
-                             f"{kinds[-1] if kinds else 'nothing'}: ...{before[-60:]}")
+                             f"{kinds[-1] if kinds else 'nothing'}: ...{before}")
 
 
 PLACEHOLDER = re.compile(r"\{\{((?:include|table|figure):[a-z_]+)\}\}")
@@ -919,6 +1344,9 @@ SUPP_HEADER = r"""\usepackage{fvextra}
 \renewcommand{\arraystretch}{1.15}
 \usepackage{xurl}
 \usepackage{newunicodechar}
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}{3.25ex \@plus1ex \@minus.2ex}{0.6ex}{\normalfont\normalsize\bfseries}}
+\makeatother
 """ + "\\AtBeginDocument{\\newunicodechar{\u200b}{\\hspace{0pt}}}\n"  # zero-width space: break point
 
 
@@ -938,7 +1366,7 @@ def supplement_pdf(md: Path, fallback: frozenset[str] = frozenset()) -> Path:
            "-V", "linkcolor=black", "-V", "urlcolor=blue"]
     r = subprocess.run(cmd, cwd=BUILD, capture_output=True, text=True, env=tex_env())
     if r.returncode:
-        raise SystemExit("pandoc failed:\n" + r.stderr[-4000:])
+        raise SystemExit("pandoc failed:\n" + r.stderr)
     missing = set(re.findall(r"Missing character: There is no (.) ", r.stderr))
     if missing and not fallback:
         return supplement_pdf(md, frozenset(missing))
@@ -968,7 +1396,7 @@ def main_pdf() -> Path:
     for cmd in steps:
         r = subprocess.run(cmd, cwd=LATEX, capture_output=True, text=True, env=env)
         if r.returncode:
-            raise SystemExit(f"{' '.join(cmd)} failed:\n{r.stdout[-4000:]}")
+            raise SystemExit(f"{' '.join(cmd)} failed:\n{r.stdout}")
     log = (LATEX / "main.log").read_text(encoding="utf-8", errors="replace")
     problems = re.findall(r"(LaTeX Warning: (?:Reference|Citation) .*? undefined.*)", log)
     if problems:

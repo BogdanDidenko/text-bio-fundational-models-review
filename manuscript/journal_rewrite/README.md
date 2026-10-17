@@ -1,7 +1,9 @@
 # Journal rewrite of paper 1: records and checks
 
 This folder documents the rewrite of paper 1 from a PRISMA-style report (v0.5.1) into a journal review
-article (v0.6). The rewrite changed the presentation only.
+article (v0.6). The rewrite changed the presentation only. Version 0.6.1 added supplementary items (the
+prompts of the screening roles and the decisions of the agents per record) and corrected one statement
+of fact; `CHANGE_LOG.md` lists both.
 
 | File | Contents |
 |---|---|

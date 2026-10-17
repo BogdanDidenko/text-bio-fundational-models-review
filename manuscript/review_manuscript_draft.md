@@ -88,8 +88,9 @@ or stage, its kind and the results that depend on it. The amendments concern the
 a round that added OpenAlex, abstract enrichment), the screening workflow (role-separated screening,
 full-text section screening and a human resolution layer) and the procedure for living updates. The
 further changes added the analyses on which most results rest (the operation-level decomposition, the
-motif and design-axis analysis, and the design-culture analysis with its targeted charting pass) and
-record corrections and omissions. Of the further changes, {{n:after_results}} were made after results
+motif and design-axis analysis, and the design-culture analysis with its targeted charting pass),
+record corrections and omissions, and record a resolution at full text that an LLM agent made where the
+protocol foresaw the review lead. Of the further changes, {{n:after_results}} were made after results
 had been seen:
 the design-culture analysis with its targeted charting pass, the motif and design-axis definitions, the
 revision of the decomposition rules after run-to-run disagreement, the replacement of an earlier
@@ -157,8 +158,12 @@ Title and abstract screening applied the eligibility decision tree with two role
 (scope and architecture) and an adjudicator for conflicts; all three are prompts executed by the same
 LLM, not independent human reviewers. Full-text screening used machine conversions of the full texts,
 from which the complete data-source and input-representation sections were reconstructed and screened
-together with the title and abstract. Records still uncertain after adjudication were resolved by the
-review lead from the full sections, and the automated decision was kept alongside. The run-to-run
+together with the title and abstract. Records still uncertain after adjudication were resolved in
+rounds 1–4 by the review lead from the full sections, and in the August round by an LLM agent from the
+full document, whose decision was not validated by a person; the automated decisions were kept
+alongside. Supplementary Note
+[[S:prompts]] gives the prompts of the three roles verbatim, and Supplementary Tables [[S:ta_decisions]]
+and [[S:ft_decisions]] give the decisions for every screened record and every assessed report. The run-to-run
 stability of this screening is reported in a companion methods paper [CITE companion manuscript].
 
 ### Data charting and data items
@@ -185,7 +190,9 @@ data path, with verbatim evidence checked mechanically; values that only follow 
 released code or cited papers do not count. This pass also used three runs per paper and the majority
 status, and its acceptance gate was fixed before the first run. The decomposition rules were developed
 on ten length-stratified papers and evaluated on held-out papers with the rules frozen (Supplementary
-Note [[S:decomposition]]). The result is version 1.3.0 of the operation library. The withdrawn
+Note [[S:decomposition]]). The result is version 1.3.0 of the operation library. Supplementary Tables
+[[S:decomposition_steps]] and [[S:parameter_slots]] give the decision for every step and every parameter
+slot. The withdrawn
 OKR-Cell preprint was not decomposed.
 
 After a shortlist of candidate findings had been drawn up, a targeted charting pass was run with the
@@ -205,7 +212,8 @@ verbatim evidence for every item:
 
 Quotes were checked mechanically against the paper. The variables used for culture-level claims were
 then adjudicated by reading the evidence: the rationale items, dependence tests found in only one run,
-and the cross-representation comparison units.
+and the cross-representation comparison units. Supplementary Table [[S:charting_items]] gives the items
+that each run returned for each record.
 
 ### Critical appraisal
 
@@ -272,13 +280,15 @@ were frozen and hash-pinned before each production run; every output was validat
 and every evidence quote was checked mechanically against the paper text. Route charting, the
 decomposition and the parameter pass were each run three times, with the majority decision kept, and
 the targeted pass twice; agreement between runs was measured, against acceptance thresholds where these
-had been set. The review lead resolved the full-text records that remained uncertain after automated
-adjudication and approved the targeted charting pass, and the authors curated the four pilot
+had been set. The review lead resolved the full-text records of rounds 1–4 that remained uncertain after
+automated adjudication (in the August round this resolution was made by an LLM agent and was not
+validated by a person) and approved the targeted charting pass, and the authors curated the four pilot
 decompositions. The adjudication of the targeted pass and the culture assignment were made by
 the library steward, an agent-assisted role in which an AI assistant, directed by the review lead,
 applied written rules to the verbatim evidence and recorded each decision with its reason; a second,
-human coder is planned (see Limitations). Supplementary Note [[S:ai]] gives the tasks, prompts, runs,
-agreement statistics and human checks in the order of the PRISMA-trAIce items.
+human coder is planned (see Limitations). Supplementary Note [[S:ai]] gives the tasks, runs, agreement
+statistics and human checks in the order of the PRISMA-trAIce items; the prompts of the screening roles
+are in Supplementary Note [[S:prompts]], and those of the other steps in the repository.
 
 ## Results
 
@@ -617,7 +627,8 @@ dependence controls, rather than further between-system leaderboards.
 ### Limitations
 
 **Automation and human checks.** Screening, charting and decomposition were assisted by LLMs, and the
-role-separated screening prompts are not independent reviewers. The decomposition graphs are
+role-separated screening prompts are not independent reviewers. The full-text inclusion that an LLM agent
+resolved in the August round has not been checked by a person. The decomposition graphs are
 three-run consensus decisions, not author-verified reconstructions, and were not checked by a reviewer
 agent. Decomposition stability is incomplete. On unseen papers, the step-level consensus was
 reproduced in 95.6% of steps but complete route sequences only in 85.4%, below the predeclared 90%
@@ -711,7 +722,9 @@ supplementary item, and the earlier version of this manuscript, with its interna
 `manuscript/archive/review_manuscript_draft_v0.5.1.md` (commit 4c4db9f0). The component library is
 browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. A
 curated snapshot of the repository and the protocol with its amendments are deposited on Zenodo
-[TODO: DOIs].
+[TODO: DOIs]. The run logs of the LLM agents embed the texts of the papers and are not part of the
+snapshot; the prompts of the screening roles are reproduced in Supplementary Note [[S:prompts]], and the
+decisions of the agents for every record are in the supplementary data files.
 
 ## Use of large language models
 

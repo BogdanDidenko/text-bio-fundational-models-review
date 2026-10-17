@@ -78,6 +78,29 @@ analysis was re-run, and the number check compares every typed number with the p
   rewrite; the audit script writes the reports of this folder and fails on a census violation or an
   unexplained new number.
 
+## Version 0.6.1: added supplementary items and one correction
+
+These changes came after the rewrite and are not presentation changes.
+
+- Correction. Versions 0.5.1 and 0.6 stated that the review lead resolved the full-text records left
+  uncertain by automated screening. This holds for rounds 1–4. In the August round, the one uncertain
+  record (scMIR, included) was resolved by an LLM agent reading the full document, and no person
+  validated that decision (`data/living_catalog_updates/update_2026-08-09/10_eligibility/manual_resolution.csv`).
+  Methods (selection of sources of evidence; use of AI tools), the summary of deviations, Limitations
+  and the supplementary note on AI use now say so, and the deviations table has a new further change.
+- New supplementary note: the prompts of the screening roles, reproduced verbatim from the run logs
+  (the fixed part before the records of each batch), grouped by identical text, with the runs that used
+  each text, the number of batches and the SHA-256 of the text.
+- New supplementary tables: the decisions for every record at title and abstract screening (data file
+  only) and at full-text screening (printed and data file, with the resolutions and who made them), and
+  data-file tables with the decomposition decision for every step, the parameter-pass decision for every
+  slot, and the items of each targeted charting run. The build checks the screening tables against the
+  counts of the flow diagram.
+- The supplementary items are renumbered by first citation, so the supplementary numbers of version 0.6
+  no longer apply. Data and code availability now states that the run logs, which embed the paper texts,
+  are not part of the Zenodo snapshot.
+- The label census and number check were rerun on this version; `COMPLIANCE.md` gives the new lengths.
+
 ## Open items (not done in this rewrite)
 
 - Literature placeholders ([CITE]) in the Introduction, the selection paragraph of Methods (companion
@@ -85,10 +108,11 @@ analysis was re-run, and the number check compares every typed number with the p
 - Zenodo deposits: identifier and date of the protocol record, and the DOI of the repository snapshot,
   for Methods and Data and code availability.
 - Figure 2: the compact flow (panel a) and the works-per-culture breakdown are still to be drawn; the
-  current panels are shown with a draft note.
+  legend marks them as to do.
 - A second human coder for the cross-culture comparison units and the culture assignment, with a recall
   audit of comparisons (stated as planned in Methods and Limitations).
 - Decision on the withdrawn OKR-Cell preprint, which is still counted among the 55 records.
+- Confirmation by the review lead of the August full-text inclusion that an LLM agent resolved (scMIR).
 - Author statements: use of language models in drafting, funding, conflicts of interest, contributions,
   acknowledgements, biographies, co-authors and affiliations on the title page.
 - At submission: the journal's own template options and cover letter; the supplement may need to be
