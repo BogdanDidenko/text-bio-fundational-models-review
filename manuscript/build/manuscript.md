@@ -80,7 +80,7 @@ for the search and PRISMA-trAIce for the steps assisted by artificial intelligen
 was not registered before the searches were run. Its first version under version control (version 3.0)
 was committed to the project repository on 2026-02-09, after a first search execution on 2026-02-06,
 and the protocol with all later amendments is deposited retrospectively on Zenodo
-[TODO: protocol DOI and deposit date].
+(<!-- generated: zenodo:protocol -->https://doi.org/10.5281/zenodo.23437389<!-- end generated -->, reserved DOI; [TODO: deposit date]).
 
 The protocol was amended <!-- generated: n:amendments -->10<!-- end generated --> times while the review was carried out, and
 <!-- generated: n:further_changes -->13<!-- end generated --> further changes were made that the protocol did not foresee; Supplementary Table S1 lists each one with its date
@@ -717,14 +717,18 @@ and the data files with a column dictionary.
 The search configurations and exports, screening and charting outputs, the operation library
 (version 1.3.0), the analysis code and the source data of every figure panel are available at
 https://github.com/BogdanDidenko/text-bio-fundational-models-review (this version: commit
-<!-- generated: build_commit -->a4f1a390<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
+<!-- generated: build_commit -->bae00337<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
 supplementary item, and the earlier version of this manuscript, with its internal labels, is
 `manuscript/archive/review_manuscript_draft_v0.5.1.md` (commit 4c4db9f0). The component library is
-browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. A
-curated snapshot of the repository and the protocol with its amendments are deposited on Zenodo
-[TODO: DOIs]. The run logs of the LLM agents embed the texts of the papers and are not part of the
-snapshot; the prompts of the screening roles are reproduced in Supplementary Note S3, and the
-decisions of the agents for every record are in the supplementary data files.
+browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. The
+review materials of this version are deposited on Zenodo (<!-- generated: zenodo:materials -->https://doi.org/10.5281/zenodo.23437391<!-- end generated -->): the screening prompts
+and the output of every screening agent for every record, the outputs of the agents that extracted
+information from the included papers, the operation library and the Supplementary Information with its
+data files. The protocol with its amendments is a separate record (<!-- generated: zenodo:protocol -->https://doi.org/10.5281/zenodo.23437389<!-- end generated -->). Both DOIs are
+reserved and become active when the records are published. The texts of the papers and the run logs of
+the LLM agents, which embed them, are not deposited; the deposit keeps the responses of the agents
+without the prompts, and the prompts of the screening roles are reproduced in Supplementary Note
+S3.
 
 ## Use of large language models
 
