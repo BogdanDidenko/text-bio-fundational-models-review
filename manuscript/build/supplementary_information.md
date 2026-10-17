@@ -320,7 +320,733 @@ Semantic Scholar were re-run for the window 2026-02-16 to 2026-02-28. They retur
 17 had already been retrieved and 34 had not; none of the 34 met the eligibility criteria in an
 indicative single-pass LLM title/abstract triage. Scopus and Springer Nature were not re-run.
 
-### Supplementary Note S3. Operation-level decomposition: rules, runs and stability
+### Supplementary Note S3. Prompts of the screening agents
+
+Title and abstract screening and full-text screening used three roles, each a prompt executed by the
+same model (gpt-5.4-mini through the Codex command-line agent): a scope reviewer, an architecture
+reviewer and an adjudicator. The adjudicator was called for records that the fixed rules could not
+decide from the answers of the two first-pass reviewers (conflicting paper types, a criterion answered
+as unclear, or a stated uncertainty), and every decision was derived from the criterion answers by fixed
+rules. Each call screened a batch of records. The texts
+below are the fixed part of the prompts as sent, recovered from the run logs and reproduced verbatim;
+within a run, every batch received the same text. Each prompt continued, after the line "Records JSON:",
+with a JSON array of the records of the batch: record identifier, title, abstract, DOI, year, venue and
+sources; at full text also the selected full-text sections; for the adjudicator also the outputs of the
+two first-pass reviewers.
+
+<!-- generated: include:screening_prompts from analysis/codex_screening_run_artifacts_20260706/full_runs/codex_gpt54mini_all4027_20260706/role_logs.tar.gz, analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update155_20260706/role_logs.tar.gz, analysis/codex_screening_run_artifacts_20260706/update_runs/codex_gpt54mini_update431_20260610/role_logs.tar.gz, data/living_catalog_updates/update_2026-08-09/04_abstract_screening/role_logs, data/living_catalog_updates/update_2026-08-09/04_abstract_screening_manual_recall_xunzi_2026-08-11/role_logs, data/living_catalog_updates/update_2026-08-09/09_fulltext_screening/role_logs, data/living_catalog_updates/update_2026-08-09/09_fulltext_screening_manual_recall_xunzi_2026-08-11/role_logs, data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/role_logs -->
+
+#### Title and abstract screening: scope reviewer
+
+Used in: full re-screen of the cumulative records (run of 2026-07-06); June update (run of 2026-06-10); July update (run of 2026-07-06); August update (run of 2026-08-10); supplemental recall correction (run of 2026-08-11). Batches: 610. SHA-256 of the text: 07f371be7c120ebb96524ca0224a5cc6f73d79809b7f7e5cc33f955ff57e90da.
+
+```
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title/abstract record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the abstract support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first title/abstract screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the title/abstract.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Gene-token or other biological-token modeling counts as a text/language component only when the abstract clearly describes generative language-model-style token modeling as part of the candidate model.
+- If the bridge or scope cannot be established from the abstract, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the title/abstract that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Title and abstract screening: architecture reviewer
+
+Used in: full re-screen of the cumulative records (run of 2026-07-06); June update (run of 2026-06-10); July update (run of 2026-07-06); August update (run of 2026-08-10); supplemental recall correction (run of 2026-08-11). Batches: 610. SHA-256 of the text: 99f62c9415fe863e5f175e63f5dd07d0e9b737a33468ef1efca765622e722acb.
+
+```
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title/abstract record. Do not use outside knowledge. If the abstract does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | EC4_no_foundation_model_evidence | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | foundation_model_evidence_unclear | mixed_signals | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the abstract describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the abstract provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first title/abstract screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the title/abstract.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the abstract explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- If the abstract clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- If the abstract is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the title/abstract that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Title and abstract screening: adjudicator
+
+Used in: full re-screen of the cumulative records (run of 2026-07-06); June update (run of 2026-06-10); July update (run of 2026-07-06); August update (run of 2026-08-10); supplemental recall correction (run of 2026-08-11). Batches: 279. SHA-256 of the text: f54364b5ca9f28aa3ed82709941bf9b6ecdb37de8e37401b65a1aae4a6b43b6e.
+
+```
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title/abstract record plus the structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | EC4_no_foundation_model_evidence | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | foundation_model_evidence_unclear | mixed_signals | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the abstract and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the title/abstract evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- If the abstract only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the title/abstract and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the title/abstract that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: scope reviewer, version 1
+
+Used in: rounds 1–4 (run of 2026-07-10). Batches: 221. SHA-256 of the text: 525bca8d2abbf8ecc0f0463419e3e56dcdedb3ed9bbda07bc60be855739acd04.
+
+```
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: scope reviewer, version 2
+
+Used in: August update (run of 2026-08-11); supplemental recall correction (run of 2026-08-11). Batches: 3. SHA-256 of the text: 0fab79a4de2912c8dee54756108f9406d9b8fa9376aadf08836a9a1374cd65e0.
+
+```
+Reviewer role:
+You are a strict scope reviewer for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- evidence_for_generative_model: not_assessed
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+1. `paper_type`: Is this a primary candidate model paper rather than a review/editorial, benchmark/resource paper, or application wrapper around an existing model?
+2. `bio_modality_present`: Is a biological data modality central to the candidate model?
+3. `text_component_present`: Is there a substantive text/language component as part of the candidate model itself?
+4. `text_bio_bridge_present`: Does the provided evidence support a substantive text-bio bridge rather than a loose wrapper or side-feature use?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- If the record is review/editorial, benchmark/resource, or application_wrapper, set `paper_type` accordingly and use the matching exclusion code.
+- If a paper only uses embeddings, prompts, metadata descriptions, or outputs from an existing external LLM as side information for a downstream predictive bio task, treat it as `application_wrapper`, not as a substantive text-bio model.
+- Using an existing external LLM only to generate embeddings, labels, prompts, explanations, or text-derived features for a downstream classifier, risk model, annotation system, or predictor is `application_wrapper`, not a primary text-bio model.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as a text component only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A new method that merely attaches frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features to a downstream biological predictor is `application_wrapper` unless the provided evidence presents the candidate model as a multimodal text-bio model, a bio-to-text/text-to-bio generator, or a generative model conditioned on text-derived evidence.
+- A paper that trains or fine-tunes a model to map biological data to natural-language descriptions, or natural-language prompts/descriptions to biological outputs, can satisfy `text_component_present=yes` and `text_bio_bridge_present=yes` if the provided evidence makes that mapping central.
+- A paper that presents a new multimodal model or framework for generating natural-language descriptions from biological data, or generating biological outputs conditioned on natural-language/text-derived evidence, should not be labeled `application_wrapper` solely because it uses a pretrained LLM component.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- If the bridge or scope cannot be established from the provided evidence, use `unclear` rather than forcing `yes` or `no`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "uses GPT embeddings / LLM-derived gene embeddings / task-specific text prototypes for classification or prediction" -> `application_wrapper`, unless the abstract presents a central multimodal text-bio model or generator.
+- "gene tokens", "cell sentences", "DNA language", or "omics language model" with no natural-language text, prompt, caption, report, document, or explicit text-bio alignment -> `text_component_present=no`, `text_bio_bridge_present=no`.
+- "generates single-cell descriptions from RNA-seq", "conditions biological generation on natural-language prompts", or "aligns transcriptomes/histology/gene expression with language representations" -> likely text component and bridge if central to the candidate model.
+- "chat with cells", "single-cell analysis with natural language", "biological question answering", or "generates cell descriptions from RNA-seq" -> text component and text-bio bridge can be yes when central to the candidate model.
+- "diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions" -> text component and text-bio bridge can be yes when the conditioning is part of the candidate model.
+- "metadata" or "foundation-model embeddings" without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- "clinical risk prediction using medical history records" -> `text_component_present=unclear` unless records are clearly natural-language text; it is not enough that the model is called a language model.
+
+
+Full-text evidence mode:
+- Each record includes complete `selected_full_text_sections` extracted from Docling markdown.
+- Treat the title, abstract, and selected full-text sections as the provided record; do not use outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: architecture reviewer, version 1
+
+Used in: rounds 1–4 (run of 2026-07-10). Batches: 221. SHA-256 of the text: 51b3d3c952e0158706b502b7207d583c1e489d5f40d6f36848b4af9642e4ed2a.
+
+```
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: architecture reviewer, version 2
+
+Used in: August update (run of 2026-08-11); supplemental recall correction (run of 2026-08-11). Batches: 3. SHA-256 of the text: 2e1a8f98025aedae6e2e77bc24a7556401e737b0f0f2a29efb1d0796c12fb440.
+
+```
+Reviewer role:
+You are an architecture-focused reviewer assessing generative capability and foundation-model evidence for generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, and selected full-text sections. Do not use outside knowledge. If the provided evidence does not clearly support a criterion, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: not_assessed
+- evidence_for_text_bio_bridge: not_assessed
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, and selected full-text sections, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Criterion questions for this reviewer:
+5. `generative_model_present`: Does the provided evidence describe a genuinely generative architecture rather than an encoder-only or purely predictive system?
+6. `foundation_model_evidence`: Does the provided evidence provide evidence that the candidate model has foundation-model-like characteristics such as broad pretraining, transferable representations, or broad applicability?
+
+Decision policy:
+- Use a sensitivity-first full-text-section screening strategy.
+- Do not invent a final include/exclude label. Answer only the criterion fields requested for this reviewer.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections.
+- Evidence fields must be short and concrete. Quote or paraphrase only evidence present in the provided title, abstract, and selected full-text sections. If evidence is absent, use `none`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, or another clearly generative mechanism.
+- Encoder-only architectures are not positive evidence for inclusion.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence clearly shows that the work is only a wrapper around an existing model, set `paper_type=application_wrapper`.
+- Fine-tuning or using an existing generative model for a narrow downstream application is not enough to make the paper a primary generative text-bio foundational model if the candidate contribution is only an application wrapper.
+- A model that predicts class, survival, risk, expression value, subtype, annotation, or ranking is `generative_model_present=no` unless the provided evidence explicitly describes a generative mechanism such as decoder, autoregressive generation, sequence-to-sequence generation, diffusion, VAE/GAN generation, or generation of biological/text outputs.
+- Masked language modeling, encoder-only pretraining, representation learning, contrastive learning, and retrieval are `generative_model_present=unclear` or `no` unless the provided evidence clearly states generation.
+- The phrase "large language model" is not by itself sufficient evidence that the proposed candidate model is generative; identify the generative task or mechanism in `evidence_for_generative_model`.
+- If the provided evidence is too underspecified to establish generative or FM evidence, use `unclear` rather than forcing `yes`.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- "survival prediction", "risk prediction", "cell type classification", "variant classification", or "annotation" without explicit generation -> `generative_model_present=no`.
+- "autoregressive", "decoder", "diffusion", "VAE/GAN", "sequence-to-sequence", "generates descriptions", "generates cells/sequences/images" -> positive generative evidence if central.
+- "built from ChatGPT", "uses Qwen/LLM embeddings", or "uses a frozen LLM" -> foundation/generative evidence for the external model only; do not infer that the paper's candidate model is a primary generative model unless the provided evidence says so.
+
+
+Full-text evidence mode:
+- Each record includes complete `selected_full_text_sections` extracted from Docling markdown.
+- Treat the title, abstract, and selected full-text sections as the provided record; do not use outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: adjudicator, version 1
+
+Used in: rounds 1–4 (run of 2026-07-10). Batches: 67. SHA-256 of the text: fc49528ed8d5e2b617bafee284c4c9c9c5ebee9895e9717b1707712bd51b3c4c.
+
+```
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record may include `selected_full_text_sections` and `section_evidence` extracted from Docling markdown.
+- Treat these fields as part of the provided record, not as outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+#### Full-text screening: adjudicator, version 2
+
+Used in: August update (run of 2026-08-11). Batches: 1. SHA-256 of the text: 549783c240c9369a8ecffae57ec48c7db4f70360cd4cf845e62b76962ed427a2.
+
+```
+Reviewer role:
+You are a senior adjudicator who resolves criterion-level conflicts conservatively for a systematic review of generative text-bio foundational models.
+
+Review the title/abstract/full-text-section record below for systematic-review screening of generative text-bio foundational models.
+
+Use only the evidence in the provided title, abstract, selected full-text sections, and structured outputs from the first-pass reviewers. Do not use outside knowledge. If a decisive criterion still cannot be resolved from the record, answer `unclear`.
+
+Return exactly one JSON object with these keys:
+- paper_type
+- bio_modality_present
+- text_component_present
+- text_bio_bridge_present
+- generative_model_present
+- foundation_model_evidence
+- primary_exclusion_code
+- uncertainty_reason
+- evidence_for_text_component
+- evidence_for_text_bio_bridge
+- evidence_for_generative_model
+- boundary_case
+- decision_rationale
+
+Allowed values:
+- paper_type: primary_model_paper | review_editorial | benchmark_resource | application_wrapper | unclear
+- bio_modality_present: yes | no | unclear
+- text_component_present: yes | no | unclear
+- text_bio_bridge_present: yes | no | unclear
+- generative_model_present: yes | no | unclear
+- foundation_model_evidence: yes | no | unclear
+- primary_exclusion_code: review_editorial | benchmark_resource | application_wrapper | EC1_no_bio_modality | EC2_no_text_component | EC2_no_substantive_text_bio_bridge | EC3_not_generative | none
+- uncertainty_reason: paper_type_unclear | bio_modality_unclear | text_component_unclear | text_bio_bridge_unclear | generative_status_unclear | mixed_signals | none
+- evidence_for_text_component: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_text_bio_bridge: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- evidence_for_generative_model: short evidence phrase from the provided title, abstract, selected full-text sections, or reviewer outputs, or none
+- boundary_case: clear_include | wrapper_boundary | text_component_boundary | biological_token_only_boundary | generative_boundary | thin_abstract_boundary | clear_exclude | none
+
+Adjudication task:
+- Resolve criterion-level disagreement between the scope and architecture reviewers.
+- Resolve each criterion independently from the provided evidence and reviewer outputs.
+- Do not simply choose one reviewer wholesale.
+
+Decision policy:
+- Use the most conservative interpretation consistent with the provided title, abstract, and selected full-text sections evidence.
+- Preserve clear review/editorial, benchmark/resource, and application-wrapper exclusions.
+- Treat `foundation_model_evidence` as descriptive metadata, not as an exclusion criterion.
+- If the provided evidence only supports wrapper-style use of an existing LLM or language model, set `paper_type=application_wrapper` and `text_bio_bridge_present=no`.
+- Evidence fields must identify the concrete phrase or claim that resolves the criterion. If no evidence resolves it, use `none` and keep the criterion `unclear`, `no`, or wrapper as appropriate.
+- Biological-token modeling alone does not count as a text/language component. Terms such as gene tokens, cell sentences, omics language, BERT-style biological tokenization, or language-model-style pretraining over biological sequences are not sufficient unless the provided evidence clearly describes natural-language text, text descriptions, captions, prompts, documents, or explicit text-bio alignment as part of the candidate model.
+- Metadata counts as text only when the provided evidence clearly describes natural-language metadata, reports, captions, prompts, documents, or text descriptions. Structured labels, categorical metadata, gene names, phenotypes, ontology terms, or cell-type labels alone are not enough.
+- A method that uses frozen/external LLM embeddings, prompts, labels, explanations, prototypes, or text-derived features only for a downstream classifier, annotation system, risk model, or predictor is `application_wrapper` unless the provided evidence presents a central multimodal text-bio model or generator.
+- Do not label a paper `application_wrapper` solely because it uses a pretrained LLM component when the provided evidence presents a new multimodal model or framework for generating natural-language descriptions from biological data, or for generating biological outputs conditioned on natural-language/text-derived evidence.
+- Natural-language chat, question answering, dialogue, natural-language interfaces, or generated natural-language descriptions for biological data analysis are sufficient evidence for `text_bio_bridge_present=yes` when they are central to the candidate model.
+- Natural-language-derived priors, text summaries, report summaries, text descriptions, or text embeddings count as a text component and text-bio bridge when they condition, guide, or are cross-attended by the candidate generative model itself. They are not enough only when they are detached side features for a downstream classifier or predictor.
+- Use `boundary_case=thin_abstract_boundary` only when missing provided title, abstract, and selected full-text sections evidence prevents a confident yes/no on at least one decisive criterion. If all decisive criteria are clearly supported, use `clear_include` or another more specific boundary label instead.
+- Do not set `paper_type=unclear` solely because the provided evidence is short or truncated when it explicitly presents a new named model/framework and does not describe the work as a review, benchmark, resource, or wrapper.
+- If decisive eligibility depends only on ambiguous phrases such as metadata, experimental metadata, pretrained foundation-model embeddings, or a title-only "LLM" claim without clear natural-language input/output or text conditioning in the provided evidence, use `unclear` for the affected criterion rather than forcing `yes` or `no`.
+- Predictive profile/score systems, downstream classifiers, and retrieval-only systems are not generative unless the provided evidence explicitly states decoder, autoregressive, sequence-to-sequence, diffusion, VAE/GAN, or another clearly generative mechanism.
+- If reviewers disagree because one inferred missing details from the phrase "language model", "foundation model", "ChatGPT", or "LLM", do not use that inference alone to include. Require explicit abstract evidence for the disputed criterion.
+- If a decisive criterion still cannot be resolved, keep that criterion as `unclear`.
+- `decision_rationale` must be brief and evidence-grounded: one or two short sentences tied to the provided title, abstract, and selected full-text sections and, when relevant, the reviewer conflict.
+- Use `none` when no exclusion code or uncertainty reason applies.
+
+Boundary examples:
+- LLM-derived gene embeddings, prompt-generated labels, or frozen LLM prototypes used by a downstream classifier -> `application_wrapper` unless the abstract presents a central multimodal text-bio model or generator.
+- Gene-token/cell-sentence/DNA-language modeling with no natural-language text or explicit text-bio alignment -> `text_component_present=no` and `text_bio_bridge_present=no`.
+- Survival/risk/classification/annotation tasks without explicit generation -> `generative_model_present=no`.
+- Biological data to natural-language descriptions, natural-language prompts to biological outputs, or explicit alignment of biological modalities with language representations -> can support `yes` when central and primary.
+- Chat/dialogue/question-answering about biological data, or single-cell analysis with natural language -> can support text component and text-bio bridge when central and primary.
+- Diffusion/generative model conditioned on text summaries, text-derived priors, or natural-language descriptions -> can support text component and text-bio bridge when conditioning is part of the candidate model.
+- Metadata or foundation-model embeddings without clear natural-language descriptions or text conditioning -> `unclear`, not automatic yes or no.
+- Thin or truncated abstract that hints at a candidate model but does not resolve text component, bridge, paper type, or generation -> choose `UNCERTAIN`, not `INCLUDE`.
+
+
+Full-text evidence mode:
+- Each record includes complete `selected_full_text_sections` extracted from Docling markdown.
+- Treat the title, abstract, and selected full-text sections as the provided record; do not use outside knowledge.
+- Use the selected full-text sections when they clarify criteria.
+- When full-text sections contradict or refine the abstract, prefer the more specific full-text section evidence and mention that section in `evidence_snippet`.
+- Do not infer from the paper title alone when the selected full-text sections do not support the criterion.
+
+
+Batch execution instructions:
+- Screen every record in the JSON array below independently.
+- Return exactly one JSON object with a `results` array, with one object per input record, in the same order.
+- Include `record_id` in every object exactly as provided.
+- Include `evidence_snippet`: a short quote or paraphrased phrase from the provided evidence that supports the criterion outputs.
+- Do not include hidden chain-of-thought, step-by-step reasoning, markdown, commentary, or code fences.
+- Keep `decision_rationale` brief and evidence-grounded.
+
+Records JSON:
+```
+
+<!-- end generated -->
+
+### Supplementary Note S4. Operation-level decomposition: rules, runs and stability
 
 **Library.** Each documented input path is reconstructed as a directed graph of calls to a library of
 22 reusable operations (normalisation, log transform, binning, tokenisation, table lookup, projection,
@@ -371,7 +1097,7 @@ release decisions use the per-step majority of the three runs. For the parameter
 decisions were unanimous across runs, and held-out consensus status agreement was 0.992. The withdrawn
 OKR-Cell preprint is not included.
 
-### Supplementary Note S4. Motifs, design axes and archetypes
+### Supplementary Note S5. Motifs, design axes and archetypes
 
 **Model-level paths.** For each model configuration, the decomposed routes (agent-decomposed papers) or the
 author-curated graphs (pilot papers, all root-to-model paths) were turned into paths of role-aware
@@ -382,14 +1108,14 @@ biological and text inputs. Unexpanded learned modules were kept as typed tokens
 **Motifs.** Closed frequent sub-chains (contiguous and gapped) were mined at the operation and family
 levels, with support counted in papers (at least 4 papers; no length limit). Supported, interpretable
 sub-chains were named as motifs with templates, members, parameter reporting and evidence-quoted
-examples (Supplementary Table S6). Stability: mining was repeated on each single
+examples (Supplementary Table S11). Stability: mining was repeated on each single
 decomposition run.
 
 **Design axes.** Each route was also coded on five axes along one canonical pipeline (source, curation,
 value transformation, carrier formation, interface): carrier formation, interface to the language
 model, transformation of measured values (order only, discretised, learned compression, verbatim; with
 subset and normalisation modifiers), text role and transparency. Coding rules are deterministic over
-the chains and the charted atlas labels (Supplementary Table S10). We tested coverage,
+the chains and the charted atlas labels (Supplementary Table S15). We tested coverage,
 independence (normalised mutual information) and robustness to decomposition runs. Archetypes are
 carrier x interface combinations; a model can carry several.
 
@@ -397,7 +1123,7 @@ carrier x interface combinations; a model can carry several.
 recurring recipes. That result was an artefact of chain construction (uneven wording granularity,
 non-computational steps counted as operations, fragmentary routes) and is withdrawn.
 
-### Supplementary Note S5. Use of AI tools, reported by PRISMA-trAIce item
+### Supplementary Note S6. Use of AI tools, reported by PRISMA-trAIce item
 
 **Tasks and tools.** LLMs were run through the Codex command-line agent (Codex CLI; the version of the
 agent was not recorded with the runs). gpt-5.4-mini was used for title and abstract screening,
@@ -412,8 +1138,11 @@ LLM reviewers (scope and architecture) and an adjudicator for conflicts; prompts
 hash-pinned. Full-text screening (baseline run on 2026-07-10) used Docling conversions; Docling Graph
 provenance reconstructed the
 complete data-source and input-representation sections, which were screened with the title and
-abstract. Records still uncertain after adjudication were resolved by the review lead from the full
-sections, keeping the automated decision alongside. The roles are prompts executed by the same model,
+abstract. Records still uncertain after adjudication were resolved, keeping the automated decision
+alongside: in rounds 1–4 by the review lead from the cited full sections, and in the August round by an
+LLM agent from the full document, whose decision was not validated by a person. The prompts are given verbatim
+in Supplementary Note S3, and the decisions in Supplementary Tables S3 and
+S4. The roles are prompts executed by the same model,
 not independent human reviewers.
 
 **Route charting.** Routes were extracted from the full text with three frozen direct runs plus
@@ -421,7 +1150,7 @@ dense-coverage candidates. Agreement across the three runs on the 55-record corp
 0.945–0.969; carrier-family exact agreement 0.929; Krippendorff's alpha 0.881 (acceptance thresholds
 0.80, 0.90, 0.80). Dated author-led amendments are recorded in the atlas metadata.
 
-**Decomposition and parameter pass.** Supplementary Note S3 gives the rules, runs and
+**Decomposition and parameter pass.** Supplementary Note S4 gives the rules, runs and
 stability.
 
 **Targeted charting pass.** The pass followed a frozen protocol (design-culture charting, version 1.1).
@@ -438,14 +1167,17 @@ cross-representation comparison units, and assigned each work to a culture. The 
 217 comparison items, which adjudication merged into 31 comparison units in 20 works; three further
 units were set aside as within-culture or not about representation form. A second human coder for the
 31 comparison units and the culture assignment, with a recall audit of comparisons, is planned. The
-review lead approved the targeted charting pass and resolved the records left uncertain by automated
-full-text screening, and the authors curated the four pilot decompositions.
+review lead approved the targeted charting pass and resolved the records of rounds 1–4 left uncertain by
+automated full-text screening, and the authors curated the four pilot decompositions.
 
-**Prompts, schemas and run records.** The prompts, output schemas, rule sets, run configurations and
-run outputs of every step are in the project repository; the supplementary file index lists their
-locations.
+**Prompts, schemas and run records.** The prompts of the screening roles are reproduced in
+Supplementary Note S3. The prompts of the other steps are generated by the scripts of each
+step; these scripts, the output schemas, rule sets, run configurations and run outputs of every step
+are in the project repository, and the supplementary file index lists their locations. The run logs
+that contain the prompts as sent with the paper texts are kept in the repository but are not part of
+the archived snapshot, because they embed the texts of the papers.
 
-### Supplementary Note S6. Coverage of protein and nucleotide models
+### Supplementary Note S7. Coverage of protein and nucleotide models
 
 A coverage check found that 12 protein and biomolecular text–generative models (ProteinDT, BioT5,
 BioT5+, NatureLM, Evolla, Galactica, InstructProtein, ProtLLM, Prot2Text, ProtT3, ProLLaMA, TxGemma)
@@ -482,7 +1214,7 @@ was decided after results of the review (or, where stated, after procedural resu
 | 10 | Protocol amendment (version 4.7) | 10 August 2026 | Search and update | OpenAlex was added to abstract enrichment, so that no record of the August round is excluded for lack of an abstract. | No | Records of the August round. |
 | 11 | Further change | After full-text screening | Data items | Input routes were charted as grounded routes from source object to carrier and classified in an input-representation taxonomy; the protocol's extraction plan did not foresee this. | No | All route-level results (Methods: data charting). |
 | 12 | Further change | After route charting | Data items | Each input path was decomposed into calls to a library of reusable data operations, with a three-run consensus and a parameter pass that records whether each parameter is stated. | No | Operation reuse, unexpanded steps, unstated parameters, archetypes and opaque-step shares. |
-| 13 | Further change | During the decomposition | Analysis | The decomposition rules were revised after run-to-run disagreement, sharpening the boundaries between align, concatenate and serialise, and between partition and select; the affected papers were decomposed and their parameter pass repeated. | Yes (stability results) | All decomposition results; the stability on the papers that informed the revision is reported as in-sample (Supplementary Note S3). |
+| 13 | Further change | During the decomposition | Analysis | The decomposition rules were revised after run-to-run disagreement, sharpening the boundaries between align, concatenate and serialise, and between partition and select; the affected papers were decomposed and their parameter pass repeated. | Yes (stability results) | All decomposition results; the stability on the papers that informed the revision is reported as in-sample (Supplementary Note S4). |
 | 14 | Further change | During the decomposition | Tool | The decomposition used gpt-5.6-luna instead of gpt-5.4-mini, which is no longer available through Codex. | No | Decomposition, parameter pass and targeted charting. |
 | 15 | Further change | After the decomposition | Analysis | Motifs (recurring operation sub-chains) and five design axes with archetypes were defined after inspecting the decomposed data. | Yes | Motif and archetype results; the axes are described as not validated on an independent corpus (Limitations). |
 | 16 | Further change | After the decomposition | Analysis | An earlier comparison of exact route chains, which reported no recurring recipes, was withdrawn as an artefact of chain construction and replaced by the motif analysis. | Yes | None; the earlier result is not reported. |
@@ -492,6 +1224,7 @@ was decided after results of the review (or, where stated, after procedural resu
 | 20 | Further change | After the full-text screening | Screening check | An audit found that the abstract shown with the selected sections was cut for some records and that some reports were not screened at full text; the screening was not repeated. | Yes | None changed; reported in Limitations. |
 | 21 | Further change | After the withdrawal of a preprint | Corpus | The withdrawn OKR-Cell preprint is still counted among the included records but was excluded from the decomposition and the culture-level analyses (author decision pending). | No | Record counts include it; work-level counts exclude it (Results). |
 | 22 | Further change | At synthesis | Omission | Protocol objective 3 (datasets, downstream tasks, evaluation metrics) and the extraction fields for pretraining objective and code and data availability were not charted, except the evaluation formats and outputs of the targeted pass. | No | Not reported; listed in Limitations. |
+| 23 | Further change | August round, full-text screening | Screening | The record left uncertain at full-text screening in the August round was resolved by an LLM agent reading the full document, where amendment 4.4 foresaw the review lead; the decision was not validated by a person. | After the automated decisions | Inclusion of one record (scMIR); marked in Supplementary Table [[S:ft_​decisions]] and listed in Limitations. |
 
 <!-- end generated -->
 
@@ -549,7 +1282,283 @@ file of each run are in the data file.
 
 <!-- end generated -->
 
-### Supplementary Table S3. Reports excluded at full text, with reasons
+### Supplementary Table S3. Title and abstract screening decisions
+
+One row per screened record (<!-- generated: rows of title_abstract_screening_decisions.csv -->4863<!-- end generated --> rows, including the record of
+the supplemental recall correction): the screening run; the automated decision with its reason,
+rationale and evidence; who produced it (the fixed rule over the two first-pass reviewers, or the
+adjudicator); and the criterion answers, exclusion reasons and rationales of each role. Records decided
+as include or uncertain were sought for full-text screening; Supplementary Figure S1 gives those
+that were not retrieved or lacked a valid targeted section pair. Data file only.
+
+### Supplementary Table S4. Full-text screening decisions
+
+One row per report assessed at full text, including the record of the supplemental recall correction.
+Automated decision: the decision of the screening agents, with its exclusion reason. Resolution: the
+decision that resolved an uncertain automated decision, and who made it. Included reports carry their
+number in the article's reference list. The data file adds the criterion answers and rationales of each
+role and the recorded basis of each resolution.
+
+<!-- generated: table:ft_decisions from data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10, data/living_catalog_updates/update_2026-08-09/09_fulltext_screening, data/living_catalog_updates/update_2026-08-09/09_fulltext_screening_manual_recall_xunzi_2026-08-11, data/screening_codex_fulltext_docling_graph_direct_clean_both_targets_2026-07-10/manual_resolution_2026-07-10.csv, data/living_catalog_updates/update_2026-08-09/10_eligibility, data/living_catalog_updates/update_2026-08-09/10_eligibility_manual_recall_xunzi_2026-08-11 -->
+
+| Report | Automated decision | Resolution of an uncertain decision | Final decision | Final reason for exclusion |
+|-----------------------------------------------|-------------------|-------------------|---------|---------------------|
+| A multimodal conversational agent for DNA, RNA and protein tasks [5] | include | — | include | — |
+| A Multi-Modal AI Copilot for Single-Cell Analysis with Instruction Following [6] | include | — | include | — |
+| X-Cell: Scaling Causal Perturbation Prediction Across Diverse Cellular Contexts via Diffusion Language Models [7] | include | — | include | — |
+| A Generative Foundation Model for Multimodal Histopathology [8] | include | — | include | — |
+| WITHDRAWN: OKR-Cell: Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training [9] | include | — | include | — |
+| Cell2Text: Multimodal LLM for Generating Single-Cell Descriptions from RNA-Seq Data [10] | include | — | include | — |
+| Cell2Text: Multimodal LLM for generating textual descriptions from single-cell RNA-Seq profiles [11] | include | — | include | — |
+| Multimodal learning of transcriptomes and text enables interactive single-cell RNA-seq data exploration with natural-language chats [12] | include | — | include | — |
+| Multimodal learning enables chat-based exploration of single-cell data [13] | include | — | include | — |
+| OmniNA: A foundation model for nucleotide sequences [14] | include | — | include | — |
+| A foundation model for nucleotide sequences. [15] | include | — | include | — |
+| XunZi, an AI biologist, reveals disease-modifying targets [17] | include | — | include | — |
+| Any-to-Any Learning in Computational Pathology via Triplet Multimodal Pretraining [18] | uncertain | include (review lead) | include | — |
+| Bio-BLIP: A Multimodal Architecture for Transferable Reasoning in Genomic Variant Interpretation [19] | include | — | include | — |
+| BioGPT: A Generative Transformer-Based Framework for Personalized Genomic Medicine and Rare Disease Diagnosis [20] | include | — | include | — |
+| Biomedgpt: Open multimodal generative pre-trained transformer for biomedicine [21] | include | — | include | — |
+| BioReason: Incentivizing Multimodal Biological Reasoning within a DNA-LLM Model [22] | include | — | include | — |
+| BioVERSE: Representation Alignment of Biomedical Modalities to LLMs for Multi-Modal Reasoning [23] | include | — | include | — |
+| Scaling Large Language Models for Next-Generation Single-Cell Analysis. [24] | include | — | include | — |
+| CaLMFlow: Volterra Flow Matching using Causal Language Models [25] | include | — | include | — |
+| Precious3GPT: Multimodal Multi-Species Multi-Omics Multi-Tissue Transformer for Aging Research and Drug Discovery [26] | include | — | include | — |
+| Cell-o1: Training LLMs to Solve Single-Cell Reasoning Puzzles with Reinforcement Learning [27] | include | — | include | — |
+| Language may be all omics needs: Harmonizing multimodal data for omics understanding with CellHermes [28] | include | — | include | — |
+| ChatCell: Facilitating Single-Cell Analysis with Natural Language [29] | include | — | include | — |
+| Illuminating protein space with a programmable generative model [30] | include | — | include | — |
+| Phenotype-Guided In Silico Molecular Generation Using Large Language Models [31] | include | — | include | — |
+| Aligning LLMs with Biomedical Knowledge using Balanced Fine-Tuning [32] | include | — | include | — |
+| Geneverse: A collection of Open-source Multimodal Large Language Models for Genomic and Proteomic Research [33] | include | — | include | — |
+| Human Genome Book:Words,Sentences and Paragraphs [34] | include | — | include | — |
+| GenNA: Conditional generation of nucleotide sequences guided by natural-language annotations [35] | include | — | include | — |
+| Genolator: A Multimodal Large Language Model Fusing Natural Language, Genomic, and Structural Tokens for Protein Function Interpretation [36] | include | — | include | — |
+| Gp-gpt: Large language model for gene-phenotype mapping [37] | include | — | include | — |
+| Cell2Sentence: teaching large language models the language of biology [38] | include | — | include | — |
+| H2O: A Foundation Model Bridging Histopathology to Spatial Multi-Omics Profiling [39] | uncertain | include (review lead) | include | — |
+| Multimodal Cell Context Instruction Tuning for Conditional DNA Regulatory Sequence Generation with Large Language Models [40] | include | — | include | — |
+| Language-Enhanced Representation Learning for Single-Cell Transcriptomics [41] | include | — | include | — |
+| The End of Aging Clocks: Training Foundation Models to Reason in Aging and Longevity [42] | include | — | include | — |
+| Towards Generalist Biomedical AI [43] | include | — | include | — |
+| Teampath: Building multimodal pathology experts with reasoning ai copilots [44] | include | — | include | — |
+| OCellus: A Language-Model Framework for Single-Cell, Spatial, and Perturbation Biology with Natural-Language Reasoning [45] | include | — | include | — |
+| OmicsLM: A Multimodal Large Language Model for Multi-Sample Omics Reasoning [46] | include | — | include | — |
+| Omni-DNA: A Unified Genomic Foundation Model for Cross-Modal and Multi-Task Learning [47] | include | — | include | — |
+| OmniGene-4: a unified bio-language MoE model with router-level interpretability [48] | include | — | include | — |
+| Rethinking Genomic Modeling Through Optical Character Recognition [49] | include | — | include | — |
+| ProCyon: A multimodal foundation model for protein phenotypes. [50] | include | — | include | — |
+| How Post-Training Shapes Biological Reasoning Models [51] | include | — | include | — |
+| RVQ-Alpha: Bridging Single-Cell Transcriptomics and Large Language Models via Discrete Tokenization and Verifiable Reinforcement Learning [52] | include | — | include | — |
+| A General Single-Cell Analysis Framework via Conditional Diffusion Generative Models [53] | include | — | include | — |
+| SciCore-Omics: a tri-modal foundation model unifying histology, spatial transcriptomics and language for spatial biology [54] | include | — | include | — |
+| scMIR: a vision-language foundation model for single-cell light microscopy image representation [55] | uncertain | include (LLM agent, not validated by a person) | include | — |
+| scMOBA: A conversational single-cell Multi-Omics Brain Agent across species [56] | include | — | include | — |
+| Systematic discovery of single-cell protein networks in cancer with Shusi [57] | include | — | include | — |
+| TissueNarrator: Generative Modeling of Spatial Transcriptomics with Large Language Models. [58] | include | — | include | — |
+| CellTosg2Sequence: A Unified Text-Omics-Signaling-Graph Large Language Model for Single-Cell Analysis [59] | include | — | include | — |
+| Query-driven generative AI synthesizes multi-modal spatial omics from histology. [60] | include | — | include | — |
+| 'Bingo' - a large language model- and graph neural network-based workflow for the prediction of essential genes from protein data | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| A fine-tuned genomic language model adds complementary nucleotide-context information to missense variant interpretation. | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Aligning foundation models on encoded synthetic omic data for patient stratification | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Building Knowledge-Enhanced AI Co-Scientists for Biomedical Discovery | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| CELLama: cell embedding leveraging language model abilities for analyzing cell types and spatial relationship in tumor | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| CellDuality: Unlocking Biological Reasoning in LLMs with Self-Supervised RLVR. | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| CellSwarm: LLM-Driven Cell Agents Recapitulate Tumor Microenvironment Dynamics and Sense Indirect Genetic Perturbations | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| ChIP-GPT: a managed large language model for robust data extraction from biomedical database records | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| CLIP-IT: CLIP-based Pairing of Histology Images with Privileged Textual Information | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| ELISA: An Interpretable Hybrid Generative AI Agent for Expression-Grounded Discovery in Single-Cell Genomics | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Enhanced Viral Genome Classification Using Large Language Models | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Enhancing generative perturbation models with llm-informed gene embeddings | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Exploring the Potentials and Challenges of Using Large Language Models for the Analysis of Transcriptional Regulation of Long Non-coding RNAs | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| From a single sequence to evolutionary trajectories: protein language models capture the evolutionary potential of SARS-CoV-2 protein sequences | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Generation of Multimodal Longitudinal Synthetic Data By Artificial Intelligence to Improve Personalized Medicine in Hematology | uncertain | exclude (review lead) | exclude | Application wrapper around an existing model |
+| Harnessing the Power of Single-Cell Large Language Models with Parameter Efficient Fine-Tuning using scPEFT | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| How to improve polygenic prediction from whole-genome sequencing data by leveraging predicted epigenomic features? | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Lineage-Independent Structural Risk Detection in SARS- CoV-2 Spike Protein via Zero-Shot Protein Language Modeling | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Literature-derived, context-aware gene | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| ProkBERT PhaStyle: accurate phage lifestyle prediction with pretrained genomic language models | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| scELMo: Embeddings from Language Models | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| Unify learns cellular evolution with universal multimodal embeddings | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| VCWorld: A Biological World Model for Virtual Cell Simulation | exclude: application wrapper around an existing model | — | exclude | Application wrapper around an existing model |
+| DNA Language Models: An Assessment of Pre-Training for Fine-Tuning Tasks | exclude: benchmark or resource without a new model | — | exclude | Benchmark or resource without a new model |
+| Transformer model generated bacteriophage genomes are compositionally distinct from natural sequences | exclude: benchmark or resource without a new model | — | exclude | Benchmark or resource without a new model |
+| Engineering Cells Using Artificial Intelligence | exclude: no biological data modality | — | exclude | No biological data modality |
+| Toward a universal foundation model for graph-structured data | exclude: no biological data modality | — | exclude | No biological data modality |
+| Toward learning a foundational representation of cells and genes | exclude: no biological data modality | — | exclude | No biological data modality |
+| Foundation model for biomedical graphs: Integrating knowledge graphs and protein structures to large language models | uncertain | exclude (review lead) | exclude | No foundation-model evidence |
+| A 5' UTR Language Model for Decoding Untranslated Regions of mRNA and Function Predictions. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A Cross-Species Generative Cell Atlas Across 1.5 Billion Years of Evolution: The TranscriptFormer Single-cell Model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A foundation language model to decipher diverse regulation of RNAs | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A foundational model for joint sequence-function multi-species modeling at scale for long-range genomic prediction | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A Genomic Language Model for Zero-Shot Prediction of Promoter Variant Effects | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A long range foundation model for zero-shot predictions in single-cell and spatial transcriptomics data | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A long-context language model for deciphering and generating bacteriophage genomes | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A multimodal cell-free RNA language model for liquid biopsy applications | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| A Phylogenetic Approach to Genomic Language Modeling | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Actionable Gene Expression Cell Profiling with Foundation Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Advancing Cancer Prognosis with Hierarchical Fusion of Genomic, Proteomic and Pathology Imaging Data from a Systems Biology Perspective | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| AntigenLM: Structure-Aware DNA Language Modeling for Influenza | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Bidirectional mamba for single-cell data: Efficient context learning with biological fidelity | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Bio-xLSTM: Generative modeling, representation and in-context learning of biological and chemical sequences | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| BioArc: Discovering Optimal Neural Architectures for Biological Foundation Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| BIOFORMERS: A SCALABLE FRAMEWORK FOR EXPLORING BIOSTATES USING TRANSFORMERS | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Biologically-Informed Hybrid Membership Inference Attacks on Generative Genomic Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Bo, W. scGPT: Towards building a foundation model for single-cell multi-omics using generative AI | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| BOTANIC-0: a series of foundation models for plant genomic data | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Caduceus: Bi-Directional Equivariant Long-Range DNA Sequence Modeling | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CanBART: A generative foundation model of cancer molecular alterations for synthetic patient generation and genomic profile completion | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Carbon: Decoding the Language of Life | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Causal Circuit Tracing Reveals Distinct Computational Architectures in Single-Cell Foundation Models: Inhibitory Dominance, Biological Coherence, and Cross-Model Convergence | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CD-GPT As a Biological Foundation Model Bridging the Gap between Molecular Sequences Through Central Dogma | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Cell ontology guided transcriptome foundation model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Celler:A Genomic Language Model for Long-Tailed Single-Cell Annotation | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CellOS: Learning a World Model of Cellular State through Joint Embedding Prediction | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CellPLM: Pre-training of Cell Language Model Beyond Single Cells | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CellReasoner: A reasoning-enhanced large language model for cell type annotation | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Central Dogma Transformer: Towards Mechanism-Oriented AI for Cellular Understanding | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Circular RNA identification using a genomic language model and a small number of authenticated examples | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CLAMP: predicting specific protein-mediated chromatin loops in diverse species with a chromatin accessibility language model. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CLM-X: A multimodal single-cell foundation model with flexible multi-way Transformer for unified scRNA-seq and scATAC-seq analysis | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Coalescence and Translation | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CodonMoE: DNA language models for codon-dependent mRNA prediction | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| CodonMoE: DNA Language Models for mRNA Analyses | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Ctrl-DNA: Controllable Cell-Type-Specific Regulatory DNA Design via Constrained RL | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Deciphering enzymatic potential in metagenomic reads through DNA language models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Deciphering microbial gene function using natural language processing. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Deciphering single-cell epigenomic language with a foundation model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Decoding the ERS-CAF immunoregulatory axis via multimodal AI and its pan-cancer prognostic and therapeutic predictive value. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Deep Learning Strategies for Representation Learning and Generative Modeling in the Biosciences | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Designing mRNA coding sequence via multimodal reverse translation language modeling with Pro2RNA | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| DNA language model GROVER learns sequence context in the human genome | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| DNA language models are powerful predictors of genome-wide variant effects | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| DNACSE: Enhancing Genomic LLMs with Contrastive Learning for DNA Barcode Identification † | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| dnaGrinder: a lightweight and high-capacity genomic foundation model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| End-to-end multitask learning, from protein language to protein features without alignments | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Enhancing DNA Foundation Models to Address Masking Inefficiencies | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Enhancing recognition and interpretation of functional phenotypic sequences through fine-tuning pre-trained genomic models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| EpiGePT: a Pretrained Transformer model for epigenomics. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| EpiGePT: a pretrained transformer-based language model for context-specific human epigenomics. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Escaping the forest: a sparse, interpretable, and foundational neural network alternative for tabular data | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| evoCancerGPT: Generating Zero-Shot Single-Cell and Single-Sample Cancer Progression Through Transfer Learning | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Foundation model for single-cell omics | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| From Modality Translation to Regulatory Reasoning: Interpretable AI for Single-Cell Multi-Omic Systems | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| GEM-GPT Enables Personalized Cell Type-Resolved Therapeutic Design for Systems Pharmacology. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| GENA-LM: a family of open-source foundational DNA language models for long sequences. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Gene-Family Encoding Boosts Domain-Adapted Single-Cell Language Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generating and decoding methylated DNA with a Human Epigenetic Foundation Model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generating antimicrobial peptides via genomic transfer learning | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generative design and construction of functional plasmids with a DNA language model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generative pretraining from large-scale transcriptomes for single-cell deciphering | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generative pretraining from large-scale transcriptomes: Implications for single-cell deciphering and clinical translation | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Generative single-cell transcriptomics via large language models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| GENERator: A Long-Context Generative Genomic Foundation Model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Genos: a human-centric genomic foundation model. | uncertain | exclude (review lead) | exclude | No natural-language text component |
+| GenSLMs: Genome-scale language models reveal SARS-CoV-2 evolutionary dynamics | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| GexMolGen: cross-modal generation of hit-like molecules via large language model encoding of gene expression signatures | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| HitAnno: Atlas-level cell type annotation based on scATAC-seq data via a hierarchical language model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| HoloCell: A Generative Foundation Model for Holistic Cellular Modeling | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| HydraRNA: a hybrid architecture based full-length RNA language model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| HyenaDNA: Long-Range Genomic Sequence Modeling at Single Nucleotide Resolution | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| ImmunoMatch learns and predicts cognate pairing of heavy and light immunoglobulin chains | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| JanusDNA: A Powerful Bi-directional Hybrid DNA Foundation Model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Large-scale multi-omic biosequence transformers for modeling protein–nucleic acid interactions | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Leveraging large language models to predict antibiotic resistance in Mycobacterium tuberculosis | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| MAMMAL - Molecular Aligned Multi-Modal Architecture and Language | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| MAMMAL--Molecular Aligned Multi-Modal Architecture and Language | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| MGM as a Large‐Scale Pretrained Foundation Model for Microbiome Analyses in Diverse Contexts | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Miniaturizing and modifying natural proteins with Raygun | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Modeling aspects of the language of life through transfer-learning protein sequences. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| mRNA-LM: full-length integrated SLM for mRNA analysis | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| MT-ConBiFormer-GPT: multi-target molecular generation for low-data drug discovery via a contrastive BiFormer-GPT architecture and curriculum learning with cross … | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Multi-megabase scale genome interpretation with genetic language models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Multi-Scale AI-Assisted Gene Expression Decoding | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Multimodal Learning for Mapping the Genotype-Phenotype Dynamics. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Nona: A unifying multimodal masking framework for functional genomics | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Nucleotide dependency analysis of DNA language models reveals genomic functional elements | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Open-weight genome language model safeguards: Assessing robustness via adversarial fine-tuning | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| OryzaG3: A Single-species Genomic Foundation Model Pretrained on Rice Pangenome | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| PlantBiMoE: A Bidirectional Foundation Model with Sparsemoe for Plant Genomes | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| PlantCAD2: A DNA foundation model for interpreting genomes across flowering plants. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| PlantCAD2: A Long-Context DNA Language Model for Cross-Species Functional Annotation in Angiosperms. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| PlantGFM: A Genomic Foundation Model for Discovery and Creation of Plant Genes | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Poisoning the Genome: Targeted Backdoor Attacks on DNA Foundation Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Pre-training of single-cell language models through genetic pathway learning | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Predicting evolutionary rate as a pretraining task improves genome language model representations | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Probing genomic language models: Nucleotide Generative Pretrained Transformer and the role of pretraining in learned representations | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Protein Set Transformer: A protein-based genome language model to power high diversity viromics. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Protein-nucleic acid language model-assisted design of precise and compact adenine base editor | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| PTM-Mamba: a PTM-aware protein language model with bidirectional gated Mamba blocks | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Retentive Network promotes efficient RNA language modeling of long sequences | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| RiNALMo: general-purpose RNA language models can generalize well on structure prediction tasks | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| RNA language models predict mutations that improve RNA function. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| SARITA: a large language model for generating the S1 subunit of the SARS-CoV-2 spike protein | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scDifformer: diffusion-based post-training for virtual cell modeling across large-scale single-cell data | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scFormer: A Universal Representation Learning Approach for Single-Cell Data Using Transformers | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scGenAI: A generative AI platform with biological context embedding of multimodal features enhances single cell state classification | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scgpt-spatial: Continual pretraining of single-cell foundation model for spatial transcriptomics. bioRxiv | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scGPT: toward building a foundation model for single-cell multi-omics using generative AI | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scGPT: Towards Building a Foundation Model for Single-Cell Multi-omics Using Generative AI | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scgpt: Towards building a foundation model for single-cell multi-omics using generative ai. bioRxiv | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scKEPLM: Knowledge enhanced large-scale pre-trained language model for single-cell transcriptomics | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scMulan: a multitask generative pre-trained language model for single-cell analysis | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| scWGBS-GPT: a foundation model for capturing long-range CPG dependencies in single-cell whole-genome bisulfite sequencing to enhance epigenetic analysis | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Self-supervised learning on millions of pre-mRNA sequences improves sequence-based RNA splicing prediction | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Semantic design of functional de novo genes from a genomic language model. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Semantic mining of functional de novo genes from a genomic language model | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| seqLens: optimizing language models for genomic predictions | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Short-Context Regulatory DNA Language Models with Motif-Discovery Regularization. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| ST-Align: Multi-Scale Image-Gene Foundation Modeling for Spatial Transcriptomics via Spot-Niche Alignment | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Tabula: A Tabular Self-Supervised Foundation Model for Single-Cell Transcriptomics | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Temporal AI model predicts drivers of cell state trajectories across human aging | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| The Language of Cancer: Decoding Cancer Signatures with Language Models and cfRNA Sequencing | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Towards Spatial Transcriptomics-driven Pathology Foundation Models | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| TRAFICA: an open chromatin language model to improve transcription factor binding affinity prediction. | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Transcriptomic Neural Networks Architecture and Applications to Functional and Aging Research | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Unsupervised Whole-Genome Representation Learning Captures Bacterial Phenotypes | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Zygosity-Aware DNA Language Modeling Improves Ancestry and Gene Expression Prediction | exclude: no natural-language text component | — | exclude | No natural-language text component |
+| Mamba: Linear-Time Sequence Modeling with Selective State Spaces | exclude: no substantive text-biology bridge | — | exclude | No substantive text-biology bridge |
+| Adding layers of information to scRNA-seq data using pre-trained language models | exclude: not a generative model | — | exclude | Not a generative model |
+| CELLama: Foundation Model for Single Cell and Spatial Transcriptomics by Cell Embedding Leveraging Language Model Abilities. | exclude: not a generative model | — | exclude | Not a generative model |
+| Clinically aligned multi-modal image-text model for pan-cancer prognosis prediction | exclude: not a generative model | — | exclude | Not a generative model |
+| Joint embedding of transcriptomes and text enables interactive single-cell RNA-seq data exploration via natural language | exclude: not a generative model | — | exclude | Not a generative model |
+| L2G: Repurposing Language Models for Genomics Tasks. | exclude: not a generative model | — | exclude | Not a generative model |
+| LangCell: Language-Cell 737 Pre-training for Cell Identity Understanding | exclude: not a generative model | — | exclude | Not a generative model |
+| LangCell: Language-Cell Pre-training for Cell Identity Understanding | exclude: not a generative model | — | exclude | Not a generative model |
+| Learning from Gene Names, Expression Values and Images: Contrastive Masked Text-Image Pretraining for Spatial Transcriptomics Representation Learning | uncertain | exclude (review lead) | exclude | Not a generative model |
+| OKR-Cell: Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training | exclude: not a generative model | — | exclude | Not a generative model |
+| Open World Knowledge Aided Single-Cell Foundation Model with Robust Cross-Modal Cell-Language Pre-training | exclude: not a generative model | — | exclude | Not a generative model |
+| Phenotypic Bioactivity Prediction as Open-set Biological Assay Querying | exclude: not a generative model | — | exclude | Not a generative model |
+| Towards Applying Large Language Models to Complement Single-Cell Foundation Models | exclude: not a generative model | — | exclude | Not a generative model |
+| ZerOmics: Toward General Models for Single-Cell Analysis with Instruction Tuning | exclude: not a generative model | — | exclude | Not a generative model |
+| Foundation model for comprehensive transcriptional regulation analysis | exclude: review or editorial | — | exclude | Review or editorial |
+| Generalist biological artificial intelligence in modeling the language of life | exclude: review or editorial | — | exclude | Review or editorial |
+| Geometric Representations of Knowledge Inside Biological Large Language Models: an Empirical Analysis | exclude: review or editorial | — | exclude | Review or editorial |
+| Let the data speak - single-cell analysis with CellWhisperer. | exclude: review or editorial | — | exclude | Review or editorial |
+| Single-cell exploration in natural language | exclude: review or editorial | — | exclude | Review or editorial |
+
+<!-- end generated -->
+
+### Supplementary Table S5. Decomposition decisions per step
+
+One row per step of the agent-decomposed routes (<!-- generated: rows of decomposition_step_decisions.csv -->1468<!-- end generated --> steps): the
+charted wording of the step, the decision category and library operations returned by the majority of
+the three runs, the number of runs that agreed, the rule applied with the agents' rationale, and the
+verbatim evidence. Data file only.
+
+### Supplementary Table S6. Parameter-pass decisions per slot
+
+One row per declared parameter of every operation call of the agent-decomposed routes
+(<!-- generated: rows of parameter_slot_decisions.csv -->2433<!-- end generated --> slots): whether the paper states the value for that data path, the
+value, the number of runs that agreed and the verbatim evidence. Data file only.
+
+### Supplementary Table S7. Targeted charting items per record and run
+
+One row per record, item and category of the targeted charting pass
+(<!-- generated: rows of targeted_charting_items.csv -->2862<!-- end generated --> rows), with whether each of the two runs returned it. Data file only.
+
+### Supplementary Table S8. Reports excluded at full text, with reasons
 
 One main reason per report, as recorded at full-text screening.
 
@@ -569,13 +1578,13 @@ One main reason per report, as recorded at full-text screening.
 
 <!-- end generated -->
 
-### Supplementary Table S4. Charted models
+### Supplementary Table S9. Charted models
 
 One row per charted model (<!-- generated: rows of charted_models.csv -->109<!-- end generated --> models): the record, paper title, DOI and year, the number of routes and
 configurations, the input-carrier families, the primary carrier subtype, fusion topologies, text roles,
 lifecycle phases and biological modalities. Data file only.
 
-### Supplementary Table S5. Included works: design culture and charted variables
+### Supplementary Table S10. Included works: design culture and charted variables
 
 One row per independent work. Dependence test: whether the work reports any test of whether outputs
 depend on the biological input (found by both charting runs, or by one run and confirmed at
@@ -645,7 +1654,7 @@ without a decomposed biological route or without parameter slots.
 
 <!-- end generated -->
 
-### Supplementary Table S6. Motif library
+### Supplementary Table S11. Motif library
 
 Motifs are closed frequent sub-chains of role-aware operations supported by at least 4 papers.
 Operations: library operations in order. Input: whether the operations act on biological input, on text
@@ -674,7 +1683,7 @@ The reporting of each motif's parameters and an example with its verbatim eviden
 
 <!-- end generated -->
 
-### Supplementary Table S7. Gene and token budgets stated in the papers
+### Supplementary Table S12. Gene and token budgets stated in the papers
 
 Values as stated in the papers. (a) Genes or features kept per cell or object when a profile is written
 as text or passed to an encoder; "not stated" marks a route whose number the paper does not give. (b)
@@ -728,7 +1737,7 @@ Vectors, discrete codes or text tokens per object passed to the language model.
 
 <!-- end generated -->
 
-### Supplementary Table S8. Text written by LLMs and used for training or evaluation
+### Supplementary Table S13. Text written by LLMs and used for training or evaluation
 
 Works that train or evaluate on text written or rewritten by another LLM. What was written: training or
 evaluation content, or instruction templates only. Human check: whether the paper reports a human check
@@ -767,7 +1776,7 @@ evaluation: whether LLM-written text enters the evaluation.
 
 <!-- end generated -->
 
-### Supplementary Table S9. Cross-culture comparison units
+### Supplementary Table S14. Cross-culture comparison units
 
 One row per comparison unit after adjudication: one comparison between arms of different cultures, per
 work and task family. Design: a controlled ablation within one system, the same backbone given the data
@@ -813,7 +1822,7 @@ DNA-as-image arm of OpticalDNA.
 
 <!-- end generated -->
 
-### Supplementary Table S10. Route-level design-pattern codebook
+### Supplementary Table S15. Route-level design-pattern codebook
 
 One row per charted route of the 50 agent-decomposed papers (<!-- generated: rows of route_codebook.csv -->532<!-- end generated --> routes): the
 model and configuration, lifecycle phase, source
@@ -830,7 +1839,7 @@ and the archetype. Data file only.
 
 Records identified per source and round, records removed before screening, records screened and
 excluded, reports sought, not retrieved and assessed, and studies included. Reasons for exclusion at
-full text are given in Supplementary Table S3.
+full text are given in Supplementary Table S8.
 
 <!-- generated: figure:flow from analysis/prisma_flow_2026-10-07/prisma_flow.png -->
 
@@ -849,17 +1858,22 @@ The data files are comma-separated, UTF-8 encoded and use plain-language values.
 
 | File | Item | Contents | Rows |
 |---------------------|-------------------------|---------------------------------------------------------|------:|
-| deviations.csv | Supplementary Table S1 | Deviations from the protocol | 22 |
+| deviations.csv | Supplementary Table S1 | Deviations from the protocol | 23 |
 | search_​runs.csv | Supplementary Table S2 | Search runs by round and source, with limits and counts as executed | 40 |
-| fulltext_​exclusions.csv | Supplementary Table S3 | Reports excluded at full text, by reason | 8 |
-| charted_​models.csv | Supplementary Table S4 | Charted models with their records, routes and input labels | 109 |
-| included_​works.csv | Supplementary Table S5 | Included works with their design culture and charted variables | 51 |
-| motif_​library.csv | Supplementary Table S6 | Motif library: recurring operation sub-chains with an example each | 15 |
-| gene_​budgets.csv | Supplementary Table S7 | Genes or features kept per cell or object, as stated in the papers | 21 |
-| token_​budgets.csv | Supplementary Table S7 | Vectors, codes or text tokens per object passed to the language model | 13 |
-| llm_​written_​text.csv | Supplementary Table S8 | Works that used text written by LLMs for training or evaluation | 25 |
-| comparison_​units.csv | Supplementary Table S9 | Cross-culture comparison units after adjudication | 31 |
-| route_​codebook.csv | Supplementary Table S10 | Route-level codebook of the design axes and archetypes | 532 |
+| title_​abstract_​screening_​decisions.csv | Supplementary Table S3 | Title and abstract screening: decisions of the screening agents for every screened record | 4863 |
+| fulltext_​screening_​decisions.csv | Supplementary Table S4 | Full-text screening: decisions of the screening agents, resolutions and final decisions for every assessed report | 234 |
+| decomposition_​step_​decisions.csv | Supplementary Table S5 | Operation-level decomposition: decision for every step of the agent-decomposed routes | 1468 |
+| parameter_​slot_​decisions.csv | Supplementary Table S6 | Parameter pass: whether the paper states each declared parameter of each operation call | 2433 |
+| targeted_​charting_​items.csv | Supplementary Table S7 | Targeted charting pass: for every record, which items each of the two runs returned | 2862 |
+| fulltext_​exclusions.csv | Supplementary Table S8 | Reports excluded at full text, by reason | 8 |
+| charted_​models.csv | Supplementary Table S9 | Charted models with their records, routes and input labels | 109 |
+| included_​works.csv | Supplementary Table S10 | Included works with their design culture and charted variables | 51 |
+| motif_​library.csv | Supplementary Table S11 | Motif library: recurring operation sub-chains with an example each | 15 |
+| gene_​budgets.csv | Supplementary Table S12 | Genes or features kept per cell or object, as stated in the papers | 21 |
+| token_​budgets.csv | Supplementary Table S12 | Vectors, codes or text tokens per object passed to the language model | 13 |
+| llm_​written_​text.csv | Supplementary Table S13 | Works that used text written by LLMs for training or evaluation | 25 |
+| comparison_​units.csv | Supplementary Table S14 | Cross-culture comparison units after adjudication | 31 |
+| route_​codebook.csv | Supplementary Table S15 | Route-level codebook of the design axes and archetypes | 532 |
 
 **Column dictionary** (also provided as data_dictionary.csv).
 
@@ -887,6 +1901,111 @@ The data files are comma-separated, UTF-8 encoded and use plain-language values.
 | search_​runs.csv | count_​in_​run_​log | Count for the source in the search summary file of the round |
 | search_​runs.csv | records_​retained | Records in the export file of the run, passed to deduplication |
 | search_​runs.csv | export_​file | Repository path of the export file of the run |
+| title_​abstract_​screening_​decisions.csv | screening_​run | Screening run (name and date of the run) |
+| title_​abstract_​screening_​decisions.csv | record_​id | Identifier of the record in the review database |
+| title_​abstract_​screening_​decisions.csv | record_​id_​in_​run | Identifier of the record within the screening run |
+| title_​abstract_​screening_​decisions.csv | title | Title of the record |
+| title_​abstract_​screening_​decisions.csv | doi | DOI of the record |
+| title_​abstract_​screening_​decisions.csv | automated_​decision | Decision of the automated screening: include, exclude or uncertain |
+| title_​abstract_​screening_​decisions.csv | automated_​exclusion_​reason | Exclusion reason of the automated decision, if any |
+| title_​abstract_​screening_​decisions.csv | automated_​uncertainty | Reason for an uncertain automated decision, if any |
+| title_​abstract_​screening_​decisions.csv | decided_​by | Who produced the automated decision: the fixed rule over the two first-pass reviewers, or the adjudicator (called when the first-pass reviewers conflicted or were uncertain) |
+| title_​abstract_​screening_​decisions.csv | rationale | Rationale of the automated decision |
+| title_​abstract_​screening_​decisions.csv | evidence | Evidence snippet from the record that supports the decision |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​paper_​type | Scope reviewer: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​biological_​modality | Scope reviewer: whether a biological data modality is present (yes, no, unclear) |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​text_​component | Scope reviewer: whether a natural-language text component is present (yes, no, unclear) |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​text_​biology_​bridge | Scope reviewer: whether a substantive bridge between text and biology is present (yes, no, unclear) |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​exclusion_​reason | Scope reviewer: main exclusion reason returned by the role, if any |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​uncertainty | Scope reviewer: reason for uncertainty returned by the role, if any |
+| title_​abstract_​screening_​decisions.csv | scope_​reviewer_​rationale | Scope reviewer: brief evidence-grounded rationale returned by the role |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​paper_​type | Architecture reviewer: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​generative_​model | Architecture reviewer: whether the candidate model is generative (yes, no, unclear) |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​foundation_​model_​evidence | Architecture reviewer: whether there is evidence of foundation-model characteristics (yes, no, unclear) |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​exclusion_​reason | Architecture reviewer: main exclusion reason returned by the role, if any |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​uncertainty | Architecture reviewer: reason for uncertainty returned by the role, if any |
+| title_​abstract_​screening_​decisions.csv | architecture_​reviewer_​rationale | Architecture reviewer: brief evidence-grounded rationale returned by the role |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​paper_​type | Adjudicator: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​biological_​modality | Adjudicator: whether a biological data modality is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​text_​component | Adjudicator: whether a natural-language text component is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​text_​biology_​bridge | Adjudicator: whether a substantive bridge between text and biology is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​generative_​model | Adjudicator: whether the candidate model is generative (yes, no, unclear) (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​foundation_​model_​evidence | Adjudicator: whether there is evidence of foundation-model characteristics (yes, no, unclear) (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​exclusion_​reason | Adjudicator: main exclusion reason returned by the role, if any (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​uncertainty | Adjudicator: reason for uncertainty returned by the role, if any (empty if the record was not adjudicated) |
+| title_​abstract_​screening_​decisions.csv | adjudicator_​rationale | Adjudicator: brief evidence-grounded rationale returned by the role (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | screening_​run | Full-text screening run (name and date of the run) |
+| fulltext_​screening_​decisions.csv | record_​id | Identifier of the record in the review database |
+| fulltext_​screening_​decisions.csv | record_​id_​in_​run | Identifier of the record within the screening run |
+| fulltext_​screening_​decisions.csv | title | Title of the report |
+| fulltext_​screening_​decisions.csv | doi | DOI of the report |
+| fulltext_​screening_​decisions.csv | study | First author and year of an included report, as in the article's reference list |
+| fulltext_​screening_​decisions.csv | automated_​decision | Decision of the automated screening: include, exclude or uncertain |
+| fulltext_​screening_​decisions.csv | automated_​exclusion_​reason | Exclusion reason of the automated decision, if any |
+| fulltext_​screening_​decisions.csv | automated_​uncertainty | Reason for an uncertain automated decision, if any |
+| fulltext_​screening_​decisions.csv | decided_​by | Who produced the automated decision: the fixed rule over the two first-pass reviewers, or the adjudicator (called when the first-pass reviewers conflicted or were uncertain) |
+| fulltext_​screening_​decisions.csv | rationale | Rationale of the automated decision |
+| fulltext_​screening_​decisions.csv | evidence | Evidence snippet from the record that supports the decision |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​paper_​type | Scope reviewer: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​biological_​modality | Scope reviewer: whether a biological data modality is present (yes, no, unclear) |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​text_​component | Scope reviewer: whether a natural-language text component is present (yes, no, unclear) |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​text_​biology_​bridge | Scope reviewer: whether a substantive bridge between text and biology is present (yes, no, unclear) |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​exclusion_​reason | Scope reviewer: main exclusion reason returned by the role, if any |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​uncertainty | Scope reviewer: reason for uncertainty returned by the role, if any |
+| fulltext_​screening_​decisions.csv | scope_​reviewer_​rationale | Scope reviewer: brief evidence-grounded rationale returned by the role |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​paper_​type | Architecture reviewer: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​generative_​model | Architecture reviewer: whether the candidate model is generative (yes, no, unclear) |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​foundation_​model_​evidence | Architecture reviewer: whether there is evidence of foundation-model characteristics (yes, no, unclear) |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​exclusion_​reason | Architecture reviewer: main exclusion reason returned by the role, if any |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​uncertainty | Architecture reviewer: reason for uncertainty returned by the role, if any |
+| fulltext_​screening_​decisions.csv | architecture_​reviewer_​rationale | Architecture reviewer: brief evidence-grounded rationale returned by the role |
+| fulltext_​screening_​decisions.csv | adjudicator_​paper_​type | Adjudicator: kind of paper: primary model paper, review or editorial, benchmark or resource, application wrapper, or unclear (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​biological_​modality | Adjudicator: whether a biological data modality is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​text_​component | Adjudicator: whether a natural-language text component is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​text_​biology_​bridge | Adjudicator: whether a substantive bridge between text and biology is present (yes, no, unclear) (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​generative_​model | Adjudicator: whether the candidate model is generative (yes, no, unclear) (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​foundation_​model_​evidence | Adjudicator: whether there is evidence of foundation-model characteristics (yes, no, unclear) (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​exclusion_​reason | Adjudicator: main exclusion reason returned by the role, if any (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​uncertainty | Adjudicator: reason for uncertainty returned by the role, if any (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | adjudicator_​rationale | Adjudicator: brief evidence-grounded rationale returned by the role (empty if the record was not adjudicated) |
+| fulltext_​screening_​decisions.csv | resolved_​by | Who resolved an uncertain automated decision: the review lead, from the cited full sections (rounds 1–4), or an LLM agent reading the full document, whose decision was not validated by a person (August round) |
+| fulltext_​screening_​decisions.csv | resolution_​decision | Decision of the resolution |
+| fulltext_​screening_​decisions.csv | resolution_​reason | Exclusion reason given by the resolution, if any |
+| fulltext_​screening_​decisions.csv | resolution_​basis | Basis of the resolution, as recorded |
+| fulltext_​screening_​decisions.csv | resolution_​date | Date of the resolution |
+| fulltext_​screening_​decisions.csv | final_​decision | Final decision: include or exclude |
+| fulltext_​screening_​decisions.csv | final_​exclusion_​reason | Final exclusion reason, as counted in the flow diagram |
+| decomposition_​step_​decisions.csv | study | First author and year of the record, as in the article's reference list |
+| decomposition_​step_​decisions.csv | record_​id | Record in the review database |
+| decomposition_​step_​decisions.csv | model | Model name as charted |
+| decomposition_​step_​decisions.csv | route_​id | Identifier of the charted route |
+| decomposition_​step_​decisions.csv | step | Position of the step in the route |
+| decomposition_​step_​decisions.csv | steps_​in_​route | Number of steps of the route |
+| decomposition_​step_​decisions.csv | step_​id | Identifier of the step |
+| decomposition_​step_​decisions.csv | charted_​wording | Element of the charted transformation chain that the step decomposes |
+| decomposition_​step_​decisions.csv | category | Decision category: library operation, learned module left unexpanded, data provenance (no computation), identity (no change), computation outside the library, unspecified fusion, or external text generator |
+| decomposition_​step_​decisions.csv | operations | Library operations named for the step |
+| decomposition_​step_​decisions.csv | runs_​agreeing | Number of the three runs that returned the published decision |
+| decomposition_​step_​decisions.csv | rule_​and_​rationale | Rule of the decomposition protocol applied, with the agents' rationale |
+| decomposition_​step_​decisions.csv | uncertainty | Uncertainty recorded for the step, if any |
+| decomposition_​step_​decisions.csv | evidence | Verbatim quote from the paper |
+| parameter_​slot_​decisions.csv | study | First author and year of the record, as in the article's reference list |
+| parameter_​slot_​decisions.csv | record_​id | Record in the review database |
+| parameter_​slot_​decisions.csv | model | Model name as charted |
+| parameter_​slot_​decisions.csv | route_​id | Identifier of the charted route |
+| parameter_​slot_​decisions.csv | step_​id | Identifier of the step |
+| parameter_​slot_​decisions.csv | operation | Library operation of the call |
+| parameter_​slot_​decisions.csv | parameter | Declared parameter of the operation |
+| parameter_​slot_​decisions.csv | status | Whether the paper states the value for this data path: stated or not stated |
+| parameter_​slot_​decisions.csv | value | Stated value, as given in the paper |
+| parameter_​slot_​decisions.csv | runs_​agreeing | Number of the three runs that returned the published status |
+| parameter_​slot_​decisions.csv | evidence | Verbatim quote from the paper |
+| targeted_​charting_​items.csv | study | First author and year of the record, as in the article's reference list |
+| targeted_​charting_​items.csv | record_​id | Record in the review database |
+| targeted_​charting_​items.csv | item | Charting item |
+| targeted_​charting_​items.csv | category | Category of the item |
+| targeted_​charting_​items.csv | found_​in_​run_​1 | Whether the first run returned the category for the record (yes or no) |
+| targeted_​charting_​items.csv | found_​in_​run_​2 | Whether the second run returned the category for the record (yes or no) |
 | fulltext_​exclusions.csv | reason | Main reason for exclusion at full text |
 | fulltext_​exclusions.csv | reports | Number of reports excluded for this reason |
 | charted_​models.csv | model | Model name as charted |

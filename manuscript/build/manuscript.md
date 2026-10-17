@@ -83,13 +83,14 @@ and the protocol with all later amendments is deposited retrospectively on Zenod
 [TODO: protocol DOI and deposit date].
 
 The protocol was amended <!-- generated: n:amendments -->10<!-- end generated --> times while the review was carried out, and
-<!-- generated: n:further_changes -->12<!-- end generated --> further changes were made that the protocol did not foresee; Supplementary Table S1 lists each one with its date
+<!-- generated: n:further_changes -->13<!-- end generated --> further changes were made that the protocol did not foresee; Supplementary Table S1 lists each one with its date
 or stage, its kind and the results that depend on it. The amendments concern the search (top-up rounds,
 a round that added OpenAlex, abstract enrichment), the screening workflow (role-separated screening,
 full-text section screening and a human resolution layer) and the procedure for living updates. The
 further changes added the analyses on which most results rest (the operation-level decomposition, the
-motif and design-axis analysis, and the design-culture analysis with its targeted charting pass) and
-record corrections and omissions. Of the further changes, <!-- generated: n:after_results -->7<!-- end generated --> were made after results
+motif and design-axis analysis, and the design-culture analysis with its targeted charting pass),
+record corrections and omissions, and record a resolution at full text that an LLM agent made where the
+protocol foresaw the review lead. Of the further changes, <!-- generated: n:after_results -->7<!-- end generated --> were made after results
 had been seen:
 the design-culture analysis with its targeted charting pass, the motif and design-axis definitions, the
 revision of the decomposition rules after run-to-run disagreement, the replacement of an earlier
@@ -157,8 +158,12 @@ Title and abstract screening applied the eligibility decision tree with two role
 (scope and architecture) and an adjudicator for conflicts; all three are prompts executed by the same
 LLM, not independent human reviewers. Full-text screening used machine conversions of the full texts,
 from which the complete data-source and input-representation sections were reconstructed and screened
-together with the title and abstract. Records still uncertain after adjudication were resolved by the
-review lead from the full sections, and the automated decision was kept alongside. The run-to-run
+together with the title and abstract. Records still uncertain after adjudication were resolved in
+rounds 1–4 by the review lead from the full sections, and in the August round by an LLM agent from the
+full document, whose decision was not validated by a person; the automated decisions were kept
+alongside. Supplementary Note
+S3 gives the prompts of the three roles verbatim, and Supplementary Tables S3
+and S4 give the decisions for every screened record and every assessed report. The run-to-run
 stability of this screening is reported in a companion methods paper [CITE companion manuscript].
 
 ### Data charting and data items
@@ -185,7 +190,9 @@ data path, with verbatim evidence checked mechanically; values that only follow 
 released code or cited papers do not count. This pass also used three runs per paper and the majority
 status, and its acceptance gate was fixed before the first run. The decomposition rules were developed
 on ten length-stratified papers and evaluated on held-out papers with the rules frozen (Supplementary
-Note S3). The result is version 1.3.0 of the operation library. The withdrawn
+Note S4). The result is version 1.3.0 of the operation library. Supplementary Tables
+S5 and S6 give the decision for every step and every parameter
+slot. The withdrawn
 OKR-Cell preprint was not decomposed.
 
 After a shortlist of candidate findings had been drawn up, a targeted charting pass was run with the
@@ -205,7 +212,8 @@ verbatim evidence for every item:
 
 Quotes were checked mechanically against the paper. The variables used for culture-level claims were
 then adjudicated by reading the evidence: the rationale items, dependence tests found in only one run,
-and the cross-representation comparison units.
+and the cross-representation comparison units. Supplementary Table S7 gives the items
+that each run returned for each record.
 
 ### Critical appraisal
 
@@ -225,7 +233,7 @@ sub-chains were named. Each route was also coded on five design axes along one c
 carrier formation, interface to the language model, transformation of measured values, text role and
 transparency. The coding rules are deterministic over the chains and the charted labels, and
 archetypes are combinations of carrier and interface; a model can carry several. Supplementary Note
-S4 describes the construction of the paths, the mining, the axes and their tests.
+S5 describes the construction of the paths, the mining, the axes and their tests.
 
 Each included work was assigned to one design culture by how biological data reach the generative
 model of its proposed system; comparators, data-generation models and components are excluded from
@@ -272,13 +280,15 @@ were frozen and hash-pinned before each production run; every output was validat
 and every evidence quote was checked mechanically against the paper text. Route charting, the
 decomposition and the parameter pass were each run three times, with the majority decision kept, and
 the targeted pass twice; agreement between runs was measured, against acceptance thresholds where these
-had been set. The review lead resolved the full-text records that remained uncertain after automated
-adjudication and approved the targeted charting pass, and the authors curated the four pilot
+had been set. The review lead resolved the full-text records of rounds 1–4 that remained uncertain after
+automated adjudication (in the August round this resolution was made by an LLM agent and was not
+validated by a person) and approved the targeted charting pass, and the authors curated the four pilot
 decompositions. The adjudication of the targeted pass and the culture assignment were made by
 the library steward, an agent-assisted role in which an AI assistant, directed by the review lead,
 applied written rules to the verbatim evidence and recorded each decision with its reason; a second,
-human coder is planned (see Limitations). Supplementary Note S5 gives the tasks, prompts, runs,
-agreement statistics and human checks in the order of the PRISMA-trAIce items.
+human coder is planned (see Limitations). Supplementary Note S6 gives the tasks, runs, agreement
+statistics and human checks in the order of the PRISMA-trAIce items; the prompts of the screening roles
+are in Supplementary Note S3, and those of the other steps in the repository.
 
 ## Results
 
@@ -290,7 +300,7 @@ duplicate was removed. Of 262 reports sought, 15 could not be retrieved and 14 l
 section pair, so 233 reports were assessed. 179 were excluded: no natural-language text component
 (131), application wrapper around an existing model (23), not generative (13), review or editorial (5),
 no biological modality (3), benchmark or resource without a new model (2), no foundation-model
-evidence (1), and no substantive text–biology bridge (1) (Supplementary Table S3).
+evidence (1), and no substantive text–biology bridge (1) (Supplementary Table S8).
 Fifty-four records were included from the databases. One more (XunZi) was recovered after an error in
 the automated keyword check that precedes screening was corrected, and was screened with the same
 frozen procedures, giving 55 records from 54 studies (Figure 2, left; Supplementary Figure S1).
@@ -298,10 +308,10 @@ frozen procedures, giving 55 records from 54 studies (Figure 2, left; Supplement
 ### The included works
 
 The 55 records describe 109 models (29 records describe one model; two describe eight), with 467
-task/input configurations and 585 grounded routes (Figure 2b–d; Supplementary Table S4). After excluding
+task/input configurations and 585 grounded routes (Figure 2b–d; Supplementary Table S9). After excluding
 the withdrawn OKR-Cell preprint, 54 records remain. Three studies have two reports each (Cell2Text,
 CellWhisperer, OmniNA), so the corpus contains 51 independent works, and the culture-level analyses
-below count works, not records (Supplementary Table S5).
+below count works, not records (Supplementary Table S10).
 
 The records were published in 2023 (4), 2024 (8), 2025 (22) and 2026 to 9 August (21); none is from
 2018–2022, although the search started in 2018 (Figure 2a). Years for 13 records added in 2026 top-ups come from
@@ -335,7 +345,7 @@ so for all their biological routes.
 Biological routes fall into six main carrier × interface archetypes: encoded soft tokens (24 papers),
 verbalised text in the token stream (18), generator conditioning (17), biological alphabets in the
 token stream (8), attention bridges (7) and shared latent alignment (7). The recurring operation
-sub-chains split along the same line (Figure 3c; Supplementary Table S6).
+sub-chains split along the same line (Figure 3c; Supplementary Table S11).
 Verbalisation motifs (subset, rank or sample, then serialise) occur almost only in verbalised inputs.
 Encoder motifs (encoder then projector, stacked modules, encode-then-join) occur in the encoder-based
 archetypes. Of models whose motifs are all verbalisation motifs, 16 of 19 have a verbalised primary
@@ -382,7 +392,7 @@ counts are small (4, 8, 20 and 18 papers). Hybrids appear from 2024 on (1, 4 and
 ### What each culture keeps of the measurement
 
 **Token-native routes keep identities and order and drop magnitudes** (Figure 4a; Supplementary Table
-S7). Works that write transcriptomes as text keep 50–1000 genes per cell, with a median of
+S12). Works that write transcriptomes as text keep 50–1000 genes per cell, with a median of
 100 over the 8 works that state this number (K). The genes are listed in rank order: Cell2Sentence,
 CellHermes, ChatCell and TeamPath keep 100, CellTosg2Sequence 200, and C2S-Scale reports that 1000
 often works well. OCellus' spatial prefix keeps 5 marker genes per neighbour. Values are written as
@@ -425,7 +435,7 @@ same trade-off from opposite sides (Table 2; Figure 5a).
 ### How the cultures are supervised and tested
 
 **LLM-generated text.** 25 of 51 works (49%) train or evaluate on text written or rewritten by another
-LLM (Figure 5b; Supplementary Table S8). In 20 works the generated text carries biological
+LLM (Figure 5b; Supplementary Table S13). In 20 works the generated text carries biological
 content (descriptions, captions, question–answer pairs, conversations, interpretations, reasoning
 traces); 4 generate only templates or instructions, and 1 is unclear. Seven works distill reasoning
 traces from frontier models, 5 report a human check of the generated text, and in 4 works LLM-written
@@ -465,7 +475,7 @@ validation in 1 work.
 ### What the head-to-head comparisons show
 
 The charting runs returned 217 comparison items. Adjudication merged them into 31 comparison units in
-20 works whose arms belong to different cultures (Supplementary Table S9). Three further
+20 works whose arms belong to different cultures (Supplementary Table S14). Three further
 units were set aside as within-culture or not about representation form.
 
 **Home advantage** (Figures 1b and 5c–d). The authors' own representation won 28 of 31 units: 20 of 23
@@ -617,7 +627,8 @@ dependence controls, rather than further between-system leaderboards.
 ### Limitations
 
 **Automation and human checks.** Screening, charting and decomposition were assisted by LLMs, and the
-role-separated screening prompts are not independent reviewers. The decomposition graphs are
+role-separated screening prompts are not independent reviewers. The full-text inclusion that an LLM agent
+resolved in the August round has not been checked by a person. The decomposition graphs are
 three-run consensus decisions, not author-verified reconstructions, and were not checked by a reviewer
 agent. Decomposition stability is incomplete. On unseen papers, the step-level consensus was
 reproduced in 95.6% of steps but complete route sequences only in 85.4%, below the predeclared 90%
@@ -654,7 +665,7 @@ pending). The search closed on 2026-08-09, and no refresh was done for this manu
 biomolecular text–generative models (ProteinDT, BioT5, BioT5+, NatureLM, Evolla, Galactica,
 InstructProtein, ProtLLM, Prot2Text, ProtT3, ProLLaMA, TxGemma) were never retrieved; none has a term
 of the biological-data block in its title or abstract, and protein or nucleotide blocks would have
-added many records (Supplementary Note S6). The findings therefore describe omics-framed
+added many records (Supplementary Note S7). The findings therefore describe omics-framed
 models. Models whose only biological input is a protein are represented by three works, and
 nucleotide-sequence models described without omics terms are under-represented. Whether the two
 cultures and the home advantage hold for these families is untested.
@@ -706,17 +717,19 @@ and the data files with a column dictionary.
 The search configurations and exports, screening and charting outputs, the operation library
 (version 1.3.0), the analysis code and the source data of every figure panel are available at
 https://github.com/BogdanDidenko/text-bio-fundational-models-review (this version: commit
-<!-- generated: build_commit -->5f27f9fb<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
+<!-- generated: build_commit -->a4f1a390<!-- end generated -->). `manuscript/supplementary/README.md` gives the repository path of every
 supplementary item, and the earlier version of this manuscript, with its internal labels, is
 `manuscript/archive/review_manuscript_draft_v0.5.1.md` (commit 4c4db9f0). The component library is
 browsable at https://bogdandidenko.github.io/text-bio-fundational-models-review/component-library/. A
 curated snapshot of the repository and the protocol with its amendments are deposited on Zenodo
-[TODO: DOIs].
+[TODO: DOIs]. The run logs of the LLM agents embed the texts of the papers and are not part of the
+snapshot; the prompts of the screening roles are reproduced in Supplementary Note S3, and the
+decisions of the agents for every record are in the supplementary data files.
 
 ## Use of large language models
 
 Screening, charting and the operation-level decomposition used LLM agents, as described in Methods
-(Use of AI tools) and Supplementary Note S5. [TODO: The authors state here any use of language
+(Use of AI tools) and Supplementary Note S6. [TODO: The authors state here any use of language
 models in drafting or editing this manuscript, as required by the journal's policy.]
 
 ## Funding
