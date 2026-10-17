@@ -32,7 +32,7 @@ NEW_MD = ROOT / "manuscript/build/manuscript.md"
 NEW_SUPP = ROOT / "manuscript/build/supplementary_information.md"
 GEN = " [generated or verbatim]"
 
-# Reasons for old blocks that are condensed or not carried over (block numbers of the archived v0.5.1).
+# Notes for old blocks with content that was condensed, moved or left out (block numbers of the archived v0.5.1).
 NOTES = {
     1: "Draft note with the version history of the draft; the history is in the change log and the Git log.",
     5: "Sentence of the long structured abstract of the Markdown draft; the journal abstract (short, as in the "
@@ -158,8 +158,10 @@ def move_list() -> None:
              "| Old section | " + " | ".join(statuses) + " |", "|---|" + "---:|" * len(statuses)]
     for sec, c in summary.items():
         lines.append(f"| {sec} | " + " | ".join(str(c[s]) for s in statuses) + " |")
-    lines += ["", "## Blocks condensed or not carried over, with the reason", "",
-              "| Old block | Old section | Status | Reason |", "|---:|---|---|---|"]
+    lines += ["", "## Blocks with a note on content that was condensed, moved or left out", "",
+              "The status is the match status of the whole block; the note says which part of the block was "
+              "condensed, moved or left out, and why.", "",
+              "| Old block | Old section | Status | Note |", "|---:|---|---|---|"]
     for r in rows:
         if int(r["old_block"]) in NOTES:
             lines.append(f"| {r['old_block']} | {r['old_section']} | {r['status']} | {NOTES[int(r['old_block'])]} |")
